@@ -1,0 +1,426 @@
+package application
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/url"
+	"regexp"
+	"slices"
+	"strings"
+	"time"
+
+	iamdomain "github.com/appkernia/appkernia/server/internal/modules/iam/domain"
+	notify "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/domain"
+	"github.com/google/uuid"
+	"golang.org/x/net/html"
+	"golang.org/x/net/html/atom"
+)
+
+type Authenticator interface {
+	Authenticate(context.Context, string, string) (iamdomain.AuthenticatedContext, error)
+}
+
+type Service struct {
+	auth  Authenticator
+	repo  notify.Repository
+	clock func() time.Time
+}
+
+func NewService(auth Authenticator, repo notify.Repository) *Service {
+	return &Service{auth: auth, repo: repo, clock: time.Now}
+}
+
+func (s *Service) authorize(ctx context.Context, token, permission string) (iamdomain.AuthenticatedContext, error) {
+	auth, err := s.auth.Authenticate(ctx, token, "ak-admin")
+	if err != nil {
+		return iamdomain.AuthenticatedContext{}, err
+	}
+	if !slices.Contains(auth.Permissions, permission) {
+		return iamdomain.AuthenticatedContext{}, notify.ErrForbidden
+	}
+	return auth, nil
+}
+
+func principal(auth iamdomain.AuthenticatedContext, p notify.Principal) notify.Principal {
+	p.TenantID, p.UserID, p.SessionID = auth.Tenant.ID, auth.User.ID, auth.SessionID
+	return p
+}
+
+func normalizePage(f notify.PageFilter) (notify.PageFilter, error) {
+	f.Query, f.Status, f.Type, f.Channel, f.Locale = strings.TrimSpace(f.Query), strings.TrimSpace(f.Status), strings.TrimSpace(f.Type), strings.TrimSpace(f.Channel), strings.TrimSpace(f.Locale)
+	if f.Page == 0 {
+		f.Page = 1
+	}
+	if f.PageSize == 0 {
+		f.PageSize = 20
+	}
+	if f.Page < 1 || f.PageSize < 1 || f.PageSize > 100 || len([]rune(f.Query)) > 160 {
+		return f, notify.ErrInvalid
+	}
+	return f, nil
+}
+
+func normalizeMessage(in notify.MessageInput, notice bool, now time.Time) (notify.MessageInput, error) {
+	in.Title, in.Body, in.BodyFormat, in.MessageType, in.AudienceScope = strings.TrimSpace(in.Title), strings.TrimSpace(in.Body), strings.TrimSpace(in.BodyFormat), strings.TrimSpace(in.MessageType), strings.TrimSpace(in.AudienceScope)
+	if notice {
+		in.MessageType = "notice"
+	} else if in.MessageType == "" {
+		in.MessageType = "system"
+	}
+	if in.BodyFormat == "" {
+		in.BodyFormat = "plain"
+	}
+	if in.AudienceScope == "" {
+		in.AudienceScope = "all"
+	}
+	if len([]rune(in.Title)) < 1 || len([]rune(in.Title)) > 300 || len([]rune(in.Body)) < 1 || len([]rune(in.Body)) > 100_000 || !oneOf(in.BodyFormat, "plain", "markdown", "html") || !oneOf(in.AudienceScope, "all", "selected") || (!notice && !oneOf(in.MessageType, "system", "private", "marketing", "security")) {
+		return in, notify.ErrInvalid
+	}
+	if in.ScheduledAt != nil && in.ScheduledAt.Before(now.Add(-time.Minute)) || in.ExpiresAt != nil && !in.ExpiresAt.After(now) || in.ScheduledAt != nil && in.ExpiresAt != nil && !in.ExpiresAt.After(*in.ScheduledAt) {
+		return in, notify.ErrInvalid
+	}
+	unique := make(map[uuid.UUID]struct{}, len(in.AudienceUserIDs))
+	out := make([]uuid.UUID, 0, len(in.AudienceUserIDs))
+	for _, id := range in.AudienceUserIDs {
+		if id == uuid.Nil {
+			return in, notify.ErrInvalid
+		}
+		if _, ok := unique[id]; !ok {
+			unique[id] = struct{}{}
+			out = append(out, id)
+		}
+	}
+	if in.AudienceScope == "all" {
+		out = []uuid.UUID{}
+	} else if len(out) < 1 || len(out) > 500 {
+		return in, notify.ErrInvalid
+	}
+	in.AudienceUserIDs = out
+	if in.BodyFormat == "html" {
+		in.Body = SanitizeHTML(in.Body)
+		if strings.TrimSpace(stripHTML(in.Body)) == "" {
+			return in, notify.ErrInvalid
+		}
+	}
+	return in, nil
+}
+
+func (s *Service) ListMessages(ctx context.Context, token string, notice bool, f notify.PageFilter) (notify.MessagePage, error) {
+	permission := "notify.message.read"
+	if notice {
+		permission = "notify.notice.read"
+	}
+	auth, err := s.authorize(ctx, token, permission)
+	if err != nil {
+		return notify.MessagePage{}, err
+	}
+	f, err = normalizePage(f)
+	if err != nil || !oneOf(f.Status, "", "draft", "scheduled", "published", "cancelled") || (!notice && !oneOf(f.Type, "", "system", "private", "marketing", "security")) {
+		return notify.MessagePage{}, notify.ErrInvalid
+	}
+	return s.repo.ListMessages(ctx, auth.Tenant.ID, notice, f)
+}
+
+func (s *Service) GetMessage(ctx context.Context, token string, id uuid.UUID, notice bool) (notify.Message, error) {
+	permission := "notify.message.read"
+	if notice {
+		permission = "notify.notice.read"
+	}
+	auth, err := s.authorize(ctx, token, permission)
+	if err != nil {
+		return notify.Message{}, err
+	}
+	return s.repo.GetMessage(ctx, auth.Tenant.ID, id, notice)
+}
+
+func (s *Service) CreateMessage(ctx context.Context, token string, p notify.Principal, notice bool, in notify.MessageInput) (notify.Message, error) {
+	permission := "notify.message.create"
+	if notice {
+		permission = "notify.notice.create"
+	}
+	auth, err := s.authorize(ctx, token, permission)
+	if err != nil {
+		return notify.Message{}, err
+	}
+	in, err = normalizeMessage(in, notice, s.clock().UTC())
+	if err != nil || strings.TrimSpace(p.RequestID) == "" {
+		return notify.Message{}, notify.ErrInvalid
+	}
+	return s.repo.CreateMessage(ctx, principal(auth, p), notice, in)
+}
+
+func (s *Service) UpdateMessage(ctx context.Context, token string, p notify.Principal, id uuid.UUID, notice bool, in notify.MessageInput) (notify.Message, error) {
+	permission := "notify.message.update"
+	if notice {
+		permission = "notify.notice.update"
+	}
+	auth, err := s.authorize(ctx, token, permission)
+	if err != nil {
+		return notify.Message{}, err
+	}
+	in, err = normalizeMessage(in, notice, s.clock().UTC())
+	if err != nil || id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
+		return notify.Message{}, notify.ErrInvalid
+	}
+	return s.repo.UpdateMessage(ctx, principal(auth, p), id, notice, in)
+}
+
+func (s *Service) PreviewRecipients(ctx context.Context, token string, id uuid.UUID, notice bool) (notify.RecipientPreview, error) {
+	permission := "notify.message.publish"
+	if notice {
+		permission = "notify.notice.publish"
+	}
+	auth, err := s.authorize(ctx, token, permission)
+	if err != nil {
+		return notify.RecipientPreview{}, err
+	}
+	message, err := s.repo.GetMessage(ctx, auth.Tenant.ID, id, notice)
+	if err != nil {
+		return notify.RecipientPreview{}, err
+	}
+	if message.Status != "draft" && message.Status != "scheduled" {
+		return notify.RecipientPreview{}, notify.ErrConflict
+	}
+	return s.repo.PreviewRecipients(ctx, auth.Tenant.ID, message)
+}
+
+func (s *Service) PublishMessage(ctx context.Context, token string, p notify.Principal, id uuid.UUID, notice bool) (notify.Message, notify.RecipientPreview, error) {
+	permission := "notify.message.publish"
+	if notice {
+		permission = "notify.notice.publish"
+	}
+	auth, err := s.authorize(ctx, token, permission)
+	if err != nil {
+		return notify.Message{}, notify.RecipientPreview{}, err
+	}
+	if id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
+		return notify.Message{}, notify.RecipientPreview{}, notify.ErrInvalid
+	}
+	return s.repo.PublishMessage(ctx, principal(auth, p), id, notice)
+}
+
+func (s *Service) CancelMessage(ctx context.Context, token string, p notify.Principal, id uuid.UUID, notice bool) (notify.Message, error) {
+	permission := "notify.message.cancel"
+	if notice {
+		permission = "notify.notice.cancel"
+	}
+	auth, err := s.authorize(ctx, token, permission)
+	if err != nil {
+		return notify.Message{}, err
+	}
+	if id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
+		return notify.Message{}, notify.ErrInvalid
+	}
+	return s.repo.CancelMessage(ctx, principal(auth, p), id, notice)
+}
+
+func (s *Service) RecipientStats(ctx context.Context, token string, id uuid.UUID, notice bool) (notify.RecipientStats, error) {
+	auth, err := s.authorize(ctx, token, "notify.recipient.read")
+	if err != nil {
+		return notify.RecipientStats{}, err
+	}
+	return s.repo.RecipientStats(ctx, auth.Tenant.ID, id, notice)
+}
+
+var templateCode = regexp.MustCompile(`^[a-z][a-z0-9_.-]{1,95}$`)
+var placeholder = regexp.MustCompile(`\{\{\s*([a-zA-Z][a-zA-Z0-9_.-]*)\s*\}\}`)
+
+func normalizeTemplate(in notify.TemplateInput) (notify.TemplateInput, error) {
+	in.Code, in.Name, in.Channel, in.BodyTemplate, in.Status = strings.TrimSpace(in.Code), strings.TrimSpace(in.Name), strings.TrimSpace(in.Channel), strings.TrimSpace(in.BodyTemplate), strings.TrimSpace(in.Status)
+	if in.Status == "" {
+		in.Status = "active"
+	}
+	if in.Locale != nil {
+		locale := strings.TrimSpace(*in.Locale)
+		in.Locale = &locale
+	}
+	if in.SubjectTemplate != nil {
+		subject := strings.TrimSpace(*in.SubjectTemplate)
+		in.SubjectTemplate = &subject
+	}
+	if !templateCode.MatchString(in.Code) || len([]rune(in.Name)) < 1 || len([]rune(in.Name)) > 160 || len([]rune(in.BodyTemplate)) < 1 || len([]rune(in.BodyTemplate)) > 100_000 || !oneOf(in.Channel, "in_app", "email", "sms", "push", "webhook") || !oneOf(in.Status, "active", "disabled") || in.Locale != nil && !oneOf(*in.Locale, "zh-CN", "en-US") || in.SubjectTemplate != nil && len([]rune(*in.SubjectTemplate)) > 500 {
+		return in, notify.ErrInvalid
+	}
+	if len(in.VariablesSchema) == 0 {
+		in.VariablesSchema = json.RawMessage(`{"type":"object","properties":{}}`)
+	}
+	var schema struct {
+		Type       string                     `json:"type"`
+		Properties map[string]json.RawMessage `json:"properties"`
+		Required   []string                   `json:"required"`
+	}
+	if !json.Valid(in.VariablesSchema) || json.Unmarshal(in.VariablesSchema, &schema) != nil || schema.Type != "object" || len(schema.Properties) > 100 {
+		return in, notify.ErrInvalid
+	}
+	for _, name := range schema.Required {
+		if _, ok := schema.Properties[name]; !ok {
+			return in, notify.ErrInvalid
+		}
+	}
+	combined := in.BodyTemplate
+	if in.SubjectTemplate != nil {
+		combined += *in.SubjectTemplate
+	}
+	for _, match := range placeholder.FindAllStringSubmatch(combined, -1) {
+		if _, ok := schema.Properties[match[1]]; !ok {
+			return in, notify.ErrInvalid
+		}
+	}
+	return in, nil
+}
+
+func (s *Service) ListTemplates(ctx context.Context, token string, f notify.PageFilter) (notify.TemplatePage, error) {
+	auth, err := s.authorize(ctx, token, "notify.template.read")
+	if err != nil {
+		return notify.TemplatePage{}, err
+	}
+	f, err = normalizePage(f)
+	if err != nil || !oneOf(f.Status, "", "active", "disabled") || !oneOf(f.Channel, "", "in_app", "email", "sms", "push", "webhook") || !oneOf(f.Locale, "", "zh-CN", "en-US", "global") {
+		return notify.TemplatePage{}, notify.ErrInvalid
+	}
+	return s.repo.ListTemplates(ctx, auth.Tenant.ID, f)
+}
+
+func (s *Service) CreateTemplate(ctx context.Context, token string, p notify.Principal, in notify.TemplateInput) (notify.Template, error) {
+	auth, err := s.authorize(ctx, token, "notify.template.create")
+	if err != nil {
+		return notify.Template{}, err
+	}
+	in, err = normalizeTemplate(in)
+	if err != nil || strings.TrimSpace(p.RequestID) == "" {
+		return notify.Template{}, notify.ErrInvalid
+	}
+	return s.repo.CreateTemplate(ctx, principal(auth, p), in)
+}
+
+func (s *Service) UpdateTemplate(ctx context.Context, token string, p notify.Principal, id uuid.UUID, in notify.TemplateInput) (notify.Template, error) {
+	auth, err := s.authorize(ctx, token, "notify.template.update")
+	if err != nil {
+		return notify.Template{}, err
+	}
+	in, err = normalizeTemplate(in)
+	if err != nil || id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
+		return notify.Template{}, notify.ErrInvalid
+	}
+	return s.repo.UpdateTemplate(ctx, principal(auth, p), id, in)
+}
+
+func (s *Service) ListDeliveries(ctx context.Context, token string, f notify.PageFilter) (notify.DeliveryPage, error) {
+	auth, err := s.authorize(ctx, token, "notify.delivery.read")
+	if err != nil {
+		return notify.DeliveryPage{}, err
+	}
+	f, err = normalizePage(f)
+	if err != nil || !oneOf(f.Status, "", "pending", "processing", "sent", "failed", "cancelled") || !oneOf(f.Channel, "", "email", "sms", "push", "webhook") {
+		return notify.DeliveryPage{}, notify.ErrInvalid
+	}
+	return s.repo.ListDeliveries(ctx, auth.Tenant.ID, f)
+}
+
+func (s *Service) GetDelivery(ctx context.Context, token string, id uuid.UUID) (notify.Delivery, error) {
+	auth, err := s.authorize(ctx, token, "notify.delivery.read")
+	if err != nil {
+		return notify.Delivery{}, err
+	}
+	return s.repo.GetDelivery(ctx, auth.Tenant.ID, id)
+}
+
+func (s *Service) RetryDelivery(ctx context.Context, token string, p notify.Principal, id uuid.UUID) (notify.Delivery, error) {
+	auth, err := s.authorize(ctx, token, "notify.delivery.retry")
+	if err != nil {
+		return notify.Delivery{}, err
+	}
+	if id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
+		return notify.Delivery{}, notify.ErrInvalid
+	}
+	return s.repo.RetryDelivery(ctx, principal(auth, p), id)
+}
+
+func oneOf(value string, allowed ...string) bool { return slices.Contains(allowed, value) }
+
+var allowedElements = map[string]map[string]bool{
+	"p": {}, "br": {}, "strong": {}, "em": {}, "u": {}, "s": {}, "blockquote": {}, "code": {}, "pre": {},
+	"ul": {}, "ol": {}, "li": {}, "h1": {}, "h2": {}, "h3": {}, "h4": {}, "h5": {}, "h6": {},
+	"table": {}, "thead": {}, "tbody": {}, "tr": {}, "th": {}, "td": {}, "hr": {}, "a": {"href": true, "title": true},
+}
+var droppedElements = map[string]bool{"script": true, "style": true, "iframe": true, "object": true, "embed": true, "form": true, "input": true, "button": true, "svg": true, "math": true}
+
+// SanitizeHTML enforces the notification body allowlist used by the Admin preview contract.
+func SanitizeHTML(raw string) string {
+	container := &html.Node{Type: html.ElementNode, Data: "div", DataAtom: atom.Div}
+	nodes, err := html.ParseFragment(strings.NewReader(raw), container)
+	if err != nil {
+		return ""
+	}
+	var clean func(*html.Node) []*html.Node
+	clean = func(node *html.Node) []*html.Node {
+		if node.Type == html.CommentNode {
+			return nil
+		}
+		if node.Type != html.ElementNode {
+			copy := *node
+			copy.Parent, copy.FirstChild, copy.LastChild, copy.PrevSibling, copy.NextSibling = nil, nil, nil, nil, nil
+			return []*html.Node{&copy}
+		}
+		name := strings.ToLower(node.Data)
+		if droppedElements[name] {
+			return nil
+		}
+		children := make([]*html.Node, 0)
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			children = append(children, clean(child)...)
+		}
+		attrs, allowed := allowedElements[name]
+		if !allowed {
+			return children
+		}
+		copy := &html.Node{Type: html.ElementNode, Data: name}
+		for _, attr := range node.Attr {
+			key := strings.ToLower(attr.Key)
+			if !attrs[key] {
+				continue
+			}
+			value := strings.TrimSpace(attr.Val)
+			if key == "href" && !safeURL(value) {
+				continue
+			}
+			copy.Attr = append(copy.Attr, html.Attribute{Key: key, Val: value})
+		}
+		for _, child := range children {
+			copy.AppendChild(child)
+		}
+		return []*html.Node{copy}
+	}
+	var out bytes.Buffer
+	for _, node := range nodes {
+		for _, cleaned := range clean(node) {
+			_ = html.Render(&out, cleaned)
+		}
+	}
+	return strings.TrimSpace(out.String())
+}
+
+func safeURL(value string) bool {
+	parsed, err := url.Parse(value)
+	return err == nil && (parsed.Scheme == "" || parsed.Scheme == "https" || parsed.Scheme == "http" || parsed.Scheme == "mailto")
+}
+
+func stripHTML(value string) string {
+	doc, err := html.Parse(strings.NewReader(value))
+	if err != nil {
+		return ""
+	}
+	var out strings.Builder
+	var walk func(*html.Node)
+	walk = func(node *html.Node) {
+		if node.Type == html.TextNode {
+			out.WriteString(node.Data)
+		}
+		for child := node.FirstChild; child != nil; child = child.NextSibling {
+			walk(child)
+		}
+	}
+	walk(doc)
+	return out.String()
+}

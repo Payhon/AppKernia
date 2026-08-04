@@ -1,0 +1,19 @@
+{
+  "regions.en-US.1440": {
+    "violations": []
+  },
+  "lazy_child_status": 200,
+  "modules.en-US.1440": {
+    "violations": []
+  },
+  "regions.zh-CN.1440": {
+    "violations": []
+  },
+  "regions.zh-CN.375": {
+    "violations": []
+  },
+  "modules.zh-CN.375": {
+    "violations": []
+  },
+  "unexpected_console_errors": []
+}

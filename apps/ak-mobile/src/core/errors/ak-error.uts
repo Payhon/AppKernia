@@ -1,0 +1,32 @@
+export type AkErrorKind =
+  | 'network_unavailable'
+  | 'timeout'
+  | 'cancelled'
+  | 'unauthorized'
+  | 'forbidden'
+  | 'validation'
+  | 'conflict'
+  | 'rate_limited'
+  | 'server_error'
+  | 'maintenance'
+  | 'unknown'
+
+export class AkError {
+  readonly kind: AkErrorKind
+  readonly code: string
+  readonly messageKey: string
+  readonly requestId: string | null
+
+  constructor(
+    kind: AkErrorKind,
+    code: string,
+    messageKey: string,
+    requestId: string | null,
+  ) {
+    this.kind = kind
+    this.code = code
+    this.messageKey = messageKey
+    this.requestId = requestId
+  }
+}
+

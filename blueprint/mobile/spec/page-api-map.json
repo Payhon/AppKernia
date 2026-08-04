@@ -1,0 +1,273 @@
+{
+  "schema_version": 1,
+  "description": "Route 到 App API 的契约映射。实际类型由 OpenAPI 生成。",
+  "pages": [
+    {
+      "route_key": "bootstrap",
+      "endpoints": [
+        "GET /api/v1/public/config",
+        "GET /api/v1/public/app-version"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "privacy.consent",
+      "endpoints": [
+        "GET /api/v1/public/legal/{document_type}"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "onboarding",
+      "endpoints": [],
+      "phase": "P1"
+    },
+    {
+      "route_key": "auth.login.password",
+      "endpoints": [
+        "POST /api/v1/auth/login/password",
+        "GET /api/v1/auth/oauth/providers"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "auth.login.otp",
+      "endpoints": [
+        "POST /api/v1/auth/mobile/send-code",
+        "POST /api/v1/auth/login/otp"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "auth.register",
+      "endpoints": [
+        "POST /api/v1/auth/register"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "auth.forgot-password",
+      "endpoints": [
+        "POST /api/v1/auth/password/forgot"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "auth.reset-password",
+      "endpoints": [
+        "POST /api/v1/auth/password/reset"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "auth.verify-contact",
+      "endpoints": [
+        "POST /api/v1/auth/email/send-code",
+        "POST /api/v1/auth/email/verify",
+        "POST /api/v1/auth/mobile/send-code",
+        "POST /api/v1/auth/mobile/verify"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "auth.mfa-challenge",
+      "endpoints": [
+        "POST /api/v1/auth/mfa/verify"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "auth.oauth-callback",
+      "endpoints": [
+        "POST /api/v1/auth/oauth/{provider}/callback"
+      ],
+      "phase": "P2"
+    },
+    {
+      "route_key": "home",
+      "endpoints": [
+        "GET /api/v1/auth/context",
+        "GET /api/v1/me/notifications/unread-count"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "notifications.list",
+      "endpoints": [
+        "GET /api/v1/me/notifications",
+        "POST /api/v1/me/notifications/read-all"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "notifications.detail",
+      "endpoints": [
+        "GET /api/v1/me/notifications/{message_id}",
+        "PATCH /api/v1/me/notifications/{message_id}/read"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "profile.index",
+      "endpoints": [
+        "GET /api/v1/me"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "profile.basic",
+      "endpoints": [
+        "GET /api/v1/me"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "profile.edit",
+      "endpoints": [
+        "GET /api/v1/me",
+        "PATCH /api/v1/me",
+        "POST /api/v1/me/avatar/upload-session"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "profile.security",
+      "endpoints": [
+        "GET /api/v1/me/login-events",
+        "GET /api/v1/me/security-events"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "profile.change-password",
+      "endpoints": [
+        "POST /api/v1/auth/password/change"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "profile.sessions",
+      "endpoints": [
+        "GET /api/v1/me/sessions",
+        "DELETE /api/v1/me/sessions/{session_id}",
+        "POST /api/v1/auth/logout-all"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "profile.devices",
+      "endpoints": [
+        "GET /api/v1/me/devices",
+        "DELETE /api/v1/me/devices/{device_id}"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "profile.mfa",
+      "endpoints": [
+        "POST /api/v1/auth/step-up",
+        "POST /api/v1/me/mfa/totp/setup",
+        "POST /api/v1/me/mfa/totp/confirm",
+        "DELETE /api/v1/me/mfa/totp",
+        "POST /api/v1/me/mfa/recovery-codes/rotate"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "profile.connections",
+      "endpoints": [
+        "GET /api/v1/me/oauth-accounts",
+        "DELETE /api/v1/me/oauth-accounts/{account_id}",
+        "POST /api/v1/auth/oauth/{provider}/authorize"
+      ],
+      "phase": "P2"
+    },
+    {
+      "route_key": "settings.index",
+      "endpoints": [
+        "GET /api/v1/me/preferences"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "settings.language",
+      "endpoints": [
+        "GET /api/v1/me/preferences",
+        "PATCH /api/v1/me/preferences"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "settings.theme",
+      "endpoints": [
+        "GET /api/v1/me/preferences",
+        "PATCH /api/v1/me/preferences"
+      ],
+      "phase": "P2"
+    },
+    {
+      "route_key": "settings.notifications",
+      "endpoints": [
+        "GET /api/v1/me/notification-preferences",
+        "PATCH /api/v1/me/notification-preferences",
+        "POST /api/v1/me/push-devices",
+        "DELETE /api/v1/me/push-devices/{device_id}"
+      ],
+      "phase": "P2"
+    },
+    {
+      "route_key": "tenant.switch",
+      "endpoints": [
+        "GET /api/v1/auth/context",
+        "POST /api/v1/auth/switch-tenant"
+      ],
+      "phase": "P2"
+    },
+    {
+      "route_key": "legal.privacy",
+      "endpoints": [
+        "GET /api/v1/public/legal/{document_type}"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "legal.terms",
+      "endpoints": [
+        "GET /api/v1/public/legal/{document_type}"
+      ],
+      "phase": "P0"
+    },
+    {
+      "route_key": "about",
+      "endpoints": [
+        "GET /api/v1/public/app-version"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "account.deletion",
+      "endpoints": [
+        "POST /api/v1/auth/step-up",
+        "POST /api/v1/me/account-deletion",
+        "GET /api/v1/me/account-deletion",
+        "DELETE /api/v1/me/account-deletion"
+      ],
+      "phase": "P2"
+    },
+    {
+      "route_key": "error.forbidden",
+      "endpoints": [],
+      "phase": "P0"
+    },
+    {
+      "route_key": "error.offline",
+      "endpoints": [],
+      "phase": "P0"
+    },
+    {
+      "route_key": "dev.components",
+      "endpoints": [],
+      "phase": "P0"
+    }
+  ]
+}

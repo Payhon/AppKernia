@@ -1,0 +1,54 @@
+export type FeatureFlagKey =
+  | 'registration_enabled'
+  | 'onboarding_enabled'
+  | 'password_login_enabled'
+  | 'otp_login_enabled'
+  | 'oauth_login_enabled'
+  | 'mfa_enabled'
+  | 'multi_tenant'
+  | 'push_notifications'
+  | 'dark_mode'
+  | 'biometric_unlock'
+  | 'account_deletion'
+  | 'app_update_check'
+  | 'vapor_renderer'
+  | 'dev_component_gallery'
+
+const defaults: Map<FeatureFlagKey, boolean> = new Map<FeatureFlagKey, boolean>([
+  ['registration_enabled', true],
+  ['onboarding_enabled', false],
+  ['password_login_enabled', true],
+  ['otp_login_enabled', false],
+  ['oauth_login_enabled', false],
+  ['mfa_enabled', true],
+  ['multi_tenant', false],
+  ['push_notifications', false],
+  ['dark_mode', false],
+  ['biometric_unlock', false],
+  ['account_deletion', true],
+  ['app_update_check', true],
+  ['vapor_renderer', false],
+  ['dev_component_gallery', true],
+])
+
+export class FeatureFlagRegistry {
+  private readonly values: Map<FeatureFlagKey, boolean>
+
+  constructor(values: Map<FeatureFlagKey, boolean> | null = null) {
+    this.values = new Map<FeatureFlagKey, boolean>(defaults)
+    if (values != null) {
+      values.forEach((value: boolean, key: FeatureFlagKey) => {
+        this.values.set(key, value)
+      })
+    }
+  }
+
+  isEnabled(key: FeatureFlagKey): boolean {
+    return this.values.get(key) ?? false
+  }
+
+  isUnknownEnabled(key: string): boolean {
+    return false
+  }
+}
+

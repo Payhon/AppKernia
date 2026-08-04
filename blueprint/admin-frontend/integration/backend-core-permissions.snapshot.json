@@ -1,0 +1,978 @@
+{
+  "schema_version": 1,
+  "description": "AppKernia Core stable permission catalog. Route binding remains in Go code and is tested against this catalog.",
+  "permissions": [
+    {
+      "code": "iam.session.read_self",
+      "name": "查看自己的会话",
+      "module_code": "iam",
+      "resource_name": "session",
+      "action_name": "read_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.session.revoke_self",
+      "name": "撤销自己的会话",
+      "module_code": "iam",
+      "resource_name": "session",
+      "action_name": "revoke_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.session.read",
+      "name": "查看在线会话",
+      "module_code": "iam",
+      "resource_name": "session",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.session.revoke",
+      "name": "强制下线会话",
+      "module_code": "iam",
+      "resource_name": "session",
+      "action_name": "revoke",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.device.read_self",
+      "name": "查看自己的设备",
+      "module_code": "iam",
+      "resource_name": "device",
+      "action_name": "read_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.device.revoke_self",
+      "name": "移除自己的设备",
+      "module_code": "iam",
+      "resource_name": "device",
+      "action_name": "revoke_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.read",
+      "name": "查看用户",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.create",
+      "name": "创建用户",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.update",
+      "name": "更新用户",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.enable",
+      "name": "启用用户",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "enable",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.disable",
+      "name": "禁用用户",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "disable",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.unlock",
+      "name": "解锁用户",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "unlock",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.reset_password",
+      "name": "重置用户密码",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "reset_password",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.assign_role",
+      "name": "分配用户角色",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "assign_role",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.import",
+      "name": "导入用户",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "import",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.export",
+      "name": "导出用户",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "export",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.tenant.read",
+      "name": "查看租户",
+      "module_code": "iam",
+      "resource_name": "tenant",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.tenant.create",
+      "name": "创建租户",
+      "module_code": "iam",
+      "resource_name": "tenant",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.tenant.update",
+      "name": "更新租户",
+      "module_code": "iam",
+      "resource_name": "tenant",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.tenant.member.read",
+      "name": "查看租户成员",
+      "module_code": "iam",
+      "resource_name": "tenant_member",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.tenant.member.invite",
+      "name": "邀请租户成员",
+      "module_code": "iam",
+      "resource_name": "tenant_member",
+      "action_name": "invite",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.tenant.member.update",
+      "name": "更新租户成员",
+      "module_code": "iam",
+      "resource_name": "tenant_member",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.tenant.member.remove",
+      "name": "移除租户成员",
+      "module_code": "iam",
+      "resource_name": "tenant_member",
+      "action_name": "remove",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.role.read",
+      "name": "查看角色",
+      "module_code": "iam",
+      "resource_name": "role",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.role.create",
+      "name": "创建角色",
+      "module_code": "iam",
+      "resource_name": "role",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.role.update",
+      "name": "更新角色",
+      "module_code": "iam",
+      "resource_name": "role",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.role.delete",
+      "name": "删除角色",
+      "module_code": "iam",
+      "resource_name": "role",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.role.assign_permission",
+      "name": "分配角色权限",
+      "module_code": "iam",
+      "resource_name": "role",
+      "action_name": "assign_permission",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.role.assign_menu",
+      "name": "分配角色菜单",
+      "module_code": "iam",
+      "resource_name": "role",
+      "action_name": "assign_menu",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.role.update_data_scope",
+      "name": "更新角色数据范围",
+      "module_code": "iam",
+      "resource_name": "role",
+      "action_name": "update_data_scope",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.permission.read",
+      "name": "查看权限目录",
+      "module_code": "iam",
+      "resource_name": "permission",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "org.unit.read",
+      "name": "查看组织机构",
+      "module_code": "org",
+      "resource_name": "unit",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "org.unit.create",
+      "name": "创建组织机构",
+      "module_code": "org",
+      "resource_name": "unit",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "org.unit.update",
+      "name": "更新组织机构",
+      "module_code": "org",
+      "resource_name": "unit",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "org.unit.move",
+      "name": "移动组织机构",
+      "module_code": "org",
+      "resource_name": "unit",
+      "action_name": "move",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "org.unit.delete",
+      "name": "删除组织机构",
+      "module_code": "org",
+      "resource_name": "unit",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "org.position.read",
+      "name": "查看岗位",
+      "module_code": "org",
+      "resource_name": "position",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "org.position.create",
+      "name": "创建岗位",
+      "module_code": "org",
+      "resource_name": "position",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "org.position.update",
+      "name": "更新岗位",
+      "module_code": "org",
+      "resource_name": "position",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "org.position.delete",
+      "name": "删除岗位",
+      "module_code": "org",
+      "resource_name": "position",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "org.assignment.update",
+      "name": "分配组织与岗位",
+      "module_code": "org",
+      "resource_name": "assignment",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.menu.read",
+      "name": "查看菜单",
+      "module_code": "sys",
+      "resource_name": "menu",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.menu.create",
+      "name": "创建菜单",
+      "module_code": "sys",
+      "resource_name": "menu",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.menu.update",
+      "name": "更新菜单",
+      "module_code": "sys",
+      "resource_name": "menu",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.menu.move",
+      "name": "移动菜单",
+      "module_code": "sys",
+      "resource_name": "menu",
+      "action_name": "move",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.menu.delete",
+      "name": "删除菜单",
+      "module_code": "sys",
+      "resource_name": "menu",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.dictionary.read",
+      "name": "查看字典",
+      "module_code": "sys",
+      "resource_name": "dictionary",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.dictionary.create",
+      "name": "创建字典",
+      "module_code": "sys",
+      "resource_name": "dictionary",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.dictionary.update",
+      "name": "更新字典",
+      "module_code": "sys",
+      "resource_name": "dictionary",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.dictionary.delete",
+      "name": "删除字典",
+      "module_code": "sys",
+      "resource_name": "dictionary",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.config.read",
+      "name": "查看配置",
+      "module_code": "sys",
+      "resource_name": "config",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.config.create",
+      "name": "创建配置",
+      "module_code": "sys",
+      "resource_name": "config",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.config.update",
+      "name": "更新配置",
+      "module_code": "sys",
+      "resource_name": "config",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.config.rotate_secret",
+      "name": "轮换秘密配置",
+      "module_code": "sys",
+      "resource_name": "config",
+      "action_name": "rotate_secret",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.api_client.read",
+      "name": "查看 API Client",
+      "module_code": "sys",
+      "resource_name": "api_client",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.api_client.create",
+      "name": "创建 API Client",
+      "module_code": "sys",
+      "resource_name": "api_client",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.api_client.update",
+      "name": "更新 API Client",
+      "module_code": "sys",
+      "resource_name": "api_client",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.api_client.rotate_secret",
+      "name": "创建 API Client Secret",
+      "module_code": "sys",
+      "resource_name": "api_client",
+      "action_name": "rotate_secret",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.api_client.revoke_secret",
+      "name": "撤销 API Client Secret",
+      "module_code": "sys",
+      "resource_name": "api_client",
+      "action_name": "revoke_secret",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.api_client.assign_permission",
+      "name": "分配 API Client 权限",
+      "module_code": "sys",
+      "resource_name": "api_client",
+      "action_name": "assign_permission",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.webhook.read",
+      "name": "查看 Webhook",
+      "module_code": "sys",
+      "resource_name": "webhook",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.webhook.create",
+      "name": "创建 Webhook",
+      "module_code": "sys",
+      "resource_name": "webhook",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.webhook.update",
+      "name": "更新 Webhook",
+      "module_code": "sys",
+      "resource_name": "webhook",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.webhook.test",
+      "name": "测试 Webhook",
+      "module_code": "sys",
+      "resource_name": "webhook",
+      "action_name": "test",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.webhook.delivery.read",
+      "name": "查看 Webhook 投递",
+      "module_code": "sys",
+      "resource_name": "webhook_delivery",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.region.read",
+      "name": "查看地区",
+      "module_code": "sys",
+      "resource_name": "region",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.module.read",
+      "name": "查看模块",
+      "module_code": "sys",
+      "resource_name": "module",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "storage.file.upload_self",
+      "name": "上传自己的文件",
+      "module_code": "storage",
+      "resource_name": "file",
+      "action_name": "upload_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "storage.file.read",
+      "name": "查看文件",
+      "module_code": "storage",
+      "resource_name": "file",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "storage.file.upload",
+      "name": "上传文件",
+      "module_code": "storage",
+      "resource_name": "file",
+      "action_name": "upload",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "storage.file.download",
+      "name": "下载文件",
+      "module_code": "storage",
+      "resource_name": "file",
+      "action_name": "download",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "storage.file.delete",
+      "name": "删除文件",
+      "module_code": "storage",
+      "resource_name": "file",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.message.read_self",
+      "name": "查看自己的消息",
+      "module_code": "notify",
+      "resource_name": "message",
+      "action_name": "read_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.message.mark_read_self",
+      "name": "标记自己的消息已读",
+      "module_code": "notify",
+      "resource_name": "message",
+      "action_name": "mark_read_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.message.read",
+      "name": "查看站内消息",
+      "module_code": "notify",
+      "resource_name": "message",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.message.create",
+      "name": "创建站内消息",
+      "module_code": "notify",
+      "resource_name": "message",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.message.update",
+      "name": "更新站内消息",
+      "module_code": "notify",
+      "resource_name": "message",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.message.publish",
+      "name": "发布站内消息",
+      "module_code": "notify",
+      "resource_name": "message",
+      "action_name": "publish",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.message.cancel",
+      "name": "取消站内消息",
+      "module_code": "notify",
+      "resource_name": "message",
+      "action_name": "cancel",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.recipient.read",
+      "name": "查看消息收件情况",
+      "module_code": "notify",
+      "resource_name": "recipient",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.notice.read",
+      "name": "查看公告",
+      "module_code": "notify",
+      "resource_name": "notice",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.notice.create",
+      "name": "创建公告",
+      "module_code": "notify",
+      "resource_name": "notice",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.notice.update",
+      "name": "更新公告",
+      "module_code": "notify",
+      "resource_name": "notice",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.notice.publish",
+      "name": "发布公告",
+      "module_code": "notify",
+      "resource_name": "notice",
+      "action_name": "publish",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.notice.cancel",
+      "name": "取消公告",
+      "module_code": "notify",
+      "resource_name": "notice",
+      "action_name": "cancel",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.template.read",
+      "name": "查看通知模板",
+      "module_code": "notify",
+      "resource_name": "template",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.template.create",
+      "name": "创建通知模板",
+      "module_code": "notify",
+      "resource_name": "template",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.template.update",
+      "name": "更新通知模板",
+      "module_code": "notify",
+      "resource_name": "template",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.delivery.read",
+      "name": "查看通知投递",
+      "module_code": "notify",
+      "resource_name": "delivery",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.delivery.retry",
+      "name": "重试通知投递",
+      "module_code": "notify",
+      "resource_name": "delivery",
+      "action_name": "retry",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "jobs.schedule.read",
+      "name": "查看定时计划",
+      "module_code": "jobs",
+      "resource_name": "schedule",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "jobs.schedule.create",
+      "name": "创建定时计划",
+      "module_code": "jobs",
+      "resource_name": "schedule",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "jobs.schedule.update",
+      "name": "更新定时计划",
+      "module_code": "jobs",
+      "resource_name": "schedule",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "jobs.schedule.pause",
+      "name": "暂停/恢复定时计划",
+      "module_code": "jobs",
+      "resource_name": "schedule",
+      "action_name": "pause",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "jobs.schedule.execute",
+      "name": "手动执行定时计划",
+      "module_code": "jobs",
+      "resource_name": "schedule",
+      "action_name": "execute",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "jobs.run.read",
+      "name": "查看任务运行记录",
+      "module_code": "jobs",
+      "resource_name": "run",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "audit.operation.read",
+      "name": "查看操作审计",
+      "module_code": "audit",
+      "resource_name": "operation",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "audit.login.read",
+      "name": "查看登录审计",
+      "module_code": "audit",
+      "resource_name": "login",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "audit.security.read",
+      "name": "查看安全事件",
+      "module_code": "audit",
+      "resource_name": "security",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "audit.security.resolve",
+      "name": "处理安全事件",
+      "module_code": "audit",
+      "resource_name": "security",
+      "action_name": "resolve",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.mfa.manage_self",
+      "name": "管理自己的 MFA",
+      "module_code": "iam",
+      "resource_name": "mfa",
+      "action_name": "manage_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.oauth.manage_self",
+      "name": "管理自己的 OAuth 绑定",
+      "module_code": "iam",
+      "resource_name": "oauth",
+      "action_name": "manage_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.mfa.reset",
+      "name": "重置用户 MFA",
+      "module_code": "iam",
+      "resource_name": "mfa",
+      "action_name": "reset",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.block_rule.read",
+      "name": "查看访问控制规则",
+      "module_code": "iam",
+      "resource_name": "block_rule",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.block_rule.create",
+      "name": "创建访问控制规则",
+      "module_code": "iam",
+      "resource_name": "block_rule",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.block_rule.update",
+      "name": "更新访问控制规则",
+      "module_code": "iam",
+      "resource_name": "block_rule",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.block_rule.delete",
+      "name": "撤销访问控制规则",
+      "module_code": "iam",
+      "resource_name": "block_rule",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "ops.health.read",
+      "name": "查看服务状态",
+      "module_code": "ops",
+      "resource_name": "health",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    }
+  ]
+}

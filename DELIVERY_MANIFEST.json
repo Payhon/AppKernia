@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "project": "AppKernia",
+  "delivery": "Mobile Blueprint + root AGENTS + concise Codex prompt",
+  "generated_on": "2026-08-02",
+  "extract_target": "AppKernia project root",
+  "paths": {
+    "root_agents": "AGENTS.md",
+    "codex_prompt": "CODEX_PROMPT.md",
+    "mobile_blueprint": "blueprint/mobile"
+  },
+  "counts": {
+    "routes": 35,
+    "tabs": 3,
+    "baseline_app_apis": 26,
+    "app_api_delta": 28,
+    "permission_delta": 9,
+    "ui_components": 33,
+    "privacy_capabilities": 11,
+    "agent_tasks": 25,
+    "platforms": 3
+  },
+  "validation": "passed",
+  "notes": [
+    "The archive intentionally does not contain blueprint/backend or blueprint/admin-frontend.",
+    "Extracting at project root adds blueprint/mobile and root-level instruction files.",
+    "Actual Android/iOS/Harmony builds remain implementation tasks and are not claimed by this blueprint validation."
+  ]
+}

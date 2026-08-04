@@ -1,0 +1,461 @@
+{
+  "schema_version": 2,
+  "description": "页面进入和动作权限矩阵。前端仅改善体验，Go API 必须再次校验。",
+  "pages": [
+    {
+      "component_key": "dashboard",
+      "view": [],
+      "actions": {},
+      "permission_status": {}
+    },
+    {
+      "component_key": "system.settings.configs",
+      "view": [
+        "sys.config.read"
+      ],
+      "actions": {
+        "create": "sys.config.create",
+        "update": "sys.config.update",
+        "rotateSecret": "sys.config.rotate_secret"
+      },
+      "permission_status": {
+        "sys.config.create": "existing",
+        "sys.config.read": "existing",
+        "sys.config.rotate_secret": "existing",
+        "sys.config.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.settings.dictionaries",
+      "view": [
+        "sys.dictionary.read"
+      ],
+      "actions": {
+        "create": "sys.dictionary.create",
+        "update": "sys.dictionary.update",
+        "delete": "sys.dictionary.delete"
+      },
+      "permission_status": {
+        "sys.dictionary.create": "existing",
+        "sys.dictionary.delete": "existing",
+        "sys.dictionary.read": "existing",
+        "sys.dictionary.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.settings.regions",
+      "view": [
+        "sys.region.read"
+      ],
+      "actions": {},
+      "permission_status": {
+        "sys.region.read": "existing"
+      }
+    },
+    {
+      "component_key": "system.settings.modules",
+      "view": [
+        "sys.module.read"
+      ],
+      "actions": {},
+      "permission_status": {
+        "sys.module.read": "existing"
+      }
+    },
+    {
+      "component_key": "system.users.departments",
+      "view": [
+        "org.unit.read"
+      ],
+      "actions": {
+        "create": "org.unit.create",
+        "update": "org.unit.update",
+        "move": "org.unit.move",
+        "delete": "org.unit.delete"
+      },
+      "permission_status": {
+        "org.unit.create": "existing",
+        "org.unit.delete": "existing",
+        "org.unit.move": "existing",
+        "org.unit.read": "existing",
+        "org.unit.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.users.accounts",
+      "view": [
+        "iam.user.read"
+      ],
+      "actions": {
+        "create": "iam.user.create",
+        "update": "iam.user.update",
+        "enable": "iam.user.enable",
+        "disable": "iam.user.disable",
+        "unlock": "iam.user.unlock",
+        "resetPassword": "iam.user.reset_password",
+        "assignRole": "iam.user.assign_role",
+        "updateAssignment": "org.assignment.update",
+        "import": "iam.user.import",
+        "export": "iam.user.export"
+      },
+      "permission_status": {
+        "iam.user.assign_role": "existing",
+        "iam.user.create": "existing",
+        "iam.user.disable": "existing",
+        "iam.user.enable": "existing",
+        "iam.user.export": "existing",
+        "iam.user.import": "existing",
+        "iam.user.read": "existing",
+        "iam.user.reset_password": "existing",
+        "iam.user.unlock": "existing",
+        "iam.user.update": "existing",
+        "org.assignment.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.users.positions",
+      "view": [
+        "org.position.read"
+      ],
+      "actions": {
+        "create": "org.position.create",
+        "update": "org.position.update",
+        "delete": "org.position.delete"
+      },
+      "permission_status": {
+        "org.position.create": "existing",
+        "org.position.delete": "existing",
+        "org.position.read": "existing",
+        "org.position.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.users.tenants",
+      "view": [
+        "iam.tenant.read"
+      ],
+      "actions": {
+        "create": "iam.tenant.create",
+        "update": "iam.tenant.update",
+        "readMembers": "iam.tenant.member.read",
+        "invite": "iam.tenant.member.invite",
+        "updateMember": "iam.tenant.member.update",
+        "removeMember": "iam.tenant.member.remove"
+      },
+      "permission_status": {
+        "iam.tenant.create": "existing",
+        "iam.tenant.member.invite": "existing",
+        "iam.tenant.member.read": "existing",
+        "iam.tenant.member.remove": "existing",
+        "iam.tenant.member.update": "existing",
+        "iam.tenant.read": "existing",
+        "iam.tenant.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.access.roles",
+      "view": [
+        "iam.role.read"
+      ],
+      "actions": {
+        "create": "iam.role.create",
+        "update": "iam.role.update",
+        "delete": "iam.role.delete",
+        "assignPermission": "iam.role.assign_permission",
+        "assignMenu": "iam.role.assign_menu",
+        "updateDataScope": "iam.role.update_data_scope"
+      },
+      "permission_status": {
+        "iam.role.assign_menu": "existing",
+        "iam.role.assign_permission": "existing",
+        "iam.role.create": "existing",
+        "iam.role.delete": "existing",
+        "iam.role.read": "existing",
+        "iam.role.update": "existing",
+        "iam.role.update_data_scope": "existing"
+      }
+    },
+    {
+      "component_key": "system.access.permissions",
+      "view": [
+        "iam.permission.read"
+      ],
+      "actions": {},
+      "permission_status": {
+        "iam.permission.read": "existing"
+      }
+    },
+    {
+      "component_key": "system.access.menus",
+      "view": [
+        "sys.menu.read"
+      ],
+      "actions": {
+        "create": "sys.menu.create",
+        "update": "sys.menu.update",
+        "move": "sys.menu.move",
+        "delete": "sys.menu.delete"
+      },
+      "permission_status": {
+        "sys.menu.create": "existing",
+        "sys.menu.delete": "existing",
+        "sys.menu.move": "existing",
+        "sys.menu.read": "existing",
+        "sys.menu.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.storage.files",
+      "view": [
+        "storage.file.read"
+      ],
+      "actions": {
+        "upload": "storage.file.upload",
+        "download": "storage.file.download",
+        "delete": "storage.file.delete"
+      },
+      "permission_status": {
+        "storage.file.delete": "existing",
+        "storage.file.download": "existing",
+        "storage.file.read": "existing",
+        "storage.file.upload": "existing"
+      }
+    },
+    {
+      "component_key": "system.notifications.notices",
+      "view": [
+        "notify.notice.read"
+      ],
+      "actions": {
+        "create": "notify.notice.create",
+        "update": "notify.notice.update",
+        "publish": "notify.notice.publish",
+        "cancel": "notify.notice.cancel"
+      },
+      "permission_status": {
+        "notify.notice.cancel": "existing",
+        "notify.notice.create": "existing",
+        "notify.notice.publish": "existing",
+        "notify.notice.read": "existing",
+        "notify.notice.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.notifications.messages",
+      "view": [
+        "notify.message.read"
+      ],
+      "actions": {
+        "create": "notify.message.create",
+        "update": "notify.message.update",
+        "publish": "notify.message.publish",
+        "cancel": "notify.message.cancel",
+        "readRecipients": "notify.recipient.read"
+      },
+      "permission_status": {
+        "notify.message.cancel": "existing",
+        "notify.message.create": "existing",
+        "notify.message.publish": "existing",
+        "notify.message.read": "existing",
+        "notify.message.update": "existing",
+        "notify.recipient.read": "existing"
+      }
+    },
+    {
+      "component_key": "system.notifications.templates",
+      "view": [
+        "notify.template.read"
+      ],
+      "actions": {
+        "create": "notify.template.create",
+        "update": "notify.template.update"
+      },
+      "permission_status": {
+        "notify.template.create": "existing",
+        "notify.template.read": "existing",
+        "notify.template.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.notifications.deliveries",
+      "view": [
+        "notify.delivery.read"
+      ],
+      "actions": {
+        "retry": "notify.delivery.retry"
+      },
+      "permission_status": {
+        "notify.delivery.read": "existing",
+        "notify.delivery.retry": "existing"
+      }
+    },
+    {
+      "component_key": "system.integrations.schedules",
+      "view": [
+        "jobs.schedule.read"
+      ],
+      "actions": {
+        "create": "jobs.schedule.create",
+        "update": "jobs.schedule.update",
+        "pause": "jobs.schedule.pause",
+        "execute": "jobs.schedule.execute",
+        "readRuns": "jobs.run.read"
+      },
+      "permission_status": {
+        "jobs.run.read": "existing",
+        "jobs.schedule.create": "existing",
+        "jobs.schedule.execute": "existing",
+        "jobs.schedule.pause": "existing",
+        "jobs.schedule.read": "existing",
+        "jobs.schedule.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.integrations.api-clients",
+      "view": [
+        "sys.api_client.read"
+      ],
+      "actions": {
+        "create": "sys.api_client.create",
+        "update": "sys.api_client.update",
+        "rotateSecret": "sys.api_client.rotate_secret",
+        "revokeSecret": "sys.api_client.revoke_secret",
+        "assignPermission": "sys.api_client.assign_permission"
+      },
+      "permission_status": {
+        "sys.api_client.assign_permission": "existing",
+        "sys.api_client.create": "existing",
+        "sys.api_client.read": "existing",
+        "sys.api_client.revoke_secret": "existing",
+        "sys.api_client.rotate_secret": "existing",
+        "sys.api_client.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.integrations.webhooks",
+      "view": [
+        "sys.webhook.read"
+      ],
+      "actions": {
+        "create": "sys.webhook.create",
+        "update": "sys.webhook.update",
+        "test": "sys.webhook.test",
+        "readDeliveries": "sys.webhook.delivery.read"
+      },
+      "permission_status": {
+        "sys.webhook.create": "existing",
+        "sys.webhook.delivery.read": "existing",
+        "sys.webhook.read": "existing",
+        "sys.webhook.test": "existing",
+        "sys.webhook.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.security.operation-logs",
+      "view": [
+        "audit.operation.read"
+      ],
+      "actions": {},
+      "permission_status": {
+        "audit.operation.read": "existing"
+      }
+    },
+    {
+      "component_key": "system.security.login-logs",
+      "view": [
+        "audit.login.read"
+      ],
+      "actions": {},
+      "permission_status": {
+        "audit.login.read": "existing"
+      }
+    },
+    {
+      "component_key": "system.security.events",
+      "view": [
+        "audit.security.read"
+      ],
+      "actions": {
+        "resolve": "audit.security.resolve"
+      },
+      "permission_status": {
+        "audit.security.read": "existing",
+        "audit.security.resolve": "existing"
+      }
+    },
+    {
+      "component_key": "system.security.block-rules",
+      "view": [
+        "iam.block_rule.read"
+      ],
+      "actions": {
+        "create": "iam.block_rule.create",
+        "update": "iam.block_rule.update",
+        "delete": "iam.block_rule.delete"
+      },
+      "permission_status": {
+        "iam.block_rule.create": "existing",
+        "iam.block_rule.delete": "existing",
+        "iam.block_rule.read": "existing",
+        "iam.block_rule.update": "existing"
+      }
+    },
+    {
+      "component_key": "system.monitoring.sessions",
+      "view": [
+        "iam.session.read"
+      ],
+      "actions": {
+        "revoke": "iam.session.revoke"
+      },
+      "permission_status": {
+        "iam.session.read": "existing",
+        "iam.session.revoke": "existing"
+      }
+    },
+    {
+      "component_key": "system.monitoring.health",
+      "view": [
+        "ops.health.read"
+      ],
+      "actions": {},
+      "permission_status": {
+        "ops.health.read": "existing"
+      }
+    },
+    {
+      "component_key": "profile.basic",
+      "view": [],
+      "actions": {},
+      "permission_status": {}
+    },
+    {
+      "component_key": "profile.security",
+      "view": [],
+      "actions": {
+        "readSessions": "iam.session.read_self",
+        "revokeSession": "iam.session.revoke_self",
+        "readDevices": "iam.device.read_self",
+        "revokeDevice": "iam.device.revoke_self",
+        "manageMfa": "iam.mfa.manage_self"
+      },
+      "permission_status": {
+        "iam.device.read_self": "existing",
+        "iam.device.revoke_self": "existing",
+        "iam.mfa.manage_self": "existing",
+        "iam.session.read_self": "existing",
+        "iam.session.revoke_self": "existing"
+      }
+    },
+    {
+      "component_key": "profile.connections",
+      "view": [],
+      "actions": {
+        "manageOauth": "iam.oauth.manage_self"
+      },
+      "permission_status": {
+        "iam.oauth.manage_self": "existing"
+      }
+    }
+  ]
+}

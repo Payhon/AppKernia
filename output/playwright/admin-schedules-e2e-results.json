@@ -1,0 +1,44 @@
+{
+  "en-US.1440.empty": {
+    "violations": []
+  },
+  "en-US.1440.editor-preview": {
+    "violations": []
+  },
+  "en-US.1440.saved": {
+    "violations": []
+  },
+  "en-US.1440.run-succeeded": {
+    "violations": []
+  },
+  "en-US.1440.run-deep-link": {
+    "violations": []
+  },
+  "zh-CN.375.run-deep-link": {
+    "violations": []
+  },
+  "url_state": "http://127.0.0.1:4174/system/integrations/schedules?q=2076902268",
+  "zh-CN.1440.saved": {
+    "violations": []
+  },
+  "zh-CN.1024.saved": {
+    "violations": []
+  },
+  "zh-CN.768.saved": {
+    "violations": []
+  },
+  "zh-CN.375.saved": {
+    "violations": []
+  },
+  "runtime": {
+    "schedule_id": "019fc822-0468-7668-99c3-b117921d344a",
+    "run_id": "019fc822-065c-70a3-84b9-49ab7ec19007",
+    "database_state": "succeeded|JOBS.HEALTH.OK|active",
+    "audit_count": 4,
+    "registered_handlers": [
+      "system.health.snapshot"
+    ],
+    "preview_count": 5
+  },
+  "unexpected_console_errors": []
+}

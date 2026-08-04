@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "verified_on": "2026-08-02",
+  "baseline": {
+    "uni_app_x": "HBuilderX 5.15 stable line or later patch validated by AK CI",
+    "renderer": "VDOM / standard mode",
+    "uview_ultra": "4.5.18 pinned in repository",
+    "language": "UTS + UVue Composition API"
+  },
+  "targets": [
+    {
+      "platform": "android",
+      "product_name": "Android",
+      "project_min_os": "Android 8.0 / API 26",
+      "build_tool": "HBuilderX local/custom base or cloud packaging",
+      "required_evidence": [
+        "debug compile",
+        "release compile",
+        "physical-device smoke",
+        "uni-automator suite"
+      ],
+      "notes": [
+        "16 KB page-size compatibility must be preserved",
+        "Never disable TLS certificate verification"
+      ]
+    },
+    {
+      "platform": "ios",
+      "product_name": "iOS",
+      "project_min_os": "iOS 13",
+      "build_tool": "HBuilderX + Xcode toolchain/cloud packaging",
+      "required_evidence": [
+        "simulator compile",
+        "release/archive compile",
+        "physical-device smoke",
+        "uni-automator simulator suite"
+      ],
+      "notes": [
+        "Keychain-backed secure storage",
+        "Privacy usage descriptions must match actual calls"
+      ]
+    },
+    {
+      "platform": "harmony",
+      "product_name": "HarmonyOS NEXT",
+      "project_min_os": "API 14",
+      "build_tool": "HBuilderX + DevEco Studio Build 5.0.7.210 or newer compatible release",
+      "required_evidence": [
+        "debug compile",
+        "release compile",
+        "physical-device smoke",
+        "manual accessibility pass"
+      ],
+      "notes": [
+        "Local DevEco toolchain is required",
+        "ArkTS memory profiling is part of release hardening"
+      ]
+    }
+  ],
+  "renderer_upgrade_gate": {
+    "target": "Vapor",
+    "status": "experimental_not_default",
+    "requirements": [
+      "uView Ultra explicitly supports the selected Vapor/style-isolation profile",
+      "all AK wrapper components pass Android/iOS/Harmony compatibility tests",
+      "state, i18n and UTS plugins compile under Vapor",
+      "release performance and memory results are recorded in an ADR"
+    ]
+  }
+}

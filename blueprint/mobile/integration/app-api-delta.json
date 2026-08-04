@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "description": "为 AK Mobile 页面与安全闭环建议补充到 Backend Blueprint 的 App API。每项必须同步 Go Route、OpenAPI、权限、审计、sqlc 与测试。",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/context",
+      "purpose": "返回当前移动会话、用户、活动租户、租户成员关系、权限快照与 Feature Flags。",
+      "phase": "P0"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/switch-tenant",
+      "purpose": "切换活动租户并轮换移动端 Access/Refresh Token。",
+      "phase": "P2"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/oauth/providers",
+      "purpose": "返回当前启用的第三方登录 Provider 与移动端配置。",
+      "phase": "P2"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/oauth/{provider}/authorize",
+      "purpose": "创建 OAuth PKCE/state 授权会话并返回授权参数。",
+      "phase": "P2"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/oauth/{provider}/callback",
+      "purpose": "校验 PKCE/state 并完成登录或账号绑定。",
+      "phase": "P2"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/mfa/verify",
+      "purpose": "完成登录过程中的 MFA Challenge。",
+      "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/step-up",
+      "purpose": "通过密码或 MFA 获取短生命周期 Step-up Token，用于敏感操作。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/oauth-accounts",
+      "purpose": "读取当前用户已绑定的第三方账号。",
+      "phase": "P2"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/oauth-accounts/{account_id}",
+      "purpose": "解绑当前用户的第三方账号，需 Step-up。",
+      "phase": "P2"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/mfa/totp/setup",
+      "purpose": "创建 TOTP Secret 与一次性二维码载荷；Secret 不进入日志。",
+      "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/mfa/totp/confirm",
+      "purpose": "确认 TOTP 并启用 MFA。",
+      "phase": "P1"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/mfa/totp",
+      "purpose": "关闭 TOTP，需 Step-up。",
+      "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/mfa/recovery-codes/rotate",
+      "purpose": "轮换恢复码，仅在响应中显示一次。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/preferences",
+      "purpose": "读取语言、时区、主题偏好等用户偏好。",
+      "phase": "P1"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/me/preferences",
+      "purpose": "更新用户偏好；服务端验证允许字段。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notification-preferences",
+      "purpose": "读取通知渠道与免打扰偏好。",
+      "phase": "P2"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/me/notification-preferences",
+      "purpose": "更新通知偏好。",
+      "phase": "P2"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/push-devices",
+      "purpose": "注册或刷新 Push Device Token；Token 仅服务端加密保存。",
+      "phase": "P2"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/push-devices/{device_id}",
+      "purpose": "注销当前设备 Push Token。",
+      "phase": "P2"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications/unread-count",
+      "purpose": "读取未读消息计数。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications/{message_id}",
+      "purpose": "读取自己的单条消息详情。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/login-events",
+      "purpose": "读取自己的近期登录记录，返回脱敏 IP/设备信息。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/security-events",
+      "purpose": "读取与本人相关的安全事件。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/legal/{document_type}",
+      "purpose": "读取隐私政策、用户协议等已发布版本。",
+      "phase": "P0"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/app-version",
+      "purpose": "返回三平台最低/推荐版本、商店地址和升级说明；不下发可执行脚本。",
+      "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/account-deletion",
+      "purpose": "创建账号注销申请，需 Step-up 和冷静期。",
+      "phase": "P2"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/account-deletion",
+      "purpose": "读取账号注销申请状态。",
+      "phase": "P2"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/account-deletion",
+      "purpose": "在冷静期内撤销账号注销申请。",
+      "phase": "P2"
+    }
+  ]
+}

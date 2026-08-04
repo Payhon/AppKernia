@@ -1,0 +1,120 @@
+{
+  "generated_at": "2026-08-04T03:12:17.079Z",
+  "budgets": {
+    "initial_gzip_bytes": 307200,
+    "chunk_gzip_bytes": 184320
+  },
+  "actual": {
+    "initial_gzip_bytes": 201033,
+    "largest_chunks": [
+      {
+        "file": "assets/DashboardTrendChart-Cuw21qoK.js",
+        "gzip_bytes": 165235
+      },
+      {
+        "file": "assets/context-DywDVt-A.js",
+        "gzip_bytes": 93800
+      },
+      {
+        "file": "assets/query-client-DDvaIZGa.js",
+        "gzip_bytes": 67488
+      },
+      {
+        "file": "assets/typography-BaONyMga.js",
+        "gzip_bytes": 52066
+      },
+      {
+        "file": "assets/AppShell-DkI1SVdh.js",
+        "gzip_bytes": 48781
+      },
+      {
+        "file": "assets/table-DtE-IToY.js",
+        "gzip_bytes": 41660
+      },
+      {
+        "file": "assets/schemas-BPxuHmkT.js",
+        "gzip_bytes": 36400
+      },
+      {
+        "file": "assets/space-Bg_aHXDY.js",
+        "gzip_bytes": 26950
+      },
+      {
+        "file": "assets/tree-D17p2q5k.js",
+        "gzip_bytes": 15695
+      },
+      {
+        "file": "assets/Match-BBGHzMkK.js",
+        "gzip_bytes": 15655
+      }
+    ]
+  },
+  "initial_files": [
+    {
+      "file": "assets/context-DywDVt-A.js",
+      "gzip_bytes": 93800
+    },
+    {
+      "file": "assets/query-client-DDvaIZGa.js",
+      "gzip_bytes": 67488
+    },
+    {
+      "file": "assets/Match-BBGHzMkK.js",
+      "gzip_bytes": 15655
+    },
+    {
+      "file": "assets/index-COLqsvLV.js",
+      "gzip_bytes": 8298
+    },
+    {
+      "file": "assets/useStore-C2mK2XZf.js",
+      "gzip_bytes": 6602
+    },
+    {
+      "file": "assets/jsx-runtime-KJkY8l8U.js",
+      "gzip_bytes": 3312
+    },
+    {
+      "file": "assets/link-P6uWwCUK.js",
+      "gzip_bytes": 2192
+    },
+    {
+      "file": "assets/lazyRouteComponent-CTzzOfXm.js",
+      "gzip_bytes": 1403
+    },
+    {
+      "file": "assets/shim-DRT8D95O.js",
+      "gzip_bytes": 489
+    },
+    {
+      "file": "assets/useMatch-BMATxjR9.js",
+      "gzip_bytes": 441
+    },
+    {
+      "file": "assets/redirect-D3L17tzd.js",
+      "gzip_bytes": 327
+    },
+    {
+      "file": "assets/useNavigate-DqCnFULB.js",
+      "gzip_bytes": 236
+    },
+    {
+      "file": "assets/useParams-CccLzUr6.js",
+      "gzip_bytes": 231
+    },
+    {
+      "file": "assets/useSearch-BpLap05B.js",
+      "gzip_bytes": 205
+    },
+    {
+      "file": "assets/useRouter-DVsENc7m.js",
+      "gzip_bytes": 184
+    },
+    {
+      "file": "assets/matchContext-3ve4yMhq.js",
+      "gzip_bytes": 170
+    }
+  ],
+  "passed": true,
+  "oversized_chunks": []
+}

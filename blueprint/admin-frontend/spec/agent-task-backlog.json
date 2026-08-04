@@ -1,0 +1,484 @@
+{
+  "schema_version": 1,
+  "project": "AppKernia Admin",
+  "execution_rule": "One task at a time; dependencies and acceptance commands must pass before Done.",
+  "tasks": [
+    {
+      "id": "AKADM-000",
+      "phase": "P0A",
+      "title": "初始化 React/Vite 工程与质量门禁",
+      "depends_on": [],
+      "ui_skill_required": false,
+      "outputs": [
+        "apps/ak-admin",
+        "pnpm-lock.yaml",
+        "CI",
+        "env schema"
+      ],
+      "acceptance": [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test",
+        "pnpm build"
+      ]
+    },
+    {
+      "id": "AKADM-010",
+      "phase": "P0B",
+      "title": "初始化 ui-ux-pro-max 与 Master Design System",
+      "depends_on": [
+        "AKADM-000"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "design-system/MASTER.md",
+        "AntD Token mapping",
+        "UI evidence"
+      ],
+      "acceptance": [
+        "scripts/check_ui_skill.sh",
+        "Playwright showcase screenshots",
+        "axe 0 critical/serious"
+      ]
+    },
+    {
+      "id": "AKADM-015",
+      "phase": "P0B2",
+      "title": "i18n 基础设施与中英文语言包",
+      "depends_on": [
+        "AKADM-010"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "i18next namespace infrastructure",
+        "zh-CN/en-US catalogs",
+        "runtime locale switch",
+        "i18n validation"
+      ],
+      "acceptance": [
+        "key and placeholder parity",
+        "runtime switch without refresh",
+        "zh-CN/en-US E2E and visual evidence"
+      ]
+    },
+    {
+      "id": "AKADM-020",
+      "phase": "P0C",
+      "title": "生成 OpenAPI Client 与 API 基础层",
+      "depends_on": [
+        "AKADM-000"
+      ],
+      "ui_skill_required": false,
+      "outputs": [
+        "src/generated/api",
+        "typed errors",
+        "request/trace propagation"
+      ],
+      "acceptance": [
+        "generated client clean diff",
+        "contract test"
+      ]
+    },
+    {
+      "id": "AKADM-030",
+      "phase": "P0C",
+      "title": "认证、Refresh single-flight 与 Auth Context",
+      "depends_on": [
+        "AKADM-020"
+      ],
+      "ui_skill_required": false,
+      "outputs": [
+        "memory token store",
+        "refresh mutex",
+        "auth bootstrap"
+      ],
+      "acceptance": [
+        "parallel 401 refresh test",
+        "logout cache purge test",
+        "CSRF test"
+      ]
+    },
+    {
+      "id": "AKADM-040",
+      "phase": "P0C",
+      "title": "App Shell、静态路由注册表与菜单解析",
+      "depends_on": [
+        "AKADM-010",
+        "AKADM-015",
+        "AKADM-030"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "layouts",
+        "route registry",
+        "menu resolver",
+        "error pages"
+      ],
+      "acceptance": [
+        "unknown key test",
+        "direct URL permission test",
+        "responsive screenshots"
+      ]
+    },
+    {
+      "id": "AKADM-050",
+      "phase": "P0C",
+      "title": "登录、注册、找回与重置密码",
+      "depends_on": [
+        "AKADM-010",
+        "AKADM-015",
+        "AKADM-030"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "auth routes",
+        "public config gate",
+        "safe redirect"
+      ],
+      "acceptance": [
+        "auth E2E",
+        "account enumeration test",
+        "keyboard/password manager check"
+      ]
+    },
+    {
+      "id": "AKADM-060",
+      "phase": "P0C",
+      "title": "个人中心：基本与安全设置",
+      "depends_on": [
+        "AKADM-030",
+        "AKADM-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "profile basic",
+        "session/device management",
+        "MFA contracts"
+      ],
+      "acceptance": [
+        "self-only test",
+        "session revoke E2E",
+        "responsive screenshots"
+      ]
+    },
+    {
+      "id": "AKADM-070",
+      "phase": "P0D",
+      "title": "Dashboard",
+      "depends_on": [
+        "AKADM-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "KPI cards",
+        "trend charts",
+        "activity panels"
+      ],
+      "acceptance": [
+        "permission-pruned cards",
+        "empty/error states",
+        "lazy ECharts chunk"
+      ]
+    },
+    {
+      "id": "AKADM-100",
+      "phase": "P1A",
+      "title": "部门与岗位",
+      "depends_on": [
+        "AKADM-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "department tree",
+        "position table",
+        "assignment pickers"
+      ],
+      "acceptance": [
+        "cycle prevention",
+        "occupancy warning",
+        "keyboard move fallback"
+      ]
+    },
+    {
+      "id": "AKADM-110",
+      "phase": "P1A",
+      "title": "用户管理与用户详情",
+      "depends_on": [
+        "AKADM-100"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "user list/detail",
+        "assignments",
+        "session actions",
+        "import/export"
+      ],
+      "acceptance": [
+        "URL search restore",
+        "action permission matrix",
+        "bulk E2E"
+      ]
+    },
+    {
+      "id": "AKADM-120",
+      "phase": "P1A",
+      "title": "租户管理与租户切换",
+      "depends_on": [
+        "AKADM-030",
+        "AKADM-110"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "tenant list/detail",
+        "members",
+        "switcher"
+      ],
+      "acceptance": [
+        "feature flag test",
+        "cache purge test",
+        "cross-tenant isolation"
+      ]
+    },
+    {
+      "id": "AKADM-130",
+      "phase": "P1B",
+      "title": "角色、权限、菜单与数据范围",
+      "depends_on": [
+        "AKADM-100",
+        "AKADM-110"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "role tabs",
+        "permission catalog",
+        "menu editor",
+        "data scope"
+      ],
+      "acceptance": [
+        "permission/menu separation",
+        "depth/cycle test",
+        "component key selector"
+      ]
+    },
+    {
+      "id": "AKADM-140",
+      "phase": "P1C",
+      "title": "操作/登录日志与安全事件",
+      "depends_on": [
+        "AKADM-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "audit tables",
+        "JSON diff",
+        "security workflow"
+      ],
+      "acceptance": [
+        "redaction fixture",
+        "URL filters",
+        "resolve audit E2E"
+      ]
+    },
+    {
+      "id": "AKADM-150",
+      "phase": "P1C",
+      "title": "在线会话",
+      "depends_on": [
+        "AKADM-110"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "session list",
+        "force logout"
+      ],
+      "acceptance": [
+        "current-session warning",
+        "revoke permission",
+        "refresh after revoke"
+      ]
+    },
+    {
+      "id": "AKADM-200",
+      "phase": "P2A",
+      "title": "系统配置与字典管理",
+      "depends_on": [
+        "AKADM-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "config groups",
+        "secret UX",
+        "dictionary master-detail"
+      ],
+      "acceptance": [
+        "secret never echoed",
+        "URL state",
+        "locked dictionary UX"
+      ]
+    },
+    {
+      "id": "AKADM-210",
+      "phase": "P2A",
+      "title": "地区与模块信息",
+      "depends_on": [
+        "AKADM-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "region lazy tree",
+        "module catalog"
+      ],
+      "acceptance": [
+        "large tree test",
+        "no runtime plugin install"
+      ]
+    },
+    {
+      "id": "AKADM-220",
+      "phase": "P2B",
+      "title": "文件存储与 AkFilePicker",
+      "depends_on": [
+        "AKADM-020",
+        "AKADM-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "file list/detail",
+        "multipart upload",
+        "usage viewer",
+        "file picker"
+      ],
+      "acceptance": [
+        "cancel/resume",
+        "scan gate",
+        "delete-in-use warning"
+      ]
+    },
+    {
+      "id": "AKADM-230",
+      "phase": "P2B",
+      "title": "公告、消息、模板与投递",
+      "depends_on": [
+        "AKADM-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "notice/message lifecycle",
+        "recipient selector",
+        "templates",
+        "delivery"
+      ],
+      "acceptance": [
+        "recipient confirmation",
+        "sanitization contract",
+        "retry UX"
+      ]
+    },
+    {
+      "id": "AKADM-240",
+      "phase": "P2C",
+      "title": "定时任务",
+      "depends_on": [
+        "AKADM-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "schedule editor",
+        "cron preview",
+        "run history"
+      ],
+      "acceptance": [
+        "timezone/DST",
+        "handler restriction",
+        "execute confirmation"
+      ]
+    },
+    {
+      "id": "AKADM-250",
+      "phase": "P2C",
+      "title": "API Client 与 Webhook",
+      "depends_on": [
+        "AKADM-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "one-time secret",
+        "permissions",
+        "webhook delivery"
+      ],
+      "acceptance": [
+        "one-time disclosure",
+        "SSRF validation",
+        "delivery E2E"
+      ]
+    },
+    {
+      "id": "AKADM-260",
+      "phase": "P2C",
+      "title": "访问控制与服务状态",
+      "depends_on": [
+        "AKADM-140"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "block rules",
+        "health/runtime summary"
+      ],
+      "acceptance": [
+        "impact confirmation",
+        "redacted subjects",
+        "no secret exposure"
+      ]
+    },
+    {
+      "id": "AKADM-300",
+      "phase": "P3",
+      "title": "OAuth 绑定与完整 MFA",
+      "depends_on": [
+        "AKADM-060"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "OAuth callback",
+        "TOTP enrollment",
+        "recovery codes"
+      ],
+      "acceptance": [
+        "PKCE/state test",
+        "one-time secret",
+        "step-up E2E"
+      ]
+    },
+    {
+      "id": "AKADM-310",
+      "phase": "P3",
+      "title": "全量硬化、性能、i18n 与视觉回归",
+      "depends_on": [
+        "AKADM-070",
+        "AKADM-130",
+        "AKADM-150",
+        "AKADM-200",
+        "AKADM-220",
+        "AKADM-230",
+        "AKADM-240",
+        "AKADM-250",
+        "AKADM-260"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "a11y suite",
+        "visual baselines",
+        "bundle budgets",
+        "i18n"
+      ],
+      "acceptance": [
+        "pnpm lint",
+        "pnpm typecheck",
+        "pnpm test",
+        "pnpm test:e2e",
+        "pnpm build",
+        "axe 0 critical/serious"
+      ]
+    }
+  ]
+}

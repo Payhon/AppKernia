@@ -1,0 +1,6 @@
+<script lang="uts">
+export default {
+  onLaunch() {},
+}
+</script>
+

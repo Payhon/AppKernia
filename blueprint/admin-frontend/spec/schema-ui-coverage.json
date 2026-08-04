@@ -1,0 +1,447 @@
+{
+  "schema_version": 1,
+  "description": "AK 核心 51 张 PostgreSQL 表的 UI 覆盖分类。不是每张基础设施表都应暴露 CRUD；所有表必须明确归类。",
+  "coverage_types": {
+    "page_backed": "页面直接读取、管理或聚合展示",
+    "indirect_aggregate": "页面仅展示脱敏聚合信息，不暴露原始记录或 Secret",
+    "backend_only": "纯服务端基础设施，不提供人工 CRUD 页面"
+  },
+  "tables": [
+    {
+      "table": "audit.login_events",
+      "coverage": "page_backed",
+      "pages": [
+        "auth.login",
+        "dashboard",
+        "system.security.login-logs",
+        "system.users.accounts"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "audit.operation_logs",
+      "coverage": "page_backed",
+      "pages": [
+        "system.security.operation-logs"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "audit.security_events",
+      "coverage": "page_backed",
+      "pages": [
+        "dashboard",
+        "system.security.events"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.block_rules",
+      "coverage": "page_backed",
+      "pages": [
+        "system.security.block-rules"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.devices",
+      "coverage": "page_backed",
+      "pages": [
+        "profile.security",
+        "system.monitoring.sessions",
+        "system.users.accounts"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.mfa_factors",
+      "coverage": "page_backed",
+      "pages": [
+        "profile.security"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.mfa_recovery_codes",
+      "coverage": "page_backed",
+      "pages": [
+        "profile.security"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.oauth_accounts",
+      "coverage": "page_backed",
+      "pages": [
+        "profile.connections"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.password_history",
+      "coverage": "page_backed",
+      "pages": [
+        "auth.reset-password"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.permissions",
+      "coverage": "page_backed",
+      "pages": [
+        "system.access.permissions"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.refresh_tokens",
+      "coverage": "page_backed",
+      "pages": [
+        "auth.login",
+        "system.monitoring.sessions"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.role_permissions",
+      "coverage": "page_backed",
+      "pages": [
+        "system.access.roles"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.role_scope_units",
+      "coverage": "page_backed",
+      "pages": [
+        "system.access.roles"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.roles",
+      "coverage": "page_backed",
+      "pages": [
+        "system.access.roles"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.sessions",
+      "coverage": "page_backed",
+      "pages": [
+        "auth.login",
+        "dashboard",
+        "profile.security",
+        "system.monitoring.sessions",
+        "system.users.accounts"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.tenant_members",
+      "coverage": "page_backed",
+      "pages": [
+        "auth.register",
+        "profile.basic",
+        "system.users.accounts",
+        "system.users.tenants"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.tenants",
+      "coverage": "page_backed",
+      "pages": [
+        "system.users.tenants"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.user_credentials",
+      "coverage": "page_backed",
+      "pages": [
+        "auth.register",
+        "auth.reset-password",
+        "profile.security"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.user_roles",
+      "coverage": "page_backed",
+      "pages": [
+        "system.access.roles",
+        "system.users.accounts"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.users",
+      "coverage": "page_backed",
+      "pages": [
+        "auth.register",
+        "dashboard",
+        "profile.basic",
+        "system.users.accounts"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.verification_challenges",
+      "coverage": "page_backed",
+      "pages": [
+        "auth.forgot-password",
+        "auth.reset-password"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "jobs.inbox_events",
+      "coverage": "backend_only",
+      "pages": [],
+      "reason": "消息消费幂等与去重基础设施；仅通过运行指标/告警间接观测，不提供逐行管理页面。"
+    },
+    {
+      "table": "jobs.outbox_events",
+      "coverage": "page_backed",
+      "pages": [
+        "system.integrations.webhooks"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "jobs.schedule_runs",
+      "coverage": "page_backed",
+      "pages": [
+        "dashboard",
+        "system.integrations.schedules",
+        "system.monitoring.health"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "jobs.schedules",
+      "coverage": "page_backed",
+      "pages": [
+        "system.integrations.schedules"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "notify.deliveries",
+      "coverage": "page_backed",
+      "pages": [
+        "system.notifications.deliveries"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "notify.messages",
+      "coverage": "page_backed",
+      "pages": [
+        "dashboard",
+        "system.notifications.messages",
+        "system.notifications.notices"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "notify.push_devices",
+      "coverage": "indirect_aggregate",
+      "pages": [
+        "system.users.accounts",
+        "system.notifications.deliveries"
+      ],
+      "reason": "仅展示推送设备数量、平台、最近活跃与投递状态；Push Token 不进入通用列表或前端日志，也不提供直接 CRUD。"
+    },
+    {
+      "table": "notify.recipients",
+      "coverage": "page_backed",
+      "pages": [
+        "system.notifications.messages",
+        "system.notifications.notices"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "notify.templates",
+      "coverage": "page_backed",
+      "pages": [
+        "system.notifications.templates"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "org.positions",
+      "coverage": "page_backed",
+      "pages": [
+        "system.users.positions"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "org.units",
+      "coverage": "page_backed",
+      "pages": [
+        "system.users.departments"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "org.user_positions",
+      "coverage": "page_backed",
+      "pages": [
+        "system.users.accounts",
+        "system.users.positions"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "org.user_units",
+      "coverage": "page_backed",
+      "pages": [
+        "system.users.accounts",
+        "system.users.departments"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "storage.file_usages",
+      "coverage": "page_backed",
+      "pages": [
+        "system.storage.files"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "storage.files",
+      "coverage": "page_backed",
+      "pages": [
+        "profile.basic",
+        "system.storage.files"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "storage.upload_parts",
+      "coverage": "page_backed",
+      "pages": [
+        "system.storage.files"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "storage.upload_sessions",
+      "coverage": "page_backed",
+      "pages": [
+        "system.storage.files"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.api_client_permissions",
+      "coverage": "page_backed",
+      "pages": [
+        "system.integrations.api-clients"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.api_client_secrets",
+      "coverage": "page_backed",
+      "pages": [
+        "system.integrations.api-clients"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.api_clients",
+      "coverage": "page_backed",
+      "pages": [
+        "system.integrations.api-clients"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.config_items",
+      "coverage": "page_backed",
+      "pages": [
+        "system.settings.configs"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.dict_items",
+      "coverage": "page_backed",
+      "pages": [
+        "system.settings.dictionaries"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.dict_types",
+      "coverage": "page_backed",
+      "pages": [
+        "system.settings.dictionaries"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.idempotency_keys",
+      "coverage": "backend_only",
+      "pages": [],
+      "reason": "HTTP 幂等基础设施；记录由服务端生命周期自动清理，不允许后台人工编辑。"
+    },
+    {
+      "table": "sys.menus",
+      "coverage": "page_backed",
+      "pages": [
+        "system.access.menus"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.modules",
+      "coverage": "page_backed",
+      "pages": [
+        "system.monitoring.health",
+        "system.settings.modules"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.regions",
+      "coverage": "page_backed",
+      "pages": [
+        "system.settings.regions"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.role_menus",
+      "coverage": "page_backed",
+      "pages": [
+        "system.access.menus",
+        "system.access.roles"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.webhook_deliveries",
+      "coverage": "page_backed",
+      "pages": [
+        "system.integrations.webhooks"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.webhook_endpoints",
+      "coverage": "page_backed",
+      "pages": [
+        "system.integrations.webhooks"
+      ],
+      "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    }
+  ]
+}

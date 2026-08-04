@@ -1,0 +1,164 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: appkernia
+      POSTGRES_USER: appkernia
+      POSTGRES_PASSWORD: appkernia-dev-only
+    ports:
+      - "${AK_POSTGRES_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appkernia -d appkernia"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - ak-postgres:/var/lib/postgresql
+  migrate:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    entrypoint: ["/app/bin/ak-cli"]
+    command: ["migrate", "up"]
+    environment:
+      AK_ENV: development
+      AK_DATABASE_URL: postgres://appkernia:appkernia-dev-only@postgres:5432/appkernia?sslmode=disable
+      AK_MIGRATION_PATH: /app/blueprint/backend/db/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+  seed:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    entrypoint: ["/app/bin/ak-cli"]
+    command: ["seed", "core"]
+    environment:
+      AK_ENV: development
+      AK_DATABASE_URL: postgres://appkernia:appkernia-dev-only@postgres:5432/appkernia?sslmode=disable
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: "no"
+  api:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      AK_ENV: development
+      AK_HTTP_ADDR: :8080
+      AK_DATABASE_URL: postgres://appkernia:appkernia-dev-only@postgres:5432/appkernia?sslmode=disable
+      AK_ADMIN_ORIGIN: ${AK_ADMIN_ORIGIN:-http://localhost:4173}
+      AK_ADMIN_REGISTRATION_ENABLED: ${AK_ADMIN_REGISTRATION_ENABLED:-false}
+      AK_ADMIN_REGISTRATION_TENANT_CODE: ${AK_ADMIN_REGISTRATION_TENANT_CODE:-local}
+      AK_PASSWORD_RECOVERY_ENABLED: ${AK_PASSWORD_RECOVERY_ENABLED:-false}
+      AK_PASSWORD_RECOVERY_ADAPTER: local
+      AK_AVATAR_UPLOAD_ENABLED: ${AK_AVATAR_UPLOAD_ENABLED:-false}
+      AK_FILE_STORAGE_ENABLED: ${AK_FILE_STORAGE_ENABLED:-true}
+      AK_MULTI_TENANT_ENABLED: ${AK_MULTI_TENANT_ENABLED:-false}
+      AK_API_CLIENTS_ENABLED: ${AK_API_CLIENTS_ENABLED:-true}
+      AK_WEBHOOKS_ENABLED: ${AK_WEBHOOKS_ENABLED:-true}
+      AK_WEBHOOK_ADAPTER: ${AK_WEBHOOK_ADAPTER:-local-mock}
+      AK_MFA_ENABLED: ${AK_MFA_ENABLED:-true}
+      AK_OAUTH_ENABLED: ${AK_OAUTH_ENABLED:-true}
+      AK_OAUTH_ADAPTER: ${AK_OAUTH_ADAPTER:-local-mock}
+      AK_OBJECT_STORAGE_ADAPTER: local
+      AK_LOCAL_OBJECT_STORAGE_DIR: /app/data/object-storage
+      AK_CONFIG_MASTER_KEY_BASE64: ${AK_CONFIG_MASTER_KEY_BASE64:-YXBwa2VybmlhLWRldi1tYXN0ZXIta2V5LTMyYnl0ZSE=}
+      AK_CONFIG_MASTER_KEY_VERSION: ${AK_CONFIG_MASTER_KEY_VERSION:-1}
+      AK_SHUTDOWN_TIMEOUT: 15s
+
+    volumes:
+      - ak-object-storage:/app/data/object-storage
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/internal/v1/health/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    stop_grace_period: 20s
+  worker:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    entrypoint: ["/app/bin/ak-worker"]
+    environment:
+      AK_ENV: development
+      AK_DATABASE_URL: postgres://appkernia:appkernia-dev-only@postgres:5432/appkernia?sslmode=disable
+      AK_SHUTDOWN_TIMEOUT: 15s
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    stop_grace_period: 20s
+  admin:
+    build:
+      context: .
+      dockerfile: apps/ak-admin/Dockerfile
+      args:
+        VITE_AK_API_BASE_URL: /admin-api/v1
+        VITE_AK_APP_ENV: production
+    ports:
+      - "${AK_ADMIN_PORT:-4173}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  bootstrap-admin:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    entrypoint: ["/app/bin/ak-cli"]
+    command:
+      - bootstrap-admin
+      - --email
+      - ${AK_BOOTSTRAP_EMAIL:-admin@example.test}
+      - --tenant-code
+      - ${AK_BOOTSTRAP_TENANT_CODE:-local}
+      - --tenant-name
+      - ${AK_BOOTSTRAP_TENANT_NAME:-Local Workspace}
+      - --display-name
+      - ${AK_BOOTSTRAP_DISPLAY_NAME:-Local Admin}
+      - --locale
+      - ${AK_BOOTSTRAP_LOCALE:-zh-CN}
+    environment:
+      AK_ENV: development
+      AK_DATABASE_URL: postgres://appkernia:appkernia-dev-only@postgres:5432/appkernia?sslmode=disable
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    stdin_open: true
+    tty: true
+  redis:
+    image: redis:8-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: appkernia
+      MINIO_ROOT_PASSWORD: appkernia-dev-only
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ak-minio:/data
+
+volumes:
+  ak-postgres:
+  ak-minio:
+  ak-object-storage:

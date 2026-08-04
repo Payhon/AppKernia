@@ -1,0 +1,27 @@
+export type AkEnvironment = 'development' | 'test' | 'production'
+
+export class AkConfig {
+  readonly environment: AkEnvironment
+  readonly apiBaseUrl: string
+  readonly requestTimeoutMs: number
+
+  constructor(
+    environment: AkEnvironment,
+    apiBaseUrl: string,
+    requestTimeoutMs: number = 15000,
+  ) {
+    if (requestTimeoutMs <= 0) {
+      throw new Error('validation.config.request_timeout')
+    }
+    if (environment == 'production' && !apiBaseUrl.startsWith('https://')) {
+      throw new Error('validation.config.production_https_required')
+    }
+    if (!apiBaseUrl.endsWith('/api/v1')) {
+      throw new Error('validation.config.mobile_api_prefix')
+    }
+    this.environment = environment
+    this.apiBaseUrl = apiBaseUrl
+    this.requestTimeoutMs = requestTimeoutMs
+  }
+}
+

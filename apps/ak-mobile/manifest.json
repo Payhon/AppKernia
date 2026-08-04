@@ -1,0 +1,41 @@
+{
+	"name": "AppKernia",
+	"appid": "__UNI__APPKERNIA",
+	"description": "AppKernia uni-app x application base",
+	"versionName": "0.1.0",
+	"versionCode": "100",
+	"uni-app-x": {
+		"renderer": "vdom"
+	},
+	"app": {
+		"minSdkVersion": 26,
+		"distribute": {
+			"android": {},
+			"ios": {
+				"deploymentTarget": "13.0"
+			},
+			"harmony": {
+				"minAPILevel": 14
+			}
+		}
+	},
+	"app-android": {
+		"minSdkVersion": 26,
+		"distribute": {
+			"modules": {},
+			"icons": {},
+			"splashScreens": {
+				"default": {}
+			}
+		}
+	},
+	"app-ios": {
+		"minSdkVersion": 26,
+		"distribute": {
+			"deploymentTarget": "13.0",
+			"modules": {},
+			"icons": {},
+			"splashScreens": {}
+		}
+	}
+}

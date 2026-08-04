@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "description": "AK Mobile 默认三 Tab。使用静态 pages.json tabBar；业务页面不得从服务端动态注入 Tab。",
+  "tabs": [
+    {
+      "tab_key": "home",
+      "route_key": "home",
+      "text_key": "tabs.home",
+      "icon_token": "home",
+      "sort": 10
+    },
+    {
+      "tab_key": "notifications",
+      "route_key": "notifications.list",
+      "text_key": "tabs.notifications",
+      "icon_token": "bell",
+      "badge_source": "GET /api/v1/me/notifications/unread-count",
+      "sort": 20
+    },
+    {
+      "tab_key": "profile",
+      "route_key": "profile.index",
+      "text_key": "tabs.profile",
+      "icon_token": "account",
+      "sort": 30
+    }
+  ]
+}

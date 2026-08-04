@@ -1,0 +1,245 @@
+{
+  "artifact": "AppKernia Admin Frontend Blueprint",
+  "artifact_version": "1.0.0",
+  "generated_at": "2026-08-02",
+  "purpose": "AI Coding Agent 可直接执行的 AK Admin Web 前端架构、菜单、路由、权限、页面、API/Schema 映射与任务契约。",
+  "baseline": {
+    "react": "19.2",
+    "vite": "8.1",
+    "node": "24 LTS",
+    "pnpm": "11",
+    "router": "TanStack Router v1",
+    "server_state": "TanStack Query v5",
+    "ui": "Ant Design 6 + Pro Components",
+    "ui_skill": "ui-ux-pro-max (mandatory for visual UI tasks)"
+  },
+  "validated_counts": {
+    "menus": 35,
+    "routes": 48,
+    "permissions": 108,
+    "schema_tables": 51,
+    "existing_admin_apis": 98,
+    "proposed_api_deltas": 42,
+    "page_contracts": 33,
+    "agent_tasks": 23
+  },
+  "payload_file_count": 43,
+  "payload_bytes": 236905,
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 3139,
+      "sha256": "ff13afa211587f9d12a110579d457d6a5cc0c4ac2b6981b836b322c479675804"
+    },
+    {
+      "path": "AK_ADMIN_FRONTEND_BLUEPRINT.md",
+      "bytes": 5729,
+      "sha256": "f0b91e40af9200da52949245d3e361822e56f7ef7a7fd571eff24a3e8718b85e"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2001,
+      "sha256": "11e95dfe29f58d8408b4f9e13f42b21cd1f9cf445f738cc62e99a6b8c7cfa796"
+    },
+    {
+      "path": "VALIDATION_REPORT.md",
+      "bytes": 2209,
+      "sha256": "adc412e052815c6b065cf2fb87adf95f3a5dd5102fcbe7880895ffa55c05114f"
+    },
+    {
+      "path": "design-system/README.md",
+      "bytes": 261,
+      "sha256": "5a6890ab8668989639f49e3005deaf86390dba585b911849c65764611dd9ec27"
+    },
+    {
+      "path": "docs/AGENT_TASK_BACKLOG.md",
+      "bytes": 3614,
+      "sha256": "665bca5b77634d8f5d9b46b697f1131f35c605f152065cbd60886d4f60597f74"
+    },
+    {
+      "path": "docs/API_STATE_SECURITY.md",
+      "bytes": 1493,
+      "sha256": "f67cb2642407bb5b222109b5d03db9a3406ba80b91a9bcfd84f21d6a470d26ad"
+    },
+    {
+      "path": "docs/IMPLEMENTATION_PLAN.md",
+      "bytes": 1015,
+      "sha256": "97c1ac96a2e17ed07a954cbc84f33aa6db714f741ffac0e4d93aa4901102beb1"
+    },
+    {
+      "path": "docs/INFORMATION_ARCHITECTURE.md",
+      "bytes": 5202,
+      "sha256": "7ecda0d2022f1b93cecc0deca2d4fe73585f2be575219fc6243898cbbca5b50c"
+    },
+    {
+      "path": "docs/PAGE_SPECIFICATIONS.md",
+      "bytes": 31314,
+      "sha256": "8d811eb4e9f434f0f7f3c653d0f28c319b3a5ec735f9c0629a9dfa442e3d4d0d"
+    },
+    {
+      "path": "docs/REFERENCE_NOTES.md",
+      "bytes": 531,
+      "sha256": "bbc9d66daf714ef8fe142b791ba8899df1e4e58e425b841cb5a43c1eb280a09e"
+    },
+    {
+      "path": "docs/ROUTING_AUTHORIZATION.md",
+      "bytes": 1229,
+      "sha256": "40390cdf45ec164318eaa951c9fd91c46883df948d82e4d3a15441aaf3fa9268"
+    },
+    {
+      "path": "docs/SCHEMA_UI_COVERAGE.md",
+      "bytes": 1660,
+      "sha256": "28e6a1f52b24ef244959e6893245beb4588f6de29466f927114c9e36e2ca26e5"
+    },
+    {
+      "path": "docs/TESTING_QUALITY_GATES.md",
+      "bytes": 921,
+      "sha256": "1b9fe2d1bc696e6056a6d62f144ab0e6a66e7df8fbcba56e67129a9a624fd213"
+    },
+    {
+      "path": "docs/THIRD_PARTY_REFERENCE_AND_LICENSE.md",
+      "bytes": 507,
+      "sha256": "ab1e17db1770e6a14101c1f53190b0fa07af9f29fa77fd47db5ddc3bf6ec35ac"
+    },
+    {
+      "path": "docs/TOOLCHAIN_BASELINE.md",
+      "bytes": 364,
+      "sha256": "b6432e94f5c451d1f10b00c8104223c8eb1c5b994453a68644f01f7aa49efc04"
+    },
+    {
+      "path": "docs/UI_UX_PRO_MAX_WORKFLOW.md",
+      "bytes": 2642,
+      "sha256": "11746d876ea28236c87487a5b9fe12a8e26fd39d64611475cd3caed609fb04a0"
+    },
+    {
+      "path": "examples/menu-resolver.ts",
+      "bytes": 958,
+      "sha256": "eaf168200bafd379320cc0004b9097aa0f71d41cb2d9fe7121c72d622631a077"
+    },
+    {
+      "path": "examples/permission.tsx",
+      "bytes": 500,
+      "sha256": "dcf0592d601197f65f7d7e881c3e70f6c1a659c890dda06951e90787961b9e3b"
+    },
+    {
+      "path": "examples/query-keys.ts",
+      "bytes": 502,
+      "sha256": "a26aaf7037fdf7f688daa32849984b8c969dcb32f851d4eee2d62288bc8a7484"
+    },
+    {
+      "path": "examples/refresh-single-flight.ts",
+      "bytes": 677,
+      "sha256": "9bb00e4afb94f58098b001e4304da4a73054114274249a2cee3991d9a2725e02"
+    },
+    {
+      "path": "examples/static-route-registry.ts",
+      "bytes": 694,
+      "sha256": "7f9612365acd683e91a69d4970d485aba803e71516bad09b58a26df0780fead9"
+    },
+    {
+      "path": "integration/BACKEND_CHANGES_REQUIRED.md",
+      "bytes": 4094,
+      "sha256": "8045cf290cc91598d880a47767b25e520219b39f4f7b9fa481efeac681313e9e"
+    },
+    {
+      "path": "integration/MENU_SEED_IMPLEMENTATION.md",
+      "bytes": 841,
+      "sha256": "fa6106ede546b8038efd74b1d1007390ceda9cbfdc7c0de50d47e54e19b3efed"
+    },
+    {
+      "path": "integration/admin-api-delta.json",
+      "bytes": 6926,
+      "sha256": "20b5692fd4e69be4e63010492392da628d9654d79d029dc48bad08b64e9f12aa"
+    },
+    {
+      "path": "integration/backend-admin-api.snapshot.json",
+      "bytes": 8462,
+      "sha256": "f7c2e30f5189fda5f32af09537f7d27f26a0e40fc1f416810c9e51dd17ab80b7"
+    },
+    {
+      "path": "integration/backend-core-menus.v2.json",
+      "bytes": 11294,
+      "sha256": "e8fe1340f559a87f0fe88e389d92ecf5dde3e8e05eb935606f7467bad019ee5c"
+    },
+    {
+      "path": "integration/backend-core-permissions.snapshot.json",
+      "bytes": 22969,
+      "sha256": "0d63f0eb601be4c458548b600272633cfecd2332721cf399e7fa32843fe36183"
+    },
+    {
+      "path": "integration/backend-core-schema-tables.snapshot.json",
+      "bytes": 1474,
+      "sha256": "fde7e78d2f5e369b159f3a631e0649528734a1b2edd6a52a5fec21ab8c027978"
+    },
+    {
+      "path": "integration/core-permissions.delta.json",
+      "bytes": 3487,
+      "sha256": "417d465a9046e7c607cbbc373fd50360b6e76e7e6c8e2f5a63c020f3c5c928a4"
+    },
+    {
+      "path": "integration/schema-menu-page-mapping.csv",
+      "bytes": 10206,
+      "sha256": "69206e0282888324697516897d2c82f851f415f35edc92015ff0f4724b03029d"
+    },
+    {
+      "path": "prompts/AGENT_BOOTSTRAP_PROMPT.md",
+      "bytes": 1427,
+      "sha256": "afb2325c698cc9fcb0dfddd659d75aa8bfb9885984f178d235dfc210e0fba1fb"
+    },
+    {
+      "path": "prompts/PAGE_TASK_TEMPLATE.md",
+      "bytes": 581,
+      "sha256": "714d0c650b7dc47e10450d56e87930058b5318a2d925e44b4b99e930e24f6b44"
+    },
+    {
+      "path": "scripts/check_ui_skill.sh",
+      "bytes": 443,
+      "sha256": "fcf75cfb7436d990a59b4fbbb696f3468bea54ac96181ce8114ff757fcf6a2e8"
+    },
+    {
+      "path": "scripts/validate_blueprint_specs.py",
+      "bytes": 8743,
+      "sha256": "c249f6d32f7e9ae9eb4c19efc6b96c4dcc50e05286566f4071ba1988886f192d"
+    },
+    {
+      "path": "spec/admin-menu-seed.json",
+      "bytes": 11294,
+      "sha256": "e8fe1340f559a87f0fe88e389d92ecf5dde3e8e05eb935606f7467bad019ee5c"
+    },
+    {
+      "path": "spec/admin-route-registry.json",
+      "bytes": 22948,
+      "sha256": "da704b5d0b8e4c4eb194569467fa78c74ac66ffffbe6ca6edc4689e379181893"
+    },
+    {
+      "path": "spec/agent-task-backlog.json",
+      "bytes": 10148,
+      "sha256": "ecb2d9ab95690187af79494d5060a6e37f62f96057df1806ec4b45eae5899469"
+    },
+    {
+      "path": "spec/billing-menu-extension.json",
+      "bytes": 1703,
+      "sha256": "b2dd323614b2abe39e45e809f41ede73b5db63c0ce97cab86847a1f01800fbf2"
+    },
+    {
+      "path": "spec/frontend-stack-baseline.json",
+      "bytes": 900,
+      "sha256": "7588aef8a9eed6c656eefa15aa13840aa27b56854dbad86decd7881b9686d6f3"
+    },
+    {
+      "path": "spec/page-api-schema-map.json",
+      "bytes": 15777,
+      "sha256": "58d7509a9c39f936ed1bd5c3494a593ec7f7f3d35f35326548cf41b168689a31"
+    },
+    {
+      "path": "spec/page-permission-matrix.json",
+      "bytes": 13110,
+      "sha256": "50d55c1dafc954be03b6e4f7bc4429b83077484f77524f21c1210037be7b97d9"
+    },
+    {
+      "path": "spec/schema-ui-coverage.json",
+      "bytes": 12916,
+      "sha256": "2bc6ba16d71fb8cb0e6b086d3710223a1c6cd63a6a93a9ab5b5daeb9b7b52725"
+    }
+  ]
+}

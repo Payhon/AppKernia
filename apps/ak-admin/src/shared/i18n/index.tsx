@@ -1,0 +1,124 @@
+import { ConfigProvider } from 'antd'
+import enUS from 'antd/locale/en_US'
+import zhCN from 'antd/locale/zh_CN'
+import dayjs from 'dayjs'
+import 'dayjs/locale/en'
+import 'dayjs/locale/zh-cn'
+import i18n from 'i18next'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type PropsWithChildren } from 'react'
+import { I18nextProvider } from 'react-i18next'
+
+import enAuth from '../../locales/en-US/auth.json'
+import enCommon from '../../locales/en-US/common.json'
+import enErrors from '../../locales/en-US/errors.json'
+import enNavigation from '../../locales/en-US/navigation.json'
+import enNotifications from '../../locales/en-US/notifications.json'
+import enProfile from '../../locales/en-US/profile.json'
+import enSettings from '../../locales/en-US/settings.json'
+import enSystem from '../../locales/en-US/system.json'
+import enValidation from '../../locales/en-US/validation.json'
+import zhAuth from '../../locales/zh-CN/auth.json'
+import zhCommon from '../../locales/zh-CN/common.json'
+import zhErrors from '../../locales/zh-CN/errors.json'
+import zhNavigation from '../../locales/zh-CN/navigation.json'
+import zhNotifications from '../../locales/zh-CN/notifications.json'
+import zhProfile from '../../locales/zh-CN/profile.json'
+import zhSettings from '../../locales/zh-CN/settings.json'
+import zhSystem from '../../locales/zh-CN/system.json'
+import zhValidation from '../../locales/zh-CN/validation.json'
+import { adminTheme } from '../../app/theme'
+
+export const supportedLocales = ['zh-CN', 'en-US'] as const
+export type AdminLocale = (typeof supportedLocales)[number]
+
+const localeStorageKey = 'ak.admin.locale'
+const enCatalog = { ...enAuth, ...enCommon, ...enErrors, ...enNavigation, ...enNotifications, ...enProfile, ...enSettings, ...enSystem, ...enValidation }
+const zhCatalog = { ...zhAuth, ...zhCommon, ...zhErrors, ...zhNavigation, ...zhNotifications, ...zhProfile, ...zhSettings, ...zhSystem, ...zhValidation }
+
+function readStoredLocale(): string | null {
+  try {
+    return window.localStorage.getItem(localeStorageKey)
+  } catch {
+    return null
+  }
+}
+
+function storeLocale(locale: AdminLocale): void {
+  try {
+    window.localStorage.setItem(localeStorageKey, locale)
+  } catch {
+    // Storage can be unavailable in privacy-restricted browser contexts.
+  }
+}
+
+function normalizeLocale(value: string | null | undefined): AdminLocale {
+  return value?.toLowerCase().startsWith('en') ? 'en-US' : 'zh-CN'
+}
+
+const initialLocale = normalizeLocale(
+  typeof window === 'undefined'
+    ? undefined
+    : readStoredLocale() ?? window.navigator.language,
+)
+
+void i18n.init({
+  fallbackLng: 'zh-CN',
+  initAsync: false,
+  interpolation: { escapeValue: false, prefix: '{', suffix: '}' },
+  keySeparator: false,
+  lng: initialLocale,
+  resources: {
+    'en-US': { translation: enCatalog },
+    'zh-CN': { translation: zhCatalog },
+  },
+})
+
+interface LocaleContextValue {
+  locale: AdminLocale
+  setLocale: (locale: AdminLocale) => Promise<void>
+}
+
+const LocaleContext = createContext<LocaleContextValue | null>(null)
+
+export function readActiveLocale(): AdminLocale {
+  return normalizeLocale(i18n.resolvedLanguage)
+}
+
+export function LocaleProvider({ children }: PropsWithChildren) {
+  const [locale, setLocaleState] = useState<AdminLocale>(initialLocale)
+
+  const setLocale = useCallback(async (nextLocale: AdminLocale) => {
+    await i18n.changeLanguage(nextLocale)
+    dayjs.locale(nextLocale === 'zh-CN' ? 'zh-cn' : 'en')
+    document.documentElement.lang = nextLocale
+    document.documentElement.dir = 'ltr'
+    document.title = i18n.t('app.name')
+    storeLocale(nextLocale)
+    setLocaleState(nextLocale)
+  }, [])
+
+  useEffect(() => {
+    void setLocale(initialLocale)
+  }, [setLocale])
+
+  const value = useMemo(() => ({ locale, setLocale }), [locale, setLocale])
+  const antLocale = locale === 'zh-CN' ? zhCN : enUS
+
+  return (
+    <LocaleContext.Provider value={value}>
+      <I18nextProvider i18n={i18n}>
+        <ConfigProvider locale={antLocale} theme={adminTheme}>
+          {children}
+        </ConfigProvider>
+      </I18nextProvider>
+    </LocaleContext.Provider>
+  )
+}
+
+export function useLocale(): LocaleContextValue {
+  const value = useContext(LocaleContext)
+  if (!value) throw new Error('LOCALE_PROVIDER_MISSING')
+  return value
+}
+
+export { i18n }

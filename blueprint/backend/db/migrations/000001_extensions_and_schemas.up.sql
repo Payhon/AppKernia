@@ -1,0 +1,27 @@
+-- AppKernia (AK) PostgreSQL 18 baseline
+-- Target: PostgreSQL 18.x. UUIDv7 is provided by PostgreSQL core.
+
+BEGIN;
+
+CREATE EXTENSION IF NOT EXISTS citext;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE SCHEMA IF NOT EXISTS iam;
+CREATE SCHEMA IF NOT EXISTS org;
+CREATE SCHEMA IF NOT EXISTS sys;
+CREATE SCHEMA IF NOT EXISTS storage;
+CREATE SCHEMA IF NOT EXISTS notify;
+CREATE SCHEMA IF NOT EXISTS jobs;
+CREATE SCHEMA IF NOT EXISTS audit;
+
+CREATE OR REPLACE FUNCTION sys.touch_updated_at()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.updated_at = now();
+    RETURN NEW;
+END;
+$$;
+
+COMMIT;

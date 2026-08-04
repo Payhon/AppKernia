@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "description": "语义 Token 清单。具体值由 ui-ux-pro-max 生成并写入 design-system/MASTER.md；业务代码禁止散落品牌色和固定间距。",
+  "categories": {
+    "color": [
+      "brand.primary",
+      "brand.primaryPressed",
+      "surface.page",
+      "surface.card",
+      "surface.elevated",
+      "text.primary",
+      "text.secondary",
+      "text.disabled",
+      "border.default",
+      "border.strong",
+      "status.success",
+      "status.warning",
+      "status.danger",
+      "status.info",
+      "overlay.scrim"
+    ],
+    "spacing": [
+      "space.0",
+      "space.1",
+      "space.2",
+      "space.3",
+      "space.4",
+      "space.5",
+      "space.6",
+      "space.8",
+      "space.10",
+      "space.12"
+    ],
+    "radius": [
+      "radius.none",
+      "radius.sm",
+      "radius.md",
+      "radius.lg",
+      "radius.pill"
+    ],
+    "typography": [
+      "type.display",
+      "type.title1",
+      "type.title2",
+      "type.body",
+      "type.bodyStrong",
+      "type.caption",
+      "type.button"
+    ],
+    "elevation": [
+      "elevation.none",
+      "elevation.card",
+      "elevation.popup"
+    ],
+    "motion": [
+      "motion.fast",
+      "motion.normal",
+      "motion.slow",
+      "motion.reduced"
+    ],
+    "safe_area": [
+      "safe.top",
+      "safe.bottom"
+    ]
+  },
+  "rules": [
+    "Ak UI wrapper maps tokens to uView Ultra props/SCSS variables.",
+    "Feature pages cannot directly set brand hex values.",
+    "Status must not rely on color alone.",
+    "Dark values remain behind dark_mode until compatibility audit passes."
+  ]
+}

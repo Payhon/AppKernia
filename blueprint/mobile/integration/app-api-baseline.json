@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "source": "blueprint/backend/AK_BACKEND_BLUEPRINT.md and docs/FEATURE_MATRIX.md",
+  "description": "AK Mobile 已由 Backend Blueprint 明确定义的 App API 基线。实现时以 OpenAPI 为最终事实源。",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/register",
+      "purpose": "注册账号",
+      "auth": "anonymous"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login/password",
+      "purpose": "密码登录",
+      "auth": "anonymous"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/login/otp",
+      "purpose": "验证码登录",
+      "auth": "anonymous"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/token/refresh",
+      "purpose": "旋转 Refresh Token",
+      "auth": "refresh_token"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout",
+      "purpose": "退出当前会话",
+      "auth": "authenticated"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/logout-all",
+      "purpose": "退出全部会话",
+      "auth": "authenticated"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/password/forgot",
+      "purpose": "发起忘记密码流程",
+      "auth": "anonymous"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/password/reset",
+      "purpose": "重置密码",
+      "auth": "anonymous"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/password/change",
+      "purpose": "修改当前用户密码",
+      "auth": "authenticated"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/email/send-code",
+      "purpose": "发送邮箱验证码",
+      "auth": "rate_limited"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/email/verify",
+      "purpose": "验证邮箱",
+      "auth": "challenge"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/mobile/send-code",
+      "purpose": "发送手机验证码",
+      "auth": "rate_limited"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/mobile/verify",
+      "purpose": "验证手机号",
+      "auth": "challenge"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me",
+      "purpose": "读取当前用户资料",
+      "auth": "authenticated"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/me",
+      "purpose": "更新当前用户资料",
+      "auth": "authenticated"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/avatar/upload-session",
+      "purpose": "创建头像上传会话",
+      "auth": "authenticated"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/sessions",
+      "purpose": "读取自己的登录会话",
+      "auth": "authenticated"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/sessions/{session_id}",
+      "purpose": "撤销自己的指定会话",
+      "auth": "authenticated"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/devices",
+      "purpose": "读取自己的设备",
+      "auth": "authenticated"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/devices/{device_id}",
+      "purpose": "移除自己的设备",
+      "auth": "authenticated"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/notifications",
+      "purpose": "读取自己的站内消息",
+      "auth": "authenticated"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/me/notifications/{message_id}/read",
+      "purpose": "标记消息已读",
+      "auth": "authenticated"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/notifications/read-all",
+      "purpose": "全部标记已读",
+      "auth": "authenticated"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/config",
+      "purpose": "读取移动端公开配置",
+      "auth": "anonymous"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/dictionaries/{code}",
+      "purpose": "读取公开字典",
+      "auth": "anonymous"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/regions",
+      "purpose": "读取地区树/列表",
+      "auth": "anonymous"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "validation.invalid": "{name} is invalid",
+  "validation.required": "Enter {name}",
+  "validation.too_long": "{name} is too long"
+}

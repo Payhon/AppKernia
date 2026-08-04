@@ -1,0 +1,389 @@
+{
+  "login.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "login.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "login.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "register.zh-CN.768": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "register.en-US.768": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "forgot-password.zh-CN.768": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "forgot-password.en-US.768": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "reset-password.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "dashboard.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "dashboard.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "profile-avatar.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "profile.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "profile-avatar.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "profile.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "departments.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "departments.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "positions.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "positions.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "user-detail.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "users.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "users.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "users.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "tenant-detail.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "tenants.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "tenants.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "tenants.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "role-detail.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "roles.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "roles.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "permissions.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "menus.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "menus.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "menus.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "roles.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "operation-logs.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "operation-logs.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "login-logs.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "security-events.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "security-event-detail.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "security-events.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "security-events.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "positions.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "departments.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "profile-security.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "profile-security.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "online-sessions.en-US.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "online-sessions.en-US.375": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "online-sessions.zh-CN.1440": {
+    "critical_or_serious": 0,
+    "violations": []
+  },
+  "browser": {
+    "engine": "Chromium",
+    "viewports": [
+      375,
+      768,
+      1024,
+      1440
+    ]
+  },
+  "profile_basic": {
+    "read": true,
+    "save": true,
+    "restored_fixture": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "profile_avatar": {
+    "feature_gate": true,
+    "invalid_file_localized": true,
+    "upload_session_status": 201,
+    "upload_status": 200,
+    "private_content_status": 200,
+    "private_content_type": "image/png",
+    "file_id": "019fc7ff-ef53-7435-a559-05682736779f",
+    "blob_rendered": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "profile_self_only": {
+    "anonymous_direct_url_redirected": true
+  },
+  "profile_security_sessions": {
+    "list": true,
+    "current_session_warning": true,
+    "other_session_revoked": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "profile_security_devices": {
+    "list": true,
+    "current_device_warning": true,
+    "other_device_removed": true,
+    "associated_sessions_revoked": "backend_integration",
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "profile_password": {
+    "password_manager_autocomplete": true,
+    "invalid_current_password_localized": true,
+    "successful_change": "backend_integration_only"
+  },
+  "organization": {
+    "unit_create_statuses": [
+      201,
+      201
+    ],
+    "keyboard_move_status": 200,
+    "position_create_status": 201,
+    "anonymous_direct_url_redirected": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "users": {
+    "create_status": 201,
+    "role_replace_status": 200,
+    "assignment_replace_status": 200,
+    "import_status": 200,
+    "import_created": 2,
+    "bulk_disable_statuses": [
+      200,
+      200
+    ],
+    "export_download": "users.csv",
+    "url_search_restored_after_detail": true,
+    "anonymous_direct_url_redirected": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "tenants": {
+    "create_status": 201,
+    "switch_statuses": [
+      200,
+      200
+    ],
+    "url_search_restored_after_detail": true,
+    "switch_without_reload": true,
+    "anonymous_direct_url_redirected": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "access_control": {
+    "role_create_status": 201,
+    "permission_replace_status": 200,
+    "menu_replace_status": 200,
+    "data_scope_replace_status": 200,
+    "menu_create_status": 201,
+    "permission_menu_separation": true,
+    "component_key_selector": true,
+    "url_search_restored_after_detail": true,
+    "anonymous_direct_url_redirected": true,
+    "depth_and_cycle_rejection": "backend_integration",
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "audit_security": {
+    "operation_redaction_fixture": true,
+    "operation_url_filters": true,
+    "login_result_url_filter": true,
+    "security_event_detail": true,
+    "resolve_status": 200,
+    "resolve_audited": true,
+    "security_url_restored_after_detail": true,
+    "anonymous_direct_url_redirected": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "online_sessions": {
+    "safe_server_hints": true,
+    "current_session_warning": true,
+    "url_filters": true,
+    "revoke_status": 200,
+    "list_refreshed_after_revoke": true,
+    "refresh_family_and_audit": "backend_integration",
+    "anonymous_direct_url_redirected": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "account_enumeration": {
+    "same_error": true
+  },
+  "anonymous_auth": {
+    "registration_feature_gate": true,
+    "terms_not_preselected": true,
+    "registration_postgresql": true,
+    "forgot_known_unknown_same_response": true,
+    "reset_token_removed_from_url": true,
+    "invalid_reset_localized": true,
+    "successful_reset": "backend_postgresql_integration",
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "keyboard_navigation": {
+    "language_then_account": true
+  },
+  "locale_switch_without_reload": {
+    "login": true,
+    "dashboard": true
+  },
+  "dashboard": {
+    "postgresql_backed_metrics": true,
+    "postgresql_backed_login_trends": {
+      "success": 3,
+      "failure": 1
+    },
+    "range_in_url": true,
+    "permission_pruned_contract": "backend_unit_and_integration",
+    "chart_table_alternative": true,
+    "lazy_echarts_chunk": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "authenticated_locale_persisted": {
+    "fresh_browser_session": true,
+    "locale": "en-US"
+  },
+  "reduced_motion": {
+    "transition_seconds": 1e-05
+  },
+  "expected_auth_401_console_entries": 2,
+  "expected_validation_422_console_entries": 2,
+  "unexpected_console_errors": []
+}

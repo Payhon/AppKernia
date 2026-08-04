@@ -1,0 +1,77 @@
+{
+  "block-rules.en-US.1440.empty": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "block-rules.en-US.1440.saved": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "block-rules.zh-CN.1024.saved": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1024,
+      "scroll": 1024
+    }
+  },
+  "block-rules.zh-CN.768.saved": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 768,
+      "scroll": 768
+    }
+  },
+  "block-rules.zh-CN.375.saved": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "health.en-US.1440": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "health.zh-CN.768": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 768,
+      "scroll": 768
+    }
+  },
+  "health.zh-CN.375": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "runtime": {
+    "raw_subject_returned": false,
+    "subject_hint": "203.0.113.***",
+    "revoke_status": 200,
+    "health_secret_scan": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "unexpected_console_errors": []
+}

@@ -1,0 +1,257 @@
+{
+  "schema_version": 1,
+  "description": "AK Admin default menu seed. component_key must exist in the React static route registry.",
+  "menus": [
+    {
+      "code": "dashboard",
+      "title": "仪表盘",
+      "type": "page",
+      "path": "/dashboard",
+      "component_key": "dashboard",
+      "icon": "DashboardOutlined",
+      "sort": 10
+    },
+    {
+      "code": "system",
+      "title": "系统管理",
+      "type": "directory",
+      "path": "/system",
+      "icon": "SettingOutlined",
+      "sort": 20
+    },
+    {
+      "code": "system.users",
+      "parent": "system",
+      "title": "用户管理",
+      "type": "page",
+      "path": "/system/users",
+      "component_key": "system.users",
+      "permission": "iam.user.read",
+      "sort": 10
+    },
+    {
+      "code": "system.tenants",
+      "parent": "system",
+      "title": "租户管理",
+      "type": "page",
+      "path": "/system/tenants",
+      "component_key": "system.tenants",
+      "permission": "iam.tenant.read",
+      "sort": 20
+    },
+    {
+      "code": "system.org-units",
+      "parent": "system",
+      "title": "组织机构",
+      "type": "page",
+      "path": "/system/org-units",
+      "component_key": "system.org-units",
+      "permission": "org.unit.read",
+      "sort": 30
+    },
+    {
+      "code": "system.positions",
+      "parent": "system",
+      "title": "岗位管理",
+      "type": "page",
+      "path": "/system/positions",
+      "component_key": "system.positions",
+      "permission": "org.position.read",
+      "sort": 40
+    },
+    {
+      "code": "system.roles",
+      "parent": "system",
+      "title": "角色管理",
+      "type": "page",
+      "path": "/system/roles",
+      "component_key": "system.roles",
+      "permission": "iam.role.read",
+      "sort": 50
+    },
+    {
+      "code": "system.permissions",
+      "parent": "system",
+      "title": "权限目录",
+      "type": "page",
+      "path": "/system/permissions",
+      "component_key": "system.permissions",
+      "permission": "iam.permission.read",
+      "sort": 60
+    },
+    {
+      "code": "system.menus",
+      "parent": "system",
+      "title": "菜单管理",
+      "type": "page",
+      "path": "/system/menus",
+      "component_key": "system.menus",
+      "permission": "sys.menu.read",
+      "sort": 70
+    },
+    {
+      "code": "system.dictionaries",
+      "parent": "system",
+      "title": "字典管理",
+      "type": "page",
+      "path": "/system/dictionaries",
+      "component_key": "system.dictionaries",
+      "permission": "sys.dictionary.read",
+      "sort": 80
+    },
+    {
+      "code": "system.configs",
+      "parent": "system",
+      "title": "配置管理",
+      "type": "page",
+      "path": "/system/configs",
+      "component_key": "system.configs",
+      "permission": "sys.config.read",
+      "sort": 90
+    },
+    {
+      "code": "system.files",
+      "parent": "system",
+      "title": "文件管理",
+      "type": "page",
+      "path": "/system/files",
+      "component_key": "system.files",
+      "permission": "storage.file.read",
+      "sort": 100
+    },
+    {
+      "code": "system.notices",
+      "parent": "system",
+      "title": "公告管理",
+      "type": "page",
+      "path": "/system/notices",
+      "component_key": "system.notices",
+      "permission": "notify.notice.read",
+      "sort": 110
+    },
+    {
+      "code": "system.notification-templates",
+      "parent": "system",
+      "title": "通知模板",
+      "type": "page",
+      "path": "/system/notification-templates",
+      "component_key": "system.notification-templates",
+      "permission": "notify.template.read",
+      "sort": 120
+    },
+    {
+      "code": "system.job-schedules",
+      "parent": "system",
+      "title": "定时任务",
+      "type": "page",
+      "path": "/system/job-schedules",
+      "component_key": "system.job-schedules",
+      "permission": "jobs.schedule.read",
+      "sort": 130
+    },
+    {
+      "code": "system.online-sessions",
+      "parent": "system",
+      "title": "在线会话",
+      "type": "page",
+      "path": "/system/online-sessions",
+      "component_key": "system.online-sessions",
+      "permission": "iam.session.read",
+      "sort": 140
+    },
+    {
+      "code": "system.api-clients",
+      "parent": "system",
+      "title": "API Client",
+      "type": "page",
+      "path": "/system/api-clients",
+      "component_key": "system.api-clients",
+      "permission": "sys.api_client.read",
+      "sort": 150
+    },
+    {
+      "code": "system.webhooks",
+      "parent": "system",
+      "title": "Webhook",
+      "type": "page",
+      "path": "/system/webhooks",
+      "component_key": "system.webhooks",
+      "permission": "sys.webhook.read",
+      "sort": 160
+    },
+    {
+      "code": "system.modules",
+      "parent": "system",
+      "title": "模块信息",
+      "type": "page",
+      "path": "/system/modules",
+      "component_key": "system.modules",
+      "permission": "sys.module.read",
+      "sort": 170
+    },
+    {
+      "code": "audit",
+      "title": "审计中心",
+      "type": "directory",
+      "path": "/audit",
+      "icon": "SafetyCertificateOutlined",
+      "sort": 30
+    },
+    {
+      "code": "audit.operations",
+      "parent": "audit",
+      "title": "操作日志",
+      "type": "page",
+      "path": "/audit/operations",
+      "component_key": "audit.operations",
+      "permission": "audit.operation.read",
+      "sort": 10
+    },
+    {
+      "code": "audit.logins",
+      "parent": "audit",
+      "title": "登录日志",
+      "type": "page",
+      "path": "/audit/logins",
+      "component_key": "audit.logins",
+      "permission": "audit.login.read",
+      "sort": 20
+    },
+    {
+      "code": "audit.security-events",
+      "parent": "audit",
+      "title": "安全事件",
+      "type": "page",
+      "path": "/audit/security-events",
+      "component_key": "audit.security-events",
+      "permission": "audit.security.read",
+      "sort": 30
+    },
+    {
+      "code": "profile",
+      "title": "个人中心",
+      "type": "directory",
+      "path": "/profile",
+      "icon": "UserOutlined",
+      "sort": 90
+    },
+    {
+      "code": "profile.index",
+      "parent": "profile",
+      "title": "个人资料",
+      "type": "page",
+      "path": "/profile",
+      "component_key": "profile.index",
+      "sort": 10
+    },
+    {
+      "code": "profile.security",
+      "parent": "profile",
+      "title": "账号安全",
+      "type": "page",
+      "path": "/profile/security",
+      "component_key": "profile.security",
+      "sort": 20
+    }
+  ]
+}

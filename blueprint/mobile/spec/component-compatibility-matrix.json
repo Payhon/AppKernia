@@ -1,0 +1,342 @@
+{
+  "schema_version": 1,
+  "uview_ultra_version": "4.5.18",
+  "business_rule": "feature/page 不得直接引用 up-*；只能使用 components/ak-ui 暴露的 ak-* 组件。",
+  "statuses": {
+    "approved": "可进入 Core，但仍需三端 smoke。",
+    "conditional": "完成 Android/iOS/Harmony 兼容用例后才能进入页面。",
+    "prohibited_core": "不得进入 AK Core 1.0；如业务需要，单独 ADR 和插件测试。"
+  },
+  "components": [
+    {
+      "wrapper": "AkButton",
+      "implementation": "up-button",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "按钮变体、加载、禁用、节流统一封装",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkTextField",
+      "implementation": "up-input",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "统一标签、错误、清空、密码显隐和键盘类型",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkTextArea",
+      "implementation": "up-textarea",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "统一长度限制和错误提示",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkForm",
+      "implementation": "up-form/up-form-item",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "仅作为呈现层；业务校验规则由 feature schema 管理",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkCellList",
+      "implementation": "up-cell-group/up-cell",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "个人中心和设置列表",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkIcon",
+      "implementation": "up-icon",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "只能使用 token 名称",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkImage",
+      "implementation": "up-image",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "统一失败占位、缓存和敏感 URL 处理",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkAvatar",
+      "implementation": "up-avatar",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "统一头像占位和上传状态",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkBadge",
+      "implementation": "up-badge",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "未读数量上限与无障碍文本",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkToastHost",
+      "implementation": "up-toast",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "每个页面/根容器统一 Host 约定",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkModal",
+      "implementation": "up-modal",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "危险操作使用明确对象和后果",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkActionSheet",
+      "implementation": "up-action-sheet",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "平台返回行为与安全区统一",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkPopup",
+      "implementation": "up-popup",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "焦点、返回键和遮罩行为统一",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkCodeInput",
+      "implementation": "up-code-input",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "OTP 自动填充必须遵循隐私与平台能力",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkSwitch",
+      "implementation": "up-switch",
+      "status": "approved",
+      "phase": "P1",
+      "notes": "异步保存时使用受控状态和回滚",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkPicker",
+      "implementation": "up-picker",
+      "status": "conditional",
+      "phase": "P1",
+      "notes": "三端真机验证后启用；否则使用原生 picker",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkDatePicker",
+      "implementation": "up-datetime-picker",
+      "status": "conditional",
+      "phase": "P1",
+      "notes": "时区、生日范围和三端返回值必须测试",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkTabs",
+      "implementation": "up-tabs",
+      "status": "conditional",
+      "phase": "P1",
+      "notes": "滚动、长标题和无障碍回归",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkSkeleton",
+      "implementation": "up-skeleton",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "骨架必须与真实布局近似",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkEmptyState",
+      "implementation": "up-empty",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "统一空状态与下一步动作",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkLoading",
+      "implementation": "up-loading-icon",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "避免全局阻塞；长任务可取消",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkStatusTag",
+      "implementation": "up-tag",
+      "status": "approved",
+      "phase": "P1",
+      "notes": "不能只靠颜色表达状态",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkDivider",
+      "implementation": "up-divider",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "语义间距通过 token",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkNoticeBar",
+      "implementation": "up-notice-bar",
+      "status": "conditional",
+      "phase": "P1",
+      "notes": "关闭、滚动和动态文本三端验证",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkSwipeAction",
+      "implementation": "up-swipe-action/up-swipe-action-item",
+      "status": "conditional",
+      "phase": "P2",
+      "notes": "与 scroll-view 冲突需测试；危险动作仍二次确认",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkNavBar",
+      "implementation": "up-navbar or native navigationStyle",
+      "status": "conditional",
+      "phase": "P0",
+      "notes": "优先原生导航；仅特殊页面使用自定义 Navbar",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkTabBar",
+      "implementation": "native pages.json tabBar",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "不使用动态远程 TabBar",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkList",
+      "implementation": "native list-view/scroll-view",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "长列表不依赖普通 view 全量渲染",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkSafeArea",
+      "implementation": "AK CSS variables + platform adapter",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "统一底部/顶部安全区",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkRichText",
+      "implementation": "native rich-text with sanitized server content",
+      "status": "conditional",
+      "phase": "P1",
+      "notes": "核心页面禁止依赖适配中的 up-parse",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkTransition",
+      "implementation": "AK simple CSS/native transition",
+      "status": "conditional",
+      "phase": "P2",
+      "notes": "核心流程禁止依赖适配中的 up-transition",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkQRCode",
+      "implementation": "not in AK Core",
+      "status": "prohibited_core",
+      "phase": "P3",
+      "notes": "uView QR 仍需单独兼容验证",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkPagination",
+      "implementation": "cursor infinite list",
+      "status": "prohibited_core",
+      "phase": "P0",
+      "notes": "移动端核心列表不使用分页器",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    }
+  ]
+}

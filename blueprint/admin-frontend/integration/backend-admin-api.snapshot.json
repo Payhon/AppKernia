@@ -1,0 +1,595 @@
+{
+  "schema_version": 1,
+  "source": "AppKernia Backend Blueprint FEATURE_MATRIX.md",
+  "description": "后端蓝图中已明确的 Admin API 快照；项目落地后应由 OpenAPI 自动替代。",
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/auth/login"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/auth/token/refresh"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/auth/logout"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/auth/context"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/auth/switch-tenant"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/auth/public-config"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/auth/register"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/auth/password/forgot"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/auth/password/reset"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/me"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/me"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/me/avatar/upload-session"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/me/avatar/upload-sessions/{id}/content"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/me/avatar/content"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/me/sessions"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/me/sessions/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/me/devices"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/me/devices/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/me/password/change"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/dashboard/summary"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/dashboard/trends"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/dashboard/activity"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/online-sessions"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/online-sessions/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/users/{id}/sessions"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/users/{id}/sessions/{session_id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/users"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/users"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/users/{id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/users/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/users/{id}/enable"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/users/{id}/disable"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/users/{id}/unlock"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/users/{id}/reset-password"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/users/{id}/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/users/import"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/users/export"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/tenants"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/tenants"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/tenants/{id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/tenants/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/tenants/{id}/members"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/tenants/{id}/members"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/tenants/{id}/members/{user_id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/tenants/{id}/members/{user_id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/roles"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/roles"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/roles/{id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/roles/{id}"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/roles/{id}/permissions"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/roles/{id}/data-scope"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/permissions"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/org/units/tree"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/org/units"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/org/units/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/org/units/{id}/move"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/org/units/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/org/positions"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/org/positions"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/org/positions/{id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/org/positions/{id}"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/org/users/{user_id}/assignments"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/menus/tree"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/menus"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/menus/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/menus/{id}/move"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/menus/{id}"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/roles/{id}/menus"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/audit/operations"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/audit/logins"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/audit/security-events"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/audit/security-events/{id}/resolve"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/dict-types"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/dict-types"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/dict-types/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/dict-types/{id}/items"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/dict-types/{id}/items"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/dict-items/{id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/dict-items/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/configs"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/configs"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/configs/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/configs/{id}/rotate-secret"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/files/upload-sessions"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/files/upload-sessions/{id}/complete"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/files"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/files/{id}/presign-download"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/files/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/notices"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/notices"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/notices/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/notices/{id}/publish"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/notices/{id}/cancel"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/notification-templates"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/notification-templates"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/notification-templates/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/notification-deliveries"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/notification-deliveries/{id}/retry"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/audit/security-events/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/messages"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/messages"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/messages/{id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/messages/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/messages/{id}/publish"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/messages/{id}/cancel"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/messages/{id}/recipients"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/files/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/files/{id}/usages"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/notification-deliveries/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/job-handlers"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/job-schedules/preview"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/job-schedules"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/job-schedules"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/job-schedules/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/job-schedules/{id}/pause"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/job-schedules/{id}/resume"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/job-schedules/{id}/execute"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/job-schedules/{id}/runs"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/webhooks"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/webhooks"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/webhooks/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/webhooks/{id}/test"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/webhooks/{id}/deliveries"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/api-clients"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/api-clients"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/api-clients/{id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/api-clients/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/api-clients/{id}/secrets"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/api-clients/{id}/secrets/{secret_id}"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/api-clients/{id}/permissions"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/regions"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/modules"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/block-rules"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/block-rules"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/block-rules/{id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/block-rules/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/ops/health"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/ops/runtime-summary"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/me/oauth-accounts"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/me/oauth/{provider}/start"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/me/oauth/{provider}/callback"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/me/oauth/{provider}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/me/mfa"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/me/mfa/totp/enroll"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/me/mfa/totp/verify"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/me/mfa/totp"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/me/mfa/recovery-codes/rotate"
+    }
+  ]
+}

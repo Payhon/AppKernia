@@ -1,0 +1,156 @@
+{
+  "api-clients.en-US.1440.empty": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "api-client-detail.en-US.1440": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "api-client-detail.zh-CN.375": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "api-clients.en-US.1440.revoked": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "api-clients.zh-CN.1024.revoked": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1024,
+      "scroll": 1024
+    }
+  },
+  "api-clients.zh-CN.768.revoked": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 768,
+      "scroll": 768
+    }
+  },
+  "api-clients.zh-CN.375.revoked": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "webhooks.en-US.1440.empty": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "webhooks.en-US.1440.delivery": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "webhooks.zh-CN.1440.saved": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "webhooks.zh-CN.1024.saved": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1024,
+      "scroll": 1024
+    }
+  },
+  "webhooks.zh-CN.768.saved": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 768,
+      "scroll": 768
+    }
+  },
+  "webhooks.zh-CN.375.saved": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "errors.en-US.1440.not-found": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "errors.en-US.1440.offline": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "errors.zh-CN.375.not-found": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "errors.zh-CN.375.offline": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "runtime": {
+    "api_client_id": "019fc823-cfd9-7f0d-9bba-7e84266793db",
+    "machine_token_audience": "ak-api",
+    "admin_api_rejected_machine_token": true,
+    "revoked_secret_rejected": true,
+    "webhook_id": "019fc823-e1d9-7d18-9657-b3053138df62",
+    "delivery_id": "019fc823-e56e-735d-8737-806c70eb12f9",
+    "delivery_status": "succeeded",
+    "delivery_response_status": 204,
+    "api_client_detail_get": true,
+    "explicit_404_route": true,
+    "offline_route": true,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "unexpected_console_errors": []
+}

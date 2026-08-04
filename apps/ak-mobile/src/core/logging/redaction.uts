@@ -1,0 +1,25 @@
+const sensitiveFieldNames: Array<string> = [
+  'authorization',
+  'cookie',
+  'refresh_token',
+  'password',
+  'otp',
+  'mfa_secret',
+  'recovery_code',
+  'push_token',
+  'presigned_url',
+  'oauth_code',
+  'code_verifier',
+]
+
+export function isSensitiveField(fieldName: string): boolean {
+  return sensitiveFieldNames.includes(fieldName.toLowerCase())
+}
+
+export function redactValue(fieldName: string, value: string): string {
+  if (isSensitiveField(fieldName)) {
+    return '[REDACTED]'
+  }
+  return value
+}
+

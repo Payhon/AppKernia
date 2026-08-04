@@ -1,0 +1,13 @@
+AppKernia blueprint static validation
+{
+  "up_migrations": 6,
+  "down_migrations": 6,
+  "core_tables": 51,
+  "optional_billing_tables": 6,
+  "total_tables": 57,
+  "indexes": 91,
+  "triggers": 34,
+  "foreign_key_references": 105
+}
+PASSED: 0 errors, 0 warning(s)
+NOTE: Static validation does not replace running migrations on PostgreSQL 18.

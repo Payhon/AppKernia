@@ -1,0 +1,73 @@
+{
+  "security.en-US.1440.enabled": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "connections.en-US.1440.empty": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "callback.en-US.1440.success": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "security.zh-CN.1024.disabled": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 1024,
+      "scroll": 1024
+    }
+  },
+  "security.zh-CN.768.disabled": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 768,
+      "scroll": 768
+    }
+  },
+  "security.zh-CN.375.disabled": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "connections.zh-CN.375.empty": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "runtime": {
+    "mfa_verify_status": 200,
+    "rotate_wrong_proof_status": 403,
+    "rotate_status": 200,
+    "oauth_callback_replay_status": 422,
+    "oauth_unbind_status": 200,
+    "mfa_disable_status": 200,
+    "one_time_values_persisted": false,
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  },
+  "expected_wrong_proof_console_errors": 1,
+  "unexpected_console_errors": []
+}

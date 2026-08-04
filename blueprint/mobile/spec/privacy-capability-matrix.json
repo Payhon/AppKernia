@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "description": "AK Core 的系统能力与隐私申请矩阵。未列出的敏感能力默认禁止。",
+  "capabilities": [
+    {
+      "key": "first_party_network",
+      "core_use": "认证、配置、消息",
+      "request_time": "用户同意当前隐私版本后；首次法律文本使用随包快照",
+      "android": "no_runtime_permission",
+      "ios": "no_runtime_permission",
+      "harmony": "no_runtime_permission",
+      "default": "enabled_after_consent"
+    },
+    {
+      "key": "photo_library",
+      "core_use": "选择头像",
+      "request_time": "用户主动点击选择头像时",
+      "android": "system_picker_or_minimum_permission",
+      "ios": "photo_picker_limited_supported",
+      "harmony": "system_picker_or_minimum_permission",
+      "default": "on_demand"
+    },
+    {
+      "key": "camera",
+      "core_use": "拍摄头像（可选）",
+      "request_time": "用户主动选择拍照时",
+      "android": "CAMERA",
+      "ios": "NSCameraUsageDescription",
+      "harmony": "camera permission",
+      "default": "disabled_until_action"
+    },
+    {
+      "key": "push_notifications",
+      "core_use": "消息提醒（可选）",
+      "request_time": "用户在通知设置中明确开启时",
+      "android": "platform/version dependent",
+      "ios": "notification authorization",
+      "harmony": "notification authorization",
+      "default": "feature_flag_off"
+    },
+    {
+      "key": "biometric",
+      "core_use": "本地解锁（P3，可选）",
+      "request_time": "用户在安全设置主动开启时",
+      "android": "biometric capability",
+      "ios": "Face ID usage description when applicable",
+      "harmony": "biometric capability",
+      "default": "feature_flag_off"
+    },
+    {
+      "key": "device_metadata",
+      "core_use": "会话安全所需的最小平台/型号/版本",
+      "request_time": "隐私同意后登录或刷新时",
+      "android": "no advertising id",
+      "ios": "no IDFA",
+      "harmony": "no advertising identifier",
+      "default": "minimal_only"
+    },
+    {
+      "key": "clipboard_read",
+      "core_use": "无",
+      "request_time": "never automatic",
+      "android": "prohibited_core",
+      "ios": "prohibited_core",
+      "harmony": "prohibited_core",
+      "default": "disabled"
+    },
+    {
+      "key": "location",
+      "core_use": "无",
+      "request_time": "not in core",
+      "android": "prohibited_core",
+      "ios": "prohibited_core",
+      "harmony": "prohibited_core",
+      "default": "disabled"
+    },
+    {
+      "key": "contacts",
+      "core_use": "无",
+      "request_time": "not in core",
+      "android": "prohibited_core",
+      "ios": "prohibited_core",
+      "harmony": "prohibited_core",
+      "default": "disabled"
+    },
+    {
+      "key": "microphone",
+      "core_use": "无",
+      "request_time": "not in core",
+      "android": "prohibited_core",
+      "ios": "prohibited_core",
+      "harmony": "prohibited_core",
+      "default": "disabled"
+    },
+    {
+      "key": "advertising_tracking",
+      "core_use": "无",
+      "request_time": "not in core",
+      "android": "prohibited_core",
+      "ios": "no ATT prompt",
+      "harmony": "prohibited_core",
+      "default": "disabled"
+    }
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "description": "服务端公开配置与 auth/context 返回的移动端 Feature Flags。未知 Flag 必须按 false 处理。",
+  "flags": [
+    {
+      "key": "registration_enabled",
+      "default": true,
+      "scope": "public",
+      "phase": "P0"
+    },
+    {
+      "key": "onboarding_enabled",
+      "default": false,
+      "scope": "public",
+      "phase": "P1"
+    },
+    {
+      "key": "password_login_enabled",
+      "default": true,
+      "scope": "public",
+      "phase": "P0"
+    },
+    {
+      "key": "otp_login_enabled",
+      "default": false,
+      "scope": "public",
+      "phase": "P0"
+    },
+    {
+      "key": "oauth_login_enabled",
+      "default": false,
+      "scope": "public",
+      "phase": "P2"
+    },
+    {
+      "key": "mfa_enabled",
+      "default": true,
+      "scope": "authenticated",
+      "phase": "P1"
+    },
+    {
+      "key": "multi_tenant",
+      "default": false,
+      "scope": "authenticated",
+      "phase": "P2"
+    },
+    {
+      "key": "push_notifications",
+      "default": false,
+      "scope": "authenticated",
+      "phase": "P2"
+    },
+    {
+      "key": "dark_mode",
+      "default": false,
+      "scope": "public",
+      "phase": "P2"
+    },
+    {
+      "key": "biometric_unlock",
+      "default": false,
+      "scope": "authenticated",
+      "phase": "P3"
+    },
+    {
+      "key": "account_deletion",
+      "default": true,
+      "scope": "authenticated",
+      "phase": "P2"
+    },
+    {
+      "key": "app_update_check",
+      "default": true,
+      "scope": "public",
+      "phase": "P1"
+    },
+    {
+      "key": "vapor_renderer",
+      "default": false,
+      "scope": "build_time",
+      "phase": "P3"
+    },
+    {
+      "key": "dev_component_gallery",
+      "default": true,
+      "scope": "development",
+      "phase": "P0"
+    }
+  ]
+}

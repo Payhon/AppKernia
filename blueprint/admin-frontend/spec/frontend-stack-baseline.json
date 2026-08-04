@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "runtime": {
+    "node": "24.x LTS",
+    "package_manager": "pnpm 11.x"
+  },
+  "core": {
+    "react": "19.2.x",
+    "vite": "8.1.x",
+    "typescript": "current compatible stable; strict; lock exact patch"
+  },
+  "routing_and_state": {
+    "@tanstack/react-router": "v1",
+    "@tanstack/react-query": "v5",
+    "zustand": "current compatible major"
+  },
+  "ui": {
+    "antd": "6.x",
+    "@ant-design/pro-components": "current AntD 6 compatible",
+    "react-hook-form": "current",
+    "zod": "current stable"
+  },
+  "supporting": [
+    "echarts",
+    "dayjs",
+    "i18next",
+    "react-i18next"
+  ],
+  "testing": [
+    "vitest",
+    "@testing-library/react",
+    "msw",
+    "@playwright/test",
+    "@axe-core/playwright"
+  ],
+  "version_policy": "Resolve current secure patch in Phase 0, run compatibility matrix, commit frozen pnpm lockfile; no automatic major upgrades."
+}

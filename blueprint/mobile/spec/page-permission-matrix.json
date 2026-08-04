@@ -1,0 +1,260 @@
+{
+  "schema_version": 1,
+  "description": "移动端页面与动作权限。前端仅控制 UX；Go API 必须再次授权。",
+  "pages": [
+    {
+      "route_key": "bootstrap",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "privacy.consent",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "onboarding",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": "onboarding_enabled"
+    },
+    {
+      "route_key": "auth.login.password",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "auth.login.otp",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": "otp_login_enabled"
+    },
+    {
+      "route_key": "auth.register",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": "registration_enabled"
+    },
+    {
+      "route_key": "auth.forgot-password",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "auth.reset-password",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "auth.verify-contact",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "auth.mfa-challenge",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": "mfa_enabled"
+    },
+    {
+      "route_key": "auth.oauth-callback",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": "oauth_login_enabled"
+    },
+    {
+      "route_key": "home",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "notifications.list",
+      "view_permissions": [
+        "notify.message.read_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "notifications.detail",
+      "view_permissions": [
+        "notify.message.read_self"
+      ],
+      "action_permissions": [
+        "notify.message.mark_read_self"
+      ],
+      "feature_flag": null
+    },
+    {
+      "route_key": "profile.index",
+      "view_permissions": [
+        "iam.user.read_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "profile.basic",
+      "view_permissions": [
+        "iam.user.read_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "profile.edit",
+      "view_permissions": [
+        "iam.user.read_self"
+      ],
+      "action_permissions": [
+        "iam.user.update_self",
+        "storage.file.upload_self"
+      ],
+      "feature_flag": null
+    },
+    {
+      "route_key": "profile.security",
+      "view_permissions": [
+        "iam.login_event.read_self",
+        "iam.security_event.read_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "profile.change-password",
+      "view_permissions": [
+        "iam.user.update_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "profile.sessions",
+      "view_permissions": [
+        "iam.session.read_self"
+      ],
+      "action_permissions": [
+        "iam.session.revoke_self"
+      ],
+      "feature_flag": null
+    },
+    {
+      "route_key": "profile.devices",
+      "view_permissions": [
+        "iam.device.read_self"
+      ],
+      "action_permissions": [
+        "iam.device.revoke_self"
+      ],
+      "feature_flag": null
+    },
+    {
+      "route_key": "profile.mfa",
+      "view_permissions": [
+        "iam.mfa.manage_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": "mfa_enabled"
+    },
+    {
+      "route_key": "profile.connections",
+      "view_permissions": [
+        "iam.oauth.manage_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": "oauth_login_enabled"
+    },
+    {
+      "route_key": "settings.index",
+      "view_permissions": [
+        "iam.preference.manage_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "settings.language",
+      "view_permissions": [
+        "iam.preference.manage_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "settings.theme",
+      "view_permissions": [
+        "iam.preference.manage_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": "dark_mode"
+    },
+    {
+      "route_key": "settings.notifications",
+      "view_permissions": [
+        "notify.preference.manage_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": "push_notifications"
+    },
+    {
+      "route_key": "tenant.switch",
+      "view_permissions": [
+        "iam.tenant.switch_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": "multi_tenant"
+    },
+    {
+      "route_key": "legal.privacy",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "legal.terms",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "about",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "account.deletion",
+      "view_permissions": [
+        "iam.user.request_deletion_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": "account_deletion"
+    },
+    {
+      "route_key": "error.forbidden",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "error.offline",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "dev.components",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": "dev_component_gallery"
+    }
+  ]
+}

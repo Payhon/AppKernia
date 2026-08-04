@@ -1,0 +1,562 @@
+{
+  "schema_version": 2,
+  "base_url": "/admin-api/v1",
+  "description": "页面—API—Schema 追踪矩阵。当前页面接口均为 existing；未来出现 delta_required/partial_delta 时必须先补齐后端契约。",
+  "pages": [
+    {
+      "component_key": "dashboard",
+      "title": "Dashboard",
+      "phase": "P0",
+      "schema": [
+        "iam.users",
+        "iam.sessions",
+        "audit.login_events",
+        "audit.security_events",
+        "jobs.schedule_runs",
+        "notify.messages"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/dashboard/summary",
+        "GET /admin-api/v1/dashboard/trends",
+        "GET /admin-api/v1/dashboard/activity"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.settings.configs",
+      "title": "系统配置",
+      "phase": "P2",
+      "schema": [
+        "sys.config_items"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/configs",
+        "POST /admin-api/v1/configs",
+        "PATCH /admin-api/v1/configs/{id}",
+        "POST /admin-api/v1/configs/{id}/rotate-secret"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.settings.dictionaries",
+      "title": "字典管理",
+      "phase": "P2",
+      "schema": [
+        "sys.dict_types",
+        "sys.dict_items"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/dict-types",
+        "POST /admin-api/v1/dict-types",
+        "PATCH /admin-api/v1/dict-types/{id}",
+        "GET /admin-api/v1/dict-types/{id}/items",
+        "POST /admin-api/v1/dict-types/{id}/items",
+        "PATCH /admin-api/v1/dict-items/{id}",
+        "DELETE /admin-api/v1/dict-items/{id}"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.settings.regions",
+      "title": "地区管理",
+      "phase": "P2",
+      "schema": [
+        "sys.regions"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/regions"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.settings.modules",
+      "title": "模块信息",
+      "phase": "P2",
+      "schema": [
+        "sys.modules"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/modules"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.users.departments",
+      "title": "部门",
+      "phase": "P1",
+      "schema": [
+        "org.units",
+        "org.user_units"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/org/units/tree",
+        "POST /admin-api/v1/org/units",
+        "PATCH /admin-api/v1/org/units/{id}",
+        "POST /admin-api/v1/org/units/{id}/move",
+        "DELETE /admin-api/v1/org/units/{id}"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.users.accounts",
+      "title": "用户",
+      "phase": "P1",
+      "schema": [
+        "iam.users",
+        "iam.tenant_members",
+        "iam.user_roles",
+        "org.user_units",
+        "org.user_positions",
+        "iam.sessions",
+        "iam.devices",
+        "audit.login_events"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/users",
+        "POST /admin-api/v1/users",
+        "GET /admin-api/v1/users/{id}",
+        "PATCH /admin-api/v1/users/{id}",
+        "POST /admin-api/v1/users/{id}/enable",
+        "POST /admin-api/v1/users/{id}/disable",
+        "POST /admin-api/v1/users/{id}/unlock",
+        "POST /admin-api/v1/users/{id}/reset-password",
+        "PUT /admin-api/v1/users/{id}/roles",
+        "PUT /admin-api/v1/org/users/{user_id}/assignments",
+        "GET /admin-api/v1/users/{id}/sessions",
+        "DELETE /admin-api/v1/users/{id}/sessions/{session_id}",
+        "POST /admin-api/v1/users/import",
+        "POST /admin-api/v1/users/export"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.users.positions",
+      "title": "岗位",
+      "phase": "P1",
+      "schema": [
+        "org.positions",
+        "org.user_positions"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/org/positions",
+        "POST /admin-api/v1/org/positions",
+        "PATCH /admin-api/v1/org/positions/{id}",
+        "DELETE /admin-api/v1/org/positions/{id}"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.users.tenants",
+      "title": "租户",
+      "phase": "P1",
+      "schema": [
+        "iam.tenants",
+        "iam.tenant_members"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/tenants",
+        "POST /admin-api/v1/tenants",
+        "GET /admin-api/v1/tenants/{id}",
+        "PATCH /admin-api/v1/tenants/{id}",
+        "GET /admin-api/v1/tenants/{id}/members",
+        "POST /admin-api/v1/tenants/{id}/members",
+        "PATCH /admin-api/v1/tenants/{id}/members/{user_id}",
+        "DELETE /admin-api/v1/tenants/{id}/members/{user_id}",
+        "POST /admin-api/v1/auth/switch-tenant"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.access.roles",
+      "title": "角色",
+      "phase": "P1",
+      "schema": [
+        "iam.roles",
+        "iam.role_permissions",
+        "sys.role_menus",
+        "iam.role_scope_units",
+        "iam.user_roles"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/roles",
+        "POST /admin-api/v1/roles",
+        "PATCH /admin-api/v1/roles/{id}",
+        "DELETE /admin-api/v1/roles/{id}",
+        "PUT /admin-api/v1/roles/{id}/permissions",
+        "PUT /admin-api/v1/roles/{id}/menus",
+        "PUT /admin-api/v1/roles/{id}/data-scope"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.access.permissions",
+      "title": "权限目录",
+      "phase": "P1",
+      "schema": [
+        "iam.permissions"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/permissions"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.access.menus",
+      "title": "菜单",
+      "phase": "P1",
+      "schema": [
+        "sys.menus",
+        "sys.role_menus"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/menus/tree",
+        "POST /admin-api/v1/menus",
+        "PATCH /admin-api/v1/menus/{id}",
+        "POST /admin-api/v1/menus/{id}/move",
+        "DELETE /admin-api/v1/menus/{id}"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.storage.files",
+      "title": "文件管理",
+      "phase": "P2",
+      "schema": [
+        "storage.files",
+        "storage.upload_sessions",
+        "storage.upload_parts",
+        "storage.file_usages"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/files",
+        "GET /admin-api/v1/files/{id}",
+        "POST /admin-api/v1/files/upload-sessions",
+        "POST /admin-api/v1/files/upload-sessions/{id}/complete",
+        "POST /admin-api/v1/files/{id}/presign-download",
+        "GET /admin-api/v1/files/{id}/usages",
+        "DELETE /admin-api/v1/files/{id}"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.notifications.notices",
+      "title": "公告管理",
+      "phase": "P2",
+      "schema": [
+        "notify.messages",
+        "notify.recipients"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/notices",
+        "POST /admin-api/v1/notices",
+        "PATCH /admin-api/v1/notices/{id}",
+        "POST /admin-api/v1/notices/{id}/publish",
+        "POST /admin-api/v1/notices/{id}/cancel"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.notifications.messages",
+      "title": "站内消息",
+      "phase": "P2",
+      "schema": [
+        "notify.messages",
+        "notify.recipients"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/messages",
+        "POST /admin-api/v1/messages",
+        "GET /admin-api/v1/messages/{id}",
+        "PATCH /admin-api/v1/messages/{id}",
+        "POST /admin-api/v1/messages/{id}/publish",
+        "POST /admin-api/v1/messages/{id}/cancel",
+        "GET /admin-api/v1/messages/{id}/recipients"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.notifications.templates",
+      "title": "通知模板",
+      "phase": "P2",
+      "schema": [
+        "notify.templates"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/notification-templates",
+        "POST /admin-api/v1/notification-templates",
+        "PATCH /admin-api/v1/notification-templates/{id}"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.notifications.deliveries",
+      "title": "投递记录",
+      "phase": "P2",
+      "schema": [
+        "notify.deliveries"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/notification-deliveries",
+        "GET /admin-api/v1/notification-deliveries/{id}",
+        "POST /admin-api/v1/notification-deliveries/{id}/retry"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.integrations.schedules",
+      "title": "定时任务",
+      "phase": "P2",
+      "schema": [
+        "jobs.schedules",
+        "jobs.schedule_runs"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/job-handlers",
+        "POST /admin-api/v1/job-schedules/preview",
+        "GET /admin-api/v1/job-schedules",
+        "POST /admin-api/v1/job-schedules",
+        "PATCH /admin-api/v1/job-schedules/{id}",
+        "POST /admin-api/v1/job-schedules/{id}/pause",
+        "POST /admin-api/v1/job-schedules/{id}/resume",
+        "POST /admin-api/v1/job-schedules/{id}/execute",
+        "GET /admin-api/v1/job-schedules/{id}/runs"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.integrations.api-clients",
+      "title": "API 客户端",
+      "phase": "P2",
+      "schema": [
+        "sys.api_clients",
+        "sys.api_client_secrets",
+        "sys.api_client_permissions"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/api-clients",
+        "POST /admin-api/v1/api-clients",
+        "GET /admin-api/v1/api-clients/{id}",
+        "PATCH /admin-api/v1/api-clients/{id}",
+        "POST /admin-api/v1/api-clients/{id}/secrets",
+        "DELETE /admin-api/v1/api-clients/{id}/secrets/{secret_id}",
+        "PUT /admin-api/v1/api-clients/{id}/permissions"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.integrations.webhooks",
+      "title": "Webhook",
+      "phase": "P2",
+      "schema": [
+        "sys.webhook_endpoints",
+        "sys.webhook_deliveries",
+        "jobs.outbox_events"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/webhooks",
+        "POST /admin-api/v1/webhooks",
+        "PATCH /admin-api/v1/webhooks/{id}",
+        "POST /admin-api/v1/webhooks/{id}/test",
+        "GET /admin-api/v1/webhooks/{id}/deliveries"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.security.operation-logs",
+      "title": "操作日志",
+      "phase": "P1",
+      "schema": [
+        "audit.operation_logs"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/audit/operations"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.security.login-logs",
+      "title": "登录日志",
+      "phase": "P1",
+      "schema": [
+        "audit.login_events"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/audit/logins"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.security.events",
+      "title": "安全事件",
+      "phase": "P1",
+      "schema": [
+        "audit.security_events"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/audit/security-events",
+        "GET /admin-api/v1/audit/security-events/{id}",
+        "POST /admin-api/v1/audit/security-events/{id}/resolve"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.security.block-rules",
+      "title": "访问控制",
+      "phase": "P2",
+      "schema": [
+        "iam.block_rules"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/block-rules",
+        "POST /admin-api/v1/block-rules",
+        "PATCH /admin-api/v1/block-rules/{id}",
+        "DELETE /admin-api/v1/block-rules/{id}"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.monitoring.sessions",
+      "title": "在线会话",
+      "phase": "P1",
+      "schema": [
+        "iam.sessions",
+        "iam.devices",
+        "iam.refresh_tokens"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/online-sessions",
+        "DELETE /admin-api/v1/online-sessions/{id}"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.monitoring.health",
+      "title": "服务状态",
+      "phase": "P2",
+      "schema": [
+        "sys.modules",
+        "jobs.schedule_runs"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/ops/health",
+        "GET /admin-api/v1/ops/runtime-summary"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "profile.basic",
+      "title": "基本设置",
+      "phase": "P0",
+      "schema": [
+        "iam.users",
+        "iam.tenant_members",
+        "storage.files"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/me",
+        "PATCH /admin-api/v1/me",
+        "POST /admin-api/v1/me/avatar/upload-session",
+        "PUT /admin-api/v1/me/avatar/upload-sessions/{id}/content",
+        "GET /admin-api/v1/me/avatar/content"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "profile.security",
+      "title": "安全设置",
+      "phase": "P0",
+      "schema": [
+        "iam.user_credentials",
+        "iam.sessions",
+        "iam.devices",
+        "iam.mfa_factors",
+        "iam.mfa_recovery_codes"
+      ],
+      "endpoints": [
+        "POST /admin-api/v1/me/password/change",
+        "GET /admin-api/v1/me/sessions",
+        "DELETE /admin-api/v1/me/sessions/{id}",
+        "GET /admin-api/v1/me/devices",
+        "DELETE /admin-api/v1/me/devices/{id}",
+        "GET /admin-api/v1/me/mfa",
+        "POST /admin-api/v1/me/mfa/totp/enroll",
+        "POST /admin-api/v1/me/mfa/totp/verify",
+        "DELETE /admin-api/v1/me/mfa/totp",
+        "POST /admin-api/v1/me/mfa/recovery-codes/rotate"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "profile.connections",
+      "title": "第三方绑定",
+      "phase": "P3",
+      "schema": [
+        "iam.oauth_accounts"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/me/oauth-accounts",
+        "POST /admin-api/v1/me/oauth/{provider}/start",
+        "POST /admin-api/v1/me/oauth/{provider}/callback",
+        "DELETE /admin-api/v1/me/oauth/{provider}"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "auth.login",
+      "title": "登录页",
+      "phase": "P0",
+      "schema": [
+        "iam.sessions",
+        "iam.refresh_tokens",
+        "audit.login_events"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/auth/public-config",
+        "POST /admin-api/v1/auth/login",
+        "POST /admin-api/v1/auth/token/refresh"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "auth.register",
+      "title": "注册页",
+      "phase": "P0",
+      "schema": [
+        "iam.users",
+        "iam.user_credentials",
+        "iam.tenant_members"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/auth/public-config",
+        "POST /admin-api/v1/auth/register"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "auth.forgot-password",
+      "title": "找回密码页",
+      "phase": "P0",
+      "schema": [
+        "iam.verification_challenges"
+      ],
+      "endpoints": [
+        "POST /admin-api/v1/auth/password/forgot"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "auth.reset-password",
+      "title": "重置密码页",
+      "phase": "P0",
+      "schema": [
+        "iam.verification_challenges",
+        "iam.user_credentials",
+        "iam.password_history"
+      ],
+      "endpoints": [
+        "POST /admin-api/v1/auth/password/reset"
+      ],
+      "backend_status": "existing"
+    }
+  ]
+}

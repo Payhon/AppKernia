@@ -1,0 +1,42 @@
+{
+  "notifications.notices.en-US.1440.empty": {
+    "violations": []
+  },
+  "notifications.notices.en-US.1440.editor": {
+    "violations": []
+  },
+  "notifications.notices.en-US.1440.confirm": {
+    "violations": []
+  },
+  "notifications.notices.en-US.1440.detail": {
+    "violations": []
+  },
+  "recipient_confirmation": {
+    "notice_count": 1,
+    "selected_message_count": 1
+  },
+  "notifications.templates.en-US.1440": {
+    "violations": []
+  },
+  "notifications.templates.en-US.1024": {
+    "violations": []
+  },
+  "notifications.templates.en-US.768": {
+    "violations": []
+  },
+  "notifications.deliveries.en-US.1440.failed": {
+    "violations": []
+  },
+  "delivery_retry": {
+    "status": 200,
+    "delivery_id": "019fc77c-6a5e-7e88-8ebb-4e8dcb2a494d"
+  },
+  "notifications.deliveries.zh-CN.1440": {
+    "violations": []
+  },
+  "notifications.deliveries.zh-CN.375": {
+    "violations": []
+  },
+  "notification_audits": 38,
+  "unexpected_console_errors": []
+}

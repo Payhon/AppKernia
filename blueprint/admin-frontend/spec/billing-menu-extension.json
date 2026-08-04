@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "feature_flag": "billing",
+  "enabled_by_default": false,
+  "description": "Billing 不进入 AK Core 默认菜单；启用时仍挂在“系统”下。",
+  "menus": [
+    {
+      "code": "system.billing",
+      "parent": "system",
+      "title": "资金支付",
+      "type": "directory",
+      "path": "/system/billing",
+      "icon": "PayCircleOutlined",
+      "sort": 90,
+      "phase": "P3"
+    },
+    {
+      "code": "system.billing.payments",
+      "parent": "system.billing",
+      "title": "支付订单",
+      "type": "page",
+      "path": "/system/billing/payments",
+      "component_key": "system.billing.payments",
+      "permission": "billing.payment.read",
+      "sort": 10,
+      "phase": "P3"
+    },
+    {
+      "code": "system.billing.refunds",
+      "parent": "system.billing",
+      "title": "退款管理",
+      "type": "page",
+      "path": "/system/billing/refunds",
+      "component_key": "system.billing.refunds",
+      "permission": "billing.refund.read",
+      "sort": 20,
+      "phase": "P3"
+    },
+    {
+      "code": "system.billing.wallets",
+      "parent": "system.billing",
+      "title": "账户与流水",
+      "type": "page",
+      "path": "/system/billing/wallets",
+      "component_key": "system.billing.wallets",
+      "permission": "billing.wallet.read",
+      "sort": 30,
+      "phase": "P3"
+    },
+    {
+      "code": "system.billing.withdrawals",
+      "parent": "system.billing",
+      "title": "提现审核",
+      "type": "page",
+      "path": "/system/billing/withdrawals",
+      "component_key": "system.billing.withdrawals",
+      "permission": "billing.withdrawal.read",
+      "sort": 40,
+      "phase": "P3"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "name": "AppKernia Cross-Platform i18n Contract",
+  "default_locale": "zh-CN",
+  "fallback_locale": "zh-CN",
+  "supported_locales": [
+    {
+      "code": "zh-CN",
+      "native_name": "简体中文",
+      "english_name": "Simplified Chinese",
+      "direction": "ltr",
+      "aliases": [
+        "zh",
+        "zh-CN",
+        "zh_CN",
+        "zh-Hans",
+        "zh-SG"
+      ]
+    },
+    {
+      "code": "en-US",
+      "native_name": "English",
+      "english_name": "English (United States)",
+      "direction": "ltr",
+      "aliases": [
+        "en",
+        "en-US",
+        "en_US"
+      ]
+    }
+  ],
+  "locale_resolution": {
+    "anonymous": [
+      "explicit_local_preference",
+      "accept_language_or_device_locale",
+      "zh-CN"
+    ],
+    "authenticated": [
+      "persisted_user_preference",
+      "explicit_local_preference",
+      "accept_language_or_device_locale",
+      "zh-CN"
+    ],
+    "request_header": "Accept-Language",
+    "response_header": "Content-Language",
+    "cache_vary_header": "Accept-Language"
+  },
+  "key_rules": {
+    "format": "lowercase dot-separated semantic keys",
+    "forbid_source_text_as_key": true,
+    "named_placeholders": "{name}",
+    "all_supported_packs_must_have_identical_keys": true,
+    "placeholder_sets_must_match": true
+  },
+  "resource_paths": {
+    "backend": "server/internal/shared/i18n/locales/{locale}.json",
+    "admin": "apps/ak-admin/src/locales/{locale}/{namespace}.json",
+    "mobile": "apps/ak-mobile/locale/{locale}.json"
+  },
+  "required_namespaces": [
+    "common",
+    "auth",
+    "navigation",
+    "validation",
+    "errors",
+    "profile",
+    "settings",
+    "system",
+    "notifications"
+  ],
+  "client_error_policy": "stable error.code is authoritative; translate error.message_key/code locally, then fall back to server message",
+  "release_gate": {
+    "missing_keys": 0,
+    "placeholder_mismatches": 0,
+    "hard_coded_user_visible_strings": 0,
+    "required_e2e_locales": [
+      "zh-CN",
+      "en-US"
+    ]
+  }
+}

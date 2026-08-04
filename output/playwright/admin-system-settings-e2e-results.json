@@ -1,0 +1,42 @@
+{
+  "configs.en-US.1440": {
+    "violations": [],
+    "critical_or_serious": 0
+  },
+  "configs.zh-CN.1440": {
+    "violations": [],
+    "critical_or_serious": 0
+  },
+  "configs.zh-CN.375": {
+    "violations": [],
+    "critical_or_serious": 0
+  },
+  "dictionaries.en-US.1440": {
+    "violations": [],
+    "critical_or_serious": 0
+  },
+  "dictionaries.zh-CN.1440": {
+    "violations": [],
+    "critical_or_serious": 0
+  },
+  "dictionaries.zh-CN.375": {
+    "violations": [],
+    "critical_or_serious": 0
+  },
+  "system_settings": {
+    "config_create": 201,
+    "secret_create": 201,
+    "secret_rotate": 200,
+    "secret_never_echoed": true,
+    "dictionary_type_create": 201,
+    "dictionary_item_locales": [
+      201,
+      201
+    ],
+    "system_dictionary_locked": true,
+    "url_state": true,
+    "locale_switch_without_reload": true,
+    "anonymous_redirect": true
+  },
+  "unexpected_console_errors": []
+}

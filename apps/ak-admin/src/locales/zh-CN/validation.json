@@ -1,0 +1,5 @@
+{
+  "validation.invalid": "{name}格式不正确",
+  "validation.required": "请输入{name}",
+  "validation.too_long": "{name}长度超出限制"
+}

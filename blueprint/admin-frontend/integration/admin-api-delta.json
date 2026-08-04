@@ -1,0 +1,5 @@
+{
+  "schema_version": 1,
+  "description": "相对当前项目 Backend OpenAPI 的待实现 Admin API 增量；当前为空。",
+  "endpoints": []
+}

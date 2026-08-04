@@ -1,0 +1,675 @@
+{
+  "schema_version": 1,
+  "project": "AppKernia Mobile",
+  "app_root": "apps/ak-mobile",
+  "description": "静态编译路由注册表。后端不能下发文件路径、组件代码或任意跳转目标。",
+  "rules": {
+    "first_page": "bootstrap",
+    "unknown_route": "error.forbidden",
+    "auth_guard": "navigation API interceptor + page onLoad/onShow defense-in-depth",
+    "permission_source": "GET /api/v1/auth/context",
+    "feature_flag_default": false,
+    "deep_link_allowlist_only": true
+  },
+  "routes": [
+    {
+      "route_key": "bootstrap",
+      "path": "pages/bootstrap/index",
+      "file": "apps/ak-mobile/pages/bootstrap/index.uvue",
+      "access": "public",
+      "kind": "root",
+      "title_key": "routes.bootstrap.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "GET /api/v1/public/config",
+        "GET /api/v1/public/app-version"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "privacy.consent",
+      "path": "pages/privacy/consent",
+      "file": "apps/ak-mobile/pages/privacy/consent.uvue",
+      "access": "public",
+      "kind": "modal-page",
+      "title_key": "routes.privacyConsent.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "GET /api/v1/public/legal/{document_type}"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "onboarding",
+      "path": "pages/onboarding/index",
+      "file": "apps/ak-mobile/pages/onboarding/index.uvue",
+      "access": "public",
+      "kind": "page",
+      "title_key": "routes.onboarding.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": [],
+      "feature_flag": "onboarding_enabled",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "auth.login.password",
+      "path": "pages/auth/login/index",
+      "file": "apps/ak-mobile/pages/auth/login/index.uvue",
+      "access": "guest",
+      "kind": "page",
+      "title_key": "routes.auth.login.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "POST /api/v1/auth/login/password",
+        "GET /api/v1/auth/oauth/providers"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "auth.login.otp",
+      "path": "pages/auth/login-otp/index",
+      "file": "apps/ak-mobile/pages/auth/login-otp/index.uvue",
+      "access": "guest",
+      "kind": "page",
+      "title_key": "routes.auth.loginOtp.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "POST /api/v1/auth/mobile/send-code",
+        "POST /api/v1/auth/login/otp"
+      ],
+      "feature_flag": "otp_login_enabled",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "auth.register",
+      "path": "pages/auth/register/index",
+      "file": "apps/ak-mobile/pages/auth/register/index.uvue",
+      "access": "guest",
+      "kind": "page",
+      "title_key": "routes.auth.register.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "POST /api/v1/auth/register"
+      ],
+      "feature_flag": "registration_enabled",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "auth.forgot-password",
+      "path": "pages/auth/forgot-password/index",
+      "file": "apps/ak-mobile/pages/auth/forgot-password/index.uvue",
+      "access": "guest",
+      "kind": "page",
+      "title_key": "routes.auth.forgotPassword.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "POST /api/v1/auth/password/forgot"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "auth.reset-password",
+      "path": "pages/auth/reset-password/index",
+      "file": "apps/ak-mobile/pages/auth/reset-password/index.uvue",
+      "access": "guest",
+      "kind": "page",
+      "title_key": "routes.auth.resetPassword.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "POST /api/v1/auth/password/reset"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "auth.verify-contact",
+      "path": "pages/auth/verify-contact/index",
+      "file": "apps/ak-mobile/pages/auth/verify-contact/index.uvue",
+      "access": "mixed",
+      "kind": "page",
+      "title_key": "routes.auth.verifyContact.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "POST /api/v1/auth/email/send-code",
+        "POST /api/v1/auth/email/verify",
+        "POST /api/v1/auth/mobile/send-code",
+        "POST /api/v1/auth/mobile/verify"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "auth.mfa-challenge",
+      "path": "pages/auth/mfa-challenge/index",
+      "file": "apps/ak-mobile/pages/auth/mfa-challenge/index.uvue",
+      "access": "challenge",
+      "kind": "page",
+      "title_key": "routes.auth.mfaChallenge.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": [
+        "POST /api/v1/auth/mfa/verify"
+      ],
+      "feature_flag": "mfa_enabled",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "auth.oauth-callback",
+      "path": "pages/auth/oauth-callback/index",
+      "file": "apps/ak-mobile/pages/auth/oauth-callback/index.uvue",
+      "access": "mixed",
+      "kind": "callback",
+      "title_key": "routes.auth.oauthCallback.title",
+      "phase": "P2",
+      "required_permissions": [],
+      "apis": [
+        "POST /api/v1/auth/oauth/{provider}/callback"
+      ],
+      "feature_flag": "oauth_login_enabled",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "home",
+      "path": "pages/home/index",
+      "file": "apps/ak-mobile/pages/home/index.uvue",
+      "access": "authenticated",
+      "kind": "tab",
+      "title_key": "routes.home.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "GET /api/v1/auth/context",
+        "GET /api/v1/me/notifications/unread-count"
+      ],
+      "feature_flag": null,
+      "tab_key": "home",
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "notifications.list",
+      "path": "pages/notifications/index",
+      "file": "apps/ak-mobile/pages/notifications/index.uvue",
+      "access": "authenticated",
+      "kind": "tab",
+      "title_key": "routes.notifications.title",
+      "phase": "P1",
+      "required_permissions": [
+        "notify.message.read_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/notifications",
+        "POST /api/v1/me/notifications/read-all"
+      ],
+      "feature_flag": null,
+      "tab_key": "notifications",
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "notifications.detail",
+      "path": "pages/notifications/detail",
+      "file": "apps/ak-mobile/pages/notifications/detail.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.notifications.detail.title",
+      "phase": "P1",
+      "required_permissions": [
+        "notify.message.read_self",
+        "notify.message.mark_read_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/notifications/{message_id}",
+        "PATCH /api/v1/me/notifications/{message_id}/read"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {
+        "message_id": "uuid"
+      },
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "profile.index",
+      "path": "pages/profile/index",
+      "file": "apps/ak-mobile/pages/profile/index.uvue",
+      "access": "authenticated",
+      "kind": "tab",
+      "title_key": "routes.profile.title",
+      "phase": "P0",
+      "required_permissions": [
+        "iam.user.read_self"
+      ],
+      "apis": [
+        "GET /api/v1/me"
+      ],
+      "feature_flag": null,
+      "tab_key": "profile",
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "profile.basic",
+      "path": "pages/profile/basic/index",
+      "file": "apps/ak-mobile/pages/profile/basic/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.profile.basic.title",
+      "phase": "P1",
+      "required_permissions": [
+        "iam.user.read_self"
+      ],
+      "apis": [
+        "GET /api/v1/me"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "profile.edit",
+      "path": "pages/profile/edit/index",
+      "file": "apps/ak-mobile/pages/profile/edit/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.profile.edit.title",
+      "phase": "P1",
+      "required_permissions": [
+        "iam.user.read_self",
+        "iam.user.update_self",
+        "storage.file.upload_self"
+      ],
+      "apis": [
+        "GET /api/v1/me",
+        "PATCH /api/v1/me",
+        "POST /api/v1/me/avatar/upload-session"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "profile.security",
+      "path": "pages/profile/security/index",
+      "file": "apps/ak-mobile/pages/profile/security/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.profile.security.title",
+      "phase": "P1",
+      "required_permissions": [
+        "iam.login_event.read_self",
+        "iam.security_event.read_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/login-events",
+        "GET /api/v1/me/security-events"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "profile.change-password",
+      "path": "pages/profile/change-password/index",
+      "file": "apps/ak-mobile/pages/profile/change-password/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.profile.changePassword.title",
+      "phase": "P1",
+      "required_permissions": [
+        "iam.user.update_self"
+      ],
+      "apis": [
+        "POST /api/v1/auth/password/change"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "profile.sessions",
+      "path": "pages/profile/sessions/index",
+      "file": "apps/ak-mobile/pages/profile/sessions/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.profile.sessions.title",
+      "phase": "P1",
+      "required_permissions": [
+        "iam.session.read_self",
+        "iam.session.revoke_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/sessions",
+        "DELETE /api/v1/me/sessions/{session_id}",
+        "POST /api/v1/auth/logout-all"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "profile.devices",
+      "path": "pages/profile/devices/index",
+      "file": "apps/ak-mobile/pages/profile/devices/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.profile.devices.title",
+      "phase": "P1",
+      "required_permissions": [
+        "iam.device.read_self",
+        "iam.device.revoke_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/devices",
+        "DELETE /api/v1/me/devices/{device_id}"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "profile.mfa",
+      "path": "pages/profile/mfa/index",
+      "file": "apps/ak-mobile/pages/profile/mfa/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.profile.mfa.title",
+      "phase": "P1",
+      "required_permissions": [
+        "iam.mfa.manage_self"
+      ],
+      "apis": [
+        "POST /api/v1/auth/step-up",
+        "POST /api/v1/me/mfa/totp/setup",
+        "POST /api/v1/me/mfa/totp/confirm",
+        "DELETE /api/v1/me/mfa/totp",
+        "POST /api/v1/me/mfa/recovery-codes/rotate"
+      ],
+      "feature_flag": "mfa_enabled",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "profile.connections",
+      "path": "pages/profile/connections/index",
+      "file": "apps/ak-mobile/pages/profile/connections/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.profile.connections.title",
+      "phase": "P2",
+      "required_permissions": [
+        "iam.oauth.manage_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/oauth-accounts",
+        "DELETE /api/v1/me/oauth-accounts/{account_id}",
+        "POST /api/v1/auth/oauth/{provider}/authorize"
+      ],
+      "feature_flag": "oauth_login_enabled",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "settings.index",
+      "path": "pages/settings/index",
+      "file": "apps/ak-mobile/pages/settings/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.settings.title",
+      "phase": "P1",
+      "required_permissions": [
+        "iam.preference.manage_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/preferences"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "settings.language",
+      "path": "pages/settings/language/index",
+      "file": "apps/ak-mobile/pages/settings/language/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.settings.language.title",
+      "phase": "P1",
+      "required_permissions": [
+        "iam.preference.manage_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/preferences",
+        "PATCH /api/v1/me/preferences"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "settings.theme",
+      "path": "pages/settings/theme/index",
+      "file": "apps/ak-mobile/pages/settings/theme/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.settings.theme.title",
+      "phase": "P2",
+      "required_permissions": [
+        "iam.preference.manage_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/preferences",
+        "PATCH /api/v1/me/preferences"
+      ],
+      "feature_flag": "dark_mode",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "settings.notifications",
+      "path": "pages/settings/notifications/index",
+      "file": "apps/ak-mobile/pages/settings/notifications/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.settings.notifications.title",
+      "phase": "P2",
+      "required_permissions": [
+        "notify.preference.manage_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/notification-preferences",
+        "PATCH /api/v1/me/notification-preferences",
+        "POST /api/v1/me/push-devices",
+        "DELETE /api/v1/me/push-devices/{device_id}"
+      ],
+      "feature_flag": "push_notifications",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "tenant.switch",
+      "path": "pages/tenant/switch/index",
+      "file": "apps/ak-mobile/pages/tenant/switch/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.tenant.switch.title",
+      "phase": "P2",
+      "required_permissions": [
+        "iam.tenant.switch_self"
+      ],
+      "apis": [
+        "GET /api/v1/auth/context",
+        "POST /api/v1/auth/switch-tenant"
+      ],
+      "feature_flag": "multi_tenant",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "legal.privacy",
+      "path": "pages/legal/privacy/index",
+      "file": "apps/ak-mobile/pages/legal/privacy/index.uvue",
+      "access": "public",
+      "kind": "page",
+      "title_key": "routes.legal.privacy.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "GET /api/v1/public/legal/{document_type}"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "legal.terms",
+      "path": "pages/legal/terms/index",
+      "file": "apps/ak-mobile/pages/legal/terms/index.uvue",
+      "access": "public",
+      "kind": "page",
+      "title_key": "routes.legal.terms.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [
+        "GET /api/v1/public/legal/{document_type}"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "about",
+      "path": "pages/about/index",
+      "file": "apps/ak-mobile/pages/about/index.uvue",
+      "access": "public",
+      "kind": "page",
+      "title_key": "routes.about.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": [
+        "GET /api/v1/public/app-version"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "account.deletion",
+      "path": "pages/account/deletion/index",
+      "file": "apps/ak-mobile/pages/account/deletion/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.accountDeletion.title",
+      "phase": "P2",
+      "required_permissions": [
+        "iam.user.request_deletion_self"
+      ],
+      "apis": [
+        "POST /api/v1/auth/step-up",
+        "POST /api/v1/me/account-deletion",
+        "GET /api/v1/me/account-deletion",
+        "DELETE /api/v1/me/account-deletion"
+      ],
+      "feature_flag": "account_deletion",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "error.forbidden",
+      "path": "pages/error/forbidden/index",
+      "file": "apps/ak-mobile/pages/error/forbidden/index.uvue",
+      "access": "mixed",
+      "kind": "error",
+      "title_key": "routes.error.forbidden.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "error.offline",
+      "path": "pages/error/offline/index",
+      "file": "apps/ak-mobile/pages/error/offline/index.uvue",
+      "access": "mixed",
+      "kind": "error",
+      "title_key": "routes.error.offline.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "dev.components",
+      "path": "pages/dev/components/index",
+      "file": "apps/ak-mobile/pages/dev/components/index.uvue",
+      "access": "development",
+      "kind": "page",
+      "title_key": "routes.dev.components.title",
+      "phase": "P0",
+      "required_permissions": [],
+      "apis": [],
+      "feature_flag": "dev_component_gallery",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    }
+  ]
+}

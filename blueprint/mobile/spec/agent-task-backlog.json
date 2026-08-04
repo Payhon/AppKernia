@@ -1,0 +1,516 @@
+{
+  "schema_version": 1,
+  "project": "AppKernia Mobile",
+  "execution_rule": "按依赖图连续执行；不得在每个 Task 后停下等待确认。只有满足真实 acceptance 才能标记 done。",
+  "tasks": [
+    {
+      "id": "AKMOB-000",
+      "phase": "P0A",
+      "title": "仓库、HBuilderX 工具链与质量底座",
+      "depends_on": [],
+      "ui_skill_required": false,
+      "outputs": [
+        "apps/ak-mobile",
+        "环境探测脚本",
+        "CI 分层任务"
+      ],
+      "acceptance": [
+        "蓝图校验通过",
+        "三个平台构建命令/手册可发现",
+        "不得把普通 Vite 构建冒充 App 构建"
+      ]
+    },
+    {
+      "id": "AKMOB-010",
+      "phase": "P0B",
+      "title": "ui-ux-pro-max 移动端 Master Design System",
+      "depends_on": [
+        "AKMOB-000"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "design-system/MASTER.md",
+        "移动页面 override",
+        "UI evidence"
+      ],
+      "acceptance": [
+        "UI skill 真实产物存在",
+        "关键状态和安全区规范完成",
+        "浅色手机基线截图"
+      ]
+    },
+    {
+      "id": "AKMOB-015",
+      "phase": "P0B2",
+      "title": "AkI18n 基础设施与中英文语言包",
+      "depends_on": [
+        "AKMOB-010"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "AkI18n",
+        "locale registry",
+        "zh-CN/en-US catalogs",
+        "i18n validation"
+      ],
+      "acceptance": [
+        "default and fallback zh-CN",
+        "runtime switch without restart",
+        "navigation and TabBar synchronization",
+        "key and placeholder parity",
+        "three-platform English long-text smoke"
+      ]
+    },
+    {
+      "id": "AKMOB-020",
+      "phase": "P0C",
+      "title": "固定 uView Ultra 并建设 AK UI 适配层",
+      "depends_on": [
+        "AKMOB-015"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "uni_modules/uview-ultra",
+        "components/ak-ui",
+        "组件画廊"
+      ],
+      "acceptance": [
+        "版本锁定 4.5.18",
+        "保留 Licence",
+        "业务示例只使用 ak-*",
+        "三端组件矩阵启动"
+      ]
+    },
+    {
+      "id": "AKMOB-030",
+      "phase": "P0D",
+      "title": "应用核心、配置、日志、错误和 Feature Flag",
+      "depends_on": [
+        "AKMOB-000"
+      ],
+      "ui_skill_required": false,
+      "outputs": [
+        "src/core",
+        "src/config",
+        "src/observability"
+      ],
+      "acceptance": [
+        "无 any/无静默错误",
+        "配置有 schema",
+        "敏感字段日志脱敏"
+      ]
+    },
+    {
+      "id": "AKMOB-040",
+      "phase": "P0E",
+      "title": "OpenAPI 到 UTS DTO/Endpoint 代码生成",
+      "depends_on": [
+        "AKMOB-030"
+      ],
+      "ui_skill_required": false,
+      "outputs": [
+        "src/generated/api",
+        "scripts/generate-mobile-client"
+      ],
+      "acceptance": [
+        "生成代码不可手改",
+        "漂移检查通过",
+        "所有 page-api-map endpoint 可解析"
+      ]
+    },
+    {
+      "id": "AKMOB-050",
+      "phase": "P0F",
+      "title": "网络层、Token Vault 与 Refresh Single-Flight",
+      "depends_on": [
+        "AKMOB-040"
+      ],
+      "ui_skill_required": false,
+      "outputs": [
+        "AkHttpClient",
+        "ak-secure-storage UTS plugin",
+        "auth session store"
+      ],
+      "acceptance": [
+        "Access Token 仅内存",
+        "Refresh Token 仅安全存储",
+        "并发 401 只刷新一次",
+        "sslVerify 不得关闭"
+      ]
+    },
+    {
+      "id": "AKMOB-060",
+      "phase": "P0G",
+      "title": "启动编排、隐私同意、路由守卫与深链白名单",
+      "depends_on": [
+        "AKMOB-015",
+        "AKMOB-030",
+        "AKMOB-050"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "bootstrap page",
+        "privacy consent",
+        "navigation guard"
+      ],
+      "acceptance": [
+        "未同意前不调用敏感 API",
+        "guest/auth/challenge 路由正确",
+        "未知深链拒绝"
+      ]
+    },
+    {
+      "id": "AKMOB-070",
+      "phase": "P0H",
+      "title": "登录、注册、验证码、忘记与重置密码",
+      "depends_on": [
+        "AKMOB-020",
+        "AKMOB-050",
+        "AKMOB-060"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "auth pages",
+        "auth tests"
+      ],
+      "acceptance": [
+        "密码和验证码不入日志",
+        "错误防账号枚举",
+        "倒计时以服务端时间/冷却为准",
+        "Android/iOS/Harmony smoke"
+      ]
+    },
+    {
+      "id": "AKMOB-080",
+      "phase": "P0I",
+      "title": "App Shell、三 Tab、首页与权限组件",
+      "depends_on": [
+        "AKMOB-020",
+        "AKMOB-060"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "tabBar",
+        "home",
+        "AkCan/useCan"
+      ],
+      "acceptance": [
+        "Tab 路由静态",
+        "权限仅改善 UX",
+        "离线/错误/空状态完整"
+      ]
+    },
+    {
+      "id": "AKMOB-090",
+      "phase": "P1A",
+      "title": "个人中心、基本资料与头像上传",
+      "depends_on": [
+        "AKMOB-080",
+        "AKMOB-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "profile pages",
+        "avatar flow"
+      ],
+      "acceptance": [
+        "资料乐观锁",
+        "邮箱/手机号不可直接标记验证",
+        "头像引用 ready 文件"
+      ]
+    },
+    {
+      "id": "AKMOB-100",
+      "phase": "P1B",
+      "title": "安全中心、密码、会话与设备",
+      "depends_on": [
+        "AKMOB-090",
+        "AKMOB-050"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "security pages",
+        "session/device flows"
+      ],
+      "acceptance": [
+        "不能撤销他人资源",
+        "当前会话操作有明确反馈",
+        "强制清理本地 Token"
+      ]
+    },
+    {
+      "id": "AKMOB-110",
+      "phase": "P1C",
+      "title": "TOTP MFA、恢复码与 Step-up",
+      "depends_on": [
+        "AKMOB-100"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "MFA pages",
+        "step-up flow"
+      ],
+      "acceptance": [
+        "Secret/恢复码只显示一次",
+        "截图/日志不包含真实 Secret",
+        "关闭 MFA 需 Step-up"
+      ]
+    },
+    {
+      "id": "AKMOB-120",
+      "phase": "P2A",
+      "title": "OAuth PKCE 与第三方绑定",
+      "depends_on": [
+        "AKMOB-100"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "OAuth adapter",
+        "connections page"
+      ],
+      "acceptance": [
+        "state/PKCE 校验",
+        "回调深链白名单",
+        "最后一种登录方式不可误解绑"
+      ]
+    },
+    {
+      "id": "AKMOB-130",
+      "phase": "P1D",
+      "title": "站内消息、未读数与已读状态",
+      "depends_on": [
+        "AKMOB-080",
+        "AKMOB-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "notification pages",
+        "badge store"
+      ],
+      "acceptance": [
+        "只读取自己的消息",
+        "WebSocket/Push 只作提示",
+        "服务端已读为事实源"
+      ]
+    },
+    {
+      "id": "AKMOB-140",
+      "phase": "P2B",
+      "title": "Push 注册与通知偏好",
+      "depends_on": [
+        "AKMOB-130",
+        "AKMOB-030"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "push adapter",
+        "notification settings"
+      ],
+      "acceptance": [
+        "权限按需申请",
+        "拒绝后可继续使用 App",
+        "Token 加密传输和服务端存储"
+      ]
+    },
+    {
+      "id": "AKMOB-150",
+      "phase": "P1E",
+      "title": "设置、AK i18n、法律文档、关于与版本检查",
+      "depends_on": [
+        "AKMOB-080",
+        "AKMOB-040"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "locale adapter",
+        "settings/legal/about pages"
+      ],
+      "acceptance": [
+        "zh-Hans/en 基线",
+        "切换语言无需重启",
+        "法律版本可审计",
+        "升级只跳转可信商店"
+      ]
+    },
+    {
+      "id": "AKMOB-160",
+      "phase": "P2C",
+      "title": "暗色主题兼容审计",
+      "depends_on": [
+        "AKMOB-020",
+        "AKMOB-150"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "theme tokens",
+        "dark screenshots",
+        "compatibility report"
+      ],
+      "acceptance": [
+        "uView 组件逐项审计",
+        "不通过则 Flag 保持关闭",
+        "三平台深色回归"
+      ]
+    },
+    {
+      "id": "AKMOB-170",
+      "phase": "P2D",
+      "title": "多租户切换和缓存隔离",
+      "depends_on": [
+        "AKMOB-080",
+        "AKMOB-050"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "tenant switch page",
+        "tenant-scoped caches"
+      ],
+      "acceptance": [
+        "切换后轮换 Token",
+        "清理旧租户缓存",
+        "跨租户 E2E 拒绝"
+      ]
+    },
+    {
+      "id": "AKMOB-180",
+      "phase": "P2E",
+      "title": "账号注销闭环",
+      "depends_on": [
+        "AKMOB-110",
+        "AKMOB-150"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "account deletion page",
+        "cooling-off state"
+      ],
+      "acceptance": [
+        "Step-up 必须",
+        "冷静期/撤销明确",
+        "退出并清理本地数据"
+      ]
+    },
+    {
+      "id": "AKMOB-190",
+      "phase": "P2F",
+      "title": "离线、重试、取消、恢复和性能预算",
+      "depends_on": [
+        "AKMOB-130",
+        "AKMOB-150"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "offline state",
+        "request cancellation",
+        "performance evidence"
+      ],
+      "acceptance": [
+        "读请求有限重试",
+        "写请求无隐式重放",
+        "长列表不全量渲染",
+        "首屏/内存基线记录"
+      ]
+    },
+    {
+      "id": "AKMOB-200",
+      "phase": "P3A",
+      "title": "Android 构建、自动化与真机验收",
+      "depends_on": [
+        "AKMOB-190"
+      ],
+      "ui_skill_required": false,
+      "outputs": [
+        "Android logs",
+        "screenshots",
+        "test report"
+      ],
+      "acceptance": [
+        "Debug/Release 编译",
+        "Android 8+ 真机 smoke",
+        "16KB 兼容检查",
+        "关键 uni-automator 通过"
+      ]
+    },
+    {
+      "id": "AKMOB-210",
+      "phase": "P3B",
+      "title": "iOS 构建、自动化与真机验收",
+      "depends_on": [
+        "AKMOB-190"
+      ],
+      "ui_skill_required": false,
+      "outputs": [
+        "iOS logs",
+        "screenshots",
+        "test report"
+      ],
+      "acceptance": [
+        "Simulator/Archive 编译",
+        "iOS 13+ 真机 smoke",
+        "Keychain 验证",
+        "隐私描述匹配"
+      ]
+    },
+    {
+      "id": "AKMOB-220",
+      "phase": "P3C",
+      "title": "HarmonyOS 构建、真机与内存验收",
+      "depends_on": [
+        "AKMOB-190"
+      ],
+      "ui_skill_required": false,
+      "outputs": [
+        "Harmony logs",
+        "screenshots",
+        "memory report"
+      ],
+      "acceptance": [
+        "API14+ 编译和真机 smoke",
+        "安全存储验证",
+        "ArkTS 内存检查",
+        "返回键/安全区通过"
+      ]
+    },
+    {
+      "id": "AKMOB-230",
+      "phase": "P3D",
+      "title": "发布硬化、文档、示例模块和交付报告",
+      "depends_on": [
+        "AKMOB-200",
+        "AKMOB-210",
+        "AKMOB-220"
+      ],
+      "ui_skill_required": false,
+      "outputs": [
+        "release checklist",
+        "sample feature",
+        "CODEX_DELIVERY_REPORT.md"
+      ],
+      "acceptance": [
+        "三端矩阵全绿",
+        "无真实 Secret",
+        "许可证清单完整",
+        "全部真实命令和退出码记录"
+      ]
+    },
+    {
+      "id": "AKMOB-240",
+      "phase": "P3E",
+      "title": "Vapor 可行性 Spike（不阻塞 Core 1.0）",
+      "depends_on": [
+        "AKMOB-230"
+      ],
+      "ui_skill_required": true,
+      "outputs": [
+        "ADR",
+        "benchmark",
+        "wrapper compatibility report"
+      ],
+      "acceptance": [
+        "默认仍为 VDOM",
+        "只有完整三端通过才可提议切换",
+        "不修改已发布基线迁移式升级"
+      ]
+    }
+  ]
+}

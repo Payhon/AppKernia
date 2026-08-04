@@ -1,0 +1,716 @@
+{
+  "schema_version": 2,
+  "name": "AppKernia Admin Static Route Registry",
+  "description": "构建期静态路由注册表。后端菜单只能引用 component_key，不能提供任意 import path。",
+  "rules": {
+    "routing_model": "TanStack Router file-based static routing",
+    "backend_menu_controls": [
+      "visibility",
+      "title",
+      "icon",
+      "sort",
+      "redirect",
+      "active_menu_code"
+    ],
+    "backend_menu_cannot_control": [
+      "module import path",
+      "arbitrary component code",
+      "authorization outcome"
+    ],
+    "unknown_component_key_behavior": "omit menu item, emit telemetry warning, continue rendering",
+    "auth_and_profile_routes_are_static_hidden_routes": true
+  },
+  "routes": [
+    {
+      "component_key": "dashboard",
+      "path": "/dashboard",
+      "file": "src/routes/_app/dashboard.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P0",
+      "kind": "page",
+      "permissions": [],
+      "title_key": "routes.dashboard.title",
+      "menu_code": "dashboard",
+      "active_menu_code": "dashboard"
+    },
+    {
+      "component_key": "system.settings.configs",
+      "path": "/system/settings/configs",
+      "file": "src/routes/_app/system/settings/configs.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "sys.config.read"
+      ],
+      "title_key": "routes.system.settings.configs.title",
+      "menu_code": "system.settings.configs",
+      "active_menu_code": "system.settings.configs"
+    },
+    {
+      "component_key": "system.settings.dictionaries",
+      "path": "/system/settings/dictionaries",
+      "file": "src/routes/_app/system/settings/dictionaries.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "sys.dictionary.read"
+      ],
+      "title_key": "routes.system.settings.dictionaries.title",
+      "menu_code": "system.settings.dictionaries",
+      "active_menu_code": "system.settings.dictionaries"
+    },
+    {
+      "component_key": "system.settings.regions",
+      "path": "/system/settings/regions",
+      "file": "src/routes/_app/system/settings/regions.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "sys.region.read"
+      ],
+      "title_key": "routes.system.settings.regions.title",
+      "menu_code": "system.settings.regions",
+      "active_menu_code": "system.settings.regions"
+    },
+    {
+      "component_key": "system.settings.modules",
+      "path": "/system/settings/modules",
+      "file": "src/routes/_app/system/settings/modules.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "sys.module.read"
+      ],
+      "title_key": "routes.system.settings.modules.title",
+      "menu_code": "system.settings.modules",
+      "active_menu_code": "system.settings.modules"
+    },
+    {
+      "component_key": "system.users.departments",
+      "path": "/system/users/departments",
+      "file": "src/routes/_app/system/users/departments.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "org.unit.read"
+      ],
+      "title_key": "routes.system.users.departments.title",
+      "menu_code": "system.users.departments",
+      "active_menu_code": "system.users.departments"
+    },
+    {
+      "component_key": "system.users.accounts",
+      "path": "/system/users/accounts",
+      "file": "src/routes/_app/system/users/accounts.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "iam.user.read"
+      ],
+      "title_key": "routes.system.users.accounts.title",
+      "menu_code": "system.users.accounts",
+      "active_menu_code": "system.users.accounts"
+    },
+    {
+      "component_key": "system.users.positions",
+      "path": "/system/users/positions",
+      "file": "src/routes/_app/system/users/positions.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "org.position.read"
+      ],
+      "title_key": "routes.system.users.positions.title",
+      "menu_code": "system.users.positions",
+      "active_menu_code": "system.users.positions"
+    },
+    {
+      "component_key": "system.users.tenants",
+      "path": "/system/users/tenants",
+      "file": "src/routes/_app/system/users/tenants.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "iam.tenant.read"
+      ],
+      "title_key": "routes.system.users.tenants.title",
+      "menu_code": "system.users.tenants",
+      "active_menu_code": "system.users.tenants",
+      "feature_flag": "multi_tenant",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.access.roles",
+      "path": "/system/access/roles",
+      "file": "src/routes/_app/system/access/roles.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "iam.role.read"
+      ],
+      "title_key": "routes.system.access.roles.title",
+      "menu_code": "system.access.roles",
+      "active_menu_code": "system.access.roles"
+    },
+    {
+      "component_key": "system.access.permissions",
+      "path": "/system/access/permissions",
+      "file": "src/routes/_app/system/access/permissions.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "iam.permission.read"
+      ],
+      "title_key": "routes.system.access.permissions.title",
+      "menu_code": "system.access.permissions",
+      "active_menu_code": "system.access.permissions"
+    },
+    {
+      "component_key": "system.access.menus",
+      "path": "/system/access/menus",
+      "file": "src/routes/_app/system/access/menus.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "sys.menu.read"
+      ],
+      "title_key": "routes.system.access.menus.title",
+      "menu_code": "system.access.menus",
+      "active_menu_code": "system.access.menus"
+    },
+    {
+      "component_key": "system.storage.files",
+      "path": "/system/storage/files",
+      "file": "src/routes/_app/system/storage/files.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "storage.file.read"
+      ],
+      "title_key": "routes.system.storage.files.title",
+      "menu_code": "system.storage.files",
+      "active_menu_code": "system.storage.files",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.notifications.notices",
+      "path": "/system/notifications/notices",
+      "file": "src/routes/_app/system/notifications/notices.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "notify.notice.read"
+      ],
+      "title_key": "routes.system.notifications.notices.title",
+      "menu_code": "system.notifications.notices",
+      "active_menu_code": "system.notifications.notices"
+    },
+    {
+      "component_key": "system.notifications.messages",
+      "path": "/system/notifications/messages",
+      "file": "src/routes/_app/system/notifications/messages.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "notify.message.read"
+      ],
+      "title_key": "routes.system.notifications.messages.title",
+      "menu_code": "system.notifications.messages",
+      "active_menu_code": "system.notifications.messages",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.notifications.templates",
+      "path": "/system/notifications/templates",
+      "file": "src/routes/_app/system/notifications/templates.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "notify.template.read"
+      ],
+      "title_key": "routes.system.notifications.templates.title",
+      "menu_code": "system.notifications.templates",
+      "active_menu_code": "system.notifications.templates"
+    },
+    {
+      "component_key": "system.notifications.deliveries",
+      "path": "/system/notifications/deliveries",
+      "file": "src/routes/_app/system/notifications/deliveries.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "notify.delivery.read"
+      ],
+      "title_key": "routes.system.notifications.deliveries.title",
+      "menu_code": "system.notifications.deliveries",
+      "active_menu_code": "system.notifications.deliveries",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.integrations.schedules",
+      "path": "/system/integrations/schedules",
+      "file": "src/routes/_app/system/integrations/schedules.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "jobs.schedule.read"
+      ],
+      "title_key": "routes.system.integrations.schedules.title",
+      "menu_code": "system.integrations.schedules",
+      "active_menu_code": "system.integrations.schedules"
+    },
+    {
+      "component_key": "system.integrations.api-clients",
+      "path": "/system/integrations/api-clients",
+      "file": "src/routes/_app/system/integrations/api-clients.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "sys.api_client.read"
+      ],
+      "title_key": "routes.system.integrations.api-clients.title",
+      "menu_code": "system.integrations.api-clients",
+      "active_menu_code": "system.integrations.api-clients",
+      "feature_flag": "api_clients"
+    },
+    {
+      "component_key": "system.integrations.webhooks",
+      "path": "/system/integrations/webhooks",
+      "file": "src/routes/_app/system/integrations/webhooks.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "sys.webhook.read"
+      ],
+      "title_key": "routes.system.integrations.webhooks.title",
+      "menu_code": "system.integrations.webhooks",
+      "active_menu_code": "system.integrations.webhooks",
+      "feature_flag": "webhooks"
+    },
+    {
+      "component_key": "system.security.operation-logs",
+      "path": "/system/security/operation-logs",
+      "file": "src/routes/_app/system/security/operation-logs.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "audit.operation.read"
+      ],
+      "title_key": "routes.system.security.operation-logs.title",
+      "menu_code": "system.security.operation-logs",
+      "active_menu_code": "system.security.operation-logs"
+    },
+    {
+      "component_key": "system.security.login-logs",
+      "path": "/system/security/login-logs",
+      "file": "src/routes/_app/system/security/login-logs.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "audit.login.read"
+      ],
+      "title_key": "routes.system.security.login-logs.title",
+      "menu_code": "system.security.login-logs",
+      "active_menu_code": "system.security.login-logs"
+    },
+    {
+      "component_key": "system.security.events",
+      "path": "/system/security/events",
+      "file": "src/routes/_app/system/security/events.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "audit.security.read"
+      ],
+      "title_key": "routes.system.security.events.title",
+      "menu_code": "system.security.events",
+      "active_menu_code": "system.security.events",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.security.block-rules",
+      "path": "/system/security/block-rules",
+      "file": "src/routes/_app/system/security/block-rules.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "iam.block_rule.read"
+      ],
+      "title_key": "routes.system.security.block-rules.title",
+      "menu_code": "system.security.block-rules",
+      "active_menu_code": "system.security.block-rules",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.monitoring.sessions",
+      "path": "/system/monitoring/sessions",
+      "file": "src/routes/_app/system/monitoring/sessions.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "page",
+      "permissions": [
+        "iam.session.read"
+      ],
+      "title_key": "routes.system.monitoring.sessions.title",
+      "menu_code": "system.monitoring.sessions",
+      "active_menu_code": "system.monitoring.sessions"
+    },
+    {
+      "component_key": "system.monitoring.health",
+      "path": "/system/monitoring/health",
+      "file": "src/routes/_app/system/monitoring/health.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "ops.health.read"
+      ],
+      "title_key": "routes.system.monitoring.health.title",
+      "menu_code": "system.monitoring.health",
+      "active_menu_code": "system.monitoring.health",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "profile.basic",
+      "path": "/profile/basic",
+      "file": "src/routes/_app/profile/basic.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P0",
+      "kind": "hidden-detail",
+      "permissions": [],
+      "title_key": "routes.profile.basic.title"
+    },
+    {
+      "component_key": "profile.security",
+      "path": "/profile/security",
+      "file": "src/routes/_app/profile/security.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P0",
+      "kind": "hidden-detail",
+      "permissions": [
+        "iam.session.read_self",
+        "iam.device.read_self"
+      ],
+      "title_key": "routes.profile.security.title"
+    },
+    {
+      "component_key": "profile.connections",
+      "path": "/profile/connections",
+      "file": "src/routes/_app/profile/connections.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P3",
+      "kind": "hidden-detail",
+      "permissions": [
+        "iam.oauth.manage_self"
+      ],
+      "title_key": "routes.profile.connections.title",
+      "feature_flag": "oauth",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.users.account-detail",
+      "path": "/system/users/accounts/$userId",
+      "file": "src/routes/_app/system/users/accounts/$userId.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "hidden-detail",
+      "permissions": [
+        "iam.user.read"
+      ],
+      "title_key": "routes.system.users.account-detail.title",
+      "active_menu_code": "system.users.accounts"
+    },
+    {
+      "component_key": "system.users.tenant-detail",
+      "path": "/system/users/tenants/$tenantId",
+      "file": "src/routes/_app/system/users/tenants/$tenantId.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "hidden-detail",
+      "permissions": [
+        "iam.tenant.read"
+      ],
+      "title_key": "routes.system.users.tenant-detail.title",
+      "active_menu_code": "system.users.tenants",
+      "feature_flag": "multi_tenant"
+    },
+    {
+      "component_key": "system.access.role-detail",
+      "path": "/system/access/roles/$roleId",
+      "file": "src/routes/_app/system/access/roles/$roleId.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "hidden-detail",
+      "permissions": [
+        "iam.role.read"
+      ],
+      "title_key": "routes.system.access.role-detail.title",
+      "active_menu_code": "system.access.roles"
+    },
+    {
+      "component_key": "system.storage.file-detail",
+      "path": "/system/storage/files/$fileId",
+      "file": "src/routes/_app/system/storage/files/$fileId.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "hidden-detail",
+      "permissions": [
+        "storage.file.read"
+      ],
+      "title_key": "routes.system.storage.file-detail.title",
+      "active_menu_code": "system.storage.files",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.notifications.notice-detail",
+      "path": "/system/notifications/notices/$noticeId",
+      "file": "src/routes/_app/system/notifications/notices/$noticeId.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "hidden-detail",
+      "permissions": [
+        "notify.notice.read"
+      ],
+      "title_key": "routes.system.notifications.notice-detail.title",
+      "active_menu_code": "system.notifications.notices"
+    },
+    {
+      "component_key": "system.notifications.message-detail",
+      "path": "/system/notifications/messages/$messageId",
+      "file": "src/routes/_app/system/notifications/messages/$messageId.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "hidden-detail",
+      "permissions": [
+        "notify.message.read"
+      ],
+      "title_key": "routes.system.notifications.message-detail.title",
+      "active_menu_code": "system.notifications.messages",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.integrations.schedule-runs",
+      "path": "/system/integrations/schedules/$scheduleId/runs",
+      "file": "src/routes/_app/system/integrations/schedules/$scheduleId/runs.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "hidden-detail",
+      "permissions": [
+        "jobs.run.read"
+      ],
+      "title_key": "routes.system.integrations.schedule-runs.title",
+      "active_menu_code": "system.integrations.schedules"
+    },
+    {
+      "component_key": "system.integrations.api-client-detail",
+      "path": "/system/integrations/api-clients/$clientId",
+      "file": "src/routes/_app/system/integrations/api-clients/$clientId.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "hidden-detail",
+      "permissions": [
+        "sys.api_client.read"
+      ],
+      "title_key": "routes.system.integrations.api-client-detail.title",
+      "active_menu_code": "system.integrations.api-clients",
+      "feature_flag": "api_clients"
+    },
+    {
+      "component_key": "system.integrations.webhook-deliveries",
+      "path": "/system/integrations/webhooks/$webhookId/deliveries",
+      "file": "src/routes/_app/system/integrations/webhooks/$webhookId/deliveries.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "hidden-detail",
+      "permissions": [
+        "sys.webhook.delivery.read"
+      ],
+      "title_key": "routes.system.integrations.webhook-deliveries.title",
+      "active_menu_code": "system.integrations.webhooks",
+      "feature_flag": "webhooks"
+    },
+    {
+      "component_key": "system.security.event-detail",
+      "path": "/system/security/events/$eventId",
+      "file": "src/routes/_app/system/security/events/$eventId.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P1",
+      "kind": "hidden-detail",
+      "permissions": [
+        "audit.security.read"
+      ],
+      "title_key": "routes.system.security.event-detail.title",
+      "active_menu_code": "system.security.events",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "auth.login",
+      "path": "/login",
+      "file": "src/routes/_auth/login.tsx",
+      "layout": "auth",
+      "auth": "anonymous_or_callback",
+      "phase": "P0",
+      "kind": "hidden-auth",
+      "permissions": [],
+      "title_key": "routes.auth.login.title"
+    },
+    {
+      "component_key": "auth.register",
+      "path": "/register",
+      "file": "src/routes/_auth/register.tsx",
+      "layout": "auth",
+      "auth": "anonymous_or_callback",
+      "phase": "P0",
+      "kind": "hidden-auth",
+      "permissions": [],
+      "title_key": "routes.auth.register.title",
+      "feature_flag": "admin_registration",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "auth.forgot-password",
+      "path": "/forgot-password",
+      "file": "src/routes/_auth/forgot-password.tsx",
+      "layout": "auth",
+      "auth": "anonymous_or_callback",
+      "phase": "P0",
+      "kind": "hidden-auth",
+      "permissions": [],
+      "title_key": "routes.auth.forgot-password.title",
+      "feature_flag": "password_recovery",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "auth.reset-password",
+      "path": "/reset-password",
+      "file": "src/routes/_auth/reset-password.tsx",
+      "layout": "auth",
+      "auth": "anonymous_or_callback",
+      "phase": "P0",
+      "kind": "hidden-auth",
+      "permissions": [],
+      "title_key": "routes.auth.reset-password.title",
+      "feature_flag": "password_recovery",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "auth.oauth-callback",
+      "path": "/auth/callback/$provider",
+      "file": "src/routes/_auth/auth/callback/$provider.tsx",
+      "layout": "auth",
+      "auth": "anonymous_or_callback",
+      "phase": "P3",
+      "kind": "hidden-auth",
+      "permissions": [],
+      "title_key": "routes.auth.oauth-callback.title",
+      "feature_flag": "oauth",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "errors.forbidden",
+      "path": "/403",
+      "file": "src/routes/_plain/403.tsx",
+      "layout": "plain",
+      "auth": "public",
+      "phase": "P0",
+      "kind": "error",
+      "permissions": [],
+      "title_key": "routes.errors.forbidden.title"
+    },
+    {
+      "component_key": "errors.not-found",
+      "path": "/404",
+      "file": "src/routes/_plain/404.tsx",
+      "layout": "plain",
+      "auth": "public",
+      "phase": "P0",
+      "kind": "error",
+      "permissions": [],
+      "title_key": "routes.errors.not-found.title"
+    },
+    {
+      "component_key": "errors.server-error",
+      "path": "/500",
+      "file": "src/routes/_plain/500.tsx",
+      "layout": "plain",
+      "auth": "public",
+      "phase": "P0",
+      "kind": "error",
+      "permissions": [],
+      "title_key": "routes.errors.server-error.title"
+    },
+    {
+      "component_key": "errors.offline",
+      "path": "/offline",
+      "file": "src/routes/_plain/offline.tsx",
+      "layout": "plain",
+      "auth": "public",
+      "phase": "P0",
+      "kind": "error",
+      "permissions": [],
+      "title_key": "routes.errors.offline.title"
+    }
+  ]
+}

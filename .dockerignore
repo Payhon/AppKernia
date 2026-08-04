@@ -1,0 +1,11 @@
+.git
+.codex
+.DS_Store
+**/.DS_Store
+**/node_modules
+**/dist
+output
+artifacts
+*.log
+.env
+.env.*.local

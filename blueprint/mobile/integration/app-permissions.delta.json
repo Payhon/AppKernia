@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "description": "AK Mobile 相对 core-permissions.json 的建议权限增量。匿名认证端点不配置权限码。",
+  "permissions": [
+    {
+      "code": "iam.user.read_self",
+      "name": "查看自己的用户资料",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "read_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.update_self",
+      "name": "更新自己的用户资料",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "update_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.user.request_deletion_self",
+      "name": "申请或撤销自己的账号注销",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "request_deletion_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.tenant.switch_self",
+      "name": "在自己已加入的租户之间切换",
+      "module_code": "iam",
+      "resource_name": "tenant",
+      "action_name": "switch_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.preference.manage_self",
+      "name": "管理自己的语言、时区和主题偏好",
+      "module_code": "iam",
+      "resource_name": "preference",
+      "action_name": "manage_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.security_event.read_self",
+      "name": "查看与自己相关的安全事件",
+      "module_code": "iam",
+      "resource_name": "security_event",
+      "action_name": "read_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "iam.login_event.read_self",
+      "name": "查看自己的登录记录",
+      "module_code": "iam",
+      "resource_name": "login_event",
+      "action_name": "read_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.preference.manage_self",
+      "name": "管理自己的通知偏好",
+      "module_code": "notify",
+      "resource_name": "preference",
+      "action_name": "manage_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.push_device.manage_self",
+      "name": "管理自己的 Push Device Token",
+      "module_code": "notify",
+      "resource_name": "push_device",
+      "action_name": "manage_self",
+      "permission_kind": "api",
+      "status": "active"
+    }
+  ]
+}

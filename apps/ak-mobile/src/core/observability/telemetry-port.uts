@@ -1,0 +1,13 @@
+export type TelemetryAttributes = Map<string, string>
+
+export interface TelemetryPort {
+  recordEvent(name: string, attributes: TelemetryAttributes): void
+  recordError(code: string, requestId: string | null): void
+}
+
+export class DisabledTelemetryAdapter implements TelemetryPort {
+  recordEvent(name: string, attributes: TelemetryAttributes): void {}
+
+  recordError(code: string, requestId: string | null): void {}
+}
+

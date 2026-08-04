@@ -1,0 +1,19 @@
+{
+  "errors.common.conflict": "数据已发生变化，请刷新后重试",
+  "errors.common.forbidden": "你没有执行此操作的权限",
+  "errors.common.network": "网络连接失败，请检查网络后重试",
+  "errors.common.not_found": "请求的资源不存在",
+  "errors.common.timeout": "请求超时，请重试",
+  "errors.common.unauthorized": "登录状态已失效，请重新登录",
+  "errors.common.unknown": "发生未知错误，请稍后重试",
+  "errors.org.position.code_conflict": "岗位编码已存在",
+  "errors.org.position.not_found": "岗位不存在",
+  "errors.org.position.occupied": "岗位仍有关联成员，不能删除",
+  "errors.org.unit.code_conflict": "部门编码已存在",
+  "errors.org.unit.cycle": "不能把部门移动到自身或其下级部门",
+  "errors.org.unit.not_found": "部门不存在",
+  "errors.org.unit.occupied": "部门仍有下级部门或关联成员，不能删除",
+  "errors.iam.user.last_admin": "不能停用当前租户的最后一名管理员",
+  "errors.iam.user.org_invalid": "所选部门或岗位不存在、已停用或不属于当前租户",
+  "errors.iam.user.role_invalid": "所选角色不存在、已停用或不属于当前租户"
+}
