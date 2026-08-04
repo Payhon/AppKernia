@@ -1,39 +1,39 @@
 {
-  "generated_at": "2026-08-04T11:41:06.811Z",
+  "generated_at": "2026-08-04T14:04:24.999Z",
   "budgets": {
     "initial_gzip_bytes": 307200,
     "chunk_gzip_bytes": 184320
   },
   "actual": {
-    "initial_gzip_bytes": 201340,
+    "initial_gzip_bytes": 201867,
     "largest_chunks": [
       {
-        "file": "assets/DashboardTrendChart-Cuw21qoK.js",
-        "gzip_bytes": 165895
+        "file": "assets/DashboardTrendChart-BmUDRLF1.js",
+        "gzip_bytes": 166087
       },
       {
         "file": "assets/context-DywDVt-A.js",
         "gzip_bytes": 94125
       },
       {
-        "file": "assets/query-client-DDvaIZGa.js",
-        "gzip_bytes": 67934
+        "file": "assets/query-client-D-VJzMDG.js",
+        "gzip_bytes": 68523
       },
       {
-        "file": "assets/AppShell-BqsR4KpB.js",
-        "gzip_bytes": 61378
+        "file": "assets/AppShell-C7dw5J-z.js",
+        "gzip_bytes": 57727
       },
       {
         "file": "assets/typography-BaONyMga.js",
         "gzip_bytes": 52311
       },
       {
-        "file": "assets/table-C50smvG4.js",
-        "gzip_bytes": 41782
+        "file": "assets/table-Ryt8TqNU.js",
+        "gzip_bytes": 38685
       },
       {
-        "file": "assets/schemas-CANV2qJy.js",
-        "gzip_bytes": 36518
+        "file": "assets/schemas-D-2Vf-1s.js",
+        "gzip_bytes": 36498
       },
       {
         "file": "assets/space-Bg_aHXDY.js",
@@ -44,8 +44,8 @@
         "gzip_bytes": 15601
       },
       {
-        "file": "assets/tree-CzNJtAe7.js",
-        "gzip_bytes": 15386
+        "file": "assets/tree-BkNcyogf.js",
+        "gzip_bytes": 15385
       }
     ]
   },
@@ -55,16 +55,16 @@
       "gzip_bytes": 94125
     },
     {
-      "file": "assets/query-client-DDvaIZGa.js",
-      "gzip_bytes": 67934
+      "file": "assets/query-client-D-VJzMDG.js",
+      "gzip_bytes": 68523
     },
     {
       "file": "assets/Match-DqMyU-Vq.js",
       "gzip_bytes": 15601
     },
     {
-      "file": "assets/index-UMsZN7e4.js",
-      "gzip_bytes": 8283
+      "file": "assets/index-DfPYrQXG.js",
+      "gzip_bytes": 8221
     },
     {
       "file": "assets/useStore-B11YKrzp.js",

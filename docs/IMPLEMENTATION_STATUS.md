@@ -206,3 +206,42 @@
 - 375 px Drawer 使用同一图标体系；语言切换、权限过滤、当前页面选中和祖先展开行为保持不变，axe serious/critical 为 0。
 - Admin Node 24 门禁通过：10 个测试文件、45 项测试、strict typecheck、lint、production build、bundle budget 和蓝图校验全部通过。
 - 本机 `http://localhost:4173` Admin 已重建并处于 healthy，用户刷新即可看到新图标与紧凑间距。
+
+## 2026-08-04 Admin DESIGN.md 视觉焕新与品牌资产
+
+### 状态：完成（Web light theme）
+
+- 使用用户提供的 `DESIGN.md` 将 Admin 全局视觉更新为 ink/near-white/hairline/stacked-shadow 体系；Ant Design 主题、表格、卡片、输入、Drawer、Modal、App Shell、认证页和 Dashboard 均统一映射。
+- 使用内置 imagegen 参考附件生成原创 AppKernia 标志，按 chroma-key 工作流输出透明 master，并派生 512/180/64/32 四种 Web 尺寸；已接入登录页、桌面/移动导航、favicon 和 Apple touch icon。
+- 品牌渐变限制在 Logo、认证品牌面和 KPI 2px 顶部光谱线；管理操作仍使用可访问的 ink/semantic 颜色，不把后台改造成营销落地页。
+- `design-system/appkernia-admin/MASTER.md`、App Shell、Login/Auth 与 Dashboard override 已同步；本次 request、真实 Skill 输出、决策、检查表、可复核视觉脚本和 5 张截图保存在 `artifacts/ui-ux-pro-max/AKADM-310-design-refresh/`。
+- 新增视觉检查：登录 1440/768/375 均无水平溢出且 axe 0 violations；Dashboard mock-contract 1440 axe 0 serious/critical，768 Drawer 真实截图通过。
+- 静态与构建门禁：ESLint、strict typecheck、10 files/45 tests、Vite production build、bundle budget、Admin/Mobile/i18n validators、UI Skill check、`git diff --check` 全部退出 0。
+- 本轮仅交付并验证当前 light theme；应用尚无 dark algorithm/选择器，因此没有伪造 dark 截图。Dashboard 新截图使用本地 API 边界 mock-contract，只证明渲染与响应式，不冒充真实 PostgreSQL/生产联调。
+
+## 2026-08-04 Admin 侧栏祖先状态与边界折叠控制
+
+### 状态：完成
+
+- 修复第三层叶子选中后，一级与二级祖先目录错误继承白底叶子的 ink 文字色，导致暗色侧栏文字和图标近乎不可见的问题；选中/展开祖先现在保持 `rgba(255,255,255,.92)`。
+- 移除侧栏右下角汉堡折叠按钮，改为侧栏与主内容分界线垂直中点的左右箭头：侧栏悬停或键盘聚焦时出现，折叠后箭头反向并可再次展开。
+- 新控制使用语义 Button、既有双语 `aria-label`、`aria-controls` 与 `aria-expanded`；无 hover 指针设备保持可见，`prefers-reduced-motion` 下关闭自定义过渡。
+- 折叠时保留受控 `openKeys`，重新展开后恢复当前路由的两级祖先，不丢失“系统 / 系统设置”定位上下文。
+- `ui-ux-pro-max` request/output/decisions/checklist 与两张 Chromium 截图保存在 `artifacts/ui-ux-pro-max/AKADM-navigation-collapse/`。
+- 浏览器 mock-contract 验证 `/system/settings/dictionaries`：两级祖先计算色均为 `rgba(255,255,255,.92)`，隐藏/悬停/折叠/展开状态均通过，axe violations 为 0。
+- Node 24.18.1 全量 Admin check 通过：10 个测试文件、45 项测试、lint、strict typecheck、4,155 modules production build、bundle budget 与 Admin 蓝图均通过；i18n 与 Mobile 蓝图校验通过。
+- 本机 `http://localhost:4173` Admin 已重新构建并替换，健康探针返回 `ok`。未部署生产，Firefox/Safari 未执行；Mobile 未改动且未构建或真机验收。
+
+## 2026-08-04 Admin 顶部全屏、语言与账户菜单
+
+### 状态：完成
+
+- 顶部右侧从“语言 Select + 用户名 + 退出登录”收敛为全屏、语言、圆形 Avatar 三个图标入口；顺序、间距、40px 操作区和 hover/focus 状态已同步 App Shell override。
+- Avatar 优先读取现有受保护头像 Blob，并正确释放 Object URL；未设置头像时使用显示名称/邮箱的首个 Unicode 字符大写回退。
+- Avatar 下拉层分为用户信息与菜单两部分：显示当前用户名、Auth Context 真实角色，并提供个人中心和退出登录。角色为空时使用双语回退文案。
+- 语言入口在 App Shell 使用翻译图标；下拉菜单显示简体中文/English，当前语言采用高对比浅蓝选中态。登录/注册等匿名页继续使用原文字 Select。
+- 全屏入口使用标准 Fullscreen API，图标、双语 accessible name 与 `aria-pressed` 随状态反转；浏览器 Escape 退出通过 `fullscreenchange` 同步。
+- 新增双语键写入 `blueprint/i18n/admin` 事实源并重新生成应用语言包，避免 Docker/CI 构建覆盖。
+- Chromium mock-contract 真实点击覆盖账户菜单、角色、个人中心、语言选中与英文切换、全屏进入/退出、375px 移动端和无水平溢出；最终 axe violations 为 0。
+- `ui-ux-pro-max` request/output/decisions/checklist 与 4 张截图保存在 `artifacts/ui-ux-pro-max/AKADM-header-utilities/`。
+- 本机 `http://localhost:4173` Admin 已使用 Node 24.18.1 Docker 镜像重建，健康探针返回 `ok`。未部署生产，Firefox/Safari 未执行。

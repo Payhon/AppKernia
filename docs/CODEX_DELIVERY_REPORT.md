@@ -531,3 +531,112 @@
 - 只验证 Chromium 145；Firefox、Safari 与生产部署未执行。
 - Android、iOS、Harmony 与本次 Web 导航无关且未执行，继续标记 blocked / 未验证。
 - 本轮仍未 commit、未 push。
+
+## 2026-08-04 Admin DESIGN.md 视觉焕新与品牌资产追加
+
+### 交付内容
+
+- 更新 Ant Design semantic/component tokens：ink primary、near-white canvas、hairline、6/12px radius、层叠阴影与 data-dense table 规则。
+- 更新 App Shell：真实品牌图、黑色侧栏、反相选中项、sticky blur header 和移动 Drawer 品牌标题。
+- 更新认证框架：原创品牌 Logo、蓝青绿大尺度氛围光、近白网格画布和高对比表单卡；中英文文案与表单语义未改变。
+- 更新 Dashboard：KPI 品牌光谱边、紧凑数据层级、ECharts 序列色/虚线网格/ink tooltip/低透明面积层，以及全局共享 surface 样式。
+- 生成透明品牌 master 与 512/180/64/32 派生资产，接入 favicon、Apple touch icon、认证和导航；完整提示词与处理边界见 `apps/ak-admin/public/brand/README.md`。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `ui-ux-pro-max` design-system + React/chart/UX 四条查询 | 0 | 输出、采用/拒绝项、决策和检查表已保存 |
+| 内置 `imagegen` + chroma-key helper + `sips` 派生 | 0 | 1254 master 与 512/180/64/32 PNG 均有 alpha；soft matte 内部白色几何异常后改用经预览验证的 hard matte |
+| `pnpm --filter @appkernia/admin lint` | 0 | ESLint 0 warning/error；宿主 Node 26 engine warning 如实保留 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 48 routes 重新生成，TypeScript strict 通过 |
+| `pnpm --filter @appkernia/admin test` | 0 | 10 files / 45 tests 通过 |
+| `pnpm --filter @appkernia/admin build` | 0 | 4,155 modules，production build 成功 |
+| `validate:bundle` / Admin blueprint validator | 0 / 0 | initial gzip 200,914 B；最大 lazy chunk gzip 165,429 B；35 menus/48 routes/108 permissions/147 APIs 通过 |
+| Mobile blueprint + i18n validator + UI Skill check | 0 | Mobile 0 error/warning；`zh-CN`/`en-US` parity；Skill 可用 |
+| 登录 1440/768/375 Chromium 截图与 axe | 0 | 三视口均无水平溢出，axe 0 violations |
+| `visual_check.py` Dashboard mock-contract | 0 | 1440 axe 0 serious/critical；768 Drawer 转场后截图；不写数据库 |
+| `docker compose ... build admin` | 0 | Node 24.18.1 Admin 镜像生产构建成功 |
+| 首次无端口覆盖的 Compose 恢复 | 1 | PostgreSQL 55432 已被其他进程占用；改用该项目此前的 55433 显式恢复后成功，不掩盖失败 |
+| `AK_POSTGRES_PORT=55433 ... docker compose ... up -d` | 0 | PostgreSQL/migrate/seed/API/Admin 依赖链启动；API healthy 后 Admin 启动 |
+| Compose 终态复核与恢复 | state unhealthy → healthy | 先前未轮询的通用 `up -d` 会话随后用默认 55432 重建 PostgreSQL，导致 API health 503；显式 55433 再启动后 PostgreSQL/API/Admin 均 healthy，并停止、移除该会话额外创建的 Redis/MinIO 容器，恢复原测试栈范围 |
+| `git diff --check` | 0 | 补丁格式通过 |
+
+### 截图索引与边界
+
+- [登录桌面 1440](../artifacts/ui-ux-pro-max/AKADM-310-design-refresh/screenshots/1440x900-light.png)
+- [登录平板 768](../artifacts/ui-ux-pro-max/AKADM-310-design-refresh/screenshots/768x1024.png)
+- [登录移动 375](../artifacts/ui-ux-pro-max/AKADM-310-design-refresh/screenshots/375x812.png)
+- [Dashboard 桌面 1440](../artifacts/ui-ux-pro-max/AKADM-310-design-refresh/screenshots/dashboard-1440x900-light.png)
+- [Dashboard 768 Drawer](../artifacts/ui-ux-pro-max/AKADM-310-design-refresh/screenshots/dashboard-768x1024-navigation.png)
+- [透明品牌 master](../apps/ak-admin/public/brand/appkernia-mark.png)
+- 本轮浏览器验证为 Chromium；Firefox/Safari 未执行。Dashboard 使用确定性的 HTTP mock-contract，仅验证 UI 渲染、响应式与 a11y，不代表新一轮 PostgreSQL/生产联调。
+- 当前产品没有 dark theme algorithm/选择器，因此未生成或伪装 dark 截图。Mobile 未变更，Android/iOS/Harmony 未构建或真机验证。
+- 本轮未 commit、未 push、未部署生产。
+
+## 2026-08-04 Admin 侧栏祖先可读性与折叠交互追加
+
+### 交付内容
+
+- 根因是 Ant Design 的 `.ant-menu-submenu-selected` 让祖先目录继承了叶子选中态的深色文字，而祖先仍处在 `#111111/#0A0A0A` 背景；现在为选中/展开祖先显式提供高对比浅色。
+- 原侧栏底部汉堡折叠按钮已删除；桌面侧栏新增位于内容边界垂直中点的白色 Chevron 控制，展开时向左、折叠时向右。
+- 控制默认不抢占视觉，侧栏 hover、按钮 focus 或非 hover 指针设备时可见；保留全局 focus ring、双语 accessible name、`aria-expanded` 和 reduced-motion 兼容。
+- 修复折叠/展开期间 Ant Menu 清理 `openKeys` 的副作用，重新展开后当前叶子的两级祖先会完整恢复。
+- 同页字典空状态文字由 AntD 默认低对比灰调整为 design token 的 muted ink，使本次 axe 审计为零违规。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| 项目内 `ui-ux-pro-max` design-system + UX + React 三项查询 | 0 | 保存 request/output/decisions/checklist；采用对比度、语义 Button、键盘焦点、非 hover 指针与 reduced-motion 建议 |
+| `npm --prefix apps/ak-admin run typecheck && ... lint` | 0 | 48 routes 生成、TypeScript strict 与 ESLint 通过 |
+| `pnpm --dir apps/ak-admin test && ... build` | 0 | 10 files / 45 tests；4,155 modules production build 通过；宿主 Node 26 engine warning 如实保留 |
+| Admin/Mobile 蓝图与 i18n validator | 0 | 35 menus/48 routes/108 permissions/147 APIs、Mobile 0 error/warning、双语契约通过 |
+| 默认 Python / Codex bundled Python 运行视觉脚本 | 1 / 1 | 两个运行时均未安装 `playwright`，未冒充通过；改用 `uv run --with playwright==1.54.0` 的隔离依赖 |
+| 视觉脚本中间运行 | 1 | 依次暴露重复“字典管理”选择器、hover 测试鼠标位置、展开过渡时序和折叠后丢失一层 open key；修正实现/脚本后全部重跑 |
+| 最终 `visual_check.py`（4173 Docker） | 0 | 两级祖先色均为 `rgba(255,255,255,.92)`；隐藏、hover、折叠、展开、祖先恢复与水平溢出通过；axe 0 violations |
+| 最终 `mise exec node@24.18.1 -- corepack pnpm --dir apps/ak-admin run check` | 0 | generate、lint、strict typecheck、10 files/45 tests、build、bundle budget、Admin validator 全部通过；initial gzip 201,720 B，最大 lazy chunk 166,087 B |
+| `python3 blueprint/scripts/validate_i18n_contract.py` + Mobile validator + UI Skill check + `git diff --check` | 0 | `zh-CN/en-US` parity、Mobile 蓝图、Skill 可用与补丁格式通过 |
+| Docker Admin build/recreate + `/healthz` | 0 | Node 24.18.1 镜像构建并替换 `localhost:4173` Admin，探针返回 `ok`；API/PostgreSQL 原测试栈未重建 |
+
+### 截图索引与边界
+
+- [展开侧栏与悬停折叠箭头](../artifacts/ui-ux-pro-max/AKADM-navigation-collapse/screenshots/dictionaries-expanded-hover-1440x900.png)
+- [折叠侧栏与悬停展开箭头](../artifacts/ui-ux-pro-max/AKADM-navigation-collapse/screenshots/dictionaries-collapsed-hover-1440x900.png)
+- 浏览器使用 Chromium + 确定性 HTTP mock-contract，只验证本次菜单渲染、交互与 a11y；不冒充真实 PostgreSQL、生产部署或第三方联调。
+- Firefox、Safari 未执行。本轮未修改 Mobile，Android/iOS/Harmony 未构建或真机验证。
+- 本轮未 commit、未 push；保留用户未提交的 `DESIGN.md` 与此前视觉焕新改动。
+
+## 2026-08-04 Admin 顶部工具与账户菜单追加
+
+### 交付内容
+
+- 新增 `FullscreenToggle`：标准 Fullscreen API、Escape 状态同步、进入/退出图标与双语语义、失败反馈及不支持时禁用。
+- `LocaleSwitcher` 增加 `icon` 变体：App Shell 使用翻译图标和可选中菜单，匿名认证页保留文字 Select；语言保存失败仍会回滚并保留 `role=alert`。
+- 新增 `UserMenu`：36px Avatar、受保护 Blob 头像、首字母回退、用户/角色摘要、个人中心和危险色退出菜单。
+- Header 删除直接显示的用户名和退出按钮，三个图标入口在 375px 仍保持可操作且没有横向溢出。
+- Admin 双语事实源增加账户菜单与全屏语义键，应用 Catalog 由生成脚本同步，不手工漂移。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| 项目内 `ui-ux-pro-max` design-system + UX + React + Web 查询 | 0 | 保存 request/output/decisions/checklist；采用 40px icon button、语义名称、键盘焦点、响应式与外部全屏状态同步建议 |
+| 定向 Node 24 typecheck + lint | 0 | 48 routes 生成，TypeScript strict 与 ESLint 通过 |
+| 首轮 `pnpm --dir apps/ak-admin test` | 0 | 10 files / 45 tests 通过 |
+| 首轮 Header 视觉脚本 | 1 | Docker 构建从蓝图生成 Catalog，暴露新键只写应用文件会被覆盖；随后同步 `blueprint/i18n/admin` 并重跑 |
+| 视觉脚本中间运行 | 1 | 依次暴露角色文本测试选择器包含可访问标签、375px 浮层重定位等待、axe 调用参数与 popup region；修正后全部重跑 |
+| 最终 `visual_check.py`（4173 Docker） | 0 | Avatar 初始字母、用户/角色、个人中心/退出、语言选中/切换、全屏进入/退出、375px 无溢出通过；axe violations 0 |
+| 最终 `mise exec node@24.18.1 -- corepack pnpm --dir apps/ak-admin run check` | 0 | generate、lint、strict typecheck、10 files/45 tests、4,157 modules build、bundle budget、Admin validator 全部通过；initial gzip 201,867 B，最大 lazy chunk 166,087 B |
+| i18n + Mobile validator + visual script py_compile + UI Skill check + `git diff --check` | 0 | 双语事实源/占位符、Mobile 蓝图、脚本语法、Skill 可用与补丁格式全部通过 |
+| Docker Admin build/recreate + `/healthz` | 0 | Node 24.18.1 镜像构建并替换 `localhost:4173` Admin，健康探针返回 `ok` |
+
+### 截图索引与边界
+
+- [账户菜单桌面](../artifacts/ui-ux-pro-max/AKADM-header-utilities/screenshots/header-account-1440x900.png)
+- [语言菜单桌面](../artifacts/ui-ux-pro-max/AKADM-header-utilities/screenshots/header-language-1440x900.png)
+- [全屏模式桌面](../artifacts/ui-ux-pro-max/AKADM-header-utilities/screenshots/header-fullscreen-1440x900.png)
+- [账户菜单移动端](../artifacts/ui-ux-pro-max/AKADM-header-utilities/screenshots/header-account-375x812.png)
+- 浏览器验证使用 Chromium 与确定性 HTTP mock-contract；头像安全加载路径由现有 AuthSession/query 实现复用，但本轮截图使用无头像首字母状态。
+- Firefox、Safari 与生产部署未执行。Mobile 应用未修改，Android/iOS/Harmony 未构建或真机验证。
+- 本轮未 commit、未 push，并完整保留此前未提交的视觉焕新、侧栏与用户 `DESIGN.md` 改动。

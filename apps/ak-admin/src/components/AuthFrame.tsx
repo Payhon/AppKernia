@@ -2,7 +2,6 @@ import { Card, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { ShieldIcon } from '../app/icons'
 import { LocaleSwitcher } from './LocaleSwitcher'
 
 interface AuthFrameProps {
@@ -16,9 +15,10 @@ export function AuthFrame({ children, descriptionKey, headingKey }: AuthFramePro
   return (
     <main className="ak-auth-layout">
       <section className="ak-auth-brand" aria-labelledby="auth-brand-title">
-        <div className="ak-brand-mark" aria-hidden="true"><ShieldIcon /></div>
+        <img alt="" aria-hidden="true" className="ak-auth-logo" height="88" src="/brand/appkernia-logo-512.png" width="88" />
         <Typography.Title id="auth-brand-title" level={1}>{t('app.name')}</Typography.Title>
         <Typography.Paragraph>{t('auth.login.security')}</Typography.Paragraph>
+        <div aria-hidden="true" className="ak-auth-orbit" />
       </section>
       <section className="ak-auth-form-section">
         <div className="ak-auth-toolbar"><LocaleSwitcher /></div>

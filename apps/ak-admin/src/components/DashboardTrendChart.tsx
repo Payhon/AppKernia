@@ -22,15 +22,36 @@ export function DashboardTrendChart({ series, labels, ariaLabel }: {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     chart.setOption({
       animation: !reducedMotion,
-      grid: { left: 42, right: 24, top: 28, bottom: 44 },
-      tooltip: { trigger: 'axis' },
-      xAxis: { type: 'category', data: days, axisLabel: { hideOverlap: true } },
-      yAxis: { type: 'value', minInterval: 1 },
-      series: series.map((item) => ({
+      color: ['#007CF0', '#00B8A9', '#6E56CF', '#EB367F', '#E58A00'],
+      grid: { left: 46, right: 24, top: 32, bottom: 44 },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(23, 23, 23, 0.94)',
+        borderWidth: 0,
+        textStyle: { color: '#FFFFFF' },
+      },
+      xAxis: {
+        type: 'category',
+        data: days,
+        axisLabel: { color: '#666666', hideOverlap: true },
+        axisLine: { lineStyle: { color: '#D8D8D8' } },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: 'value',
+        minInterval: 1,
+        axisLabel: { color: '#666666' },
+        splitLine: { lineStyle: { color: '#EFEFEF', type: 'dashed' } },
+      },
+      series: series.map((item, index) => ({
         name: labels[item.key] ?? item.key,
         type: 'line',
         data: item.points.map((point) => point.value),
+        lineStyle: { width: 2.5 },
+        areaStyle: index === 0 ? { opacity: 0.06 } : undefined,
+        emphasis: { focus: 'series' },
         showSymbol: days.length <= 31,
+        symbolSize: 6,
         smooth: false,
       })),
     })

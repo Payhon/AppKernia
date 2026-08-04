@@ -1,10 +1,16 @@
+import { TranslationOutlined } from '@ant-design/icons'
+import { Button, Dropdown, Tooltip, type MenuProps } from 'antd'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useAuthStore } from '../features/auth/store'
 import { useLocale, type AdminLocale } from '../shared/i18n'
 
-export function LocaleSwitcher() {
+interface LocaleSwitcherProps {
+  variant?: 'icon' | 'select'
+}
+
+export function LocaleSwitcher({ variant = 'select' }: LocaleSwitcherProps) {
   const { t } = useTranslation()
   const { locale, setLocale } = useLocale()
   const authenticated = useAuthStore((state) => state.status === 'authenticated')
@@ -26,6 +32,39 @@ export function LocaleSwitcher() {
     } finally {
       setSaving(false)
     }
+  }
+
+  if (variant === 'icon') {
+    const items: MenuProps['items'] = [
+      { key: 'zh-CN', label: t('common.language.zh-CN') },
+      { key: 'en-US', label: t('common.language.en-US') },
+    ]
+    return (
+      <span className="ak-locale-control ak-locale-control-icon">
+        <Tooltip title={t('profile.language.title')}>
+          <Dropdown
+            menu={{
+              items,
+              onClick: ({ key }) => { void changeLocale(key as AdminLocale) },
+              selectable: true,
+              selectedKeys: [locale],
+            }}
+            placement="bottomRight"
+            rootClassName="ak-language-dropdown"
+            trigger={['click']}
+          >
+            <Button
+              aria-label={t('profile.language.title')}
+              className="ak-shell-icon-button"
+              icon={<TranslationOutlined />}
+              disabled={saving}
+              type="text"
+            />
+          </Dropdown>
+        </Tooltip>
+        {saveError ? <span className="ak-locale-error" id="ak-locale-save-error" role="alert">{t('profile.language.save_error')}</span> : null}
+      </span>
+    )
   }
 
   return (

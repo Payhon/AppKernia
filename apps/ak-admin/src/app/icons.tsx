@@ -29,3 +29,11 @@ export function UserIcon(props: IconProps) {
 export function ArrowRightIcon(props: IconProps) {
   return <Icon {...props}><path d="M5 12h14m-5-5 5 5-5 5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" /></Icon>
 }
+
+export function ChevronLeftIcon(props: IconProps) {
+  return <Icon {...props}><path d="m14.5 6-6 6 6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" /></Icon>
+}
+
+export function ChevronRightIcon(props: IconProps) {
+  return <Icon {...props}><path d="m9.5 6 6 6-6 6" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" /></Icon>
+}

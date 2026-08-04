@@ -1,50 +1,10 @@
-# Login Auth Page Overrides
+# Login/Auth Page Override
 
-> **PROJECT:** AppKernia Admin
-> **Generated:** 2026-08-03 08:34:37
-> **Page Type:** Authentication
-
-> ⚠️ **IMPORTANT:** Rules in this file **override** the Master file (`design-system/MASTER.md`).
-> Only deviations from the Master are documented here. For all other rules, refer to the Master.
-
----
-
-## Page-Specific Rules
-
-### Layout Overrides
-
-- **Max Width:** 1200px (standard)
-- **Layout:** Full-width sections, centered content
-- **Sections:** 1. Hero (Video/Mission), 2. Solutions by Industry, 3. Solutions by Role, 4. Client Logos, 5. Contact Sales
-
-### Spacing Overrides
-
-- No overrides — use Master spacing
-
-### Typography Overrides
-
-- No overrides — use Master typography
-
-### Color Overrides
-
-- **Strategy:** Corporate: Navy/Grey. High integrity. Conservative accents.
-
-### Component Overrides
-
-- Avoid: Icon buttons without labels
-- Avoid: Keyboard traps or illogical tab order
-
----
-
-## Page-Specific Components
-
-- No unique components for this page
-
----
-
-## Recommendations
-
-- Effects: Badge hover effects, metric pulse animations, certificate carousel, smooth stat reveal
-- Accessibility: Add aria-label for icon-only buttons
-- Accessibility: Tab order matches visual order
-- CTA Placement: Contact Sales (Primary) + Login (Secondary)
+- Route group: `/login`, `/register`, `/forgot-password`, `/reset-password`, provider callback.
+- Desktop 使用 46/54 双栏：左侧 ink 品牌面，右侧 near-white 48px 细网格画布；小于 768px 堆叠。
+- 左侧只展示生成的 AppKernia 标志、产品名和既有安全说明，不添加营销 CTA、客户 Logo 或未经确认的品牌口号。
+- 品牌背景允许大尺度低透明蓝/青/绿径向氛围光与线性 orbit；不得在小组件内重复渐变。
+- 表单卡最大 440px，16px 圆角，白色 96% surface、hairline 与层叠阴影；移动端移除多余悬浮感。
+- 标题 600 weight、负字距；表单 label 保持可见；输入 40–48px；错误 `role=alert`，成功 `role=status`。
+- Tab 顺序保持语言 → 账号 → 密码 → 辅助动作 → 提交；密码管理器与 autofill 属性不得退化。
+- 中英文、375/768/1440、键盘、axe 与无水平滚动必须验证。

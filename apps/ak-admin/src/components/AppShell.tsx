@@ -3,11 +3,13 @@ import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useEffect, useMemo, useState, type PropsWithChildren } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { MenuIcon as HamburgerMenuIcon } from '../app/icons'
+import { ChevronLeftIcon, ChevronRightIcon, MenuIcon as HamburgerMenuIcon } from '../app/icons'
 import { ConfiguredMenuIcon } from '../app/menu-icons'
 import { findMenuAncestorKeys, resolveBackendMenus, type ResolvedMenuItem } from '../app/route-registry'
 import { useAuthStore } from '../features/auth/store'
+import { FullscreenToggle } from './FullscreenToggle'
 import { LocaleSwitcher } from './LocaleSwitcher'
+import { UserMenu } from './UserMenu'
 
 const { Content, Header, Sider } = Layout
 
@@ -35,6 +37,13 @@ export function AppShell({ children }: PropsWithChildren) {
     setOpenKeys((current) => Array.from(new Set([...current, ...activeAncestorKeys])))
   }, [activeAncestorKeys])
 
+  const toggleSidebar = () => {
+    if (collapsed) {
+      setOpenKeys((current) => Array.from(new Set([...current, ...activeAncestorKeys])))
+    }
+    setCollapsed((value) => !value)
+  }
+
   const toMenuItem = (item: ResolvedMenuItem): NonNullable<MenuProps['items']>[number] => {
     if (item.type === 'directory') {
       return {
@@ -51,13 +60,15 @@ export function AppShell({ children }: PropsWithChildren) {
     }
   }
 
-  const navigation = (
-    <nav aria-label={t('shell.navigation')}>
+  const navigation = (id: string) => (
+    <nav aria-label={t('shell.navigation')} id={id}>
       <Menu
         className="ak-navigation-menu"
         items={menuItems.map(toMenuItem)}
         mode="inline"
-        onOpenChange={(keys) => { setOpenKeys(keys) }}
+        onOpenChange={(keys) => {
+          if (!collapsed) setOpenKeys(keys)
+        }}
         openKeys={openKeys}
         selectedKeys={[pathname]}
         theme="dark"
@@ -88,11 +99,22 @@ export function AppShell({ children }: PropsWithChildren) {
     <Layout className="ak-app-layout">
       <a className="ak-skip-link" href="#main-content">{t('shell.skip_to_content')}</a>
       <Sider className="ak-desktop-sider" collapsed={collapsed} collapsible trigger={null} width={248}>
-        <div className="ak-shell-brand"><span className="ak-shell-brand-mark">{t('app.short_name')}</span>{collapsed ? null : <span>{t('app.name')}</span>}</div>
-        {navigation}
-        <Button aria-label={t(collapsed ? 'shell.expand_navigation' : 'shell.collapse_navigation')} className="ak-collapse-button" ghost icon={<HamburgerMenuIcon />} onClick={() => { setCollapsed((value) => !value) }} />
+        <div className="ak-shell-brand">
+          <img alt="" aria-hidden="true" className="ak-shell-brand-image" height="36" src="/brand/appkernia-icon-64.png" width="36" />
+          {collapsed ? null : <span>{t('app.name')}</span>}
+        </div>
+        {navigation('ak-primary-navigation')}
+        <Button
+          aria-controls="ak-primary-navigation"
+          aria-expanded={!collapsed}
+          aria-label={t(collapsed ? 'shell.expand_navigation' : 'shell.collapse_navigation')}
+          className="ak-sider-collapse-handle"
+          icon={collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+          onClick={toggleSidebar}
+          type="text"
+        />
       </Sider>
-      <Drawer className="ak-mobile-drawer" closable onClose={() => { setMobileOpen(false) }} open={mobileOpen} placement="left" size={280} title={t('app.name')}>{navigation}</Drawer>
+      <Drawer className="ak-mobile-drawer" closable onClose={() => { setMobileOpen(false) }} open={mobileOpen} placement="left" size={280} title={<span className="ak-drawer-brand"><img alt="" aria-hidden="true" height="32" src="/brand/appkernia-icon-64.png" width="32" />{t('app.name')}</span>}>{navigation('ak-mobile-navigation')}</Drawer>
       <Layout>
         <Header className="ak-shell-header">
           <Button aria-label={t('shell.open_navigation')} className="ak-mobile-menu-button" icon={<HamburgerMenuIcon />} onClick={() => { setMobileOpen(true) }} type="text" />
@@ -110,9 +132,9 @@ export function AppShell({ children }: PropsWithChildren) {
             ) : <Typography.Text strong>{context?.active_tenant.name}</Typography.Text>}
           </div>
           <div className="ak-shell-actions">
-            <LocaleSwitcher />
-            <Link className="ak-user-name" to="/profile/basic">{context?.user.display_name}</Link>
-            <Button onClick={() => { void signOut() }} type="text">{t('common.actions.sign_out')}</Button>
+            <FullscreenToggle />
+            <LocaleSwitcher variant="icon" />
+            {context ? <UserMenu onSignOut={signOut} roles={context.roles} user={context.user} /> : null}
           </div>
         </Header>
         <Content className="ak-shell-content" id="main-content">{children}</Content>
