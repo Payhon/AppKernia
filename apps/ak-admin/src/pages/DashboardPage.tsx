@@ -4,7 +4,7 @@ import { Alert, Button, Card, Col, Empty, Row, Segmented, Skeleton, Space, Stati
 import { lazy, Suspense, useEffect, useMemo, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { isImplementedRoute, resolveBackendMenus } from '../app/route-registry'
+import { flattenMenuPages, resolveBackendMenus } from '../app/route-registry'
 import { ArrowRightIcon } from '../app/icons'
 import type { AdminDashboardTrendSeries } from '../generated/api/types.gen'
 import type { DashboardRange } from '../features/auth/session'
@@ -25,7 +25,7 @@ export function DashboardPage() {
   const summary = useDashboardSummary(range)
   const trends = useDashboardTrends(range)
   const activity = useDashboardActivity(range)
-  const quickAccess = useMemo(() => resolveBackendMenus(context?.menus ?? [], permissions, context?.feature_flags ?? {}).filter((item) => item.componentKey !== 'dashboard' && isImplementedRoute(item.componentKey)).slice(0, 8), [context, permissions])
+  const quickAccess = useMemo(() => flattenMenuPages(resolveBackendMenus(context?.menus ?? [], permissions, context?.feature_flags ?? {})).filter((item) => item.componentKey !== 'dashboard').slice(0, 8), [context, permissions])
   const locale = i18n.resolvedLanguage === 'en-US' ? 'en-US' : 'zh-CN'
   const dateTimeFormatter = useMemo(() => new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }), [locale])
   const trendLabels = useMemo(() => Object.fromEntries(trendKeys.map((key) => [key, t(`dashboard.trends.series.${key}`)])), [t])

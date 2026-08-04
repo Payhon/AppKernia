@@ -1,39 +1,98 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { AdminMenuItem } from '../generated/api/types.gen'
-import { findRegisteredRoute, isSafeInternalRedirect, resolveBackendMenus } from './route-registry'
+import { findMenuAncestorKeys, findRegisteredRoute, isSafeInternalRedirect, resolveBackendMenus } from './route-registry'
 
-function menu(componentKey: string): AdminMenuItem {
+let menuId = 0
+
+function page(componentKey: string, parentId: string | null = null, code = componentKey): AdminMenuItem {
   return {
-    id: crypto.randomUUID(), parent_id: null, code: componentKey, i18n_key: 'menu.dashboard',
+    id: `menu-${String(menuId += 1)}`, parent_id: parentId, code, i18n_key: `menu.${code}`,
     title: 'diagnostic-only', type: 'page', path: '/dashboard', component_key: componentKey,
-    icon: null, affix: false, sort: 1, feature_flag: '',
+    icon: 'FileOutlined', affix: false, sort: 1, feature_flag: '',
   }
+}
+
+function directory(code: string, parentId: string | null = null, sort = 1): AdminMenuItem {
+  return {
+    id: `menu-${String(menuId += 1)}`, parent_id: parentId, code, i18n_key: `menu.${code}`,
+    title: 'diagnostic-only', type: 'directory', path: `/${code.replaceAll('.', '/')}`, component_key: null,
+    icon: 'AppstoreOutlined', affix: false, sort, feature_flag: '',
+  }
+}
+
+function systemTree(componentKey: string, permissionParent = 'system.users'): AdminMenuItem[] {
+  const system = directory('system', null, 20)
+  const group = directory(permissionParent, system.id)
+  return [system, group, page(componentKey, group.id)]
 }
 
 describe('static route registry', () => {
   it('drops unknown backend component keys and emits a warning callback', () => {
     const onUnknown = vi.fn()
-    expect(resolveBackendMenus([menu('server.arbitrary.import')], new Set(), {}, onUnknown)).toEqual([])
+    expect(resolveBackendMenus(systemTree('server.arbitrary.import'), new Set(), {}, onUnknown)).toEqual([])
     expect(onUnknown).toHaveBeenCalledWith('server.arbitrary.import')
   })
 
   it('applies view permission to direct route resolution', () => {
     const route = findRegisteredRoute('system.users.accounts')
     expect(route).toBeDefined()
-    expect(resolveBackendMenus([menu('system.users.accounts')], new Set(), {})).toEqual([])
-    expect(resolveBackendMenus([menu('system.users.accounts')], new Set(['iam.user.read']), {})).toHaveLength(1)
+    const menus = systemTree('system.users.accounts')
+    expect(resolveBackendMenus(menus, new Set(), {})).toEqual([])
+    expect(resolveBackendMenus(menus, new Set(['iam.user.read']), {})).toHaveLength(1)
   })
 
   it('exposes implemented notification routes only with their backend permissions', () => {
-    expect(resolveBackendMenus([menu('system.notifications.notices')], new Set(), {})).toEqual([])
-    expect(resolveBackendMenus([menu('system.notifications.notices')], new Set(['notify.notice.read']), {})).toHaveLength(1)
-    expect(resolveBackendMenus([menu('system.notifications.deliveries')], new Set(['notify.delivery.read']), {})).toHaveLength(1)
+    expect(resolveBackendMenus(systemTree('system.notifications.notices', 'system.notifications'), new Set(), {})).toEqual([])
+    expect(resolveBackendMenus(systemTree('system.notifications.notices', 'system.notifications'), new Set(['notify.notice.read']), {})).toHaveLength(1)
+    expect(resolveBackendMenus(systemTree('system.notifications.deliveries', 'system.notifications'), new Set(['notify.delivery.read']), {})).toHaveLength(1)
   })
 
   it('exposes the implemented schedule route only with its backend permission', () => {
-    expect(resolveBackendMenus([menu('system.integrations.schedules')], new Set(), {})).toEqual([])
-    expect(resolveBackendMenus([menu('system.integrations.schedules')], new Set(['jobs.schedule.read']), {})).toHaveLength(1)
+    const menus = systemTree('system.integrations.schedules', 'system.integrations')
+    expect(resolveBackendMenus(menus, new Set(), {})).toEqual([])
+    expect(resolveBackendMenus(menus, new Set(['jobs.schedule.read']), {})).toHaveLength(1)
+  })
+
+  it('preserves the Dashboard and System hierarchy and prunes inaccessible empty groups', () => {
+    const dashboard = page('dashboard', null, 'dashboard')
+    dashboard.sort = 10
+    const system = directory('system', null, 20)
+    const settings = directory('system.settings', system.id, 10)
+    const users = directory('system.users', system.id, 20)
+    const access = directory('system.access', system.id, 30)
+    const menus = [
+      page('system.access.menus', access.id),
+      users,
+      page('system.users.accounts', users.id),
+      dashboard,
+      access,
+      page('system.settings.configs', settings.id),
+      system,
+      settings,
+    ]
+
+    const resolved = resolveBackendMenus(
+      menus,
+      new Set(['iam.user.read', 'sys.config.read', 'sys.menu.read']),
+      {},
+    )
+
+    expect(resolved.map((item) => item.code)).toEqual(['dashboard', 'system'])
+    expect(resolved[1]?.children.map((item) => item.code)).toEqual([
+      'system.settings',
+      'system.users',
+      'system.access',
+    ])
+    expect(resolved[1]?.children[1]?.children[0]?.code).toBe('system.users.accounts')
+    expect(resolved[1]?.children[1]?.children[0]?.icon).toBe('FileOutlined')
+    expect(findMenuAncestorKeys(resolved, '/system/users/accounts')).toEqual(['system', 'system.users'])
+  })
+
+  it('does not expose arbitrary backend root nodes', () => {
+    const arbitraryRoot = directory('custom-root')
+    const child = page('dashboard', arbitraryRoot.id)
+    expect(resolveBackendMenus([arbitraryRoot, child], new Set(), {})).toEqual([])
   })
 
   it('accepts only registered authenticated same-origin paths as redirects', () => {

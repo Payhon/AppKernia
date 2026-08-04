@@ -180,3 +180,29 @@
 - Mobile 本轮没有新增 UI；Android/iOS/Harmony 未实际构建或真机验收，继续标记 blocked。
 - Playwright Skill 自带 wrapper 当前调用不存在的 `playwright-cli`；本轮使用本机 Playwright 1.54.0 + Chromium 完成真实浏览器测试，并记录 wrapper 非零结果。
 - 已验证本地 Docker Backend/Admin/PostgreSQL 18、Chromium 与 Vite production build；未部署、未验证 Firefox/Safari、未执行生产设备闭环。
+
+## 2026-08-04 Admin 三级菜单布局修正
+
+### 状态：完成
+
+- 修复 Admin 菜单解析器丢弃 `directory` 节点并把所有页面铺成一级菜单的问题；当前严格只接受蓝图定义的 `dashboard`、`system` 两个根节点。
+- 真实保留后端 `id/parent_id/sort` 树和排序：`Dashboard` 为唯一根页面，其他业务页面全部位于 `系统` 下的系统设置、用户管理、权限设置、文件存储、通知中心、任务集成、审计安全和运行监控分类。
+- 页面仍按静态 Route Registry、精确权限和 Feature Flag 过滤；不可访问或未实现叶子被移除，空目录自动裁剪，任意后端根节点不会进入编译期导航。
+- 当前路由叶子自动选中并展开其全部祖先；移动端保留同一树形 Drawer，点击叶子后自动关闭。
+- Dashboard 快速访问改为显式提取树中可访问页面，不再依赖已废弃的扁平菜单返回值。
+- 中文和英文菜单全部使用既有语义翻译键；真实浏览器切换语言时 `performance.timeOrigin` 不变，无刷新或重启。
+- `ui-ux-pro-max` 请求、真实输出、决策、页面 override、检查表、截图索引与三张真实截图已保存到 `artifacts/ui-ux-pro-max/AKADM-navigation-hierarchy/` 和 `output/playwright/`。
+- Playwright/Chromium 在 1440 px 双语桌面和 375 px English Drawer 上通过；axe serious/critical 为 0。Firefox、Safari 未执行，不标记通过。
+- 本机 `http://localhost:4173` 已使用最终 Admin 镜像重新构建并替换，用户可直接刷新后验证。
+
+## 2026-08-04 Admin 菜单图标与间距优化
+
+### 状态：完成
+
+- 35 条核心菜单 Seed 全部配置语义化 Ant Design Icon，PostgreSQL 实际查询为 `35/35` 非空图标；`appkernia_docker_test` 已重跑 core seed。
+- 新增编译期 `ConfiguredMenuIcon` 白名单，Admin 仅按后端 `icon` 名称查表渲染；未知或空值安全回退 `AppstoreOutlined`，不允许动态 import 或执行服务端字符串。
+- 根目录、功能分类和页面叶子统一使用 16 px 图标；图标与文字的计算间距统一为 8 px，保留原三级缩进与 44 px 菜单行操作区域。
+- 当前 4173 环境因 Feature Flag/权限实际展示 32 项；真实 Chromium 在 `zh-CN`、`en-US` 下均测得 `32/32` 有图标、图标宽度仅 `16`、间距仅 `8`。
+- 375 px Drawer 使用同一图标体系；语言切换、权限过滤、当前页面选中和祖先展开行为保持不变，axe serious/critical 为 0。
+- Admin Node 24 门禁通过：10 个测试文件、45 项测试、strict typecheck、lint、production build、bundle budget 和蓝图校验全部通过。
+- 本机 `http://localhost:4173` Admin 已重建并处于 healthy，用户刷新即可看到新图标与紧凑间距。

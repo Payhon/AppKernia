@@ -1,0 +1,159 @@
+{
+  "zh-CN": {
+    "root": [
+      "Dashboard",
+      "系统"
+    ],
+    "groups": [
+      "系统设置",
+      "用户管理",
+      "权限设置",
+      "文件存储",
+      "通知中心",
+      "任务集成",
+      "审计安全",
+      "运行监控"
+    ],
+    "system_settings": [
+      "系统配置",
+      "字典管理",
+      "地区管理",
+      "模块信息"
+    ],
+    "user_management": [
+      "部门",
+      "用户",
+      "岗位"
+    ],
+    "access_control": [
+      "角色",
+      "权限目录",
+      "菜单"
+    ]
+  },
+  "zh-CN_icons": {
+    "visible_items": 32,
+    "items_with_icons": 32,
+    "icon_widths": [
+      16
+    ],
+    "icon_label_gaps": [
+      8
+    ],
+    "labels": [
+      "Dashboard",
+      "系统",
+      "系统设置",
+      "系统配置",
+      "字典管理",
+      "地区管理",
+      "模块信息",
+      "用户管理",
+      "部门",
+      "用户",
+      "岗位",
+      "权限设置",
+      "角色",
+      "权限目录",
+      "菜单",
+      "文件存储",
+      "文件管理",
+      "通知中心",
+      "公告管理",
+      "站内消息",
+      "通知模板",
+      "投递记录",
+      "任务集成",
+      "定时任务",
+      "审计安全",
+      "操作日志",
+      "登录日志",
+      "安全事件",
+      "访问控制",
+      "运行监控",
+      "在线会话",
+      "服务状态"
+    ]
+  },
+  "zh-CN_axe_serious_or_critical": [],
+  "en-US": {
+    "root": [
+      "Dashboard",
+      "System"
+    ],
+    "groups": [
+      "System Settings",
+      "User Management",
+      "Access Control",
+      "File Storage",
+      "Notification Center",
+      "Jobs & Integrations",
+      "Audit & Security",
+      "Monitoring"
+    ],
+    "system_settings": [
+      "System Configuration",
+      "Dictionaries",
+      "Regions",
+      "Modules"
+    ],
+    "user_management": [
+      "Departments",
+      "Users",
+      "Positions"
+    ],
+    "access_control": [
+      "Roles",
+      "Permission Catalog",
+      "Menus"
+    ]
+  },
+  "en-US_icons": {
+    "visible_items": 32,
+    "items_with_icons": 32,
+    "icon_widths": [
+      16
+    ],
+    "icon_label_gaps": [
+      8
+    ],
+    "labels": [
+      "Dashboard",
+      "System",
+      "System Settings",
+      "System Configuration",
+      "Dictionaries",
+      "Regions",
+      "Modules",
+      "User Management",
+      "Departments",
+      "Users",
+      "Positions",
+      "Access Control",
+      "Roles",
+      "Permission Catalog",
+      "Menus",
+      "File Storage",
+      "Files",
+      "Notification Center",
+      "Announcements",
+      "In-app Messages",
+      "Notification Templates",
+      "Delivery Records",
+      "Jobs & Integrations",
+      "Scheduled Jobs",
+      "Audit & Security",
+      "Operation Logs",
+      "Login Logs",
+      "Security Events",
+      "Access Rules",
+      "Monitoring",
+      "Online Sessions",
+      "Service Status"
+    ]
+  },
+  "mobile": {
+    "width": 375,
+    "drawer_tree_visible": true
+  }
+}

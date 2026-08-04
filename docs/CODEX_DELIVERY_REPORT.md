@@ -455,3 +455,79 @@
 - Android、iOS、Harmony 本轮未执行构建或真机测试，均为 **blocked / 未验证**。
 - Git 工作树在开始与结束时均为未提交文件集合；没有 commit、push 或远程发布。
 - 本机 4173 测试环境的临时管理员已经 bootstrap，并通过真实 `/admin-api/v1/auth/login` 返回 `code=OK`。原请求的 10 位密码被策略拒绝且未绕过；实际本机临时凭据位于被 Git 忽略的 `docs/LOCAL_TEST_ACCESS.md`，不会进入开源代码或初始化 SQL。
+
+## 2026-08-04 Admin 导航信息架构修正追加
+
+### 交付结果
+
+- 根因是 Admin `resolveBackendMenus` 只返回 `page`，静默丢弃后端已经正确提供的 `directory` 和 `parent_id`，导致核心菜单在侧栏铺平；本轮改为递归树解析。
+- 根导航现在固定为 `Dashboard` 与 `系统/System`。系统下按功能展示 8 个分类；用户要求的系统配置/字典、部门/用户/岗位、角色/菜单均处在正确的三级位置，既有地区、模块、权限目录等页面继续归入对应分类。
+- 导航权限仍由后端授权和前端路由边界共同约束；解析器同时裁剪无权限、Feature Flag 关闭、未实现、循环和空目录节点，不接受额外任意根节点。
+- App Shell 使用 TanStack Router 的响应式 pathname 驱动选中项与祖先展开；语言切换无页面重载，移动 Drawer 复用同一树且叶子导航后关闭。
+- 真实视觉审查期间发现暗色菜单链接对比度问题；提供显式高对比文字色并等待 disclosure 动画稳定后，最终 axe serious/critical 为 0。
+
+### 本次真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| 项目内 `ui-ux-pro-max`：design-system、UX、React、Web 四次搜索 | 0 | 保存 request/output/decisions/checklist；采用层级、焦点、active state、响应式建议，拒绝不适用的营销 Hero、CTA、外部字体和颜色建议 |
+| `vitest run src/app/route-registry.test.ts`（首轮） | 0 | 7 项树解析、权限、未知组件、根节点约束和 redirect 定向测试通过 |
+| 首轮 strict typecheck | 2 | 暴露目录/页面 path 的联合类型及 Dashboard 快速访问仍假定扁平结构；随后改为判别联合和 `flattenMenuPages` |
+| 最终 `mise exec node@24.18.1 -- corepack pnpm --dir apps/ak-admin run check` | 0 | API/i18n/48 routes 生成、strict lint/typecheck、9 files/42 tests、2,554 modules production build、bundle budget、Admin validator全通过 |
+| `docker compose -p appkernia_docker_test build admin` + `up -d --no-deps --force-recreate admin` | 0 | Node 24.18.1 镜像构建完成并替换 `localhost:4173` Admin；第二次最终 CSS 构建同样 exit 0 |
+| 系统 Python 运行导航 E2E | 1 | 缺少 `playwright` Python 包，未冒充通过 |
+| Playwright Skill wrapper `playwright_cli.sh --help` | 127 | wrapper 报 `playwright-cli: command not found`；使用隔离临时 venv 安装 Playwright 1.58.0 和 Chromium 145 继续验证 |
+| 导航 E2E 中间运行 | 1 | 依次暴露测试选择器、Feature Flag 下租户叶子预期、展开动画对比度时序、服务端语言偏好和已展开目录重复点击问题；均修正后重跑 |
+| 最终 `e2e_navigation_hierarchy.py`（4173 Docker） | 0 | `zh-CN`/`en-US` 根节点与 8 分类、三组核心叶子、无刷新切换、375 px Drawer、axe serious/critical=0 全部通过 |
+| Backend/Admin/Mobile validators、i18n validator、UI Skill check | 0 | Backend 9 migrations/58 tables；Admin 35 menus/48 routes/147 APIs；Mobile blueprint；双语键/占位符和 Skill 可用性均通过 |
+| 错误路径 `blueprint/backend/scripts/validate_blueprint_specs.py` | 2 | 文件不存在；改用真实 `blueprint/backend/tools/validate_blueprint.py` 后 exit 0，未隐藏失败 |
+| `python3 -m py_compile apps/ak-admin/scripts/e2e_navigation_hierarchy.py` / `git diff --check` | 0 / 0 | E2E 脚本语法与补丁格式通过 |
+
+### 视觉证据与边界
+
+- 结果：[admin-navigation-hierarchy.evidence.json](../output/playwright/admin-navigation-hierarchy.evidence.json)
+- 中文桌面：[admin-navigation-hierarchy.zh-CN.1440.png](../output/playwright/admin-navigation-hierarchy.zh-CN.1440.png)
+- 英文桌面：[admin-navigation-hierarchy.en-US.1440.png](../output/playwright/admin-navigation-hierarchy.en-US.1440.png)
+- 英文移动 Drawer：[admin-navigation-hierarchy.en-US.375.png](../output/playwright/admin-navigation-hierarchy.en-US.375.png)
+- 仅 Chromium 145 在本机 Docker/API/PostgreSQL 环境实际执行；Firefox、Safari 与生产部署未执行。
+- 本轮没有 Backend/OpenAPI/数据库/权限契约变化；蓝图菜单种子原本已符合目标，故未制造无意义的 migration。
+- Android、iOS、Harmony 与本次 Web 导航无关且未执行，状态继续为 blocked / 未验证。
+- 本轮未 commit、未 push。
+
+## 2026-08-04 Admin 菜单图标与间距优化追加
+
+### 交付内容
+
+- 为 `admin-menu-seed.json` 与后端集成快照中的 35 条核心菜单逐项配置 Ant Design Icon，并通过既有幂等 Seed 更新当前 PostgreSQL。
+- Admin 新增静态图标注册表，消费 Auth Context 的 `menu.icon`；所有后端字符串只作为 Map key，未知/缺失值统一回退，保持静态路由与静态组件安全边界。
+- App Shell 不再只为 Dashboard/System/User Management 做硬编码判断；根、目录和叶子全部走统一渲染。
+- 菜单图标固定为 16 px，图标与文案间距固定为 8 px；不压缩层级 indent，不降低菜单行触控区域。
+- `ui-ux-pro-max` request/output/decisions/checklist 与三张截图保存在 `artifacts/ui-ux-pro-max/AKADM-navigation-icons/`、`output/playwright/`。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| 项目内 `ui-ux-pro-max` design-system + UX/React/Web 三项查询 | 0 | 采用一致 SVG、焦点、语义、bundle 与响应式建议；拒绝营销页、外部字体和新配色建议 |
+| `pnpm install --lockfile-only --filter @appkernia/admin...`（Node 24.18.1） | 0 | 将既有锁定版本 `@ant-design/icons@6.3.2` 声明为 Admin 直接依赖，lockfile 可复现 |
+| 定向 typecheck/lint/2 files 9 tests | 0 | 图标注册表、fallback、路由 icon 透传和菜单树测试通过 |
+| 首轮组合门禁 | 0（组合 shell）/ Admin 子命令 1 | Admin lint 发现测试中多余 `??`；同轮 Backend check 和 validators 通过，但未把 Admin 子失败记为通过 |
+| 最终 `set -e; pnpm --dir apps/ak-admin run check` | 0 | API/i18n/48 routes 生成、lint、strict typecheck、10 files/45 tests、4,155 modules build、bundle budget、Admin validator 全通过 |
+| `make -C server check` | 0 | Go vet 与 Backend 全量 unit tests 通过 |
+| Backend/Admin/Mobile validators + i18n + UI Skill check | 0 | 9 migrations/58 tables、35 menus/48 routes/147 APIs、Mobile 静态蓝图、双语契约与 Skill 均通过 |
+| Docker build `seed admin` + `docker compose run --rm --no-deps seed` + Admin recreate | 0 | Seed 输出 `permissions=108 menus=35`；4173 Admin 最终镜像启动 |
+| PostgreSQL core menu icon probe | 0 | `35|35`：全部 35 条 active core menu 的 icon 非空 |
+| 图标 E2E 首轮 | 1 | 测试错误假设 34 个可见项目；真实环境因 Feature Flag/权限展示 32 项，调整为验证所有实际可见项后重跑 |
+| 最终 `e2e_navigation_hierarchy.py` | 0 | 两种语言均 `32/32` 可见项有图标；计算宽度 16 px、gap 8 px；375 Drawer 与 axe 通过 |
+| `git diff --check` | 0 | 补丁格式通过 |
+
+### 证据与边界
+
+- [中文桌面图标截图](../output/playwright/admin-navigation-icons.zh-CN.1440.png)
+- [英文桌面图标截图](../output/playwright/admin-navigation-icons.en-US.1440.png)
+- [英文移动 Drawer 截图](../output/playwright/admin-navigation-icons.en-US.375.png)
+- [机器测量与 axe 证据](../output/playwright/admin-navigation-hierarchy.evidence.json)
+- AppShell chunk gzip 从约 49 KB 增至约 62 KB，仍低于 180 KB chunk budget；初始 bundle 约 201 KB，低于 300 KB budget。
+- 只验证 Chromium 145；Firefox、Safari 与生产部署未执行。
+- Android、iOS、Harmony 与本次 Web 导航无关且未执行，继续标记 blocked / 未验证。
+- 本轮仍未 commit、未 push。

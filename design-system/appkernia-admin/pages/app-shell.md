@@ -1,52 +1,50 @@
-# App Shell Page Overrides
+# App Shell — Navigation Override
 
-> **PROJECT:** AppKernia Admin
-> **Generated:** 2026-08-03 08:34:38
-> **Page Type:** Dashboard / Data View
+This page override extends `design-system/appkernia-admin/MASTER.md` for the authenticated Admin application shell.
 
-> ⚠️ **IMPORTANT:** Rules in this file **override** the Master file (`design-system/MASTER.md`).
-> Only deviations from the Master are documented here. For all other rules, refer to the Master.
+## Information architecture
 
----
+- The sidebar has exactly two root nodes: `navigation.dashboard` and `navigation.system`.
+- `navigation.dashboard` is a directly navigable page.
+- `navigation.system` is a directory containing functional second-level directories.
+- Business pages are third-level leaves. No business page other than Dashboard may render at the root.
+- Functional directories with no accessible implemented leaves are removed instead of rendering empty disclosure controls.
+- Backend ordering, permission filtering, feature flags, and route implementation checks remain authoritative.
 
-## Page-Specific Rules
+## Core functional groups
 
-### Layout Overrides
+- `navigation.system.settings`: system configuration, dictionaries, regions, and modules.
+- `navigation.system.users`: departments, users, positions, and tenant management when enabled.
+- `navigation.system.access`: roles, permission catalog, and menus.
+- Storage, notification, integration, security/audit, and monitoring pages remain separate functional groups below System.
 
-- **Max Width:** 1200px (standard)
-- **Layout:** Full-width sections, centered content
-- **Sections:** 1. Hero with device mockup, 2. Screenshots carousel, 3. Features with icons, 4. Reviews/ratings, 5. Download CTAs
+## Interaction
 
-### Spacing Overrides
+- Opening a directory must not navigate or reload the page.
+- Navigating to a leaf selects that leaf and expands its System and functional-group ancestors.
+- Desktop sidebar collapse uses Ant Design's nested popup behavior.
+- At mobile widths, the same hierarchy is rendered in a drawer and the drawer closes after leaf navigation.
+- Browser history and deep links remain intact.
 
-- No overrides — use Master spacing
+## Menu iconography and spacing
 
-### Typography Overrides
+- Every visible root, functional directory, and page leaf renders a configured icon.
+- Core icon names come from the backend menu seed and resolve only through a compile-time Ant Design Icons allowlist.
+- Unknown or empty custom-menu icon names use `AppstoreOutlined`; they never trigger dynamic imports.
+- Icons use a consistent 16 × 16 px visual box and remain decorative because every item has a translated text label.
+- Icon-to-label spacing is exactly 8 px. Hierarchy indentation remains controlled by Ant Design and must not be collapsed to compensate for spacing.
+- Menu rows retain their existing target height and keyboard/focus behavior.
 
-- No overrides — use Master typography
+## Accessibility and localization
 
-### Color Overrides
+- Use Ant Design Menu semantic controls and keyboard behavior; do not replace them with click-only generic elements.
+- Preserve visible `:focus-visible` treatment from the approved shell tokens.
+- Decorative icons must not become the only accessible label.
+- Every label is resolved through i18next; both `zh-CN` and `en-US` use identical keys and update without reload.
+- The selected leaf and disclosed ancestors must communicate the current location visually.
 
-- **Strategy:** Dark/light matching app store feel. Star ratings in gold. Screenshots with device frames.
+## Responsive review sizes
 
-### Component Overrides
-
-- Avoid: Keyboard traps or illogical tab order
-- Avoid: Icon buttons without labels
-- Avoid: Let nav overlap first section content
-
----
-
-## Page-Specific Components
-
-- No unique components for this page
-
----
-
-## Recommendations
-
-- Effects: Haptic feedback (vibration), voice guidance, focus indicators (4px+ ring), motion options, alt content, semantic
-- Accessibility: Tab order matches visual order
-- Accessibility: Add aria-label for icon-only buttons
-- Navigation: Add padding-top to body equal to nav height
-- CTA Placement: Download buttons prominent (App Store + Play Store) throughout
+- Desktop: 1440 × 900.
+- Tablet: 768 × 1024.
+- Mobile: 375 × 812.

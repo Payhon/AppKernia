@@ -130,6 +130,7 @@
       "sort": 10,
       "parent": "system.settings",
       "component_key": "system.settings.configs",
+      "icon": "SlidersOutlined",
       "permission": "sys.config.read",
       "phase": "P2"
     },
@@ -142,6 +143,7 @@
       "sort": 20,
       "parent": "system.settings",
       "component_key": "system.settings.dictionaries",
+      "icon": "BookOutlined",
       "permission": "sys.dictionary.read",
       "phase": "P2"
     },
@@ -154,6 +156,7 @@
       "sort": 30,
       "parent": "system.settings",
       "component_key": "system.settings.regions",
+      "icon": "GlobalOutlined",
       "permission": "sys.region.read",
       "phase": "P2"
     },
@@ -166,6 +169,7 @@
       "sort": 40,
       "parent": "system.settings",
       "component_key": "system.settings.modules",
+      "icon": "AppstoreOutlined",
       "permission": "sys.module.read",
       "phase": "P2"
     },
@@ -178,6 +182,7 @@
       "sort": 10,
       "parent": "system.users",
       "component_key": "system.users.departments",
+      "icon": "ApartmentOutlined",
       "permission": "org.unit.read",
       "phase": "P1"
     },
@@ -190,6 +195,7 @@
       "sort": 20,
       "parent": "system.users",
       "component_key": "system.users.accounts",
+      "icon": "UserOutlined",
       "permission": "iam.user.read",
       "phase": "P1"
     },
@@ -202,6 +208,7 @@
       "sort": 30,
       "parent": "system.users",
       "component_key": "system.users.positions",
+      "icon": "IdcardOutlined",
       "permission": "org.position.read",
       "phase": "P1"
     },
@@ -214,6 +221,7 @@
       "sort": 40,
       "parent": "system.users",
       "component_key": "system.users.tenants",
+      "icon": "BankOutlined",
       "permission": "iam.tenant.read",
       "phase": "P1",
       "feature_flag": "multi_tenant",
@@ -228,6 +236,7 @@
       "sort": 10,
       "parent": "system.access",
       "component_key": "system.access.roles",
+      "icon": "UserSwitchOutlined",
       "permission": "iam.role.read",
       "phase": "P1"
     },
@@ -240,6 +249,7 @@
       "sort": 20,
       "parent": "system.access",
       "component_key": "system.access.permissions",
+      "icon": "KeyOutlined",
       "permission": "iam.permission.read",
       "phase": "P1"
     },
@@ -252,6 +262,7 @@
       "sort": 30,
       "parent": "system.access",
       "component_key": "system.access.menus",
+      "icon": "MenuOutlined",
       "permission": "sys.menu.read",
       "phase": "P1"
     },
@@ -264,6 +275,7 @@
       "sort": 10,
       "parent": "system.storage",
       "component_key": "system.storage.files",
+      "icon": "FileOutlined",
       "permission": "storage.file.read",
       "phase": "P2",
       "backend_status": "existing"
@@ -277,6 +289,7 @@
       "sort": 10,
       "parent": "system.notifications",
       "component_key": "system.notifications.notices",
+      "icon": "SoundOutlined",
       "permission": "notify.notice.read",
       "phase": "P2"
     },
@@ -289,6 +302,7 @@
       "sort": 20,
       "parent": "system.notifications",
       "component_key": "system.notifications.messages",
+      "icon": "MessageOutlined",
       "permission": "notify.message.read",
       "phase": "P2",
       "backend_status": "existing"
@@ -302,6 +316,7 @@
       "sort": 30,
       "parent": "system.notifications",
       "component_key": "system.notifications.templates",
+      "icon": "MailOutlined",
       "permission": "notify.template.read",
       "phase": "P2"
     },
@@ -314,6 +329,7 @@
       "sort": 40,
       "parent": "system.notifications",
       "component_key": "system.notifications.deliveries",
+      "icon": "SendOutlined",
       "permission": "notify.delivery.read",
       "phase": "P2",
       "backend_status": "existing"
@@ -327,6 +343,7 @@
       "sort": 10,
       "parent": "system.integrations",
       "component_key": "system.integrations.schedules",
+      "icon": "ScheduleOutlined",
       "permission": "jobs.schedule.read",
       "phase": "P2"
     },
@@ -339,6 +356,7 @@
       "sort": 20,
       "parent": "system.integrations",
       "component_key": "system.integrations.api-clients",
+      "icon": "CodeOutlined",
       "permission": "sys.api_client.read",
       "phase": "P2",
       "feature_flag": "api_clients"
@@ -352,6 +370,7 @@
       "sort": 30,
       "parent": "system.integrations",
       "component_key": "system.integrations.webhooks",
+      "icon": "LinkOutlined",
       "permission": "sys.webhook.read",
       "phase": "P2",
       "feature_flag": "webhooks"
@@ -365,6 +384,7 @@
       "sort": 10,
       "parent": "system.security",
       "component_key": "system.security.operation-logs",
+      "icon": "FileSearchOutlined",
       "permission": "audit.operation.read",
       "phase": "P1"
     },
@@ -377,6 +397,7 @@
       "sort": 20,
       "parent": "system.security",
       "component_key": "system.security.login-logs",
+      "icon": "LoginOutlined",
       "permission": "audit.login.read",
       "phase": "P1"
     },
@@ -389,6 +410,7 @@
       "sort": 30,
       "parent": "system.security",
       "component_key": "system.security.events",
+      "icon": "WarningOutlined",
       "permission": "audit.security.read",
       "phase": "P1",
       "backend_status": "existing"
@@ -402,6 +424,7 @@
       "sort": 40,
       "parent": "system.security",
       "component_key": "system.security.block-rules",
+      "icon": "StopOutlined",
       "permission": "iam.block_rule.read",
       "phase": "P2",
       "backend_status": "existing"
@@ -415,6 +438,7 @@
       "sort": 10,
       "parent": "system.monitoring",
       "component_key": "system.monitoring.sessions",
+      "icon": "DesktopOutlined",
       "permission": "iam.session.read",
       "phase": "P1"
     },
@@ -427,6 +451,7 @@
       "sort": 20,
       "parent": "system.monitoring",
       "component_key": "system.monitoring.health",
+      "icon": "HeartOutlined",
       "permission": "ops.health.read",
       "phase": "P2",
       "backend_status": "existing"

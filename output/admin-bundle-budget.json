@@ -1,118 +1,110 @@
 {
-  "generated_at": "2026-08-04T03:12:17.079Z",
+  "generated_at": "2026-08-04T11:41:06.811Z",
   "budgets": {
     "initial_gzip_bytes": 307200,
     "chunk_gzip_bytes": 184320
   },
   "actual": {
-    "initial_gzip_bytes": 201033,
+    "initial_gzip_bytes": 201340,
     "largest_chunks": [
       {
         "file": "assets/DashboardTrendChart-Cuw21qoK.js",
-        "gzip_bytes": 165235
+        "gzip_bytes": 165895
       },
       {
         "file": "assets/context-DywDVt-A.js",
-        "gzip_bytes": 93800
+        "gzip_bytes": 94125
       },
       {
         "file": "assets/query-client-DDvaIZGa.js",
-        "gzip_bytes": 67488
+        "gzip_bytes": 67934
+      },
+      {
+        "file": "assets/AppShell-BqsR4KpB.js",
+        "gzip_bytes": 61378
       },
       {
         "file": "assets/typography-BaONyMga.js",
-        "gzip_bytes": 52066
+        "gzip_bytes": 52311
       },
       {
-        "file": "assets/AppShell-DkI1SVdh.js",
-        "gzip_bytes": 48781
+        "file": "assets/table-C50smvG4.js",
+        "gzip_bytes": 41782
       },
       {
-        "file": "assets/table-DtE-IToY.js",
-        "gzip_bytes": 41660
-      },
-      {
-        "file": "assets/schemas-BPxuHmkT.js",
-        "gzip_bytes": 36400
+        "file": "assets/schemas-CANV2qJy.js",
+        "gzip_bytes": 36518
       },
       {
         "file": "assets/space-Bg_aHXDY.js",
-        "gzip_bytes": 26950
+        "gzip_bytes": 27005
       },
       {
-        "file": "assets/tree-D17p2q5k.js",
-        "gzip_bytes": 15695
+        "file": "assets/Match-DqMyU-Vq.js",
+        "gzip_bytes": 15601
       },
       {
-        "file": "assets/Match-BBGHzMkK.js",
-        "gzip_bytes": 15655
+        "file": "assets/tree-CzNJtAe7.js",
+        "gzip_bytes": 15386
       }
     ]
   },
   "initial_files": [
     {
       "file": "assets/context-DywDVt-A.js",
-      "gzip_bytes": 93800
+      "gzip_bytes": 94125
     },
     {
       "file": "assets/query-client-DDvaIZGa.js",
-      "gzip_bytes": 67488
+      "gzip_bytes": 67934
     },
     {
-      "file": "assets/Match-BBGHzMkK.js",
-      "gzip_bytes": 15655
+      "file": "assets/Match-DqMyU-Vq.js",
+      "gzip_bytes": 15601
     },
     {
-      "file": "assets/index-COLqsvLV.js",
-      "gzip_bytes": 8298
+      "file": "assets/index-UMsZN7e4.js",
+      "gzip_bytes": 8283
     },
     {
-      "file": "assets/useStore-C2mK2XZf.js",
-      "gzip_bytes": 6602
+      "file": "assets/useStore-B11YKrzp.js",
+      "gzip_bytes": 6631
     },
     {
       "file": "assets/jsx-runtime-KJkY8l8U.js",
-      "gzip_bytes": 3312
+      "gzip_bytes": 3302
     },
     {
-      "file": "assets/link-P6uWwCUK.js",
-      "gzip_bytes": 2192
+      "file": "assets/link-BpwE05VL.js",
+      "gzip_bytes": 2409
     },
     {
-      "file": "assets/lazyRouteComponent-CTzzOfXm.js",
-      "gzip_bytes": 1403
+      "file": "assets/lazyRouteComponent-CgWUwnGH.js",
+      "gzip_bytes": 1385
     },
     {
       "file": "assets/shim-DRT8D95O.js",
-      "gzip_bytes": 489
-    },
-    {
-      "file": "assets/useMatch-BMATxjR9.js",
-      "gzip_bytes": 441
+      "gzip_bytes": 486
     },
     {
       "file": "assets/redirect-D3L17tzd.js",
-      "gzip_bytes": 327
+      "gzip_bytes": 326
     },
     {
       "file": "assets/useNavigate-DqCnFULB.js",
-      "gzip_bytes": 236
+      "gzip_bytes": 235
     },
     {
-      "file": "assets/useParams-CccLzUr6.js",
+      "file": "assets/useParams-ClqzaoLM.js",
       "gzip_bytes": 231
     },
     {
-      "file": "assets/useSearch-BpLap05B.js",
-      "gzip_bytes": 205
+      "file": "assets/useSearch-Dwf_At7k.js",
+      "gzip_bytes": 209
     },
     {
       "file": "assets/useRouter-DVsENc7m.js",
-      "gzip_bytes": 184
-    },
-    {
-      "file": "assets/matchContext-3ve4yMhq.js",
-      "gzip_bytes": 170
+      "gzip_bytes": 183
     }
   ],
   "passed": true,
