@@ -1,0 +1,2 @@
+<template><view class="ak-card"><slot /></view></template>
+<style lang="scss">.ak-card { background:var(--ak-surface); border:1px solid var(--ak-border); border-radius:16px; padding:16px; }</style>

@@ -27,9 +27,12 @@ import { Route as AuthCallbackProviderRouteImport } from './routes/auth.callback
 import { Route as SystemAccessMenusRouteImport } from './routes/system.access.menus'
 import { Route as SystemAccessPermissionsRouteImport } from './routes/system.access.permissions'
 import { Route as SystemAccessRolesRouteImport } from './routes/system.access.roles'
+import { Route as SystemContentArticlesRouteImport } from './routes/system.content.articles'
+import { Route as SystemContentCategoriesRouteImport } from './routes/system.content.categories'
 import { Route as SystemIntegrationsApiClientsRouteImport } from './routes/system.integrations.api-clients'
 import { Route as SystemIntegrationsSchedulesRouteImport } from './routes/system.integrations.schedules'
 import { Route as SystemIntegrationsWebhooksRouteImport } from './routes/system.integrations.webhooks'
+import { Route as SystemMobileReleasesRouteImport } from './routes/system.mobile.releases'
 import { Route as SystemMonitoringHealthRouteImport } from './routes/system.monitoring.health'
 import { Route as SystemMonitoringSessionsRouteImport } from './routes/system.monitoring.sessions'
 import { Route as SystemNotificationsDeliveriesRouteImport } from './routes/system.notifications.deliveries'
@@ -159,6 +162,16 @@ const SystemAccessRolesRoute = SystemAccessRolesRouteImport.update({
   path: '/system/access/roles',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SystemContentArticlesRoute = SystemContentArticlesRouteImport.update({
+  id: '/system/content/articles',
+  path: '/system/content/articles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SystemContentCategoriesRoute = SystemContentCategoriesRouteImport.update({
+  id: '/system/content/categories',
+  path: '/system/content/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SystemIntegrationsApiClientsRoute =
   SystemIntegrationsApiClientsRouteImport.update({
     id: '/system/integrations/api-clients',
@@ -177,6 +190,11 @@ const SystemIntegrationsWebhooksRoute =
     path: '/system/integrations/webhooks',
     getParentRoute: () => rootRouteImport,
   } as any)
+const SystemMobileReleasesRoute = SystemMobileReleasesRouteImport.update({
+  id: '/system/mobile/releases',
+  path: '/system/mobile/releases',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SystemMonitoringHealthRoute = SystemMonitoringHealthRouteImport.update({
   id: '/system/monitoring/health',
   path: '/system/monitoring/health',
@@ -410,9 +428,12 @@ export interface FileRoutesByFullPath {
   '/system/access/menus': typeof SystemAccessMenusRoute
   '/system/access/permissions': typeof SystemAccessPermissionsRoute
   '/system/access/roles': typeof SystemAccessRolesRouteWithChildren
+  '/system/content/articles': typeof SystemContentArticlesRoute
+  '/system/content/categories': typeof SystemContentCategoriesRoute
   '/system/integrations/api-clients': typeof SystemIntegrationsApiClientsRouteWithChildren
   '/system/integrations/schedules': typeof SystemIntegrationsSchedulesRouteWithChildren
   '/system/integrations/webhooks': typeof SystemIntegrationsWebhooksRouteWithChildren
+  '/system/mobile/releases': typeof SystemMobileReleasesRoute
   '/system/monitoring/health': typeof SystemMonitoringHealthRoute
   '/system/monitoring/sessions': typeof SystemMonitoringSessionsRoute
   '/system/notifications/deliveries': typeof SystemNotificationsDeliveriesRoute
@@ -470,7 +491,10 @@ export interface FileRoutesByTo {
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/system/access/menus': typeof SystemAccessMenusRoute
   '/system/access/permissions': typeof SystemAccessPermissionsRoute
+  '/system/content/articles': typeof SystemContentArticlesRoute
+  '/system/content/categories': typeof SystemContentCategoriesRoute
   '/system/integrations/webhooks': typeof SystemIntegrationsWebhooksRouteWithChildren
+  '/system/mobile/releases': typeof SystemMobileReleasesRoute
   '/system/monitoring/health': typeof SystemMonitoringHealthRoute
   '/system/monitoring/sessions': typeof SystemMonitoringSessionsRoute
   '/system/notifications/deliveries': typeof SystemNotificationsDeliveriesRoute
@@ -524,9 +548,12 @@ export interface FileRoutesById {
   '/system/access/menus': typeof SystemAccessMenusRoute
   '/system/access/permissions': typeof SystemAccessPermissionsRoute
   '/system/access/roles': typeof SystemAccessRolesRouteWithChildren
+  '/system/content/articles': typeof SystemContentArticlesRoute
+  '/system/content/categories': typeof SystemContentCategoriesRoute
   '/system/integrations/api-clients': typeof SystemIntegrationsApiClientsRouteWithChildren
   '/system/integrations/schedules': typeof SystemIntegrationsSchedulesRouteWithChildren
   '/system/integrations/webhooks': typeof SystemIntegrationsWebhooksRouteWithChildren
+  '/system/mobile/releases': typeof SystemMobileReleasesRoute
   '/system/monitoring/health': typeof SystemMonitoringHealthRoute
   '/system/monitoring/sessions': typeof SystemMonitoringSessionsRoute
   '/system/notifications/deliveries': typeof SystemNotificationsDeliveriesRoute
@@ -587,9 +614,12 @@ export interface FileRouteTypes {
     | '/system/access/menus'
     | '/system/access/permissions'
     | '/system/access/roles'
+    | '/system/content/articles'
+    | '/system/content/categories'
     | '/system/integrations/api-clients'
     | '/system/integrations/schedules'
     | '/system/integrations/webhooks'
+    | '/system/mobile/releases'
     | '/system/monitoring/health'
     | '/system/monitoring/sessions'
     | '/system/notifications/deliveries'
@@ -647,7 +677,10 @@ export interface FileRouteTypes {
     | '/auth/callback/$provider'
     | '/system/access/menus'
     | '/system/access/permissions'
+    | '/system/content/articles'
+    | '/system/content/categories'
     | '/system/integrations/webhooks'
+    | '/system/mobile/releases'
     | '/system/monitoring/health'
     | '/system/monitoring/sessions'
     | '/system/notifications/deliveries'
@@ -700,9 +733,12 @@ export interface FileRouteTypes {
     | '/system/access/menus'
     | '/system/access/permissions'
     | '/system/access/roles'
+    | '/system/content/articles'
+    | '/system/content/categories'
     | '/system/integrations/api-clients'
     | '/system/integrations/schedules'
     | '/system/integrations/webhooks'
+    | '/system/mobile/releases'
     | '/system/monitoring/health'
     | '/system/monitoring/sessions'
     | '/system/notifications/deliveries'
@@ -762,9 +798,12 @@ export interface RootRouteChildren {
   SystemAccessMenusRoute: typeof SystemAccessMenusRoute
   SystemAccessPermissionsRoute: typeof SystemAccessPermissionsRoute
   SystemAccessRolesRoute: typeof SystemAccessRolesRouteWithChildren
+  SystemContentArticlesRoute: typeof SystemContentArticlesRoute
+  SystemContentCategoriesRoute: typeof SystemContentCategoriesRoute
   SystemIntegrationsApiClientsRoute: typeof SystemIntegrationsApiClientsRouteWithChildren
   SystemIntegrationsSchedulesRoute: typeof SystemIntegrationsSchedulesRouteWithChildren
   SystemIntegrationsWebhooksRoute: typeof SystemIntegrationsWebhooksRouteWithChildren
+  SystemMobileReleasesRoute: typeof SystemMobileReleasesRoute
   SystemMonitoringHealthRoute: typeof SystemMonitoringHealthRoute
   SystemMonitoringSessionsRoute: typeof SystemMonitoringSessionsRoute
   SystemNotificationsDeliveriesRoute: typeof SystemNotificationsDeliveriesRoute
@@ -914,6 +953,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemAccessRolesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/system/content/articles': {
+      id: '/system/content/articles'
+      path: '/system/content/articles'
+      fullPath: '/system/content/articles'
+      preLoaderRoute: typeof SystemContentArticlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system/content/categories': {
+      id: '/system/content/categories'
+      path: '/system/content/categories'
+      fullPath: '/system/content/categories'
+      preLoaderRoute: typeof SystemContentCategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/system/integrations/api-clients': {
       id: '/system/integrations/api-clients'
       path: '/system/integrations/api-clients'
@@ -933,6 +986,13 @@ declare module '@tanstack/react-router' {
       path: '/system/integrations/webhooks'
       fullPath: '/system/integrations/webhooks'
       preLoaderRoute: typeof SystemIntegrationsWebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system/mobile/releases': {
+      id: '/system/mobile/releases'
+      path: '/system/mobile/releases'
+      fullPath: '/system/mobile/releases'
+      preLoaderRoute: typeof SystemMobileReleasesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/system/monitoring/health': {
@@ -1374,11 +1434,14 @@ const rootRouteChildren: RootRouteChildren = {
   SystemAccessMenusRoute: SystemAccessMenusRoute,
   SystemAccessPermissionsRoute: SystemAccessPermissionsRoute,
   SystemAccessRolesRoute: SystemAccessRolesRouteWithChildren,
+  SystemContentArticlesRoute: SystemContentArticlesRoute,
+  SystemContentCategoriesRoute: SystemContentCategoriesRoute,
   SystemIntegrationsApiClientsRoute:
     SystemIntegrationsApiClientsRouteWithChildren,
   SystemIntegrationsSchedulesRoute:
     SystemIntegrationsSchedulesRouteWithChildren,
   SystemIntegrationsWebhooksRoute: SystemIntegrationsWebhooksRouteWithChildren,
+  SystemMobileReleasesRoute: SystemMobileReleasesRoute,
   SystemMonitoringHealthRoute: SystemMonitoringHealthRoute,
   SystemMonitoringSessionsRoute: SystemMonitoringSessionsRoute,
   SystemNotificationsDeliveriesRoute: SystemNotificationsDeliveriesRoute,

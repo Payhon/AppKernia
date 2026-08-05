@@ -1,0 +1,19 @@
+import { SharePayload, SharePort } from '../application/share-port.uts'
+
+export class UniShareAdapter implements SharePort {
+  share(payload: SharePayload, onSuccess: () => void, onFailure: () => void): void {
+    // #ifdef APP-IOS
+    uni.share({
+      provider: 'weixin',
+      type: 0,
+      title: payload.title,
+      href: payload.path,
+      success: () => onSuccess(),
+      fail: () => onFailure(),
+    })
+    // #endif
+    // #ifdef APP-ANDROID || APP-HARMONY
+    onFailure()
+    // #endif
+  }
+}

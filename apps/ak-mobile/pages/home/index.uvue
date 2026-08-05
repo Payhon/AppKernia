@@ -1,0 +1,54 @@
+<template>
+  <ak-theme-root><scroll-view class="page" scroll-y>
+    <view class="topbar"><text class="brand">AppKernia</text><view class="notification" @click="go('notifications.list')"><ak-icon name="bell"/><text v-if="unreadCount>0" class="badge">{{unreadCount}}</text></view></view>
+    <view class="greeting"><text class="greeting__title">{{t('home.greeting',nameParams)}}</text><text class="greeting__subtitle">{{t('home.subtitle', null)}}</text></view>
+    <ak-card class="hero"><text class="hero__title">{{t('home.hero.title', null)}}</text><ak-button variant="secondary" @click="go('articles.list')">{{t('home.hero.action', null)}}</ak-button></ak-card>
+    <view class="section-title"><text>{{t('home.quickActions', null)}}</text></view>
+    <view class="quick-grid"><ak-card v-for="item in quickActions" :key="item.key" class="quick-card" @click="go(item.route)"><ak-icon :name="item.icon"/><text>{{t(item.key, null)}}</text><ak-icon name="chevron-right" tone="muted"/></ak-card></view>
+    <view class="section-title"><text>{{t('home.featured', null)}}</text><text class="link" @click="go('articles.list')">{{t('common.more', null)}}</text></view>
+    <ak-status-view v-if="state!=='content'" :state="state" :title="stateTitle" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/>
+    <view v-else class="featured-list"><ak-card v-for="article in featured" :key="article.slug" class="article-preview" @click="openArticle(article.slug)"><image v-if="coverPath(article.id)" class="cover-placeholder" :src="coverPath(article.id)" mode="aspectFill"/><view v-else class="cover-placeholder"/><view class="article-preview__copy"><text class="article-preview__title">{{article.title}}</text><text class="article-preview__meta">{{t('articles.readMinutes',readingParams(article.readingMinutes))}}</text></view><ak-icon name="chevron-right" tone="muted"/></ak-card></view>
+  </scroll-view></ak-theme-root>
+</template>
+<script lang="uts">
+import { akI18n } from '../../src/core/i18n/ak-i18n.uts'
+import { AkError } from '../../src/core/errors/ak-error.uts'
+import { HttpCancellation } from '../../src/core/network/http-port.uts'
+import { akNavigator, authenticatedNavigationContext, navigateArticleDetail } from '../../src/core/navigation/app-routes.uts'
+import { articleRuntime } from '../../src/features/articles/infrastructure/article-runtime.uts'
+import { profileRuntime } from '../../src/features/profile/infrastructure/profile-runtime.uts'
+import { ArticleQuery, ArticleSummary } from '../../src/features/articles/domain/models.uts'
+
+type QuickAction = { key: string; route: string; icon: string }
+
+let profileTask: HttpCancellation | null = null
+let unreadTask: HttpCancellation | null = null
+let featuredTask: HttpCancellation | null = null
+let coverTasks: Array<HttpCancellation> = []
+
+export default {
+  data() { return { state: 'loading', unreadCount: 0, displayName: '', featured: [] as Array<ArticleSummary>, coverPaths: new Map<string, string>(), pending: 0, failed: false, quickActions: [{ key: 'home.action.articles', route: 'articles.list', icon: 'bookmark' }, { key: 'home.action.messages', route: 'notifications.list', icon: 'bell' }, { key: 'home.action.security', route: 'profile.security', icon: 'security' }, { key: 'home.action.settings', route: 'settings.language', icon: 'settings' }] as Array<QuickAction> } },
+  computed: { t() { return akI18n.t }, nameParams() { return new Map<string, any>([['name', this.displayName]]) }, stateTitle() { return this.state == 'offline' ? akI18n.t('state.offline.title', null) : akI18n.t('state.error.title', null) } },
+  onLoad() { this.reload() },
+  onUnload() { this.cancelRequests() },
+  methods: {
+    cancelRequests() { const activeProfile = profileTask; if (activeProfile != null) activeProfile.cancel(); const activeUnread = unreadTask; if (activeUnread != null) activeUnread.cancel(); const activeFeatured = featuredTask; if (activeFeatured != null) activeFeatured.cancel(); coverTasks.forEach(task => task.cancel()); coverTasks = []; profileTask = null; unreadTask = null; featuredTask = null },
+    reload() {
+      this.cancelRequests(); this.state = 'loading'; this.pending = 3; this.failed = false
+      const profiles = profileRuntime.getRepository(); const articles = articleRuntime.getRepository()
+      if (profiles == null || articles == null) { this.state = 'error'; return }
+      profileTask = profiles.profile(profile => { this.displayName = profile.displayName; this.complete(false) }, error => this.complete(true, error))
+      unreadTask = profiles.unreadCount(count => { this.unreadCount = count; this.complete(false) }, error => this.complete(true, error))
+      const query: ArticleQuery = { query: null, category: null, featured: true, cursor: null, limit: 5 }
+      featuredTask = articles.list(query, page => { this.featured = page.items as Array<ArticleSummary>; this.loadCovers(page.items); this.complete(false) }, error => this.complete(true, error))
+    },
+    complete(failed: boolean, error: AkError | null = null) { this.pending -= 1; if (failed) { this.failed = true; if (error != null && error.kind == 'network_unavailable') this.state = 'offline' }; if (this.pending == 0) { if (this.featured.length > 0) this.state = 'content'; else if (this.failed) this.state = this.state == 'offline' ? 'offline' : 'error'; else this.state = 'empty' } },
+    readingParams(minutes: number) { return new Map<string, any>([['count', minutes]]) },
+    coverPath(id: string): string { const path = this.coverPaths.get(id); return path != null ? path : '' },
+    loadCovers(items: Array<ArticleSummary>) { const loader = articleRuntime.getAssetLoader(); if (loader == null) return; items.forEach(article => { if (article.coverUrl != null) coverTasks.push(loader.load(article.coverUrl, localPath => { this.coverPaths.set(article.id, localPath) }, () => {})) }) },
+    go(key: string) { akNavigator.navigate(key, authenticatedNavigationContext()) },
+    openArticle(slug: string) { navigateArticleDetail(slug) },
+  },
+}
+</script>
+<style lang="scss">.page{flex:1;background:var(--ak-page);padding:24px 16px 32px}.topbar,.section-title,.quick-card,.article-preview{flex-direction:row;align-items:center}.topbar,.section-title{justify-content:space-between}.brand{font-size:28px;font-weight:700;color:var(--ak-text)}.notification{position:relative;min-width:44px;min-height:44px;justify-content:center;align-items:center}.badge{position:absolute;top:0;right:0;min-width:20px;height:20px;border-radius:10px;text-align:center;background:var(--ak-danger);color:var(--ak-on-danger);font-size:12px}.greeting{margin:32px 0 24px}.greeting__title{color:var(--ak-text);font-size:30px;font-weight:600}.greeting__subtitle{margin-top:8px;color:var(--ak-muted);font-size:16px}.hero{background:var(--ak-brand);padding:24px;margin-bottom:28px}.hero__title{color:var(--ak-on-brand);font-size:24px;font-weight:600;margin-bottom:24px}.section-title{color:var(--ak-text);font-size:22px;font-weight:600;margin:24px 0 12px}.link{color:var(--ak-brand);font-size:14px}.quick-grid{flex-direction:row;flex-wrap:wrap}.quick-card{width:48%;min-height:72px;padding:12px;justify-content:space-between}.cover-placeholder{width:100px;height:64px;border-radius:8px;background:var(--ak-accent-surface)}.article-preview__copy{flex:1}.article-preview__title{color:var(--ak-text);font-size:16px;font-weight:600}.article-preview__meta{color:var(--ak-muted);font-size:13px;margin-top:8px}</style>

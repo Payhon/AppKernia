@@ -1,0 +1,57 @@
+/**
+ * A deliberately small vault surface. Callers must never fall back to
+ * uni.*Storage when an operation fails.
+ */
+export type SecureStorageErrorCode =
+  | 'invalid_argument'
+  | 'value_too_large'
+  | 'unavailable'
+  | 'native_failure'
+
+export type SecureStorageAccessibility = 'after_first_unlock_this_device_only'
+
+/**
+ * A class is intentional here: the Harmony ArkTS compiler rejects an
+ * untyped object literal at this UTS boundary, even when the UTS return type
+ * is a structural alias. Keeping this as an explicit value type preserves
+ * the same public fields while making all three native targets nominally
+ * typed.
+ */
+export class SecureStorageAvailability {
+  readonly available: boolean
+  readonly platform: string
+  readonly reason: SecureStorageErrorCode | null
+
+  constructor(available: boolean, platform: string, reason: SecureStorageErrorCode | null) {
+    this.available = available
+    this.platform = platform
+    this.reason = reason
+  }
+}
+
+export type SecureStorageFailure = (code: SecureStorageErrorCode) => void
+export type SecureStorageSuccess = () => void
+export type SecureStorageReadSuccess = (value: string | null) => void
+
+export type SecureStorageAvailabilityApi = () => SecureStorageAvailability
+export type SecureStorageSet = (
+  key: string,
+  value: string,
+  accessibility: SecureStorageAccessibility,
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+) => void
+export type SecureStorageGet = (
+  key: string,
+  onSuccess: SecureStorageReadSuccess,
+  onFailure: SecureStorageFailure,
+) => void
+export type SecureStorageRemove = (
+  key: string,
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+) => void
+export type SecureStorageClearNamespace = (
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+) => void

@@ -1,0 +1,14 @@
+import { NavigationContext } from '../navigation/route-guard.uts'
+
+/** The only client-side navigation context. It is populated from /auth/context. */
+export class AuthContextStore {
+  private authenticated: boolean = false
+  private permissions: Array<string> = []
+  private enabledFlags: Array<string> = []
+
+  set(permissions: Array<string>, enabledFlags: Array<string>): void { this.authenticated = true; this.permissions = permissions; this.enabledFlags = enabledFlags }
+  clear(): void { this.authenticated = false; this.permissions = []; this.enabledFlags = [] }
+  navigationContext(): NavigationContext { return { authenticated: this.authenticated, challenge: false, permissions: this.permissions, enabledFlags: this.enabledFlags } }
+}
+
+export const authContextStore = new AuthContextStore()

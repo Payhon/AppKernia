@@ -1,0 +1,7 @@
+# DCloud official project-scoped Codex configuration for uni-app x.
+# The higher limit lets Codex load apps/ak-mobile/AGENTS.md without truncation.
+project_doc_max_bytes = 131072
+
+[mcp_servers.uni-app-x]
+command = "npx"
+args = ["-y", "@dcloudio/uni-app-x-mcp"]

@@ -960,6 +960,82 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - 提交、限流、服务错误和离线状态完整；密码、验证码、Token 不写日志或持久化。
 - 键盘、自动填充、密码管理器和 768px 窄屏流程可用。
 
+## `system.content.articles` — 文章管理
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `content.article.read` |
+| Schema | `content.articles`, `content.article_translations`, `content.categories` |
+
+**筛选**：q、category_id、status、featured、page、page_size、sort。
+
+**主要动作**：新建、编辑、删除、发布、撤回发布、归档。
+
+**API**
+
+- `GET /admin-api/v1/content/articles`
+- `POST /admin-api/v1/content/articles`
+- `GET /admin-api/v1/content/articles/{id}`
+- `PATCH /admin-api/v1/content/articles/{id}`
+- `DELETE /admin-api/v1/content/articles/{id}`
+- `POST /admin-api/v1/content/articles/{id}/{transition}`
+
+**页面验收**
+
+- URL Search Params 恢复筛选、分页和排序；草稿/发布/归档清晰可见。
+- 两种语言内容、封面文件引用、阅读时间、锁版本冲突与权限动作完整。
+
+## `system.content.categories` — 文章分类
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `content.category.read` |
+| Schema | `content.categories`, `content.category_translations` |
+
+**筛选**：q、status、page、page_size、sort。
+
+**主要动作**：新建、编辑、删除。
+
+**API**
+
+- `GET /admin-api/v1/content/categories`
+- `POST /admin-api/v1/content/categories`
+- `GET /admin-api/v1/content/categories/{id}`
+- `PATCH /admin-api/v1/content/categories/{id}`
+- `DELETE /admin-api/v1/content/categories/{id}`
+
+**页面验收**
+
+- 双语名称与说明、排序、状态和 409 并发冲突状态可用。
+
+## `system.mobile.releases` — 移动端发布策略
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `mobile.release.read` |
+| Schema | `sys.mobile_releases` |
+
+**筛选**：platform（OpenAPI 列表无查询参数，前端对全局小集合进行 URL 驱动的本地筛选）。
+
+**主要动作**：新建、编辑。
+
+**API**
+
+- `GET /admin-api/v1/mobile/releases`
+- `POST /admin-api/v1/mobile/releases`
+- `PATCH /admin-api/v1/mobile/releases/{id}`
+
+**页面验收**
+
+- Android、iOS、HarmonyOS 使用稳定协议枚举；平台筛选可从 URL 恢复。
+- 当前版本与最低版本只接受核心 `x.y.z` SemVer，最低版本不得高于当前版本；升级地址只接受 HTTPS，生效策略必须配置升级地址。
+- 两种语言发布说明均为必填，生效状态同时使用文字和语义样式表达。
+- PATCH 携带最新 `lock_version`；409 时保留 Drawer 输入并提示刷新，不静默覆盖。
+- 创建、编辑分别受 `mobile.release.create`、`mobile.release.update` 控制。
+
 ## `auth.reset-password` — 重置密码页
 
 | 项目 | 定义 |

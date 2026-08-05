@@ -1,0 +1,45 @@
+<template>
+  <ak-theme-root><view class="page">
+    <view class="nav"><ak-back-button/><text>{{t('routes.settings.notifications.title', null)}}</text><view/></view>
+    <ak-status-view v-if="state!=='content'" :state="state" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/>
+    <ak-cell-list v-else>
+      <view class="row"><text>{{t('settings.notificationEmail', null)}}</text><ak-switch v-model="email" @change="save"/></view>
+      <view class="row"><text>{{t('settings.notificationPush', null)}}</text><ak-switch v-model="push" @change="save"/></view>
+      <view class="row"><text>{{t('settings.notificationInApp', null)}}</text><ak-switch v-model="inApp" @change="save"/></view>
+    </ak-cell-list>
+  </view></ak-theme-root>
+</template>
+
+<script lang="uts">
+import {HttpCancellation} from '../../../src/core/network/http-port.uts'
+import {akI18n} from '../../../src/core/i18n/ak-i18n.uts'
+import {preferencesRuntime, NotificationPrefs} from '../../../src/features/preferences/infrastructure/preferences-runtime.uts'
+
+let pref: NotificationPrefs | null = null
+let task: HttpCancellation | null = null
+
+export default {
+  data() { return {state:'loading', email:false, push:false, inApp:false} },
+  computed: {t() { return akI18n.t }},
+  onLoad() { this.reload() },
+  onUnload() { const activeTask=task; if(activeTask!=null)activeTask.cancel() },
+  methods: {
+    reload() {
+      const repository = preferencesRuntime.getRepository()
+      if (repository == null) { this.state='error'; return }
+      this.state='loading'
+      task=repository.getNotification(value => { pref=value; this.email=value.email; this.push=value.push; this.inApp=value.inApp; this.state='content' }, () => { this.state='error' })
+    },
+    save() {
+      const repository = preferencesRuntime.getRepository()
+      const currentPref: NotificationPrefs | null = pref
+      if (repository == null || currentPref == null) return
+      task=repository.putNotification({email:this.email, push:this.push, inApp:this.inApp}, saved => { pref=saved; this.email=saved.email; this.push=saved.push; this.inApp=saved.inApp }, () => { this.email=currentPref.email; this.push=currentPref.push; this.inApp=currentPref.inApp })
+    },
+  },
+}
+</script>
+
+<style lang="scss">
+.page{height:100%;flex:1;padding:16px}.nav,.row{flex-direction:row;align-items:center;justify-content:space-between}.nav{height:48px}.row{height:58px}
+</style>

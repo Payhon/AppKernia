@@ -82,6 +82,8 @@
       "action_name": "manage_self",
       "permission_kind": "api",
       "status": "active"
-    }
+    },
+    { "code": "content.article.read", "name": "阅读已发布文章", "module_code": "content", "resource_name": "article", "action_name": "read", "permission_kind": "api", "status": "active" },
+    { "code": "content.article.bookmark_self", "name": "管理自己的文章收藏", "module_code": "content", "resource_name": "article_bookmark", "action_name": "manage_self", "permission_kind": "api", "status": "active" }
   ]
 }

@@ -1,0 +1,134 @@
+import { asset } from '@kit.AssetStoreKit'
+import { util } from '@kit.ArkTS'
+import {
+  SecureStorageAccessibility,
+  SecureStorageAvailability,
+  SecureStorageAvailabilityApi,
+  SecureStorageClearNamespace,
+  SecureStorageFailure,
+  SecureStorageGet,
+  SecureStorageReadSuccess,
+  SecureStorageRemove,
+  SecureStorageSet,
+  SecureStorageSuccess,
+} from '../interface.uts'
+
+const NAMESPACE = 'ak.secure-storage.v1'
+const MAX_KEY_LENGTH = 96
+const MAX_VALUE_BYTES = 900
+
+function isValidKey(key: string): boolean {
+  return key.length > 0 && key.length <= MAX_KEY_LENGTH && key.indexOf('..') < 0
+}
+
+function encode(value: string): Uint8Array {
+  const encoder = new util.TextEncoder()
+  return encoder.encodeInto(value)
+}
+
+function decode(value: Uint8Array): string {
+  const decoderOptions: util.TextDecoderOptions = { fatal: false, ignoreBOM: true }
+  const decodeOptions: util.DecodeWithStreamOptions = { stream: false }
+  const decoder = util.TextDecoder.create('utf-8', decoderOptions)
+  return decoder.decodeWithStream(value, decodeOptions)
+}
+
+function alias(key: string): Uint8Array { return encode(NAMESPACE + '.' + key) }
+
+function keyQuery(key: string): asset.AssetMap {
+  const query: asset.AssetMap = new Map()
+  query.set(asset.Tag.ALIAS, alias(key))
+  return query
+}
+
+function namespaceQuery(): asset.AssetMap {
+  const query: asset.AssetMap = new Map()
+  query.set(asset.Tag.DATA_LABEL_NORMAL_1, encode(NAMESPACE))
+  return query
+}
+
+function attributes(key: string, value: string): asset.AssetMap {
+  const result: asset.AssetMap = new Map()
+  result.set(asset.Tag.ALIAS, alias(key))
+  result.set(asset.Tag.SECRET, encode(value))
+  result.set(asset.Tag.ACCESSIBILITY, asset.Accessibility.DEVICE_FIRST_UNLOCKED)
+  result.set(asset.Tag.DATA_LABEL_NORMAL_1, encode(NAMESPACE))
+  return result
+}
+
+export const availability: SecureStorageAvailabilityApi = function (): SecureStorageAvailability {
+  // Asset Store Kit is supported since API 11; AK's Harmony baseline is API 14.
+  return new SecureStorageAvailability(true, 'harmony', null)
+}
+
+export const set: SecureStorageSet = function (
+  key: string,
+  value: string,
+  accessibility: SecureStorageAccessibility,
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  if (!isValidKey(key)) { onFailure('invalid_argument'); return }
+  if (encode(value).length > MAX_VALUE_BYTES) { onFailure('value_too_large'); return }
+  const query = keyQuery(key)
+  const values = attributes(key, value)
+  try {
+    asset.addSync(values)
+    onSuccess()
+  } catch (addError) {
+    try {
+      const update: asset.AssetMap = new Map()
+      update.set(asset.Tag.SECRET, encode(value))
+      asset.updateSync(query, update)
+      onSuccess()
+    } catch (updateError) {
+      onFailure('native_failure')
+    }
+  }
+}
+
+export const get: SecureStorageGet = function (
+  key: string,
+  onSuccess: SecureStorageReadSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  if (!isValidKey(key)) { onFailure('invalid_argument'); return }
+  const query = keyQuery(key)
+  query.set(asset.Tag.RETURN_TYPE, asset.ReturnType.ALL)
+  try {
+    const result: Array<asset.AssetMap> = asset.querySync(query)
+    if (result.length == 0) { onSuccess(null); return }
+    const secret = result[0].get(asset.Tag.SECRET) as Uint8Array
+    onSuccess(decode(secret))
+  } catch (error) {
+    // A not-found and a locked/corrupt asset are intentionally distinguishable
+    // only by the callback channel, never by native error text.
+    onFailure('native_failure')
+  }
+}
+
+export const remove: SecureStorageRemove = function (
+  key: string,
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  if (!isValidKey(key)) { onFailure('invalid_argument'); return }
+  try {
+    asset.removeSync(keyQuery(key))
+    onSuccess()
+  } catch (error) {
+    onFailure('native_failure')
+  }
+}
+
+export const clearNamespace: SecureStorageClearNamespace = function (
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  try {
+    asset.removeSync(namespaceQuery())
+    onSuccess()
+  } catch (error) {
+    onFailure('native_failure')
+  }
+}

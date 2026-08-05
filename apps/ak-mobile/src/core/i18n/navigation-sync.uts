@@ -1,0 +1,18 @@
+import { AkLocale, TranslationParams } from './types.uts'
+import { AkI18n } from './ak-i18n.uts'
+
+export class NavigationLocaleSync {
+  private readonly i18n: AkI18n
+
+  constructor(i18n: AkI18n) {
+    this.i18n = i18n
+  }
+
+  apply(locale: AkLocale, titleKey: string): void {
+    this.i18n.setLocale(locale)
+      uni.setNavigationBarTitle({ title: this.i18n.t(titleKey, null) })
+      uni.setTabBarItem({ index: 0, text: this.i18n.t('tabs.home', null) })
+      uni.setTabBarItem({ index: 1, text: this.i18n.t('tabs.notifications', null) })
+      uni.setTabBarItem({ index: 2, text: this.i18n.t('tabs.profile', null) })
+  }
+}

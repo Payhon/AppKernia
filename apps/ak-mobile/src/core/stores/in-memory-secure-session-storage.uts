@@ -1,0 +1,10 @@
+import { PersistedSessionCredential, SecureSessionStoragePort } from './secure-session-storage-port.uts'
+
+/** Test-only adapter. It is process-memory only and never calls uni storage. */
+export class InMemorySecureSessionStorage implements SecureSessionStoragePort {
+  private credential: PersistedSessionCredential | null = null
+
+  read(onSuccess: (credential: PersistedSessionCredential | null) => void, onFailure: () => void): void { onSuccess(this.credential) }
+  write(credential: PersistedSessionCredential, onSuccess: () => void, onFailure: () => void): void { this.credential = credential; onSuccess() }
+  clear(onSuccess: () => void, onFailure: () => void): void { this.credential = null; onSuccess() }
+}

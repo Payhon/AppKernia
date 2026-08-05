@@ -80,6 +80,124 @@ paths:
       security: []
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: parent_code, in: query, schema: {type: string, maxLength: 32}}, {name: level, in: query, schema: {type: integer, minimum: 0, maximum: 10}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 200, default: 100}}]
       responses: {"200": {description: Active region nodes; roots are returned when parent_code and q are absent., content: {application/json: {schema: {$ref: "#/components/schemas/RegionListResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/public/app-version:
+    get:
+      summary: Read the public mobile application upgrade policy
+      operationId: getMobileAppVersion
+      security: []
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: platform, in: query, required: true, schema: {type: string, enum: [android, ios, harmony]}}]
+      responses: {"200": {description: Localized current version and upgrade policy without administrative fields., content: {application/json: {schema: {$ref: "#/components/schemas/MobileAppVersionResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {description: No active release policy exists for this platform., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
+  /api/v1/auth/login/password:
+    post:
+      summary: Sign in to the mobile application with a password
+      operationId: mobilePasswordLogin
+      security: []
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: X-AK-Device-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 160}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePasswordLoginRequest"}}}}
+      responses: {"200": {description: Bearer access token plus one-time opaque refresh token for secure platform storage., content: {application/json: {schema: {$ref: "#/components/schemas/MobileTokenResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/auth/token/refresh:
+    post:
+      summary: Rotate a mobile refresh token
+      operationId: mobileRefreshToken
+      security: []
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileRefreshRequest"}}}}
+      responses: {"200": {description: Refresh token rotated; old token is consumed., content: {application/json: {schema: {$ref: "#/components/schemas/MobileTokenResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/auth/logout:
+    post:
+      summary: Revoke the current mobile session
+      operationId: mobileLogout
+      responses: {"200": {description: Session revoked, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/auth/context:
+    get:
+      summary: Get the authenticated mobile identity context
+      operationId: mobileAuthContext
+      responses: {"200": {description: Authenticated mobile context, content: {application/json: {schema: {$ref: "#/components/schemas/MobileContextResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/auth/password/change:
+    post:
+      summary: Change the current mobile user's password and revoke other sessions
+      operationId: mobileChangePassword
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SelfPasswordChangeRequest"}}}}
+      responses: {"200": {description: Password changed, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/me:
+    get:
+      summary: Get the current mobile user profile
+      operationId: getMobileMe
+      responses: {"200": {description: Current profile, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+    patch:
+      summary: Update the current mobile user profile
+      operationId: updateMobileMe
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileUpdateRequest"}}}}
+      responses: {"200": {description: Updated profile, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/me/sessions:
+    get:
+      summary: List the current user's mobile sessions
+      operationId: listMobileSelfSessions
+      responses: {"200": {description: Mobile sessions, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSessionListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/me/sessions/{id}:
+    delete:
+      summary: Revoke one current-user mobile session
+      operationId: revokeMobileSelfSession
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Session revoked, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/me/devices:
+    get:
+      summary: List the current user's devices
+      operationId: listMobileSelfDevices
+      responses: {"200": {description: Mobile devices, content: {application/json: {schema: {$ref: "#/components/schemas/MobileDeviceListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/me/devices/{id}:
+    delete:
+      summary: Remove a current-user device and its sessions
+      operationId: removeMobileSelfDevice
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Device removed, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/me/preferences:
+    get:
+      summary: Get current-user locale and appearance preferences
+      operationId: getMobilePreferences
+      responses: {"200": {description: Current preferences, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+    patch:
+      summary: Update current-user locale, appearance, and notification preferences
+      operationId: updateMobilePreferences
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesUpdateRequest"}}}}
+      responses: {"200": {description: Updated preferences, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/me/notification-preferences:
+    get: {summary: Get current-user notification preferences, operationId: getMobileNotificationPreferences, responses: {"200": {description: Current notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    patch: {summary: Update current-user notification preferences, operationId: updateMobileNotificationPreferences, requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesUpdateRequest"}}}}, responses: {"200": {description: Updated notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}}
+  /api/v1/me/notifications/unread-count:
+    get: {summary: Count unread in-app notifications for the current user, operationId: getMobileUnreadNotificationCount, responses: {"200": {description: Unread count, content: {application/json: {schema: {$ref: "#/components/schemas/MobileUnreadCountResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+  /api/v1/me/notifications:
+    get:
+      summary: List delivered current-user in-app notifications with an opaque cursor
+      operationId: listMobileNotifications
+      parameters: [{name: cursor, in: query, schema: {type: string}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: Delivered notifications visible only to the authenticated tenant member., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPageResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/me/notifications/{id}/read:
+    patch:
+      summary: Mark one delivered current-user notification as read
+      operationId: markMobileNotificationRead
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Notification read state updated, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/me/login-events:
+    get: {summary: List the current user's mobile login events, operationId: listMobileLoginEvents, responses: {"200": {description: Login events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+  /api/v1/me/security-events:
+    get: {summary: List current-user security events, operationId: listMobileSecurityEvents, responses: {"200": {description: Security events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSecurityEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+  /admin-api/v1/mobile/releases:
+    get:
+      summary: List administrator-managed mobile release policies
+      operationId: listAdminMobileReleases
+      responses: {"200": {description: Global platform release policies, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}}
+    post:
+      summary: Create a mobile release policy
+      operationId: createAdminMobileRelease
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
+      responses: {"201": {description: Release policy created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/mobile/releases/{id}:
+    patch:
+      summary: Update one mobile release policy using optimistic locking
+      operationId: updateAdminMobileRelease
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
+      responses: {"200": {description: Release policy updated; platform is immutable and must match the stored record., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/auth/login:
     post:
       summary: Sign in to the Admin application with a password
@@ -1561,6 +1679,121 @@ paths:
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Private binary content., content: {application/octet-stream: {schema: {type: string, format: binary}}}}, "409": {description: Scan gate blocked download., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
+  /api/v1/articles:
+    get:
+      summary: List published tenant articles localized by Accept-Language
+      operationId: listAppArticles
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: category, in: query, schema: {type: string, maxLength: 120}}, {name: featured, in: query, schema: {type: boolean}}, {name: cursor, in: query, schema: {type: string, format: uuid}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}]
+      responses: {"200": {description: Published articles only., headers: {Content-Language: {schema: {$ref: "#/components/schemas/SupportedLocale"}}}, content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/article-categories:
+    get:
+      summary: List all active tenant article categories localized by Accept-Language
+      operationId: listAppArticleCategories
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
+      responses: {"200": {description: Active categories in stable sort order., headers: {Content-Language: {schema: {$ref: "#/components/schemas/SupportedLocale"}}}, content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleCategoryListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/article-assets/{file_id}:
+    get:
+      summary: Read a scan-safe image used by a published tenant article
+      operationId: getAppArticleAsset
+      security: [{mobileBearer: []}]
+      parameters: [{name: file_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Authorized JPEG, PNG, or WebP article cover., headers: {Cache-Control: {schema: {type: string}}, ETag: {schema: {type: string}}}, content: {image/jpeg: {schema: {type: string, format: binary}}, image/png: {schema: {type: string, format: binary}}, image/webp: {schema: {type: string, format: binary}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/articles/{slug}:
+    get:
+      summary: Read a published localized article
+      operationId: getAppArticle
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}]
+      responses: {"200": {description: Published article., headers: {Content-Language: {schema: {$ref: "#/components/schemas/SupportedLocale"}}}, content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/me/article-bookmarks/{article_id}:
+    put:
+      summary: Bookmark a published tenant article
+      operationId: bookmarkAppArticle
+      security: [{mobileBearer: []}]
+      parameters: [{name: article_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Bookmark present., content: {application/json: {schema: {$ref: "#/components/schemas/AppBookmarkResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
+    delete:
+      summary: Remove an article bookmark
+      operationId: removeAppArticleBookmark
+      security: [{mobileBearer: []}]
+      parameters: [{name: article_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Bookmark absent., content: {application/json: {schema: {$ref: "#/components/schemas/AppBookmarkResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /admin-api/v1/content/categories:
+    get:
+      summary: List tenant content categories
+      operationId: listAdminContentCategories
+      security: [{adminBearer: []}]
+      parameters: [{name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}, {name: sort, in: query, schema: {type: string, enum: [sort_order, updated_desc, slug], default: sort_order}}]
+      responses: {"200": {description: Category page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
+    post:
+      summary: Create a category with both supported translations
+      operationId: createAdminContentCategory
+      security: [{adminBearer: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryRequest"}}}}
+      responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/content/categories/{id}:
+    get:
+      summary: Read a tenant category
+      operationId: getAdminContentCategory
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Category., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update a category with optimistic lock version
+      operationId: updateAdminContentCategory
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryUpdateRequest"}}}}
+      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+    delete:
+      summary: Delete an unused category
+      operationId: deleteAdminContentCategory
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/content/articles:
+    get:
+      summary: List tenant articles in every lifecycle state
+      operationId: listAdminContentArticles
+      security: [{adminBearer: []}]
+      parameters: [{name: q, in: query, schema: {type: string, maxLength: 160}}, {name: category_id, in: query, schema: {type: string, format: uuid}}, {name: status, in: query, schema: {type: string, enum: [draft, published, archived]}}, {name: featured, in: query, schema: {type: boolean}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}, {name: sort, in: query, schema: {type: string, enum: [updated_desc, published_desc, sort_order, slug], default: updated_desc}}]
+      responses: {"200": {description: Article page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}}
+    post:
+      summary: Create a draft article
+      operationId: createAdminContentArticle
+      security: [{adminBearer: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleRequest"}}}}
+      responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/content/articles/{id}:
+    get:
+      summary: Read a tenant article
+      operationId: getAdminContentArticle
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Article., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update a draft article using lock_version
+      operationId: updateAdminContentArticle
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleUpdateRequest"}}}}
+      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+    delete:
+      summary: Delete a draft article
+      operationId: deleteAdminContentArticle
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/content/articles/{id}/{transition}:
+    post:
+      summary: Transition an article using publish, unpublish, or archive
+      operationId: transitionAdminContentArticle
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: transition, in: path, required: true, schema: {type: string, enum: [publish, unpublish, archive]}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTransitionRequest"}}}}
+      responses: {"200": {description: Transitioned., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
   /admin-api/v1/notices:
     get:
       summary: List tenant-scoped announcements
@@ -1994,11 +2227,21 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    mobileBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
     adminRefreshCookie:
       type: apiKey
       in: cookie
       name: ak_admin_refresh
   responses:
+    Conflict:
+      description: The resource changed or cannot transition in its current state.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
     BadRequest:
       description: The request could not be parsed or validated.
       content:
@@ -4227,6 +4470,94 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [id, revoked], properties: {id: {type: string, format: uuid}, revoked: {type: boolean, const: true}}}, request_id: {type: string}}
+    ContentTranslation:
+      type: object
+      required: [title, summary, body_format, body]
+      properties: {title: {type: string, maxLength: 300}, summary: {type: string, maxLength: 1000}, body_format: {type: string, enum: [markdown, blocks]}, body: {description: Restricted Markdown string or validated block array. Client rendering must sanitize Markdown and never render unsafe HTML.}}
+    ContentCategoryTranslation:
+      type: object
+      required: [name, description]
+      properties: {name: {type: string, maxLength: 160}, description: {type: string, maxLength: 500}}
+    AdminContentTranslations:
+      type: object
+      required: [zh-CN, en-US]
+      properties: {zh-CN: {$ref: "#/components/schemas/ContentTranslation"}, en-US: {$ref: "#/components/schemas/ContentTranslation"}}
+    AdminContentCategoryTranslations:
+      type: object
+      required: [zh-CN, en-US]
+      properties: {zh-CN: {$ref: "#/components/schemas/ContentCategoryTranslation"}, en-US: {$ref: "#/components/schemas/ContentCategoryTranslation"}}
+    AdminContentCategory:
+      type: object
+      required: [id, slug, status, sort_order, lock_version, translations, created_at, updated_at]
+      properties: {id: {type: string, format: uuid}, slug: {type: string}, status: {type: string, enum: [active, disabled]}, sort_order: {type: integer}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentCategoryTranslations"}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+    AdminContentCategoryRequest:
+      type: object
+      required: [slug, status, sort_order, translations]
+      properties: {slug: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}, status: {type: string, enum: [active, disabled]}, sort_order: {type: integer}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentCategoryTranslations"}}
+    AdminContentCategoryUpdateRequest:
+      allOf:
+        - $ref: "#/components/schemas/AdminContentCategoryRequest"
+        - type: object
+          required: [lock_version]
+          properties: {lock_version: {type: integer, minimum: 1}}
+    AdminContentArticle:
+      type: object
+      required: [id, slug, status, featured, sort_order, reading_minutes, lock_version, translations, created_at, updated_at]
+      properties: {id: {type: string, format: uuid}, category_id: {type: [string, 'null'], format: uuid}, slug: {type: string}, status: {type: string, enum: [draft, published, archived]}, featured: {type: boolean}, sort_order: {type: integer}, cover_file_id: {type: [string, 'null'], format: uuid}, cover_url: {type: [string, 'null'], description: Server-derived safe URL only}, reading_minutes: {type: integer, minimum: 1, maximum: 120}, lock_version: {type: integer, minimum: 1}, published_at: {type: [string, 'null'], format: date-time}, translations: {$ref: "#/components/schemas/AdminContentTranslations"}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+    AdminContentArticleRequest:
+      type: object
+      required: [slug, featured, sort_order, reading_minutes, translations]
+      properties: {category_id: {type: [string, 'null'], format: uuid}, slug: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}, featured: {type: boolean}, sort_order: {type: integer}, cover_file_id: {type: [string, 'null'], format: uuid}, reading_minutes: {type: integer, minimum: 1, maximum: 120}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentTranslations"}}
+    AdminContentArticleUpdateRequest:
+      allOf:
+        - $ref: "#/components/schemas/AdminContentArticleRequest"
+        - type: object
+          required: [lock_version]
+          properties: {lock_version: {type: integer, minimum: 1}}
+    AdminContentTransitionRequest:
+      type: object
+      required: [lock_version]
+      properties: {lock_version: {type: integer, minimum: 1}}
+    AdminContentCategoryResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminContentCategory"}, request_id: {type: string}}
+    AdminContentCategoryListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminContentCategory"}}, page: {type: integer}, page_size: {type: integer}, total: {type: integer}}}, request_id: {type: string}}
+    AdminContentArticleResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminContentArticle"}, request_id: {type: string}}
+    AdminContentArticleListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminContentArticle"}}, page: {type: integer}, page_size: {type: integer}, total: {type: integer}}}, request_id: {type: string}}
+    AppArticle:
+      type: object
+      required: [id, slug, featured, published_at, title, summary, body_format, body, category, reading_minutes, bookmarked]
+      properties: {id: {type: string, format: uuid}, slug: {type: string}, featured: {type: boolean}, published_at: {type: string, format: date-time}, title: {type: string}, summary: {type: string}, body_format: {type: string, enum: [markdown, blocks]}, body: {}, category: {oneOf: [{$ref: "#/components/schemas/AppArticleCategory"}, {type: 'null'}]}, reading_minutes: {type: integer, minimum: 1, maximum: 120}, cover_url: {type: [string, 'null'], description: "Authenticated same-origin article asset path for a published scan-safe image."}, bookmarked: {type: boolean}}
+    AppArticleCategory:
+      type: object
+      required: [id, slug, sort_order, name, description]
+      properties: {id: {type: string, format: uuid}, slug: {type: string}, sort_order: {type: integer}, name: {type: string}, description: {type: string}}
+    AppArticleCategoryListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/AppArticleCategory"}}}}, request_id: {type: string}}
+    AppArticleResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AppArticle"}, request_id: {type: string}}
+    AppArticleListResponse:
+      type: object
+      required: [code, message, data, meta, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/AppArticle"}}}}, meta: {type: object, properties: {next_cursor: {type: [string, 'null']}}}, request_id: {type: string}}
+    AppBookmarkResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [bookmarked], properties: {bookmarked: {type: boolean}}}, request_id: {type: string}}
     AdminOpsStatus:
       type: string
       enum: [ready, degraded, unavailable, not_configured, unknown]
@@ -4268,3 +4599,140 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminOpsRuntime"}, request_id: {type: string}}
+    MobilePasswordLoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties: {email: {type: string, format: email}, password: {type: string, format: password, minLength: 12, maxLength: 256}}
+    MobileRefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refresh_token]
+      properties: {refresh_token: {type: string, minLength: 32, description: Opaque token held only in mobile secure storage.}}
+    MobileToken:
+      type: object
+      required: [access_token, token_type, expires_in, refresh_token, refresh_token_expires_in, session_id]
+      properties: {access_token: {type: string}, token_type: {type: string, const: Bearer}, expires_in: {type: integer, minimum: 0}, refresh_token: {type: string}, refresh_token_expires_in: {type: integer, minimum: 0}, session_id: {type: string, format: uuid}}
+    MobileTokenResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/MobileToken"}, request_id: {type: string}}
+    SelfPasswordChangeRequest:
+      type: object
+      additionalProperties: false
+      required: [current_password, new_password]
+      properties: {current_password: {type: string, format: password}, new_password: {type: string, format: password, minLength: 12, maxLength: 256}}
+    SelfProfile:
+      type: object
+      required: [id, email, display_name, locale, time_zone]
+      properties: {id: {type: string, format: uuid}, email: {type: string, format: email}, display_name: {type: string}, locale: {$ref: "#/components/schemas/SupportedLocale"}, time_zone: {type: string}, avatar_url: {type: [string, 'null']}}
+    SelfProfileResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/SelfProfile"}, request_id: {type: string}}
+    SelfProfileUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties: {display_name: {type: string, minLength: 1, maxLength: 160}, locale: {$ref: "#/components/schemas/SupportedLocale"}, time_zone: {type: string, maxLength: 64}}
+    MobileContextResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [user, active_tenant, roles, permissions, feature_flags, server_time], properties: {user: {$ref: "#/components/schemas/SelfProfile"}, active_tenant: {type: object}, roles: {type: array, items: {type: string}}, permissions: {type: array, items: {type: string}}, feature_flags: {type: object, additionalProperties: {type: boolean}}, server_time: {type: string, format: date-time}}}, request_id: {type: string}}
+    MobileSession:
+      type: object
+      required: [id, audience, status, last_seen_at, absolute_expires_at, created_at, current]
+      properties: {id: {type: string, format: uuid}, audience: {type: string, const: ak-mobile}, status: {type: string}, ip_address: {type: [string, 'null']}, user_agent: {type: string}, last_seen_at: {type: string, format: date-time}, absolute_expires_at: {type: string, format: date-time}, created_at: {type: string, format: date-time}, current: {type: boolean}}
+    MobileSessionListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: array, items: {$ref: "#/components/schemas/MobileSession"}}, request_id: {type: string}}
+    MobileDevice:
+      type: object
+      required: [id, platform, device_name, model, os_version, app_version, created_at, latest_user_agent, active_session_count, current]
+      properties: {id: {type: string, format: uuid}, platform: {type: string}, device_name: {type: string}, model: {type: string}, os_version: {type: string}, app_version: {type: string}, last_ip: {type: [string, 'null']}, last_seen_at: {type: [string, 'null'], format: date-time}, created_at: {type: string, format: date-time}, latest_user_agent: {type: string}, active_session_count: {type: integer}, current: {type: boolean}}
+    MobileDeviceListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: array, items: {$ref: "#/components/schemas/MobileDevice"}}, request_id: {type: string}}
+    MobilePreferences:
+      type: object
+      required: [locale, appearance, notification_preferences]
+      properties: {locale: {$ref: "#/components/schemas/SupportedLocale"}, appearance: {type: string, enum: [system, light, dark]}, notification_preferences: {type: object, additionalProperties: false, properties: {in_app: {type: boolean}, push: {type: boolean}, email: {type: boolean}}}}
+    MobilePreferencesUpdateRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties: {locale: {$ref: "#/components/schemas/SupportedLocale"}, appearance: {type: string, enum: [system, light, dark]}, notification_preferences: {$ref: "#/components/schemas/MobilePreferences/properties/notification_preferences"}}
+    MobilePreferencesResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/MobilePreferences"}, request_id: {type: string}}
+    MobileNotificationPreferences:
+      type: object
+      additionalProperties: false
+      required: [notification_preferences]
+      properties: {notification_preferences: {type: object, additionalProperties: false, properties: {in_app: {type: boolean}, push: {type: boolean}, email: {type: boolean}}}}
+    MobileNotificationPreferencesUpdateRequest:
+      allOf: [{$ref: "#/components/schemas/MobileNotificationPreferences"}]
+    MobileNotificationPreferencesResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/MobileNotificationPreferences"}, request_id: {type: string}}
+    MobileUnreadCountResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [count], properties: {count: {type: integer, minimum: 0}}}, request_id: {type: string}}
+    MobileLoginEvent:
+      type: object
+      required: [id, auth_method, result, occurred_at]
+      properties: {id: {type: string, format: uuid}, auth_method: {type: string}, result: {type: string}, occurred_at: {type: string, format: date-time}, ip_address: {type: [string, 'null']}}
+    MobileLoginEventListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: array, items: {$ref: "#/components/schemas/MobileLoginEvent"}}, request_id: {type: string}}
+    MobileSecurityEvent:
+      type: object
+      required: [id, event_type, severity, occurred_at]
+      properties: {id: {type: string, format: uuid}, event_type: {type: string}, severity: {type: string, enum: [info, low, medium, high, critical]}, occurred_at: {type: string, format: date-time}}
+    MobileSecurityEventListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: array, items: {$ref: "#/components/schemas/MobileSecurityEvent"}}, request_id: {type: string}}
+    MobileAppVersionResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/MobileAppVersion"}, request_id: {type: string}}
+    MobileAppVersion:
+      type: object
+      additionalProperties: false
+      required: [platform, current_version, minimum_version, release_notes]
+      properties: {platform: {type: string, enum: [android, ios, harmony]}, current_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, minimum_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, upgrade_url: {type: [string, 'null'], format: uri}, release_notes: {type: string}}
+    BooleanSuccessResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object}, request_id: {type: string}}
+    MobileNotification:
+      type: object
+      required: [id, title, body, body_format, message_type, created_at]
+      properties: {id: {type: string, format: uuid}, title: {type: string}, body: {type: string}, body_format: {type: string, enum: [plain, markdown, html]}, message_type: {type: string}, created_at: {type: string, format: date-time}, read_at: {type: [string, 'null'], format: date-time}}
+    MobileNotificationPageResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/MobileNotification"}}, next_cursor: {type: [string, 'null']}}}, request_id: {type: string}}
+    AdminMobileRelease:
+      type: object
+      required: [id, platform, current_version, minimum_version, release_notes, active, lock_version, updated_at]
+      properties: {id: {type: string, format: uuid}, platform: {type: string, enum: [android, ios, harmony]}, current_version: {type: string}, minimum_version: {type: string}, upgrade_url: {type: [string, 'null'], format: uri}, release_notes: {type: object, required: [zh-CN, en-US], properties: {zh-CN: {type: string}, en-US: {type: string}}}, active: {type: boolean}, lock_version: {type: integer, minimum: 1}, updated_at: {type: string, format: date-time}}
+    AdminMobileReleaseRequest:
+      type: object
+      required: [platform, current_version, minimum_version, release_notes, active]
+      properties: {platform: {type: string, enum: [android, ios, harmony], description: Immutable after creation; PATCH must match the stored platform.}, current_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, minimum_version: {type: string, pattern: '^\d+\.\d+\.\d+$', description: Must not exceed current_version.}, upgrade_url: {type: [string, 'null'], pattern: '^https://'}, release_notes: {type: object, required: [zh-CN, en-US], properties: {zh-CN: {type: string, minLength: 1}, en-US: {type: string, minLength: 1}}}, active: {type: boolean}, lock_version: {type: integer, minimum: 1}}
+    AdminMobileReleaseResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminMobileRelease"}, request_id: {type: string}}
+    AdminMobileReleaseListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: array, items: {$ref: "#/components/schemas/AdminMobileRelease"}}, request_id: {type: string}}

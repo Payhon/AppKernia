@@ -20,6 +20,12 @@ if contract.get("default_locale")!="zh-CN": errors.append("default_locale must b
 if contract.get("fallback_locale")!="zh-CN": errors.append("fallback_locale must be zh-CN")
 if [x.get("code") for x in contract.get("supported_locales",[])] != ["zh-CN","en-US"]:
     errors.append("supported locales must be exactly zh-CN, en-US for Core 1.0")
+required_namespaces=contract.get("required_namespaces",[])
+if not isinstance(required_namespaces,list) or not required_namespaces or not all(isinstance(name,str) and name for name in required_namespaces):
+    errors.append("required_namespaces must be a non-empty string array")
+    required_namespaces=[]
+elif len(required_namespaces) != len(set(required_namespaces)):
+    errors.append("required_namespaces must not contain duplicates")
 
 for area in ("backend","admin","mobile"):
     zh=load(BP/f"i18n/{area}/zh-CN.json")
@@ -32,7 +38,7 @@ for area in ("backend","admin","mobile"):
 
 admin_app_root=ROOT/"apps/ak-admin/src/locales"
 if admin_app_root.exists():
-    namespace_names={"common","auth","navigation","validation","errors","profile","settings","system","notifications"}
+    namespace_names=set(required_namespaces)
     app_catalogs={}
     for locale in ("zh-CN","en-US"):
         locale_dir=admin_app_root/locale

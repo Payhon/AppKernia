@@ -141,5 +141,13 @@
   "routes.system.users.tenants.title": "租户",
   "shell.switch_tenant": "切换工作区",
   "shell.tenant_switch_error": "工作区切换失败，请重试",
-  "shell.tenant_switch_success": "工作区已切换"
+  "shell.tenant_switch_success": "工作区已切换",
+  "menu.system.content": "内容管理",
+  "menu.system.content.articles": "文章管理",
+  "menu.system.content.categories": "文章分类",
+  "routes.system.content.articles.title": "文章管理",
+  "routes.system.content.categories.title": "文章分类",
+  "menu.system.mobile": "移动端管理",
+  "menu.system.mobile.releases": "发布策略",
+  "routes.system.mobile.releases.title": "移动端发布策略"
 }

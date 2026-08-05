@@ -1,0 +1,44 @@
+import { AkLocale } from './types.uts'
+import zhCNJson from '../../../locale/zh-CN.json'
+import enUSJson from '../../../locale/en-US.json'
+
+type CatalogValues = Map<string, string>
+
+const zhCN: CatalogValues = catalogFromJson(zhCNJson as UTSJSONObject)
+const enUS: CatalogValues = catalogFromJson(enUSJson as UTSJSONObject)
+
+function catalogFromJson(source: UTSJSONObject): CatalogValues {
+  const catalog: CatalogValues = new Map<string, string>()
+  source.toMap().forEach((entry) => {
+    const value: any | null = entry.value
+    if (typeof value == 'string') catalog.set(entry.key, value)
+  })
+  return catalog
+}
+
+export class AkI18n {
+  private locale: AkLocale = 'zh-CN'
+  readonly t: (key: string, params: Map<string, any> | null) => string = (key, params) => this.translate(key, params)
+
+  getLocale(): AkLocale {
+    return this.locale
+  }
+
+  setLocale(locale: AkLocale): void {
+    this.locale = locale
+  }
+
+  private translate(key: string, params: Map<string, any> | null): string {
+    const catalog: CatalogValues = this.locale == 'en-US' ? enUS : zhCN
+    const stored: string | null = catalog.get(key)
+    let value: string = stored != null ? stored : key
+    if (params != null) {
+      params.forEach((parameterValue: any, parameterKey: string) => {
+        value = value.replace('{' + parameterKey + '}', typeof parameterValue == 'number' ? (parameterValue as number).toString() : parameterValue as string)
+      })
+    }
+    return value
+  }
+}
+
+export const akI18n = new AkI18n()

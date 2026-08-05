@@ -1,0 +1,37 @@
+import { AkHttpClient } from '../../core/network/ak-http-client.uts'
+import { SessionRuntime } from '../../core/stores/session-runtime.uts'
+import { PersistedSessionCredential } from '../../core/stores/secure-session-storage-port.uts'
+import { MobileAuthService } from './mobile-auth-service.uts'
+import { HttpAuthRepository } from './auth-repository.uts'
+import { authContextStore } from '../../core/stores/auth-context-store.uts'
+
+export class AuthRuntime {
+  private service: MobileAuthService | null = null
+  private deviceKey: string = ''
+
+  configure(client: AkHttpClient, sessions: SessionRuntime): void {
+    this.service = new MobileAuthService(new HttpAuthRepository(client), sessions)
+    this.deviceKey = 'ak-mobile-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000000000).toString()
+    this.service.setDeviceKey(this.deviceKey)
+  }
+
+  getService(): MobileAuthService | null { return this.service }
+  getDeviceKey(): string { return this.deviceKey }
+  restore(credential: PersistedSessionCredential, onSuccess: () => void, onFailure: () => void): void {
+    if (this.service == null || credential.deviceKey.length == 0) { authContextStore.clear(); onFailure(); return }
+    this.deviceKey = credential.deviceKey
+    this.service.setDeviceKey(this.deviceKey)
+    this.service.refresh(credential.refreshToken, onSuccess, () => { authContextStore.clear(); onFailure() })
+  }
+  refreshContext(onSuccess: () => void, onFailure: () => void): void {
+    if (this.service == null) { authContextStore.clear(); onFailure(); return }
+    this.service.loadContext(context => { authContextStore.set(context.permissions, context.enabledFlags); onSuccess() }, () => { authContextStore.clear(); onFailure() })
+  }
+  signOut(onComplete: () => void): void {
+    authContextStore.clear()
+    if (this.service == null) { onComplete(); return }
+    this.service.signOut(onComplete)
+  }
+}
+
+export const authRuntime = new AuthRuntime()

@@ -1,0 +1,2 @@
+/** Never render remote notification HTML/Markdown; keep a bounded text-only form. */
+export function notificationPlainText(value:string):string{return value.replace(/<[^>]*>/g,'').replace(/(?:javascript|data):[^\s]*/gi,'').replace(/\[[^\]]*\]\([^)]*\)/g,'').trim()}

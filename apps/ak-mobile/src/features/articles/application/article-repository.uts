@@ -1,0 +1,10 @@
+import { ArticleCategory, ArticleDetail, ArticlePage, ArticleQuery } from '../domain/models.uts'
+import { AkError } from '../../../core/errors/ak-error.uts'
+import { HttpCancellation } from '../../../core/network/http-port.uts'
+
+export interface ArticleRepository {
+  list(query: ArticleQuery, onSuccess: (page: ArticlePage) => void, onFailure: (error: AkError) => void): HttpCancellation
+  listCategories(onSuccess: (categories: Array<ArticleCategory>) => void, onFailure: (error: AkError) => void): HttpCancellation
+  detail(slug: string, onSuccess: (article: ArticleDetail) => void, onFailure: (error: AkError) => void): HttpCancellation
+  setBookmark(articleId: string, bookmarked: boolean, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation
+}

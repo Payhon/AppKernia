@@ -5,8 +5,9 @@
     {
       "route_key": "bootstrap",
       "endpoints": [
-        "GET /api/v1/public/config",
-        "GET /api/v1/public/app-version"
+        "POST /api/v1/auth/token/refresh",
+        "GET /api/v1/auth/context",
+        "GET /api/v1/me/preferences"
       ],
       "phase": "P0"
     },
@@ -263,6 +264,16 @@
       "route_key": "error.offline",
       "endpoints": [],
       "phase": "P0"
+    },
+    {
+      "route_key": "articles.list",
+      "endpoints": ["GET /api/v1/article-categories", "GET /api/v1/article-assets/{file_id}", "GET /api/v1/articles"],
+      "phase": "P1"
+    },
+    {
+      "route_key": "articles.detail",
+      "endpoints": ["GET /api/v1/article-assets/{file_id}", "GET /api/v1/articles/{slug}", "PUT /api/v1/me/article-bookmarks/{article_id}", "DELETE /api/v1/me/article-bookmarks/{article_id}"],
+      "phase": "P1"
     },
     {
       "route_key": "dev.components",

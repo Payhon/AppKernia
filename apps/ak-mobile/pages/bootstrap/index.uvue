@@ -1,0 +1,3 @@
+<template><ak-theme-root><view class="page"><ak-loading/><text>{{t('common.loading', null)}}</text></view></ak-theme-root></template>
+<script lang="uts">import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{initializeAppRuntime}from'../../src/core/bootstrap/app-bootstrap.uts';export default{computed:{t(){return akI18n.t}},onLoad(){initializeAppRuntime()}}</script>
+<style lang="scss">.page{height:100%;flex:1;align-items:center;justify-content:center}</style>

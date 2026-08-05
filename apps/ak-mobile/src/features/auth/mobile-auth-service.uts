@@ -1,0 +1,48 @@
+import { AkError } from '../../core/errors/ak-error.uts'
+import { HttpCancellation } from '../../core/network/http-port.uts'
+import { SessionRuntime } from '../../core/stores/session-runtime.uts'
+import { SessionCredential } from '../../core/stores/secure-session-storage-port.uts'
+import { HttpAuthRepository, MobileAuthContext, MobileAuthToken, PasswordLoginInput } from './auth-repository.uts'
+
+/** Coordinates token rotation with atomic secure-storage replacement. */
+export class MobileAuthService {
+  private readonly repository: HttpAuthRepository
+  private readonly sessions: SessionRuntime
+  private deviceKey: string = ''
+
+  constructor(repository: HttpAuthRepository, sessions: SessionRuntime) { this.repository = repository; this.sessions = sessions }
+
+  setDeviceKey(value: string): void { this.deviceKey = value }
+
+  login(input: PasswordLoginInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
+    return this.repository.login(input, (token: MobileAuthToken) => this.persist(token, onSuccess, onFailure), onFailure)
+  }
+
+  refresh(refreshToken: string, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
+    return this.repository.refresh(refreshToken, (token: MobileAuthToken) => this.persist(token, onSuccess, onFailure), onFailure)
+  }
+
+  loadContext(onSuccess: (context: MobileAuthContext) => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.loadContext(onSuccess, onFailure) }
+
+  /** Always removes the local credential, including when the remote revoke cannot be reached. */
+  signOut(onComplete: () => void): HttpCancellation {
+    return this.repository.logout(() => this.sessions.signOut(onComplete), () => this.sessions.signOut(onComplete))
+  }
+
+  private persist(token: MobileAuthToken, onSuccess: () => void, onFailure: (error: AkError) => void): void {
+    if (this.deviceKey.length == 0) {
+      onFailure(new AkError('unknown', 'auth.device_key_missing', 'errors.auth.unauthorized', null))
+      return
+    }
+    const credential: SessionCredential = {
+      accessToken: token.accessToken,
+      refreshToken: token.refreshToken,
+      deviceKey: this.deviceKey,
+      sessionId: token.sessionId,
+      subjectVersion: token.sessionId,
+    }
+    this.sessions.establish(credential, onSuccess, () => {
+      onFailure(new AkError('unknown', 'auth.secure_storage_failed', 'errors.auth.unauthorized', null))
+    })
+  }
+}

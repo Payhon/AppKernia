@@ -1,0 +1,25 @@
+<template>
+  <image class="ak-icon" :src="source" mode="aspectFit" />
+</template>
+<script lang="uts">
+export default {
+  props: { name: { type: String, default: 'chevron-right' } },
+  computed: {
+    source(): string {
+      if (this.name == 'back') return '/static/ak-icons/back.svg'
+      if (this.name == 'bookmark') return '/static/ak-icons/bookmark.svg'
+      if (this.name == 'search') return '/static/ak-icons/search.svg'
+      if (this.name == 'bell') return '/static/ak-icons/bell.svg'
+      if (this.name == 'home') return '/static/ak-icons/home.svg'
+      if (this.name == 'profile') return '/static/ak-icons/profile.svg'
+      if (this.name == 'security') return '/static/ak-icons/security.svg'
+      if (this.name == 'settings') return '/static/ak-icons/settings.svg'
+      if (this.name == 'device') return '/static/ak-icons/device.svg'
+      if (this.name == 'help') return '/static/ak-icons/help.svg'
+      if (this.name == 'check') return '/static/ak-icons/check.svg'
+      return '/static/ak-icons/chevron-right.svg'
+    },
+  },
+}
+</script>
+<style lang="scss">.ak-icon { width:24px; height:24px; }</style>

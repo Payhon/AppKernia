@@ -251,6 +251,18 @@
       "feature_flag": null
     },
     {
+      "route_key": "articles.list",
+      "view_permissions": ["content.article.read"],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "articles.detail",
+      "view_permissions": ["content.article.read"],
+      "action_permissions": ["content.article.bookmark_self"],
+      "feature_flag": null
+    },
+    {
       "route_key": "dev.components",
       "view_permissions": [],
       "action_permissions": [],

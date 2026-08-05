@@ -1,0 +1,7 @@
+<template>
+  <view class="ak-status"><ak-loading v-if="state === 'loading'" :label="loadingLabel" /><ak-empty-state v-else :title="title" :description="description"><ak-button v-if="retryLabel" variant="secondary" @click="$emit('retry')">{{ retryLabel }}</ak-button></ak-empty-state></view>
+</template>
+<script lang="uts">
+export default { props: { state: { type: String, default: 'empty' }, title: { type: String, default: '' }, description: { type: String, default: '' }, loadingLabel: { type: String, default: '' }, retryLabel: { type: String, default: '' } }, emits: ['retry'] }
+</script>
+<style lang="scss">.ak-status { flex:1; }</style>

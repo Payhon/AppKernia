@@ -1,0 +1,38 @@
+export type SessionCredential = {
+  readonly accessToken: string
+  readonly refreshToken: string
+  readonly deviceKey: string
+  readonly sessionId: string
+  readonly subjectVersion: string
+}
+
+/**
+ * This is the only DTO that may cross the platform vault boundary. Access
+ * tokens deliberately do not appear here: they live solely in SessionStore.
+ */
+export type PersistedSessionCredential = {
+  readonly refreshToken: string
+  readonly deviceKey: string
+  readonly sessionId: string
+  readonly subjectVersion: string
+}
+
+/**
+ * Credentials are persisted only through a platform Keychain/Keystore adapter.
+ * Plain uni storage is deliberately not a valid implementation.
+ */
+export interface SecureSessionStoragePort {
+  read(onSuccess: (credential: PersistedSessionCredential | null) => void, onFailure: () => void): void
+  write(credential: PersistedSessionCredential, onSuccess: () => void, onFailure: () => void): void
+  clear(onSuccess: () => void, onFailure: () => void): void
+}
+
+/**
+ * Safe fail-closed default until Android/iOS/Harmony native secure-storage
+ * implementations are installed and device-verified.
+ */
+export class UnavailableSecureSessionStorage implements SecureSessionStoragePort {
+  read(onSuccess: (credential: PersistedSessionCredential | null) => void, onFailure: () => void): void { onFailure() }
+  write(credential: PersistedSessionCredential, onSuccess: () => void, onFailure: () => void): void { onFailure() }
+  clear(onSuccess: () => void, onFailure: () => void): void { onSuccess() }
+}

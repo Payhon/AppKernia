@@ -1,0 +1,4 @@
+<template>
+  <view class="ak-cell-list"><slot /></view>
+</template>
+<style lang="scss">.ak-cell-list { background:var(--ak-surface); border:1px solid var(--ak-border); border-radius:16px; overflow:hidden; }</style>

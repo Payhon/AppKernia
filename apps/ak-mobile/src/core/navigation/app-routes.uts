@@ -1,0 +1,36 @@
+import { AkNavigator } from './ak-navigator.uts'
+import { AkRouteGuard, NavigationContext, RouteDefinition } from './route-guard.uts'
+import { authContextStore } from '../stores/auth-context-store.uts'
+
+const routes: Array<RouteDefinition> = [
+  { key: 'home', path: 'pages/home/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'notifications.list', path: 'pages/notifications/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'profile.index', path: 'pages/profile/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'profile.basic', path: 'pages/profile/basic/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'profile.edit', path: 'pages/profile/edit/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'profile.security', path: 'pages/profile/security/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'profile.change-password', path: 'pages/profile/change-password/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'profile.sessions', path: 'pages/profile/sessions/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'profile.devices', path: 'pages/profile/devices/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'settings.language', path: 'pages/settings/language/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'settings.notifications', path: 'pages/settings/notifications/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'settings.appearance', path: 'pages/settings/appearance/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'help', path: 'pages/help/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'about', path: 'pages/about/index', access: 'public', permission: null, featureFlag: null },
+  { key: 'articles.list', path: 'pages/articles/list/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'articles.detail', path: 'pages/articles/detail/index', access: 'authenticated', permission: null, featureFlag: null },
+]
+
+export const akNavigator = new AkNavigator(routes, new AkRouteGuard())
+
+export function authenticatedNavigationContext(): NavigationContext { return authContextStore.navigationContext() }
+
+export function navigateArticleDetail(slug: string): boolean {
+  const route = routes.find((item: RouteDefinition) => item.key == 'articles.detail')
+  if (route == null || !new AkRouteGuard().canEnter(route, authenticatedNavigationContext()) || !/^[a-z0-9-]+$/.test(slug)) {
+    uni.navigateTo({ url: '/pages/error/forbidden/index' })
+    return false
+  }
+  uni.navigateTo({ url: '/pages/articles/detail/index?slug=' + encodeURIComponent(slug) })
+  return true
+}

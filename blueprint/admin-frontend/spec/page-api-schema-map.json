@@ -499,6 +499,30 @@
       "backend_status": "existing"
     },
     {
+      "component_key": "system.content.articles",
+      "title": "文章管理",
+      "phase": "P2",
+      "schema": ["content.articles", "content.article_translations", "content.categories"],
+      "endpoints": ["GET /admin-api/v1/content/articles", "POST /admin-api/v1/content/articles", "GET /admin-api/v1/content/articles/{id}", "PATCH /admin-api/v1/content/articles/{id}", "DELETE /admin-api/v1/content/articles/{id}", "POST /admin-api/v1/content/articles/{id}/{transition}"],
+      "backend_status": "delta_required"
+    },
+    {
+      "component_key": "system.content.categories",
+      "title": "文章分类",
+      "phase": "P2",
+      "schema": ["content.categories", "content.category_translations"],
+      "endpoints": ["GET /admin-api/v1/content/categories", "POST /admin-api/v1/content/categories", "GET /admin-api/v1/content/categories/{id}", "PATCH /admin-api/v1/content/categories/{id}", "DELETE /admin-api/v1/content/categories/{id}"],
+      "backend_status": "delta_required"
+    },
+    {
+      "component_key": "system.mobile.releases",
+      "title": "移动端发布策略",
+      "phase": "P2",
+      "schema": ["sys.mobile_releases"],
+      "endpoints": ["GET /admin-api/v1/mobile/releases", "POST /admin-api/v1/mobile/releases", "PATCH /admin-api/v1/mobile/releases/{id}"],
+      "backend_status": "delta_required"
+    },
+    {
       "component_key": "profile.connections",
       "title": "第三方绑定",
       "phase": "P3",

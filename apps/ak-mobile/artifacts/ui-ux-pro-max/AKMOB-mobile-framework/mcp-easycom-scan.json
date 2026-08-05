@@ -1,0 +1,17 @@
+{
+  "tool": "Query all components under the project",
+  "projectPath": "/Users/payhon/project/AppKernia-mobile-framework/apps/ak-mobile",
+  "scannedAt": "2026-08-05",
+  "components": [
+    { "name": "ak-button", "path": "components/ak-ui/ak-button/ak-button.uvue" },
+    { "name": "ak-card", "path": "components/ak-ui/ak-card/ak-card.uvue" },
+    { "name": "ak-cell-list", "path": "components/ak-ui/ak-cell-list/ak-cell-list.uvue" },
+    { "name": "ak-empty-state", "path": "components/ak-ui/ak-empty-state/ak-empty-state.uvue" },
+    { "name": "ak-icon", "path": "components/ak-ui/ak-icon/ak-icon.uvue" },
+    { "name": "ak-loading", "path": "components/ak-ui/ak-loading/ak-loading.uvue" },
+    { "name": "ak-modal", "path": "components/ak-ui/ak-modal/ak-modal.uvue" },
+    { "name": "ak-status-view", "path": "components/ak-ui/ak-status-view/ak-status-view.uvue" },
+    { "name": "ak-switch", "path": "components/ak-ui/ak-switch/ak-switch.uvue" },
+    { "name": "ak-text-field", "path": "components/ak-ui/ak-text-field/ak-text-field.uvue" }
+  ]
+}

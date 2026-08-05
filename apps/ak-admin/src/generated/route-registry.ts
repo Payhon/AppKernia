@@ -313,6 +313,42 @@ export const generatedRouteRegistry = [
     "activeMenuCode": "system.monitoring.health"
   },
   {
+    "componentKey": "system.content.articles",
+    "path": "/system/content/articles",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.system.content.articles.title",
+    "permissions": [
+      "content.article.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "system.content.articles"
+  },
+  {
+    "componentKey": "system.content.categories",
+    "path": "/system/content/categories",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.system.content.categories.title",
+    "permissions": [
+      "content.category.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "system.content.categories"
+  },
+  {
+    "componentKey": "system.mobile.releases",
+    "path": "/system/mobile/releases",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.system.mobile.releases.title",
+    "permissions": [
+      "mobile.release.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "system.mobile.releases"
+  },
+  {
     "componentKey": "profile.basic",
     "path": "/profile/basic",
     "auth": "required",

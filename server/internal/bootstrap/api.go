@@ -19,6 +19,9 @@ import (
 	blockruleadminapp "github.com/appkernia/appkernia/server/internal/modules/blockruleadmin/application"
 	blockruleadminrepo "github.com/appkernia/appkernia/server/internal/modules/blockruleadmin/repository"
 	blockruleadminhttp "github.com/appkernia/appkernia/server/internal/modules/blockruleadmin/transport/http"
+	contentapp "github.com/appkernia/appkernia/server/internal/modules/content/application"
+	contentrepo "github.com/appkernia/appkernia/server/internal/modules/content/repository"
+	contenthttp "github.com/appkernia/appkernia/server/internal/modules/content/transport/http"
 	dashboardapp "github.com/appkernia/appkernia/server/internal/modules/dashboard/application"
 	dashboardrepo "github.com/appkernia/appkernia/server/internal/modules/dashboard/repository"
 	dashboardhttp "github.com/appkernia/appkernia/server/internal/modules/dashboard/transport/http"
@@ -31,6 +34,9 @@ import (
 	jobadminapp "github.com/appkernia/appkernia/server/internal/modules/jobadmin/application"
 	jobadminrepo "github.com/appkernia/appkernia/server/internal/modules/jobadmin/repository"
 	jobadminhttp "github.com/appkernia/appkernia/server/internal/modules/jobadmin/transport/http"
+	mobileprofileapp "github.com/appkernia/appkernia/server/internal/modules/mobileprofile/application"
+	mobileprofilerepo "github.com/appkernia/appkernia/server/internal/modules/mobileprofile/repository"
+	mobileprofilehttp "github.com/appkernia/appkernia/server/internal/modules/mobileprofile/transport/http"
 	notificationadminapp "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/application"
 	notificationadminrepo "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/repository"
 	notificationadminhttp "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/transport/http"
@@ -129,6 +135,9 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		"oauth":              cfg.OAuthEnabled,
 	}
 	authHandler := iamhttp.NewHandler(authService, catalog, cfg.AdminOrigin, cfg.Environment != "development", featureFlags)
+	mobileProfileRepository := mobileprofilerepo.NewPostgres(pool)
+	mobileProfileService := mobileprofileapp.NewService(authService, mobileProfileRepository, mobileProfileRepository)
+	mobileProfileHandler := mobileprofilehttp.NewHandler(mobileProfileService, catalog)
 	settingsSealer, err := configSecretSealer(cfg)
 	if err != nil {
 		pool.Close()
@@ -185,6 +194,9 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	notificationAdminRepository := notificationadminrepo.NewPostgres(pool)
 	notificationAdminService := notificationadminapp.NewService(authService, notificationAdminRepository)
 	notificationAdminHandler := notificationadminhttp.NewHandler(notificationAdminService, catalog)
+	contentRepository := contentrepo.NewPostgres(pool, objectStore)
+	contentService := contentapp.NewService(authService, contentRepository)
+	contentHandler := contenthttp.NewHandler(contentService, catalog)
 	riverInsertClient, err := river.NewClient(riverpgxv5.New(pool), &river.Config{SkipUnknownJobCheck: true})
 	if err != nil {
 		pool.Close()
@@ -224,8 +236,35 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	})
 	server.Group("/api/v1", func(group *ghttp.RouterGroup) {
 		group.GET("/public/config", handler.PublicConfig)
+		group.GET("/public/app-version", mobileProfileHandler.AppVersion)
 		group.GET("/regions", settingsHandler.PublicRegions)
+		group.POST("/auth/login/password", authHandler.MobileLogin)
+		group.POST("/auth/token/refresh", authHandler.MobileRefresh)
+		group.POST("/auth/logout", authHandler.MobileLogout)
+		group.GET("/auth/context", authHandler.MobileContext)
+		group.POST("/auth/password/change", authHandler.MobileChangeSelfPassword)
+		group.GET("/me", authHandler.MobileMe)
+		group.PATCH("/me", authHandler.MobileUpdateMe)
+		group.GET("/me/sessions", authHandler.MobileSelfSessions)
+		group.DELETE("/me/sessions/{id}", authHandler.MobileRevokeSelfSession)
+		group.GET("/me/devices", authHandler.MobileSelfDevices)
+		group.DELETE("/me/devices/{id}", authHandler.MobileRemoveSelfDevice)
+		group.GET("/me/preferences", mobileProfileHandler.Preferences)
+		group.PATCH("/me/preferences", mobileProfileHandler.UpdatePreferences)
+		group.GET("/me/notification-preferences", mobileProfileHandler.NotificationPreferences)
+		group.PATCH("/me/notification-preferences", mobileProfileHandler.UpdateNotificationPreferences)
+		group.GET("/me/notifications/unread-count", mobileProfileHandler.UnreadCount)
+		group.GET("/me/notifications", mobileProfileHandler.Notifications)
+		group.PATCH("/me/notifications/{id}/read", mobileProfileHandler.MarkNotificationRead)
+		group.GET("/me/login-events", mobileProfileHandler.LoginEvents)
+		group.GET("/me/security-events", mobileProfileHandler.SecurityEvents)
 		group.POST("/auth/client-token", apiClientAdminHandler.Token)
+		group.GET("/article-categories", contentHandler.ArticleCategories)
+		group.GET("/article-assets/{file_id}", contentHandler.ArticleAsset)
+		group.GET("/articles", contentHandler.Articles)
+		group.GET("/articles/{slug}", contentHandler.Article)
+		group.PUT("/me/article-bookmarks/{article_id}", contentHandler.Bookmark)
+		group.DELETE("/me/article-bookmarks/{article_id}", contentHandler.RemoveBookmark)
 	})
 	server.Group("/admin-api/v1/auth", func(group *ghttp.RouterGroup) {
 		group.GET("/public-config", handler.AdminPublicConfig)
@@ -240,6 +279,9 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/context", authHandler.Context)
 	})
 	server.Group("/admin-api/v1", func(group *ghttp.RouterGroup) {
+		group.GET("/mobile/releases", mobileProfileHandler.AdminReleases)
+		group.POST("/mobile/releases", mobileProfileHandler.AdminCreateRelease)
+		group.PATCH("/mobile/releases/{id}", mobileProfileHandler.AdminUpdateRelease)
 		group.GET("/me", authHandler.Me)
 		group.PATCH("/me", authHandler.UpdateMe)
 		group.GET("/me/sessions", authHandler.SelfSessions)
@@ -346,6 +388,19 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/notices/{id}/recipient-preview", notificationAdminHandler.PreviewNotice)
 		group.POST("/notices/{id}/publish", notificationAdminHandler.PublishNotice)
 		group.POST("/notices/{id}/cancel", notificationAdminHandler.CancelNotice)
+		group.GET("/content/categories", contentHandler.Categories)
+		group.POST("/content/categories", contentHandler.CreateCategory)
+		group.GET("/content/categories/{id}", contentHandler.Category)
+		group.PATCH("/content/categories/{id}", contentHandler.UpdateCategory)
+		group.DELETE("/content/categories/{id}", contentHandler.DeleteCategory)
+		group.GET("/content/articles", contentHandler.AdminArticles)
+		group.POST("/content/articles", contentHandler.CreateArticle)
+		group.GET("/content/articles/{id}", contentHandler.AdminArticle)
+		group.PATCH("/content/articles/{id}", contentHandler.UpdateArticle)
+		group.DELETE("/content/articles/{id}", contentHandler.DeleteArticle)
+		group.POST("/content/articles/{id}/publish", contentHandler.Publish)
+		group.POST("/content/articles/{id}/unpublish", contentHandler.Unpublish)
+		group.POST("/content/articles/{id}/archive", contentHandler.Archive)
 		group.GET("/notices/{id}/recipients", notificationAdminHandler.NoticeRecipients)
 		group.GET("/messages", notificationAdminHandler.Messages)
 		group.POST("/messages", notificationAdminHandler.CreateMessage)

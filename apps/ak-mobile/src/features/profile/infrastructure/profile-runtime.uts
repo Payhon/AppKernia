@@ -1,0 +1,10 @@
+import { AkConfig } from '../../../core/config/config.uts'
+import { SessionStore } from '../../../core/stores/session-store.uts'
+import { AkHttpClient } from '../../../core/network/ak-http-client.uts'
+import { RefreshCoordinator } from '../../../core/network/refresh-coordinator.uts'
+import { RefreshingHttpPort } from '../../../core/network/refreshing-http-port.uts'
+import { SessionRuntime } from '../../../core/stores/session-runtime.uts'
+import { MobileAuthService } from '../../auth/mobile-auth-service.uts'
+import { HttpProfileRepository } from './http-profile-repository.uts'
+export class ProfileRuntime { private repository:HttpProfileRepository|null=null; configure(config:AkConfig,session:SessionStore,sessions:SessionRuntime,auth:MobileAuthService):void{this.repository=new HttpProfileRepository(new RefreshingHttpPort(new AkHttpClient(config,session),new RefreshCoordinator(sessions,auth)))} getRepository():HttpProfileRepository|null{return this.repository} }
+export const profileRuntime=new ProfileRuntime()

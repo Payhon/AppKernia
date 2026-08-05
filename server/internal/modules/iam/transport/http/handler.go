@@ -23,7 +23,216 @@ const (
 	refreshCookieName = "ak_admin_refresh"
 	csrfCookieName    = "ak_admin_csrf"
 	adminAudience     = "ak-admin"
+	mobileAudience    = "ak-mobile"
 )
+
+// MobileLogin issues bearer and refresh tokens in the response body.  Unlike the
+// browser-only admin flow, a native client stores its refresh token in the
+// platform secure store and therefore must not receive an HTTP cookie.
+func (handler *Handler) MobileLogin(request *ghttp.Request) {
+	var body loginRequest
+	if err := decodeSingleJSON(request, &body); err != nil || strings.TrimSpace(body.Email) == "" || body.Password == "" {
+		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	tokens, err := handler.auth.Login(request.Context(), application.LoginInput{
+		Email: body.Email, Password: body.Password, Audience: mobileAudience, Client: clientMetadata(request),
+	})
+	if errors.Is(err, application.ErrInvalidCredentials) || errors.Is(err, application.ErrCaptchaRequired) {
+		handler.writeError(request, http.StatusUnauthorized, "IAM.AUTH.INVALID_CREDENTIALS", "errors.iam.auth.invalid_credentials")
+		return
+	}
+	if errors.Is(err, application.ErrDeviceValidation) {
+		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	if err != nil {
+		handler.writeError(request, http.StatusInternalServerError, "COMMON.UNKNOWN", "errors.common.unknown")
+		return
+	}
+	handler.writeMobileSession(request, tokens)
+}
+
+type mobileRefreshRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+func (handler *Handler) MobileRefresh(request *ghttp.Request) {
+	var body mobileRefreshRequest
+	if err := decodeSingleJSON(request, &body); err != nil || strings.TrimSpace(body.RefreshToken) == "" {
+		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	tokens, err := handler.auth.Refresh(request.Context(), body.RefreshToken, mobileAudience, clientMetadata(request))
+	if err != nil {
+		code, key := "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized"
+		if errors.Is(err, domain.ErrRefreshReused) {
+			code, key = "IAM.SESSION.REFRESH_REUSED", "errors.iam.auth.refresh_reused"
+		}
+		handler.writeError(request, http.StatusUnauthorized, code, key)
+		return
+	}
+	handler.writeMobileSession(request, tokens)
+}
+
+func (handler *Handler) MobileLogout(request *ghttp.Request) {
+	if err := handler.auth.Logout(request.Context(), bearerToken(request.Header.Get("Authorization")), mobileAudience); err != nil {
+		handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+		return
+	}
+	request.Response.Header().Set("Cache-Control", "no-store")
+	request.Response.WriteJsonExit(httpx.Success[map[string]bool]{Code: "OK", Message: handler.catalog.Translate(httpx.Locale(request), "messages.auth.signed_out", nil), Data: map[string]bool{"signed_out": true}, RequestID: httpx.RequestID(request)})
+}
+
+func (handler *Handler) MobileContext(request *ghttp.Request) {
+	contextValue, err := handler.auth.Context(request.Context(), bearerToken(request.Header.Get("Authorization")), mobileAudience)
+	if err != nil {
+		handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+		return
+	}
+	request.Response.Header().Set("Cache-Control", "no-store")
+	request.Response.Header().Set("Vary", "Authorization, Accept-Language")
+	request.Response.WriteJsonExit(httpx.Success[map[string]any]{Code: "OK", Message: "OK", RequestID: httpx.RequestID(request), Data: map[string]any{
+		"user":          map[string]any{"id": contextValue.User.ID, "email": contextValue.User.Email, "display_name": contextValue.User.DisplayName, "locale": contextValue.User.Locale, "time_zone": contextValue.TimeZone, "avatar_url": avatarURLForUser(contextValue.User)},
+		"active_tenant": map[string]any{"id": contextValue.Tenant.ID, "code": contextValue.Tenant.Code, "name": contextValue.Tenant.Name},
+		"roles":         contextValue.Roles, "permissions": contextValue.Permissions, "feature_flags": handler.featureFlags, "server_time": time.Now().UTC(),
+	}})
+}
+
+func (handler *Handler) MobileMe(request *ghttp.Request)       { handler.mobileMe(request, false) }
+func (handler *Handler) MobileUpdateMe(request *ghttp.Request) { handler.mobileMe(request, true) }
+
+func (handler *Handler) mobileMe(request *ghttp.Request, update bool) {
+	if !update {
+		contextValue, err := handler.auth.Context(request.Context(), bearerToken(request.Header.Get("Authorization")), mobileAudience)
+		if err != nil {
+			handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+			return
+		}
+		handler.writeSelfProfile(request, contextValue.User, "OK")
+		return
+	}
+	input, err := decodeSelfProfileUpdate(request)
+	if err != nil {
+		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	input.RequestID, input.Client = httpx.RequestID(request), clientMetadata(request)
+	user, err := handler.auth.UpdateSelfProfile(request.Context(), bearerToken(request.Header.Get("Authorization")), mobileAudience, input)
+	if errors.Is(err, application.ErrProfileValidation) {
+		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	if err != nil {
+		handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+		return
+	}
+	handler.writeSelfProfile(request, user, handler.catalog.Translate(httpx.Locale(request), "messages.profile.updated", nil))
+}
+
+func (handler *Handler) MobileSelfSessions(request *ghttp.Request) {
+	handler.mobileSelfSessions(request)
+}
+func (handler *Handler) mobileSelfSessions(request *ghttp.Request) {
+	rows, err := handler.auth.ListSelfSessions(request.Context(), bearerToken(request.Header.Get("Authorization")), mobileAudience)
+	if err != nil {
+		handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+		return
+	}
+	data := make([]selfSessionResponse, 0, len(rows))
+	for _, row := range rows {
+		var ip *string
+		if row.IPAddress != nil {
+			value := row.IPAddress.String()
+			ip = &value
+		}
+		data = append(data, selfSessionResponse{ID: row.ID.String(), Audience: row.Audience, Status: row.Status, IPAddress: ip, UserAgent: row.UserAgent, LastSeenAt: row.LastSeenAt.UTC().Format(time.RFC3339Nano), AbsoluteExpiresAt: row.AbsoluteExpiresAt.UTC().Format(time.RFC3339Nano), CreatedAt: row.CreatedAt.UTC().Format(time.RFC3339Nano), Current: row.Current})
+	}
+	request.Response.Header().Set("Cache-Control", "no-store")
+	request.Response.WriteJsonExit(httpx.Success[[]selfSessionResponse]{Code: "OK", Message: "OK", Data: data, RequestID: httpx.RequestID(request)})
+}
+
+func (handler *Handler) MobileRevokeSelfSession(request *ghttp.Request) {
+	id, err := uuid.Parse(request.Get("id").String())
+	if err != nil {
+		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	current, err := handler.auth.RevokeSelfSession(request.Context(), bearerToken(request.Header.Get("Authorization")), mobileAudience, application.RevokeSelfSessionInput{SessionID: id, RequestID: httpx.RequestID(request), Client: clientMetadata(request)})
+	if errors.Is(err, domain.ErrSessionNotFound) {
+		handler.writeError(request, http.StatusNotFound, "IAM.SESSION.NOT_FOUND", "errors.iam.session.not_found")
+		return
+	}
+	if err != nil {
+		handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+		return
+	}
+	request.Response.WriteJsonExit(httpx.Success[map[string]bool]{Code: "OK", Message: handler.catalog.Translate(httpx.Locale(request), "messages.session.revoked", nil), Data: map[string]bool{"revoked": true, "current_session": current}, RequestID: httpx.RequestID(request)})
+}
+
+func (handler *Handler) MobileSelfDevices(request *ghttp.Request) {
+	rows, err := handler.auth.ListSelfDevices(request.Context(), bearerToken(request.Header.Get("Authorization")), mobileAudience)
+	if err != nil {
+		handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+		return
+	}
+	data := make([]selfDeviceResponse, 0, len(rows))
+	for _, row := range rows {
+		var ip, seen *string
+		if row.LastIP != nil {
+			value := row.LastIP.String()
+			ip = &value
+		}
+		if row.LastSeenAt != nil {
+			value := row.LastSeenAt.UTC().Format(time.RFC3339Nano)
+			seen = &value
+		}
+		data = append(data, selfDeviceResponse{ID: row.ID.String(), Platform: row.Platform, DeviceName: row.DeviceName, Model: row.Model, OSVersion: row.OSVersion, AppVersion: row.AppVersion, LastIP: ip, LastSeenAt: seen, CreatedAt: row.CreatedAt.UTC().Format(time.RFC3339Nano), LatestUserAgent: row.LatestUserAgent, ActiveSessionCount: row.ActiveSessionCount, Current: row.Current})
+	}
+	request.Response.Header().Set("Cache-Control", "no-store")
+	request.Response.WriteJsonExit(httpx.Success[[]selfDeviceResponse]{Code: "OK", Message: "OK", Data: data, RequestID: httpx.RequestID(request)})
+}
+
+func (handler *Handler) MobileRemoveSelfDevice(request *ghttp.Request) {
+	id, err := uuid.Parse(request.Get("id").String())
+	if err != nil {
+		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	current, err := handler.auth.RemoveSelfDevice(request.Context(), bearerToken(request.Header.Get("Authorization")), mobileAudience, application.RemoveSelfDeviceInput{DeviceID: id, RequestID: httpx.RequestID(request), Client: clientMetadata(request)})
+	if errors.Is(err, domain.ErrDeviceNotFound) {
+		handler.writeError(request, http.StatusNotFound, "IAM.DEVICE.NOT_FOUND", "errors.iam.device.not_found")
+		return
+	}
+	if err != nil {
+		handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+		return
+	}
+	request.Response.WriteJsonExit(httpx.Success[map[string]bool]{Code: "OK", Message: handler.catalog.Translate(httpx.Locale(request), "messages.device.removed", nil), Data: map[string]bool{"removed": true, "current_device": current}, RequestID: httpx.RequestID(request)})
+}
+
+func (handler *Handler) MobileChangeSelfPassword(request *ghttp.Request) {
+	var body passwordChangeRequest
+	if err := decodeSingleJSON(request, &body); err != nil || body.CurrentPassword == "" || body.NewPassword == "" {
+		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	err := handler.auth.ChangeSelfPassword(request.Context(), bearerToken(request.Header.Get("Authorization")), mobileAudience, application.ChangeSelfPasswordInput{CurrentPassword: body.CurrentPassword, NewPassword: body.NewPassword, RequestID: httpx.RequestID(request), Client: clientMetadata(request)})
+	if errors.Is(err, application.ErrCurrentPassword) {
+		handler.writeError(request, http.StatusUnprocessableEntity, "IAM.PASSWORD.CURRENT_INVALID", "errors.iam.password.current_invalid")
+		return
+	}
+	if errors.Is(err, application.ErrPasswordReused) || errors.Is(err, domain.ErrPasswordChanged) {
+		handler.writeError(request, http.StatusConflict, "IAM.PASSWORD.CHANGED", "errors.common.conflict")
+		return
+	}
+	if err != nil {
+		handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+		return
+	}
+	request.Response.Header().Set("Cache-Control", "no-store")
+	request.Response.WriteJsonExit(httpx.Success[map[string]bool]{Code: "OK", Message: handler.catalog.Translate(httpx.Locale(request), "messages.auth.password_changed", nil), Data: map[string]bool{"changed": true, "other_sessions_revoked": true}, RequestID: httpx.RequestID(request)})
+}
 
 type Handler struct {
 	auth          *application.AuthService
@@ -82,6 +291,15 @@ type tokenResponse struct {
 	TokenType   string `json:"token_type"`
 	ExpiresIn   int64  `json:"expires_in"`
 	CSRFToken   string `json:"csrf_token"`
+}
+
+type mobileTokenResponse struct {
+	AccessToken           string `json:"access_token"`
+	TokenType             string `json:"token_type"`
+	ExpiresIn             int64  `json:"expires_in"`
+	RefreshToken          string `json:"refresh_token"`
+	RefreshTokenExpiresIn int64  `json:"refresh_token_expires_in"`
+	SessionID             string `json:"session_id"`
 }
 
 type selfProfileResponse struct {
@@ -644,6 +862,20 @@ func (handler *Handler) writeSession(request *ghttp.Request, tokens application.
 	request.Response.WriteJsonExit(httpx.Success[tokenResponse]{
 		Code: "OK", Message: "OK", RequestID: httpx.RequestID(request),
 		Data: tokenResponse{AccessToken: tokens.AccessToken, TokenType: "Bearer", ExpiresIn: max(0, int64(time.Until(tokens.AccessTokenExpiresAt).Seconds())), CSRFToken: csrfToken},
+	})
+}
+
+func (handler *Handler) writeMobileSession(request *ghttp.Request, tokens application.SessionTokens) {
+	request.Response.Header().Set("Cache-Control", "no-store")
+	request.Response.WriteJsonExit(httpx.Success[mobileTokenResponse]{
+		Code: "OK", Message: "OK", RequestID: httpx.RequestID(request),
+		Data: mobileTokenResponse{
+			AccessToken: tokens.AccessToken, TokenType: "Bearer",
+			ExpiresIn:             max(0, int64(time.Until(tokens.AccessTokenExpiresAt).Seconds())),
+			RefreshToken:          tokens.RefreshToken,
+			RefreshTokenExpiresIn: max(0, int64(time.Until(tokens.RefreshTokenExpiresAt).Seconds())),
+			SessionID:             tokens.SessionID.String(),
+		},
 	})
 }
 

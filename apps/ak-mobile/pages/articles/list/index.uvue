@@ -1,0 +1,189 @@
+<template>
+  <ak-theme-root><view class="page">
+    <view class="nav">
+      <ak-back-button />
+      <text class="nav-title">{{ t('routes.articles.list.title', null) }}</text>
+      <view class="nav-space" />
+    </view>
+    <view class="search">
+      <ak-icon class="search-icon" name="search" />
+      <input class="search-input" :value="query" :placeholder="t('articles.searchPlaceholder', null)" @input="onSearch" />
+    </view>
+    <scroll-view class="chips" scroll-x>
+      <view class="chips-row">
+        <view v-for="category in categories" :key="category.slug" :class="category.slug === selectedCategory ? 'chip chip-active' : 'chip'" @click="selectCategory(category.slug)">
+          <text :class="category.slug === selectedCategory ? 'chip-active-text' : 'chip-text'">{{ category.slug.length > 0 ? category.name : t('articles.allCategories', null) }}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <scroll-view class="list" scroll-y @scrolltolower="loadMore">
+      <ak-status-view v-if="state !== 'content'" :state="state" :title="stateTitle" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload" />
+      <view v-else>
+        <ak-card v-for="article in articles" :key="article.id" class="article" @click="openArticle(article.slug)">
+          <view class="cover"><image v-if="coverPath(article.id)" class="cover-image" :src="coverPath(article.id)" mode="aspectFill" /><view v-else class="cover-fallback" /></view>
+          <view class="article-content">
+            <view class="article-top"><text class="category">{{ article.categoryName }}</text><ak-icon class="bookmark" name="bookmark" @click.stop="toggleBookmark(article)" /></view>
+            <text class="article-title">{{ article.title }}</text>
+            <text class="article-summary">{{ article.summary }}</text>
+            <text class="article-meta">{{ t('articles.readMinutes', readingParams(article.readingMinutes)) }}</text>
+          </view>
+        </ak-card>
+        <ak-button v-if="nextCursor" variant="secondary" :loading="loadingMore" :loading-text="t('common.loading', null)" @click="loadMore">{{ t('articles.loadMore', null) }}</ak-button>
+        <text v-else class="no-more">{{ t('articles.noMore', null) }}</text>
+      </view>
+    </scroll-view>
+  </view></ak-theme-root>
+</template>
+
+<script lang="uts">
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+import { AkError } from '../../../src/core/errors/ak-error.uts'
+import { HttpCancellation } from '../../../src/core/network/http-port.uts'
+import { navigateArticleDetail } from '../../../src/core/navigation/app-routes.uts'
+import { ArticleCategory, ArticleQuery, ArticleSummary } from '../../../src/features/articles/domain/models.uts'
+import { articleRuntime } from '../../../src/features/articles/infrastructure/article-runtime.uts'
+
+let pendingList: HttpCancellation | null = null
+let pendingCategories: HttpCancellation | null = null
+let searchTimer: number = 0
+let coverTasks: Array<HttpCancellation> = []
+
+export default {
+  data() {
+    return { state: 'loading', query: '', categories: [] as Array<ArticleCategory>, selectedCategory: '', articles: [] as Array<ArticleSummary>, coverPaths: new Map<string, string>(), nextCursor: '', loadingMore: false, mutatingId: '' }
+  },
+  computed: {
+    t() { return akI18n.t },
+    stateTitle() {
+      if (this.state == 'offline') return akI18n.t('state.offline.title', null)
+      if (this.state == 'forbidden') return akI18n.t('state.forbidden.title', null)
+      if (this.state == 'empty') return akI18n.t('articles.empty', null)
+      return akI18n.t('state.error.title', null)
+    },
+  },
+  onLoad() { this.reload() },
+  onUnload() {
+    const listTask = pendingList
+    if (listTask != null) listTask.cancel()
+    pendingList = null
+    const categoryTask = pendingCategories
+    if (categoryTask != null) categoryTask.cancel()
+    pendingCategories = null
+    if (searchTimer != 0) clearTimeout(searchTimer)
+    searchTimer = 0
+    coverTasks.forEach(task => task.cancel())
+    coverTasks = []
+  },
+  methods: {
+    onSearch(event: UniInputEvent) {
+      this.query = event.detail.value
+      const activeList = pendingList
+      if (activeList != null) activeList.cancel()
+      pendingList = null
+      if (searchTimer != 0) clearTimeout(searchTimer)
+      searchTimer = setTimeout(() => {
+        searchTimer = 0
+        this.reload()
+      }, 250)
+    },
+    selectCategory(category: string) {
+      this.selectedCategory = category
+      this.reload()
+    },
+    reload() {
+      const previousList = pendingList
+      if (previousList != null) previousList.cancel()
+      this.state = 'loading'
+      this.nextCursor = ''
+      this.fetchPage(null, false)
+      this.loadCategories()
+    },
+    loadMore() {
+      if (this.loadingMore || this.nextCursor.length == 0) return
+      this.loadingMore = true
+      this.fetchPage(this.nextCursor, true)
+    },
+    fetchPage(cursor: string | null, append: boolean) {
+      const repository = articleRuntime.getRepository()
+      if (repository == null) {
+        this.state = 'error'
+        this.loadingMore = false
+        return
+      }
+      const request: ArticleQuery = { query: this.query.length > 0 ? this.query : null, category: this.selectedCategory.length > 0 ? this.selectedCategory : null, featured: null, cursor: cursor, limit: 20 }
+      pendingList = repository.list(request, (page) => {
+        this.articles = append ? this.articles.concat(page.items) : page.items
+        this.loadCovers(page.items)
+        this.nextCursor = page.nextCursor != null ? page.nextCursor : ''
+        this.loadingMore = false
+        this.state = this.articles.length > 0 ? 'content' : 'empty'
+        pendingList = null
+      }, (error: AkError) => {
+        this.loadingMore = false
+        this.state = this.errorState(error)
+        pendingList = null
+      })
+    },
+    loadCategories() {
+      const previousCategories = pendingCategories
+      if (previousCategories != null) previousCategories.cancel()
+      const repository = articleRuntime.getRepository()
+      if (repository == null) return
+      pendingCategories = repository.listCategories((items: Array<ArticleCategory>) => {
+        const all: ArticleCategory = { id: '', slug: '', sortOrder: 0, name: '', description: '' }
+        this.categories = [all].concat(items)
+        pendingCategories = null
+      }, () => { pendingCategories = null })
+    },
+    errorState(error: AkError): string {
+      if (error.kind == 'network_unavailable' || error.kind == 'timeout') return 'offline'
+      if (error.kind == 'forbidden') return 'forbidden'
+      return 'error'
+    },
+    openArticle(slug: string) { navigateArticleDetail(slug) },
+    coverPath(id: string): string { const path = this.coverPaths.get(id); return path != null ? path : '' },
+    loadCovers(items: Array<ArticleSummary>) { const loader = articleRuntime.getAssetLoader(); if (loader == null) return; items.forEach(article => { if (article.coverUrl != null) coverTasks.push(loader.load(article.coverUrl, localPath => { this.coverPaths.set(article.id, localPath) }, () => {})) }) },
+    toggleBookmark(article: ArticleSummary) {
+      if (this.mutatingId.length > 0) return
+      const repository = articleRuntime.getRepository()
+      if (repository == null) return
+      this.mutatingId = article.id
+      repository.setBookmark(article.id, !article.bookmarked, () => {
+        this.articles = this.articles.map((item: ArticleSummary) => item.id == article.id ? { id: item.id, slug: item.slug, featured: item.featured, publishedAt: item.publishedAt, coverUrl: item.coverUrl, title: item.title, summary: item.summary, categorySlug: item.categorySlug, categoryName: item.categoryName, bookmarked: !item.bookmarked, readingMinutes: item.readingMinutes } : item)
+        this.mutatingId = ''
+      }, () => { this.mutatingId = '' })
+    },
+    readingParams(count: number) { return new Map<string, any>([['count', count]]) },
+  },
+}
+</script>
+
+<style lang="scss">
+.page { height:100%;flex:1; padding:20px 16px; background:var(--ak-page); }
+.nav { height:48px; flex-direction:row; align-items:center; justify-content:space-between; }
+.nav-icon { width:44px; height:44px; }
+.nav-title { color:var(--ak-text); font-size:20px; font-weight:600; }
+.nav-space { width:44px; height:44px; }
+.search { height:48px; flex-direction:row; align-items:center; border:1px solid var(--ak-border-strong); border-radius:14px; background:var(--ak-surface); padding:0 12px; margin:16px 0; }
+.search-icon { width:24px; height:24px; margin-right:8px; }
+.search-input { flex:1; color:var(--ak-text); font-size:16px; }
+.chips { height:52px; }
+.chips-row { flex-direction:row; align-items:center; }
+.chip { height:40px; padding:0 16px; justify-content:center; border:1px solid var(--ak-border-strong); border-radius:12px; background:var(--ak-surface); margin-right:12px; }
+.chip-text { color:var(--ak-text); font-size:16px; }
+.chip-active { border-color:var(--ak-brand); background:var(--ak-brand); }
+.chip-active-text { color:var(--ak-on-brand); font-size:16px; }
+.list { height:620px; }
+.article { flex-direction:row; align-items:center; margin:12px 0; }
+.cover { width:112px; height:144px; border-radius:10px; margin-right:12px; }
+.cover-image { width:112px; height:144px; border-radius:10px; }
+.cover-fallback { width:112px; height:144px; border-radius:10px; background:var(--ak-accent-surface); }
+.article-content { flex:1; }
+.article-top { flex-direction:row; align-items:center; justify-content:space-between; }
+.category { color:var(--ak-brand); font-size:12px; border:1px solid var(--ak-brand); border-radius:6px; padding:3px 6px; }
+.bookmark { width:44px; height:44px; }
+.article-title { color:var(--ak-text); font-size:18px; font-weight:600; margin-top:12px; }
+.article-summary { color:var(--ak-muted); font-size:14px; margin-top:8px; line-height:20px; }
+.article-meta { color:var(--ak-muted); font-size:14px; margin-top:8px; line-height:20px; }
+.no-more { color:var(--ak-muted); font-size:13px; padding:16px; text-align:center; }
+</style>

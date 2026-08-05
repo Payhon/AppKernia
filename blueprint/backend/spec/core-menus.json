@@ -236,6 +236,34 @@
       "sort": 90
     },
     {
+      "code": "content",
+      "title": "内容管理",
+      "type": "directory",
+      "path": "/system/content",
+      "icon": "ReadOutlined",
+      "sort": 80
+    },
+    {
+      "code": "system.content.articles",
+      "parent": "content",
+      "title": "文章管理",
+      "type": "page",
+      "path": "/system/content/articles",
+      "component_key": "system.content.articles",
+      "permission": "content.article.read",
+      "sort": 10
+    },
+    {
+      "code": "system.content.categories",
+      "parent": "content",
+      "title": "文章分类",
+      "type": "page",
+      "path": "/system/content/categories",
+      "component_key": "system.content.categories",
+      "permission": "content.category.read",
+      "sort": 20
+    },
+    {
       "code": "profile.index",
       "parent": "profile",
       "title": "个人资料",

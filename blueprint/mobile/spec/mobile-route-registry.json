@@ -22,8 +22,9 @@
       "phase": "P0",
       "required_permissions": [],
       "apis": [
-        "GET /api/v1/public/config",
-        "GET /api/v1/public/app-version"
+        "POST /api/v1/auth/token/refresh",
+        "GET /api/v1/auth/context",
+        "GET /api/v1/me/preferences"
       ],
       "feature_flag": null,
       "tab_key": null,
@@ -654,6 +655,36 @@
       "feature_flag": null,
       "tab_key": null,
       "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "articles.list",
+      "path": "pages/articles/list/index",
+      "file": "apps/ak-mobile/pages/articles/list/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.articles.list.title",
+      "phase": "P1",
+      "required_permissions": ["content.article.read"],
+      "apis": ["GET /api/v1/article-categories", "GET /api/v1/article-assets/{file_id}", "GET /api/v1/articles"],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "articles.detail",
+      "path": "pages/articles/detail/index",
+      "file": "apps/ak-mobile/pages/articles/detail/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.articles.detail.title",
+      "phase": "P1",
+      "required_permissions": ["content.article.read", "content.article.bookmark_self"],
+      "apis": ["GET /api/v1/article-assets/{file_id}", "GET /api/v1/articles/{slug}", "PUT /api/v1/me/article-bookmarks/{article_id}", "DELETE /api/v1/me/article-bookmarks/{article_id}"],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {"slug": "slug"},
       "ui_skill_required": true
     },
     {

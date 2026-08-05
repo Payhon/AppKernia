@@ -1,0 +1,29 @@
+export type RouteAccess = 'public' | 'guest' | 'authenticated' | 'challenge'
+
+export type RouteDefinition = {
+  readonly key: string
+  readonly path: string
+  readonly access: RouteAccess
+  readonly permission: string | null
+  readonly featureFlag: string | null
+}
+
+export type NavigationContext = {
+  readonly authenticated: boolean
+  readonly challenge: boolean
+  readonly permissions: Array<string>
+  readonly enabledFlags: Array<string>
+}
+
+export class AkRouteGuard {
+  canEnter(route: RouteDefinition, context: NavigationContext): boolean {
+    if (route.access == 'authenticated' && !context.authenticated) return false
+    if (route.access == 'guest' && context.authenticated) return false
+    if (route.access == 'challenge' && !context.challenge) return false
+    const permission: string | null = route.permission
+    const featureFlag: string | null = route.featureFlag
+    if (permission != null && !context.permissions.includes(permission)) return false
+    if (featureFlag != null && !context.enabledFlags.includes(featureFlag)) return false
+    return true
+  }
+}

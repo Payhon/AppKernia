@@ -1,0 +1,26 @@
+import { AkRouteGuard, NavigationContext, RouteDefinition } from './route-guard.uts'
+
+export class AkNavigator {
+  private readonly guard: AkRouteGuard
+  private readonly routes: Map<string, RouteDefinition>
+
+  constructor(routes: Array<RouteDefinition>, guard: AkRouteGuard) {
+    this.guard = guard
+    this.routes = new Map<string, RouteDefinition>()
+    routes.forEach((route: RouteDefinition) => { this.routes.set(route.key, route) })
+  }
+
+  navigate(routeKey: string, context: NavigationContext): boolean {
+    const route = this.routes.get(routeKey)
+    if (route == null || !this.guard.canEnter(route, context)) {
+      uni.navigateTo({ url: '/pages/error/forbidden/index' })
+      return false
+    }
+    if (route.path == 'pages/home/index' || route.path == 'pages/profile/index' || route.path == 'pages/notifications/index') {
+      uni.switchTab({ url: '/' + route.path })
+    } else {
+      uni.navigateTo({ url: '/' + route.path })
+    }
+    return true
+  }
+}

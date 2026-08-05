@@ -1,0 +1,7 @@
+export type AkLocale = 'zh-CN' | 'en-US'
+
+export type TranslationParams = Map<string, string | number>
+
+export interface AkCatalog {
+  get(key: string): string | null
+}

@@ -1,0 +1,48 @@
+import { AkConfig } from '../../../core/config/config.uts'
+import { AkError } from '../../../core/errors/ak-error.uts'
+import { HttpCancellation } from '../../../core/network/http-port.uts'
+import { RefreshCoordinator } from '../../../core/network/refresh-coordinator.uts'
+import { SessionStore } from '../../../core/stores/session-store.uts'
+
+class DownloadCancellation implements HttpCancellation {
+  private task: DownloadTask | null = null
+  private cancelled: boolean = false
+  setTask(task: DownloadTask): void { this.task = task; if (this.cancelled) task.abort() }
+  cancel(): void { this.cancelled = true; if (this.task != null) this.task.abort() }
+  isCancelled(): boolean { return this.cancelled }
+}
+
+/** Downloads only server-derived article asset paths with Authorization; tokens never enter URLs. */
+export class ArticleAssetLoader {
+  private readonly config: AkConfig
+  private readonly session: SessionStore
+  private readonly refresh: RefreshCoordinator
+  constructor(config: AkConfig, session: SessionStore, refresh: RefreshCoordinator) { this.config = config; this.session = session; this.refresh = refresh }
+
+  load(path: string, onSuccess: (localPath: string) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const cancellation = new DownloadCancellation()
+    this.attempt(path, false, cancellation, onSuccess, onFailure)
+    return cancellation
+  }
+
+  private attempt(path: string, replayed: boolean, cancellation: DownloadCancellation, onSuccess: (localPath: string) => void, onFailure: (error: AkError) => void): void {
+    const url = this.assetUrl(path)
+    if (url == null) { onFailure(new AkError('forbidden', 'article.asset.invalid_path', 'errors.auth.forbidden', null)); return }
+    const token = this.session.getAccessToken()
+    if (token == null) { onFailure(new AkError('unauthorized', 'auth.unauthorized', 'errors.auth.unauthorized', null)); return }
+    const task = uni.downloadFile({ url, header: { Authorization: 'Bearer ' + token }, success: result => {
+      if (cancellation.isCancelled()) return
+      if (result.statusCode >= 200 && result.statusCode < 300) { onSuccess(result.tempFilePath); return }
+      if (result.statusCode == 401 && !replayed) { this.refresh.refresh(() => { if (!cancellation.isCancelled()) this.attempt(path, true, cancellation, onSuccess, onFailure) }, onFailure); return }
+      onFailure(this.error(result.statusCode))
+    }, fail: () => { if (!cancellation.isCancelled()) onFailure(new AkError('network_unavailable', 'request.network_unavailable', 'errors.request.network_unavailable', null)) } })
+    cancellation.setTask(task)
+  }
+
+  private assetUrl(path: string): string | null {
+    if (!/^\/api\/v1\/article-assets\/[0-9a-f-]{36}$/.test(path)) return null
+    const origin = this.config.apiBaseUrl.substring(0, this.config.apiBaseUrl.length - '/api/v1'.length)
+    return origin + path
+  }
+  private error(status: number): AkError { if (status == 401) return new AkError('unauthorized', 'auth.unauthorized', 'errors.auth.unauthorized', null); if (status == 403) return new AkError('forbidden', 'auth.forbidden', 'errors.auth.forbidden', null); return new AkError('unknown', 'article.asset.http_' + status.toString(), 'errors.unknown', null) }
+}

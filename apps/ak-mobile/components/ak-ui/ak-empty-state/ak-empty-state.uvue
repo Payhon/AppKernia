@@ -1,0 +1,5 @@
+<template>
+  <view class="ak-empty"><text class="ak-empty__title">{{ title }}</text><text v-if="description" class="ak-empty__description">{{ description }}</text><slot /></view>
+</template>
+<script lang="uts">export default { props: { title: { type: String, default: '' }, description: { type: String, default: '' } } }</script>
+<style lang="scss">.ak-empty { padding:40px 20px; align-items:center; }.ak-empty__title { color:var(--ak-text); font-size:18px; font-weight:600; }.ak-empty__description { color:var(--ak-muted); font-size:14px; margin-top:8px; text-align:center; }</style>

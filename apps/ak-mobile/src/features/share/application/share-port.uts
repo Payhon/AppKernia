@@ -1,0 +1,8 @@
+export type SharePayload = {
+  readonly title: string
+  readonly path: string
+}
+
+export interface SharePort {
+  share(payload: SharePayload, onSuccess: () => void, onFailure: () => void): void
+}

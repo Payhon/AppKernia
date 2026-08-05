@@ -1,0 +1,52 @@
+export type ArticleBodyFormat = 'markdown' | 'blocks'
+
+export type ArticleSummary = {
+  id: string
+  slug: string
+  featured: boolean
+  publishedAt: string
+  coverUrl: string | null
+  title: string
+  summary: string
+  categorySlug: string
+  categoryName: string
+  bookmarked: boolean
+  readingMinutes: number
+}
+
+export type ArticleDetail = {
+  id: string
+  slug: string
+  featured: boolean
+  publishedAt: string
+  coverUrl: string | null
+  title: string
+  summary: string
+  categorySlug: string
+  categoryName: string
+  bookmarked: boolean
+  readingMinutes: number
+  bodyFormat: ArticleBodyFormat
+  body: string
+}
+
+export type ArticlePage = {
+  items: Array<ArticleSummary>
+  nextCursor: string | null
+}
+
+export type ArticleCategory = {
+  id: string
+  slug: string
+  sortOrder: number
+  name: string
+  description: string
+}
+
+export type ArticleQuery = {
+  query: string | null
+  category: string | null
+  featured: boolean | null
+  cursor: string | null
+  limit: number
+}

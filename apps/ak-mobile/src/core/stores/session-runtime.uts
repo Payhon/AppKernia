@@ -1,0 +1,54 @@
+import { PersistedSessionCredential, SecureSessionStoragePort, SessionCredential } from './secure-session-storage-port.uts'
+import { SessionStore } from './session-store.uts'
+
+/** Keeps the in-memory token projection in sync with a secure storage adapter. */
+export class SessionRuntime {
+  private readonly session: SessionStore
+  private readonly storage: SecureSessionStoragePort
+
+  constructor(session: SessionStore, storage: SecureSessionStoragePort) {
+    this.session = session
+    this.storage = storage
+  }
+
+  /**
+   * Restoring never revives an old access token. The caller must exchange the
+   * returned refresh token before setting SessionStore access state.
+   */
+  restore(onComplete: (credential: PersistedSessionCredential | null) => void): void {
+    this.storage.read((credential: PersistedSessionCredential | null) => {
+      this.session.clear()
+      onComplete(credential)
+    }, () => {
+      this.session.clear()
+      onComplete(null)
+    })
+  }
+
+  readCredential(onComplete: (credential: PersistedSessionCredential | null) => void): void {
+    this.storage.read(onComplete, () => onComplete(null))
+  }
+
+  establish(credential: SessionCredential, onSuccess: () => void, onFailure: () => void): void {
+    const persisted: PersistedSessionCredential = {
+      refreshToken: credential.refreshToken,
+      deviceKey: credential.deviceKey,
+      sessionId: credential.sessionId,
+      subjectVersion: credential.subjectVersion,
+    }
+    this.storage.write(persisted, () => {
+      this.session.setAccessToken(credential.accessToken, credential.subjectVersion)
+      onSuccess()
+    }, onFailure)
+  }
+
+  signOut(onComplete: () => void): void {
+    this.storage.clear(() => {
+      this.session.clear()
+      onComplete()
+    }, () => {
+      this.session.clear()
+      onComplete()
+    })
+  }
+}

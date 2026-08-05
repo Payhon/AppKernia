@@ -1,7 +1,31 @@
 {
-  "pages": [],
-  "globalStyle": {
-    "navigationBarTitleText": "AppKernia"
-  }
+  "easycom": { "autoscan": true, "custom": { "^ak-(.*)": "@/components/ak-ui/ak-$1/ak-$1.uvue" } },
+  "pages": [
+    { "path": "pages/bootstrap/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/home/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/auth/login/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/notifications/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/basic/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/edit/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/security/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/change-password/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/sessions/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/devices/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/settings/language/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/settings/notifications/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/settings/appearance/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/help/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/about/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/articles/list/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/articles/detail/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/error/forbidden/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/error/offline/index", "style": { "navigationStyle": "custom" } }
+  ],
+  "tabBar": { "color": "#64748B", "selectedColor": "#2563EB", "borderStyle": "white", "list": [
+    { "pagePath": "pages/home/index", "text": "首页" },
+    { "pagePath": "pages/notifications/index", "text": "消息" },
+    { "pagePath": "pages/profile/index", "text": "我的" }
+  ] },
+  "globalStyle": { "navigationBarTitleText": "AppKernia", "backgroundColor": "#F8FAFC" }
 }
-

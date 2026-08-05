@@ -1,0 +1,30 @@
+import { AkLocale } from '../i18n/types.uts'
+import { AkError } from '../errors/ak-error.uts'
+
+export type HttpRequest<TBody> = {
+  readonly method: 'GET' | 'PATCH' | 'POST' | 'PUT' | 'DELETE'
+  readonly path: string
+  readonly query: Map<string, string>
+  readonly headers: Map<string, string>
+  readonly retryOnUnauthorized: boolean
+  readonly body: TBody | null
+  readonly locale: AkLocale
+}
+
+export type HttpResponse<TData> = {
+  readonly data: TData
+  readonly meta: HttpResponseMeta | null
+  readonly requestId: string | null
+}
+
+export type HttpResponseMeta = {
+  readonly nextCursor: string | null
+}
+
+export interface HttpCancellation {
+  cancel(): void
+}
+
+export interface AkHttpPort {
+  execute<TBody, TData>(request: HttpRequest<TBody>, onSuccess: (response: HttpResponse<TData>) => void, onFailure: (error: AkError) => void): HttpCancellation
+}

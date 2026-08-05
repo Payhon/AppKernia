@@ -1,0 +1,42 @@
+import { AkError } from '../errors/ak-error.uts'
+import { SessionRuntime } from '../stores/session-runtime.uts'
+import { MobileAuthService } from '../../features/auth/mobile-auth-service.uts'
+
+type RefreshWaiter = { readonly success: () => void; readonly failure: (error: AkError) => void }
+
+/** Serializes one-time refresh-token rotation; a failure clears the session. */
+export class RefreshCoordinator {
+  private readonly sessions: SessionRuntime
+  private readonly auth: MobileAuthService
+  private refreshing: boolean = false
+  private waiters: Array<RefreshWaiter> = []
+
+  constructor(sessions: SessionRuntime, auth: MobileAuthService) { this.sessions = sessions; this.auth = auth }
+
+  refresh(onSuccess: () => void, onFailure: (error: AkError) => void): void {
+    this.waiters.push({ success: onSuccess, failure: onFailure })
+    if (this.refreshing) return
+    this.refreshing = true
+    this.sessions.readCredential((credential) => {
+      if (credential == null || credential.refreshToken.length == 0) {
+        this.finishFailure(new AkError('unauthorized', 'auth.refresh_missing', 'errors.auth.unauthorized', null))
+        return
+      }
+      this.auth.refresh(credential.refreshToken, () => this.finishSuccess(), (error: AkError) => this.finishFailure(error))
+    })
+  }
+
+  private finishSuccess(): void {
+    const current = this.waiters
+    this.waiters = []
+    this.refreshing = false
+    current.forEach((waiter: RefreshWaiter) => waiter.success())
+  }
+
+  private finishFailure(error: AkError): void {
+    const current = this.waiters
+    this.waiters = []
+    this.refreshing = false
+    this.sessions.signOut(() => current.forEach((waiter: RefreshWaiter) => waiter.failure(error)))
+  }
+}

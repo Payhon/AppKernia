@@ -1,0 +1,33 @@
+{
+  "id": "ak-secure-storage",
+  "displayName": "AK Secure Storage",
+  "version": "1.0.0",
+  "description": "AK credential vault backed by Android Keystore, iOS Keychain, and HarmonyOS Asset Store Kit.",
+  "engines": {
+    "HBuilderX": "^5.06",
+    "uni-app-x": "^5.06"
+  },
+  "dcloudext": {
+    "type": "uts",
+    "declaration": {
+      "ads": "none",
+      "data": "Stores only caller-provided credential values in platform secure storage.",
+      "permissions": "none"
+    }
+  },
+  "uni_modules": {
+    "dependencies": [],
+    "encrypt": [],
+    "platforms": {
+      "client": {
+        "uni-app-x": {
+          "app": {
+            "android": "√",
+            "ios": "√",
+            "harmony": "√"
+          }
+        }
+      }
+    }
+  }
+}

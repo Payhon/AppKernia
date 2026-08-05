@@ -1,0 +1,119 @@
+<template>
+  <ak-theme-root><view class="page">
+    <view class="nav"><ak-back-button /><text class="nav-title">{{ t('routes.articles.detail.title', null) }}</text><ak-icon class="nav-icon" name="bookmark" @click="toggleBookmark" /></view>
+    <scroll-view class="content" scroll-y>
+      <ak-status-view v-if="state !== 'content'" :state="state" :title="stateTitle" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload" />
+      <view v-else>
+        <text class="category">{{ categoryName.length>0?categoryName:t('articles.uncategorized', null) }}</text>
+        <text class="title">{{ articleTitle }}</text>
+        <text class="meta">{{ publishedAt }} · {{ t('articles.readMinutes', readingParams) }}</text>
+        <image v-if="coverPath" class="hero" :src="coverPath" mode="aspectFill" /><view v-else class="hero hero-fallback" />
+        <view v-for="block in safeBlocks" :key="block.id" :class="block.kind === 'heading' ? 'body-heading' : block.kind === 'callout' ? 'callout' : 'body-paragraph'"><text>{{ block.text }}</text></view>
+      </view>
+    </scroll-view>
+    <view class="action-bar"><ak-button variant="secondary" :loading="mutating" :loading-text="t('state.mutating', null)" @click="toggleBookmark">{{ bookmarked ? t('common.bookmarked', null) : t('common.bookmark', null) }}</ak-button><ak-button variant="secondary" @click="share">{{ t('common.share', null) }}</ak-button></view>
+  </view></ak-theme-root>
+</template>
+
+<script lang="uts">
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+import { AkError } from '../../../src/core/errors/ak-error.uts'
+import { HttpCancellation } from '../../../src/core/network/http-port.uts'
+import { ArticleDetail } from '../../../src/features/articles/domain/models.uts'
+import { ArticleBodyBlock, ArticleBodyRenderer } from '../../../src/features/articles/application/article-body-renderer.uts'
+import { articleRuntime } from '../../../src/features/articles/infrastructure/article-runtime.uts'
+import { UniShareAdapter } from '../../../src/features/share/infrastructure/uni-share-adapter.uts'
+
+let pendingDetail: HttpCancellation | null = null
+let coverTask: HttpCancellation | null = null
+const articleBodyRenderer = new ArticleBodyRenderer()
+const shareAdapter = new UniShareAdapter()
+
+export default {
+  data() {
+    return { state: 'loading', bookmarked: false, mutating: false, slug: '', coverPath: '', articleId: '', articleTitle: '', categoryName: '', publishedAt: '', readingMinutes: 0, safeBlocks: [] as Array<ArticleBodyBlock> }
+  },
+  computed: {
+    t() { return akI18n.t },
+    stateTitle() {
+      if (this.state == 'offline') return akI18n.t('state.offline.title', null)
+      if (this.state == 'forbidden') return akI18n.t('state.forbidden.title', null)
+      return akI18n.t('state.error.title', null)
+    },
+    readingParams() { return new Map<string, any>([['count', this.readingMinutes]]) },
+  },
+  onLoad(options: UTSJSONObject) {
+    const rawSlug: string | null = options.getString('slug')
+    this.slug = rawSlug != null ? rawSlug : ''
+    this.reload()
+  },
+  onUnload() {
+    const detailTask = pendingDetail
+    if (detailTask != null) detailTask.cancel()
+    pendingDetail = null
+    const imageTask = coverTask
+    if (imageTask != null) imageTask.cancel()
+    coverTask = null
+  },
+  methods: {
+    reload() {
+      const currentDetail = pendingDetail
+      if (currentDetail != null) currentDetail.cancel()
+      if (this.slug.length == 0) { this.state = 'error'; return }
+      const repository = articleRuntime.getRepository()
+      if (repository == null) { this.state = 'error'; return }
+      this.state = 'loading'
+      pendingDetail = repository.detail(this.slug, (result: ArticleDetail) => {
+        this.articleId = result.id
+        this.articleTitle = result.title
+        this.categoryName = result.categoryName
+        this.publishedAt = result.publishedAt
+        this.readingMinutes = result.readingMinutes
+        this.safeBlocks = articleBodyRenderer.render(result.bodyFormat, result.body)
+        this.bookmarked = result.bookmarked
+        this.loadCover(result.coverUrl)
+        this.state = 'content'
+        pendingDetail = null
+      }, (error: AkError) => {
+        this.state = this.errorState(error)
+        pendingDetail = null
+      })
+    },
+    loadCover(path: string | null) { const currentTask = coverTask; if (currentTask != null) currentTask.cancel(); this.coverPath = ''; if (path == null) return; const loader = articleRuntime.getAssetLoader(); if (loader == null) return; coverTask = loader.load(path, localPath => { this.coverPath = localPath; coverTask = null }, () => { coverTask = null }) },
+    errorState(error: AkError): string {
+      if (error.kind == 'network_unavailable' || error.kind == 'timeout') return 'offline'
+      if (error.kind == 'forbidden') return 'forbidden'
+      return 'error'
+    },
+    toggleBookmark() {
+      if (this.mutating || this.articleId.length == 0) return
+      const repository = articleRuntime.getRepository()
+      if (repository == null) return
+      this.mutating = true
+      const nextBookmarked: boolean = !this.bookmarked
+      repository.setBookmark(this.articleId, nextBookmarked, () => { this.bookmarked = nextBookmarked; this.mutating = false }, () => { this.mutating = false })
+    },
+    share() {
+      const path: string = '/pages/articles/detail/index?slug=' + encodeURIComponent(this.slug)
+      shareAdapter.share({ title: this.articleTitle, path: path }, () => {}, () => {})
+    },
+  },
+}
+</script>
+
+<style lang="scss">
+.page { height:100%;flex:1; background:var(--ak-page); }
+.nav { height:60px; padding:8px 16px; flex-direction:row; align-items:center; justify-content:space-between; }
+.nav-icon { width:44px; height:44px; }
+.nav-title { color:var(--ak-text); font-size:20px; font-weight:600; }
+.content { height:640px; padding:20px 16px; }
+.category { color:var(--ak-brand); font-size:14px; border:1px solid var(--ak-brand); border-radius:6px; padding:4px 8px; }
+.title { color:var(--ak-text); font-size:30px; line-height:40px; font-weight:600; margin-top:20px; }
+.meta { color:var(--ak-muted); font-size:14px; margin-top:12px; }
+.hero { width:100%; height:260px; margin:24px 0; border-radius:12px; }
+.hero-fallback { background:var(--ak-accent-surface); }
+.body-heading { color:var(--ak-text); font-size:24px; line-height:32px; font-weight:600; margin:24px 0 12px; }
+.body-paragraph { color:var(--ak-text); font-size:17px; line-height:30px; margin:12px 0; }
+.callout { color:var(--ak-callout-text); background:var(--ak-accent-surface); border-left:3px solid var(--ak-brand); border-radius:8px; padding:16px; margin:20px 0; }
+.action-bar { height:76px; padding:12px 16px; flex-direction:row; align-items:center; border-top:1px solid var(--ak-border); background:var(--ak-surface); }
+</style>

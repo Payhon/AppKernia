@@ -1,0 +1,140 @@
+import { AkConfig } from '../config/config.uts'
+import { AkError } from '../errors/ak-error.uts'
+import { SessionStore } from '../stores/session-store.uts'
+import { AkHttpPort, HttpCancellation, HttpRequest, HttpResponse, HttpResponseMeta } from './http-port.uts'
+
+type ApiMeta = {
+  readonly next_cursor: string | null
+}
+
+type ApiEnvelope<TData> = {
+  readonly code: string
+  readonly message: string
+  readonly data: TData | null
+  readonly meta: ApiMeta | null
+  readonly request_id: string | null
+}
+
+class UniRequestCancellation implements HttpCancellation {
+  private task: RequestTask | null = null
+  private cancelled: boolean = false
+
+  setTask(task: RequestTask): void {
+    this.task = task
+    if (this.cancelled) {
+      task.abort()
+    }
+  }
+
+  cancel(): void {
+    this.cancelled = true
+    if (this.task != null) {
+      this.task.abort()
+    }
+  }
+
+  isCancelled(): boolean {
+    return this.cancelled
+  }
+}
+
+/**
+ * Mobile API client. It owns platform request cancellation and normalizes the
+ * outer API envelope exactly once before repositories receive a response.
+ */
+export class AkHttpClient implements AkHttpPort {
+  private readonly config: AkConfig
+  private readonly session: SessionStore
+
+  constructor(config: AkConfig, session: SessionStore) {
+    this.config = config
+    this.session = session
+  }
+
+  execute<TBody, TData>(request: HttpRequest<TBody>, onSuccess: (response: HttpResponse<TData>) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const cancellation = new UniRequestCancellation()
+    const url: string = this.buildUrl(request.path, request.query)
+    const token: string | null = this.session.getAccessToken()
+    const headers: UTSJSONObject = {
+      'Accept-Language': request.locale,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    }
+    if (token != null) headers['Authorization'] = 'Bearer ' + token
+    request.headers.forEach((value: string, key: string) => { headers[key] = value })
+    const task = uni.request({
+      url: url,
+      method: request.method,
+      data: request.body,
+      header: headers,
+      timeout: this.config.requestTimeoutMs,
+      success: (result) => {
+        if (cancellation.isCancelled()) {
+          onFailure(new AkError('cancelled', 'request.cancelled', 'errors.request.cancelled', null))
+          return
+        }
+        const requestId: string | null = this.headerString(result.header as UTSJSONObject, 'x-request-id')
+        if (result.statusCode < 200 || result.statusCode >= 300) {
+          onFailure(this.errorFromStatus(result.statusCode, requestId))
+          return
+        }
+        const envelope = result.data as ApiEnvelope<TData>
+        if (envelope == null || envelope.data == null || envelope.code != 'OK') {
+          const stableCode: string = envelope != null ? envelope.code : 'response.invalid_envelope'
+          onFailure(new AkError('unknown', stableCode, 'errors.unknown', requestId))
+          return
+        }
+        const nextCursor: string | null = envelope.meta != null && envelope.meta.next_cursor != null && envelope.meta.next_cursor.length > 0 ? envelope.meta.next_cursor : null
+        const meta: HttpResponseMeta | null = envelope.meta != null ? { nextCursor: nextCursor } : null
+        const response: HttpResponse<TData> = {
+          data: envelope.data,
+          meta: meta,
+          requestId: envelope.request_id != null ? envelope.request_id : requestId,
+        }
+        onSuccess(response as HttpResponse<TData>)
+      },
+      fail: (failure) => {
+        if (cancellation.isCancelled()) {
+          onFailure(new AkError('cancelled', 'request.cancelled', 'errors.request.cancelled', null))
+          return
+        }
+        const message: string = failure.errMsg != null ? failure.errMsg.toLowerCase() : ''
+        if (message.indexOf('timeout') >= 0) {
+          onFailure(new AkError('timeout', 'request.timeout', 'errors.request.timeout', null))
+          return
+        }
+        onFailure(new AkError('network_unavailable', 'request.network_unavailable', 'errors.request.network_unavailable', null))
+      },
+    })
+    cancellation.setTask(task)
+    return cancellation
+  }
+
+  private buildUrl(path: string, query: Map<string, string>): string {
+    const normalizedPath: string = path.startsWith('/') ? path : '/' + path
+    let url: string = this.config.apiBaseUrl + normalizedPath
+    let separator: string = '?'
+    query.forEach((value: string, key: string) => {
+      url = url + separator + encodeURIComponent(key) + '=' + encodeURIComponent(value)
+      separator = '&'
+    })
+    return url
+  }
+
+  private headerString(headers: UTSJSONObject | null, key: string): string | null {
+    if (headers == null) return null
+      const value: any | null = headers[key]
+    return typeof value == 'string' ? value : null
+  }
+
+  private errorFromStatus(statusCode: number, requestId: string | null): AkError {
+    if (statusCode == 401) return new AkError('unauthorized', 'auth.unauthorized', 'errors.auth.unauthorized', requestId)
+    if (statusCode == 403) return new AkError('forbidden', 'auth.forbidden', 'errors.auth.forbidden', requestId)
+    if (statusCode == 409) return new AkError('conflict', 'request.conflict', 'errors.request.conflict', requestId)
+    if (statusCode == 422) return new AkError('validation', 'request.validation', 'errors.request.validation', requestId)
+    if (statusCode == 429) return new AkError('rate_limited', 'request.rate_limited', 'errors.request.rate_limited', requestId)
+    if (statusCode == 503) return new AkError('maintenance', 'request.maintenance', 'errors.request.maintenance', requestId)
+    if (statusCode >= 500) return new AkError('server_error', 'request.server_error', 'errors.request.server_error', requestId)
+    return new AkError('unknown', 'request.http_' + statusCode.toString(), 'errors.unknown', requestId)
+  }
+}

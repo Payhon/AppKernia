@@ -424,6 +424,24 @@
       }
     },
     {
+      "component_key": "system.content.articles",
+      "view": ["content.article.read"],
+      "actions": {"create": "content.article.create", "update": "content.article.update", "delete": "content.article.delete", "publish": "content.article.publish", "archive": "content.article.archive"},
+      "permission_status": {"content.article.read": "existing", "content.article.create": "existing", "content.article.update": "existing", "content.article.delete": "existing", "content.article.publish": "existing", "content.article.archive": "existing"}
+    },
+    {
+      "component_key": "system.content.categories",
+      "view": ["content.category.read"],
+      "actions": {"create": "content.category.create", "update": "content.category.update", "delete": "content.category.delete"},
+      "permission_status": {"content.category.read": "existing", "content.category.create": "existing", "content.category.update": "existing", "content.category.delete": "existing"}
+    },
+    {
+      "component_key": "system.mobile.releases",
+      "view": ["mobile.release.read"],
+      "actions": {"create": "mobile.release.create", "update": "mobile.release.update"},
+      "permission_status": {"mobile.release.read": "existing", "mobile.release.create": "existing", "mobile.release.update": "existing"}
+    },
+    {
       "component_key": "profile.basic",
       "view": [],
       "actions": {},

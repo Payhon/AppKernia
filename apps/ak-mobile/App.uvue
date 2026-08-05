@@ -1,6 +1,7 @@
 <script lang="uts">
+import { themeStore } from './src/core/theme/theme-store.uts'
+
 export default {
-  onLaunch() {},
+  onLaunch() { themeStore.initialize() },
 }
 </script>
-

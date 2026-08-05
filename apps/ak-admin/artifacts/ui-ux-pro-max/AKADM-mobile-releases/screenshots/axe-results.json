@@ -1,0 +1,18 @@
+{
+  "zh-CN.1440": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "zh-CN.drawer.1440": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "en-US.375": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "console": {
+    "unexpected_errors": [],
+    "expected_conflict_errors": 1
+  }
+}

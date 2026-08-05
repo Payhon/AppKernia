@@ -420,6 +420,46 @@
       "backend_status": "existing"
     },
     {
+      "component_key": "system.content.articles",
+      "path": "/system/content/articles",
+      "file": "src/routes/system.content.articles.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": ["content.article.read"],
+      "title_key": "routes.system.content.articles.title",
+      "menu_code": "system.content.articles",
+      "active_menu_code": "system.content.articles"
+    },
+    {
+      "component_key": "system.content.categories",
+      "path": "/system/content/categories",
+      "file": "src/routes/system.content.categories.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": ["content.category.read"],
+      "title_key": "routes.system.content.categories.title",
+      "menu_code": "system.content.categories",
+      "active_menu_code": "system.content.categories"
+    },
+    {
+      "component_key": "system.mobile.releases",
+      "path": "/system/mobile/releases",
+      "file": "src/routes/system.mobile.releases.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": ["mobile.release.read"],
+      "title_key": "routes.system.mobile.releases.title",
+      "menu_code": "system.mobile.releases",
+      "active_menu_code": "system.mobile.releases",
+      "backend_status": "delta_required"
+    },
+    {
       "component_key": "profile.basic",
       "path": "/profile/basic",
       "file": "src/routes/_app/profile/basic.tsx",

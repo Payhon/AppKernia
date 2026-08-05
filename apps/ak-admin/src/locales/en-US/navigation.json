@@ -141,5 +141,13 @@
   "routes.system.users.tenants.title": "Tenants",
   "shell.switch_tenant": "Switch workspace",
   "shell.tenant_switch_error": "Could not switch workspace. Try again.",
-  "shell.tenant_switch_success": "Workspace switched"
+  "shell.tenant_switch_success": "Workspace switched",
+  "menu.system.content": "Content management",
+  "menu.system.content.articles": "Articles",
+  "menu.system.content.categories": "Article categories",
+  "routes.system.content.articles.title": "Article management",
+  "routes.system.content.categories.title": "Article categories",
+  "menu.system.mobile": "Mobile management",
+  "menu.system.mobile.releases": "Release policies",
+  "routes.system.mobile.releases.title": "Mobile release policies"
 }

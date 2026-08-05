@@ -1,0 +1,65 @@
+import {
+  SecureStorageAccessibility,
+  SecureStorageAvailability,
+  SecureStorageAvailabilityApi,
+  SecureStorageClearNamespace,
+  SecureStorageFailure,
+  SecureStorageGet,
+  SecureStorageReadSuccess,
+  SecureStorageRemove,
+  SecureStorageSet,
+  SecureStorageSuccess,
+} from '../interface.uts'
+
+const MAX_KEY_LENGTH = 96
+const MAX_VALUE_LENGTH = 8192
+
+function isValidKey(key: string): boolean {
+  return key.length > 0 && key.length <= MAX_KEY_LENGTH && key.indexOf('..') < 0
+}
+
+export const availability: SecureStorageAvailabilityApi = function (): SecureStorageAvailability {
+  const available = AkSecureStorageIOSBridge.isAvailable()
+  return new SecureStorageAvailability(available, 'ios', available ? null : 'unavailable')
+}
+
+export const set: SecureStorageSet = function (
+  key: string,
+  value: string,
+  accessibility: SecureStorageAccessibility,
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  if (!isValidKey(key)) { onFailure('invalid_argument'); return }
+  if (value.length > MAX_VALUE_LENGTH) { onFailure('value_too_large'); return }
+  if (AkSecureStorageIOSBridge.write(key, value = value)) onSuccess()
+  else onFailure('native_failure')
+}
+
+export const get: SecureStorageGet = function (
+  key: string,
+  onSuccess: SecureStorageReadSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  if (!isValidKey(key)) { onFailure('invalid_argument'); return }
+  // Keychain reports a missing account as null. It exposes no native detail.
+  onSuccess(AkSecureStorageIOSBridge.read(key))
+}
+
+export const remove: SecureStorageRemove = function (
+  key: string,
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  if (!isValidKey(key)) { onFailure('invalid_argument'); return }
+  if (AkSecureStorageIOSBridge.remove(key)) onSuccess()
+  else onFailure('native_failure')
+}
+
+export const clearNamespace: SecureStorageClearNamespace = function (
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  if (AkSecureStorageIOSBridge.clearNamespace()) onSuccess()
+  else onFailure('native_failure')
+}

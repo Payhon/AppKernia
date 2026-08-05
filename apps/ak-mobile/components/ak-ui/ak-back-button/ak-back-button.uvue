@@ -1,0 +1,15 @@
+<template>
+  <navigator class="ak-back-button" open-type="navigateBack" url="/" :delta="delta">
+    <ak-icon name="back" />
+  </navigator>
+</template>
+
+<script lang="uts">
+export default {
+  props: { delta: { type: Number, default: 1 } },
+}
+</script>
+
+<style lang="scss">
+.ak-back-button { width:44px; height:44px; align-items:center; justify-content:center; }
+</style>

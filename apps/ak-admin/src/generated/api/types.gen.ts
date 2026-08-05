@@ -2129,6 +2129,194 @@ export type AdminBlockRuleRevokeResponse = {
     request_id: string;
 };
 
+export type ContentTranslation = {
+    title: string;
+    summary: string;
+    body_format: 'markdown' | 'blocks';
+    /**
+     * Restricted Markdown string or validated block array. Client rendering must sanitize Markdown and never render unsafe HTML.
+     */
+    body: unknown;
+};
+
+export type ContentCategoryTranslation = {
+    name: string;
+    description: string;
+};
+
+export type AdminContentTranslations = {
+    'zh-CN': ContentTranslation;
+    'en-US': ContentTranslation;
+};
+
+export type AdminContentCategoryTranslations = {
+    'zh-CN': ContentCategoryTranslation;
+    'en-US': ContentCategoryTranslation;
+};
+
+export type AdminContentCategory = {
+    id: string;
+    slug: string;
+    status: 'active' | 'disabled';
+    sort_order: number;
+    lock_version: number;
+    translations: AdminContentCategoryTranslations;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AdminContentCategoryRequest = {
+    slug: string;
+    status: 'active' | 'disabled';
+    sort_order: number;
+    lock_version?: number;
+    translations: AdminContentCategoryTranslations;
+};
+
+export type AdminContentCategoryUpdateRequest = AdminContentCategoryRequest & {
+    lock_version: number;
+};
+
+export type AdminContentArticle = {
+    id: string;
+    category_id?: string | null;
+    slug: string;
+    status: 'draft' | 'published' | 'archived';
+    featured: boolean;
+    sort_order: number;
+    cover_file_id?: string | null;
+    /**
+     * Server-derived safe URL only
+     */
+    cover_url?: string | null;
+    reading_minutes: number;
+    lock_version: number;
+    published_at?: string | null;
+    translations: AdminContentTranslations;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AdminContentArticleRequest = {
+    category_id?: string | null;
+    slug: string;
+    featured: boolean;
+    sort_order: number;
+    cover_file_id?: string | null;
+    reading_minutes: number;
+    lock_version?: number;
+    translations: AdminContentTranslations;
+};
+
+export type AdminContentArticleUpdateRequest = AdminContentArticleRequest & {
+    lock_version: number;
+};
+
+export type AdminContentTransitionRequest = {
+    lock_version: number;
+};
+
+export type AdminContentCategoryResponse = {
+    code: string;
+    message: string;
+    data: AdminContentCategory;
+    request_id: string;
+};
+
+export type AdminContentCategoryListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AdminContentCategory>;
+        page: number;
+        page_size: number;
+        total: number;
+    };
+    request_id: string;
+};
+
+export type AdminContentArticleResponse = {
+    code: string;
+    message: string;
+    data: AdminContentArticle;
+    request_id: string;
+};
+
+export type AdminContentArticleListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AdminContentArticle>;
+        page: number;
+        page_size: number;
+        total: number;
+    };
+    request_id: string;
+};
+
+export type AppArticle = {
+    id: string;
+    slug: string;
+    featured: boolean;
+    published_at: string;
+    title: string;
+    summary: string;
+    body_format: 'markdown' | 'blocks';
+    body: unknown;
+    category: AppArticleCategory | null;
+    reading_minutes: number;
+    /**
+     * Authenticated same-origin article asset path for a published scan-safe image.
+     */
+    cover_url?: string | null;
+    bookmarked: boolean;
+};
+
+export type AppArticleCategory = {
+    id: string;
+    slug: string;
+    sort_order: number;
+    name: string;
+    description: string;
+};
+
+export type AppArticleCategoryListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AppArticleCategory>;
+    };
+    request_id: string;
+};
+
+export type AppArticleResponse = {
+    code: string;
+    message: string;
+    data: AppArticle;
+    request_id: string;
+};
+
+export type AppArticleListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AppArticle>;
+    };
+    meta: {
+        next_cursor?: string | null;
+    };
+    request_id: string;
+};
+
+export type AppBookmarkResponse = {
+    code: string;
+    message: string;
+    data: {
+        bookmarked: boolean;
+    };
+    request_id: string;
+};
+
 export type AdminOpsStatus = 'ready' | 'degraded' | 'unavailable' | 'not_configured' | 'unknown';
 
 export type AdminOpsDependency = {
@@ -2194,6 +2382,294 @@ export type AdminOpsRuntimeResponse = {
     code: string;
     message: string;
     data: AdminOpsRuntime;
+    request_id: string;
+};
+
+export type MobilePasswordLoginRequest = {
+    email: string;
+    password: string;
+};
+
+export type MobileRefreshRequest = {
+    /**
+     * Opaque token held only in mobile secure storage.
+     */
+    refresh_token: string;
+};
+
+export type MobileToken = {
+    access_token: string;
+    token_type: 'Bearer';
+    expires_in: number;
+    refresh_token: string;
+    refresh_token_expires_in: number;
+    session_id: string;
+};
+
+export type MobileTokenResponse = {
+    code: string;
+    message: string;
+    data: MobileToken;
+    request_id: string;
+};
+
+export type SelfPasswordChangeRequest = {
+    current_password: string;
+    new_password: string;
+};
+
+export type SelfProfile = {
+    id: string;
+    email: string;
+    display_name: string;
+    locale: SupportedLocale;
+    time_zone: string;
+    avatar_url?: string | null;
+};
+
+export type SelfProfileResponse = {
+    code: string;
+    message: string;
+    data: SelfProfile;
+    request_id: string;
+};
+
+export type SelfProfileUpdateRequest = {
+    display_name?: string;
+    locale?: SupportedLocale;
+    time_zone?: string;
+};
+
+export type MobileContextResponse = {
+    code: string;
+    message: string;
+    data: {
+        user: SelfProfile;
+        active_tenant: {
+            [key: string]: unknown;
+        };
+        roles: Array<string>;
+        permissions: Array<string>;
+        feature_flags: {
+            [key: string]: boolean;
+        };
+        server_time: string;
+    };
+    request_id: string;
+};
+
+export type MobileSession = {
+    id: string;
+    audience: 'ak-mobile';
+    status: string;
+    ip_address?: string | null;
+    user_agent?: string;
+    last_seen_at: string;
+    absolute_expires_at: string;
+    created_at: string;
+    current: boolean;
+};
+
+export type MobileSessionListResponse = {
+    code: string;
+    message: string;
+    data: Array<MobileSession>;
+    request_id: string;
+};
+
+export type MobileDevice = {
+    id: string;
+    platform: string;
+    device_name: string;
+    model: string;
+    os_version: string;
+    app_version: string;
+    last_ip?: string | null;
+    last_seen_at?: string | null;
+    created_at: string;
+    latest_user_agent: string;
+    active_session_count: number;
+    current: boolean;
+};
+
+export type MobileDeviceListResponse = {
+    code: string;
+    message: string;
+    data: Array<MobileDevice>;
+    request_id: string;
+};
+
+export type MobilePreferences = {
+    locale: SupportedLocale;
+    appearance: 'system' | 'light' | 'dark';
+    notification_preferences: {
+        in_app?: boolean;
+        push?: boolean;
+        email?: boolean;
+    };
+};
+
+export type MobilePreferencesUpdateRequest = {
+    locale?: SupportedLocale;
+    appearance?: 'system' | 'light' | 'dark';
+    notification_preferences?: {
+        in_app?: boolean;
+        push?: boolean;
+        email?: boolean;
+    };
+};
+
+export type MobilePreferencesResponse = {
+    code: string;
+    message: string;
+    data: MobilePreferences;
+    request_id: string;
+};
+
+export type MobileNotificationPreferences = {
+    notification_preferences: {
+        in_app?: boolean;
+        push?: boolean;
+        email?: boolean;
+    };
+};
+
+export type MobileNotificationPreferencesUpdateRequest = MobileNotificationPreferences;
+
+export type MobileNotificationPreferencesResponse = {
+    code: string;
+    message: string;
+    data: MobileNotificationPreferences;
+    request_id: string;
+};
+
+export type MobileUnreadCountResponse = {
+    code: string;
+    message: string;
+    data: {
+        count: number;
+    };
+    request_id: string;
+};
+
+export type MobileLoginEvent = {
+    id: string;
+    auth_method: string;
+    result: string;
+    occurred_at: string;
+    ip_address?: string | null;
+};
+
+export type MobileLoginEventListResponse = {
+    code: string;
+    message: string;
+    data: Array<MobileLoginEvent>;
+    request_id: string;
+};
+
+export type MobileSecurityEvent = {
+    id: string;
+    event_type: string;
+    severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+    occurred_at: string;
+};
+
+export type MobileSecurityEventListResponse = {
+    code: string;
+    message: string;
+    data: Array<MobileSecurityEvent>;
+    request_id: string;
+};
+
+export type MobileAppVersionResponse = {
+    code: string;
+    message: string;
+    data: MobileAppVersion;
+    request_id: string;
+};
+
+export type MobileAppVersion = {
+    platform: 'android' | 'ios' | 'harmony';
+    current_version: string;
+    minimum_version: string;
+    upgrade_url?: string | null;
+    release_notes: string;
+};
+
+export type BooleanSuccessResponse = {
+    code: string;
+    message: string;
+    data: {
+        [key: string]: unknown;
+    };
+    request_id: string;
+};
+
+export type MobileNotification = {
+    id: string;
+    title: string;
+    body: string;
+    body_format: 'plain' | 'markdown' | 'html';
+    message_type: string;
+    created_at: string;
+    read_at?: string | null;
+};
+
+export type MobileNotificationPageResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<MobileNotification>;
+        next_cursor?: string | null;
+    };
+    request_id: string;
+};
+
+export type AdminMobileRelease = {
+    id: string;
+    platform: 'android' | 'ios' | 'harmony';
+    current_version: string;
+    minimum_version: string;
+    upgrade_url?: string | null;
+    release_notes: {
+        'zh-CN': string;
+        'en-US': string;
+    };
+    active: boolean;
+    lock_version: number;
+    updated_at: string;
+};
+
+export type AdminMobileReleaseRequest = {
+    /**
+     * Immutable after creation; PATCH must match the stored platform.
+     */
+    platform: 'android' | 'ios' | 'harmony';
+    current_version: string;
+    /**
+     * Must not exceed current_version.
+     */
+    minimum_version: string;
+    upgrade_url?: string | null;
+    release_notes: {
+        'zh-CN': string;
+        'en-US': string;
+    };
+    active: boolean;
+    lock_version?: number;
+};
+
+export type AdminMobileReleaseResponse = {
+    code: string;
+    message: string;
+    data: AdminMobileRelease;
+    request_id: string;
+};
+
+export type AdminMobileReleaseListResponse = {
+    code: string;
+    message: string;
+    data: Array<AdminMobileRelease>;
     request_id: string;
 };
 
@@ -2469,6 +2945,686 @@ export type ListAppRegionsResponses = {
 };
 
 export type ListAppRegionsResponse = ListAppRegionsResponses[keyof ListAppRegionsResponses];
+
+export type GetMobileAppVersionData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query: {
+        platform: 'android' | 'ios' | 'harmony';
+    };
+    url: '/api/v1/public/app-version';
+};
+
+export type GetMobileAppVersionErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * No active release policy exists for this platform.
+     */
+    503: ErrorResponse;
+};
+
+export type GetMobileAppVersionError = GetMobileAppVersionErrors[keyof GetMobileAppVersionErrors];
+
+export type GetMobileAppVersionResponses = {
+    /**
+     * Localized current version and upgrade policy without administrative fields.
+     */
+    200: MobileAppVersionResponse;
+};
+
+export type GetMobileAppVersionResponse = GetMobileAppVersionResponses[keyof GetMobileAppVersionResponses];
+
+export type MobilePasswordLoginData = {
+    body: MobilePasswordLoginRequest;
+    headers: {
+        'Accept-Language'?: string;
+        'X-AK-Device-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/login/password';
+};
+
+export type MobilePasswordLoginErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type MobilePasswordLoginError = MobilePasswordLoginErrors[keyof MobilePasswordLoginErrors];
+
+export type MobilePasswordLoginResponses = {
+    /**
+     * Bearer access token plus one-time opaque refresh token for secure platform storage.
+     */
+    200: MobileTokenResponse;
+};
+
+export type MobilePasswordLoginResponse = MobilePasswordLoginResponses[keyof MobilePasswordLoginResponses];
+
+export type MobileRefreshTokenData = {
+    body: MobileRefreshRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/token/refresh';
+};
+
+export type MobileRefreshTokenErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type MobileRefreshTokenError = MobileRefreshTokenErrors[keyof MobileRefreshTokenErrors];
+
+export type MobileRefreshTokenResponses = {
+    /**
+     * Refresh token rotated; old token is consumed.
+     */
+    200: MobileTokenResponse;
+};
+
+export type MobileRefreshTokenResponse = MobileRefreshTokenResponses[keyof MobileRefreshTokenResponses];
+
+export type MobileLogoutData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/logout';
+};
+
+export type MobileLogoutErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type MobileLogoutError = MobileLogoutErrors[keyof MobileLogoutErrors];
+
+export type MobileLogoutResponses = {
+    /**
+     * Session revoked
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type MobileLogoutResponse = MobileLogoutResponses[keyof MobileLogoutResponses];
+
+export type MobileAuthContextData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/context';
+};
+
+export type MobileAuthContextErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type MobileAuthContextError = MobileAuthContextErrors[keyof MobileAuthContextErrors];
+
+export type MobileAuthContextResponses = {
+    /**
+     * Authenticated mobile context
+     */
+    200: MobileContextResponse;
+};
+
+export type MobileAuthContextResponse = MobileAuthContextResponses[keyof MobileAuthContextResponses];
+
+export type MobileChangePasswordData = {
+    body: SelfPasswordChangeRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/password/change';
+};
+
+export type MobileChangePasswordErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type MobileChangePasswordError = MobileChangePasswordErrors[keyof MobileChangePasswordErrors];
+
+export type MobileChangePasswordResponses = {
+    /**
+     * Password changed
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type MobileChangePasswordResponse = MobileChangePasswordResponses[keyof MobileChangePasswordResponses];
+
+export type GetMobileMeData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me';
+};
+
+export type GetMobileMeErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type GetMobileMeError = GetMobileMeErrors[keyof GetMobileMeErrors];
+
+export type GetMobileMeResponses = {
+    /**
+     * Current profile
+     */
+    200: SelfProfileResponse;
+};
+
+export type GetMobileMeResponse = GetMobileMeResponses[keyof GetMobileMeResponses];
+
+export type UpdateMobileMeData = {
+    body: SelfProfileUpdateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me';
+};
+
+export type UpdateMobileMeErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateMobileMeError = UpdateMobileMeErrors[keyof UpdateMobileMeErrors];
+
+export type UpdateMobileMeResponses = {
+    /**
+     * Updated profile
+     */
+    200: SelfProfileResponse;
+};
+
+export type UpdateMobileMeResponse = UpdateMobileMeResponses[keyof UpdateMobileMeResponses];
+
+export type ListMobileSelfSessionsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/sessions';
+};
+
+export type ListMobileSelfSessionsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ListMobileSelfSessionsError = ListMobileSelfSessionsErrors[keyof ListMobileSelfSessionsErrors];
+
+export type ListMobileSelfSessionsResponses = {
+    /**
+     * Mobile sessions
+     */
+    200: MobileSessionListResponse;
+};
+
+export type ListMobileSelfSessionsResponse = ListMobileSelfSessionsResponses[keyof ListMobileSelfSessionsResponses];
+
+export type RevokeMobileSelfSessionData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/sessions/{id}';
+};
+
+export type RevokeMobileSelfSessionErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type RevokeMobileSelfSessionError = RevokeMobileSelfSessionErrors[keyof RevokeMobileSelfSessionErrors];
+
+export type RevokeMobileSelfSessionResponses = {
+    /**
+     * Session revoked
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type RevokeMobileSelfSessionResponse = RevokeMobileSelfSessionResponses[keyof RevokeMobileSelfSessionResponses];
+
+export type ListMobileSelfDevicesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/devices';
+};
+
+export type ListMobileSelfDevicesErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ListMobileSelfDevicesError = ListMobileSelfDevicesErrors[keyof ListMobileSelfDevicesErrors];
+
+export type ListMobileSelfDevicesResponses = {
+    /**
+     * Mobile devices
+     */
+    200: MobileDeviceListResponse;
+};
+
+export type ListMobileSelfDevicesResponse = ListMobileSelfDevicesResponses[keyof ListMobileSelfDevicesResponses];
+
+export type RemoveMobileSelfDeviceData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/devices/{id}';
+};
+
+export type RemoveMobileSelfDeviceErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type RemoveMobileSelfDeviceError = RemoveMobileSelfDeviceErrors[keyof RemoveMobileSelfDeviceErrors];
+
+export type RemoveMobileSelfDeviceResponses = {
+    /**
+     * Device removed
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type RemoveMobileSelfDeviceResponse = RemoveMobileSelfDeviceResponses[keyof RemoveMobileSelfDeviceResponses];
+
+export type GetMobilePreferencesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/preferences';
+};
+
+export type GetMobilePreferencesErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type GetMobilePreferencesError = GetMobilePreferencesErrors[keyof GetMobilePreferencesErrors];
+
+export type GetMobilePreferencesResponses = {
+    /**
+     * Current preferences
+     */
+    200: MobilePreferencesResponse;
+};
+
+export type GetMobilePreferencesResponse = GetMobilePreferencesResponses[keyof GetMobilePreferencesResponses];
+
+export type UpdateMobilePreferencesData = {
+    body: MobilePreferencesUpdateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/preferences';
+};
+
+export type UpdateMobilePreferencesErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateMobilePreferencesError = UpdateMobilePreferencesErrors[keyof UpdateMobilePreferencesErrors];
+
+export type UpdateMobilePreferencesResponses = {
+    /**
+     * Updated preferences
+     */
+    200: MobilePreferencesResponse;
+};
+
+export type UpdateMobilePreferencesResponse = UpdateMobilePreferencesResponses[keyof UpdateMobilePreferencesResponses];
+
+export type GetMobileNotificationPreferencesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/notification-preferences';
+};
+
+export type GetMobileNotificationPreferencesErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type GetMobileNotificationPreferencesError = GetMobileNotificationPreferencesErrors[keyof GetMobileNotificationPreferencesErrors];
+
+export type GetMobileNotificationPreferencesResponses = {
+    /**
+     * Current notification preferences only.
+     */
+    200: MobileNotificationPreferencesResponse;
+};
+
+export type GetMobileNotificationPreferencesResponse = GetMobileNotificationPreferencesResponses[keyof GetMobileNotificationPreferencesResponses];
+
+export type UpdateMobileNotificationPreferencesData = {
+    body: MobileNotificationPreferencesUpdateRequest;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/notification-preferences';
+};
+
+export type UpdateMobileNotificationPreferencesErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateMobileNotificationPreferencesError = UpdateMobileNotificationPreferencesErrors[keyof UpdateMobileNotificationPreferencesErrors];
+
+export type UpdateMobileNotificationPreferencesResponses = {
+    /**
+     * Updated notification preferences only.
+     */
+    200: MobileNotificationPreferencesResponse;
+};
+
+export type UpdateMobileNotificationPreferencesResponse = UpdateMobileNotificationPreferencesResponses[keyof UpdateMobileNotificationPreferencesResponses];
+
+export type GetMobileUnreadNotificationCountData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/notifications/unread-count';
+};
+
+export type GetMobileUnreadNotificationCountErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type GetMobileUnreadNotificationCountError = GetMobileUnreadNotificationCountErrors[keyof GetMobileUnreadNotificationCountErrors];
+
+export type GetMobileUnreadNotificationCountResponses = {
+    /**
+     * Unread count
+     */
+    200: MobileUnreadCountResponse;
+};
+
+export type GetMobileUnreadNotificationCountResponse = GetMobileUnreadNotificationCountResponses[keyof GetMobileUnreadNotificationCountResponses];
+
+export type ListMobileNotificationsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/me/notifications';
+};
+
+export type ListMobileNotificationsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListMobileNotificationsError = ListMobileNotificationsErrors[keyof ListMobileNotificationsErrors];
+
+export type ListMobileNotificationsResponses = {
+    /**
+     * Delivered notifications visible only to the authenticated tenant member.
+     */
+    200: MobileNotificationPageResponse;
+};
+
+export type ListMobileNotificationsResponse = ListMobileNotificationsResponses[keyof ListMobileNotificationsResponses];
+
+export type MarkMobileNotificationReadData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/notifications/{id}/read';
+};
+
+export type MarkMobileNotificationReadErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type MarkMobileNotificationReadError = MarkMobileNotificationReadErrors[keyof MarkMobileNotificationReadErrors];
+
+export type MarkMobileNotificationReadResponses = {
+    /**
+     * Notification read state updated
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type MarkMobileNotificationReadResponse = MarkMobileNotificationReadResponses[keyof MarkMobileNotificationReadResponses];
+
+export type ListMobileLoginEventsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/login-events';
+};
+
+export type ListMobileLoginEventsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ListMobileLoginEventsError = ListMobileLoginEventsErrors[keyof ListMobileLoginEventsErrors];
+
+export type ListMobileLoginEventsResponses = {
+    /**
+     * Login events
+     */
+    200: MobileLoginEventListResponse;
+};
+
+export type ListMobileLoginEventsResponse = ListMobileLoginEventsResponses[keyof ListMobileLoginEventsResponses];
+
+export type ListMobileSecurityEventsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/security-events';
+};
+
+export type ListMobileSecurityEventsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ListMobileSecurityEventsError = ListMobileSecurityEventsErrors[keyof ListMobileSecurityEventsErrors];
+
+export type ListMobileSecurityEventsResponses = {
+    /**
+     * Security events
+     */
+    200: MobileSecurityEventListResponse;
+};
+
+export type ListMobileSecurityEventsResponse = ListMobileSecurityEventsResponses[keyof ListMobileSecurityEventsResponses];
+
+export type ListAdminMobileReleasesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/mobile/releases';
+};
+
+export type ListAdminMobileReleasesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type ListAdminMobileReleasesError = ListAdminMobileReleasesErrors[keyof ListAdminMobileReleasesErrors];
+
+export type ListAdminMobileReleasesResponses = {
+    /**
+     * Global platform release policies
+     */
+    200: AdminMobileReleaseListResponse;
+};
+
+export type ListAdminMobileReleasesResponse = ListAdminMobileReleasesResponses[keyof ListAdminMobileReleasesResponses];
+
+export type CreateAdminMobileReleaseData = {
+    body: AdminMobileReleaseRequest;
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/mobile/releases';
+};
+
+export type CreateAdminMobileReleaseErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminMobileReleaseError = CreateAdminMobileReleaseErrors[keyof CreateAdminMobileReleaseErrors];
+
+export type CreateAdminMobileReleaseResponses = {
+    /**
+     * Release policy created
+     */
+    201: AdminMobileReleaseResponse;
+};
+
+export type CreateAdminMobileReleaseResponse = CreateAdminMobileReleaseResponses[keyof CreateAdminMobileReleaseResponses];
+
+export type UpdateAdminMobileReleaseData = {
+    body: AdminMobileReleaseRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/mobile/releases/{id}';
+};
+
+export type UpdateAdminMobileReleaseErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateAdminMobileReleaseError = UpdateAdminMobileReleaseErrors[keyof UpdateAdminMobileReleaseErrors];
+
+export type UpdateAdminMobileReleaseResponses = {
+    /**
+     * Release policy updated; platform is immutable and must match the stored record.
+     */
+    200: AdminMobileReleaseResponse;
+};
+
+export type UpdateAdminMobileReleaseResponse = UpdateAdminMobileReleaseResponses[keyof UpdateAdminMobileReleaseResponses];
 
 export type AdminLoginData = {
     body: AdminLoginRequest;
@@ -6193,6 +7349,523 @@ export type DownloadAdminFileContentResponses = {
 };
 
 export type DownloadAdminFileContentResponse = DownloadAdminFileContentResponses[keyof DownloadAdminFileContentResponses];
+
+export type ListAppArticlesData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: {
+        q?: string;
+        category?: string;
+        featured?: boolean;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/articles';
+};
+
+export type ListAppArticlesErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListAppArticlesError = ListAppArticlesErrors[keyof ListAppArticlesErrors];
+
+export type ListAppArticlesResponses = {
+    /**
+     * Published articles only.
+     */
+    200: AppArticleListResponse;
+};
+
+export type ListAppArticlesResponse = ListAppArticlesResponses[keyof ListAppArticlesResponses];
+
+export type ListAppArticleCategoriesData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/article-categories';
+};
+
+export type ListAppArticleCategoriesErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ListAppArticleCategoriesError = ListAppArticleCategoriesErrors[keyof ListAppArticleCategoriesErrors];
+
+export type ListAppArticleCategoriesResponses = {
+    /**
+     * Active categories in stable sort order.
+     */
+    200: AppArticleCategoryListResponse;
+};
+
+export type ListAppArticleCategoriesResponse = ListAppArticleCategoriesResponses[keyof ListAppArticleCategoriesResponses];
+
+export type GetAppArticleAssetData = {
+    body?: never;
+    path: {
+        file_id: string;
+    };
+    query?: never;
+    url: '/api/v1/article-assets/{file_id}';
+};
+
+export type GetAppArticleAssetErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type GetAppArticleAssetError = GetAppArticleAssetErrors[keyof GetAppArticleAssetErrors];
+
+export type GetAppArticleAssetResponses = {
+    /**
+     * Authorized JPEG
+     */
+    200: Blob | File;
+};
+
+export type GetAppArticleAssetResponse = GetAppArticleAssetResponses[keyof GetAppArticleAssetResponses];
+
+export type GetAppArticleData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/api/v1/articles/{slug}';
+};
+
+export type GetAppArticleErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type GetAppArticleError = GetAppArticleErrors[keyof GetAppArticleErrors];
+
+export type GetAppArticleResponses = {
+    /**
+     * Published article.
+     */
+    200: AppArticleResponse;
+};
+
+export type GetAppArticleResponse = GetAppArticleResponses[keyof GetAppArticleResponses];
+
+export type RemoveAppArticleBookmarkData = {
+    body?: never;
+    path: {
+        article_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/article-bookmarks/{article_id}';
+};
+
+export type RemoveAppArticleBookmarkErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type RemoveAppArticleBookmarkError = RemoveAppArticleBookmarkErrors[keyof RemoveAppArticleBookmarkErrors];
+
+export type RemoveAppArticleBookmarkResponses = {
+    /**
+     * Bookmark absent.
+     */
+    200: AppBookmarkResponse;
+};
+
+export type RemoveAppArticleBookmarkResponse = RemoveAppArticleBookmarkResponses[keyof RemoveAppArticleBookmarkResponses];
+
+export type BookmarkAppArticleData = {
+    body?: never;
+    path: {
+        article_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/article-bookmarks/{article_id}';
+};
+
+export type BookmarkAppArticleErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type BookmarkAppArticleError = BookmarkAppArticleErrors[keyof BookmarkAppArticleErrors];
+
+export type BookmarkAppArticleResponses = {
+    /**
+     * Bookmark present.
+     */
+    200: AppBookmarkResponse;
+};
+
+export type BookmarkAppArticleResponse = BookmarkAppArticleResponses[keyof BookmarkAppArticleResponses];
+
+export type ListAdminContentCategoriesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        q?: string;
+        status?: 'active' | 'disabled';
+        page?: number;
+        page_size?: number;
+        sort?: 'sort_order' | 'updated_desc' | 'slug';
+    };
+    url: '/admin-api/v1/content/categories';
+};
+
+export type ListAdminContentCategoriesErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type ListAdminContentCategoriesError = ListAdminContentCategoriesErrors[keyof ListAdminContentCategoriesErrors];
+
+export type ListAdminContentCategoriesResponses = {
+    /**
+     * Category page.
+     */
+    200: AdminContentCategoryListResponse;
+};
+
+export type ListAdminContentCategoriesResponse = ListAdminContentCategoriesResponses[keyof ListAdminContentCategoriesResponses];
+
+export type CreateAdminContentCategoryData = {
+    body: AdminContentCategoryRequest;
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/content/categories';
+};
+
+export type CreateAdminContentCategoryErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminContentCategoryError = CreateAdminContentCategoryErrors[keyof CreateAdminContentCategoryErrors];
+
+export type CreateAdminContentCategoryResponses = {
+    /**
+     * Created.
+     */
+    201: AdminContentCategoryResponse;
+};
+
+export type CreateAdminContentCategoryResponse = CreateAdminContentCategoryResponses[keyof CreateAdminContentCategoryResponses];
+
+export type DeleteAdminContentCategoryData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/content/categories/{id}';
+};
+
+export type DeleteAdminContentCategoryErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminContentCategoryError = DeleteAdminContentCategoryErrors[keyof DeleteAdminContentCategoryErrors];
+
+export type DeleteAdminContentCategoryResponses = {
+    /**
+     * Deleted.
+     */
+    200: AdminDeleteResponse;
+};
+
+export type DeleteAdminContentCategoryResponse = DeleteAdminContentCategoryResponses[keyof DeleteAdminContentCategoryResponses];
+
+export type GetAdminContentCategoryData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/content/categories/{id}';
+};
+
+export type GetAdminContentCategoryErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminContentCategoryError = GetAdminContentCategoryErrors[keyof GetAdminContentCategoryErrors];
+
+export type GetAdminContentCategoryResponses = {
+    /**
+     * Category.
+     */
+    200: AdminContentCategoryResponse;
+};
+
+export type GetAdminContentCategoryResponse = GetAdminContentCategoryResponses[keyof GetAdminContentCategoryResponses];
+
+export type UpdateAdminContentCategoryData = {
+    body: AdminContentCategoryUpdateRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/content/categories/{id}';
+};
+
+export type UpdateAdminContentCategoryErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateAdminContentCategoryError = UpdateAdminContentCategoryErrors[keyof UpdateAdminContentCategoryErrors];
+
+export type UpdateAdminContentCategoryResponses = {
+    /**
+     * Updated.
+     */
+    200: AdminContentCategoryResponse;
+};
+
+export type UpdateAdminContentCategoryResponse = UpdateAdminContentCategoryResponses[keyof UpdateAdminContentCategoryResponses];
+
+export type ListAdminContentArticlesData = {
+    body?: never;
+    path?: never;
+    query?: {
+        q?: string;
+        category_id?: string;
+        status?: 'draft' | 'published' | 'archived';
+        featured?: boolean;
+        page?: number;
+        page_size?: number;
+        sort?: 'updated_desc' | 'published_desc' | 'sort_order' | 'slug';
+    };
+    url: '/admin-api/v1/content/articles';
+};
+
+export type ListAdminContentArticlesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type ListAdminContentArticlesError = ListAdminContentArticlesErrors[keyof ListAdminContentArticlesErrors];
+
+export type ListAdminContentArticlesResponses = {
+    /**
+     * Article page.
+     */
+    200: AdminContentArticleListResponse;
+};
+
+export type ListAdminContentArticlesResponse = ListAdminContentArticlesResponses[keyof ListAdminContentArticlesResponses];
+
+export type CreateAdminContentArticleData = {
+    body: AdminContentArticleRequest;
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/content/articles';
+};
+
+export type CreateAdminContentArticleErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminContentArticleError = CreateAdminContentArticleErrors[keyof CreateAdminContentArticleErrors];
+
+export type CreateAdminContentArticleResponses = {
+    /**
+     * Created.
+     */
+    201: AdminContentArticleResponse;
+};
+
+export type CreateAdminContentArticleResponse = CreateAdminContentArticleResponses[keyof CreateAdminContentArticleResponses];
+
+export type DeleteAdminContentArticleData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/content/articles/{id}';
+};
+
+export type DeleteAdminContentArticleErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminContentArticleError = DeleteAdminContentArticleErrors[keyof DeleteAdminContentArticleErrors];
+
+export type DeleteAdminContentArticleResponses = {
+    /**
+     * Deleted.
+     */
+    200: AdminDeleteResponse;
+};
+
+export type DeleteAdminContentArticleResponse = DeleteAdminContentArticleResponses[keyof DeleteAdminContentArticleResponses];
+
+export type GetAdminContentArticleData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/content/articles/{id}';
+};
+
+export type GetAdminContentArticleErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminContentArticleError = GetAdminContentArticleErrors[keyof GetAdminContentArticleErrors];
+
+export type GetAdminContentArticleResponses = {
+    /**
+     * Article.
+     */
+    200: AdminContentArticleResponse;
+};
+
+export type GetAdminContentArticleResponse = GetAdminContentArticleResponses[keyof GetAdminContentArticleResponses];
+
+export type UpdateAdminContentArticleData = {
+    body: AdminContentArticleUpdateRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/content/articles/{id}';
+};
+
+export type UpdateAdminContentArticleErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateAdminContentArticleError = UpdateAdminContentArticleErrors[keyof UpdateAdminContentArticleErrors];
+
+export type UpdateAdminContentArticleResponses = {
+    /**
+     * Updated.
+     */
+    200: AdminContentArticleResponse;
+};
+
+export type UpdateAdminContentArticleResponse = UpdateAdminContentArticleResponses[keyof UpdateAdminContentArticleResponses];
+
+export type TransitionAdminContentArticleData = {
+    body: AdminContentTransitionRequest;
+    path: {
+        id: string;
+        transition: 'publish' | 'unpublish' | 'archive';
+    };
+    query?: never;
+    url: '/admin-api/v1/content/articles/{id}/{transition}';
+};
+
+export type TransitionAdminContentArticleErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type TransitionAdminContentArticleError = TransitionAdminContentArticleErrors[keyof TransitionAdminContentArticleErrors];
+
+export type TransitionAdminContentArticleResponses = {
+    /**
+     * Transitioned.
+     */
+    200: AdminContentArticleResponse;
+};
+
+export type TransitionAdminContentArticleResponse = TransitionAdminContentArticleResponses[keyof TransitionAdminContentArticleResponses];
 
 export type ListAdminNoticesData = {
     body?: never;

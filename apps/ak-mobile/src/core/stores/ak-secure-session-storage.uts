@@ -1,0 +1,63 @@
+import {
+  availability as vaultAvailability,
+  clearNamespace as vaultClearNamespace,
+  get as vaultGet,
+  remove as vaultRemove,
+  set as vaultSet,
+} from '@/uni_modules/ak-secure-storage'
+import { PersistedSessionCredential, SecureSessionStoragePort } from './secure-session-storage-port.uts'
+
+const REFRESH_TOKEN_KEY = 'session.refresh-token'
+const DEVICE_KEY = 'session.device-key'
+const SESSION_ID_KEY = 'session.session-id'
+const SUBJECT_VERSION_KEY = 'session.subject-version'
+const ACCESSIBILITY = 'after_first_unlock_this_device_only'
+
+/**
+ * Platform vault adapter. Credential members are separate so Harmony Asset
+ * Store's short-secret boundary never forces a plaintext aggregate fallback.
+ */
+export class AkSecureSessionStorage implements SecureSessionStoragePort {
+  read(onSuccess: (credential: PersistedSessionCredential | null) => void, onFailure: () => void): void {
+    if (!vaultAvailability().available) { onFailure(); return }
+    vaultGet(REFRESH_TOKEN_KEY, (refreshToken: string | null) => {
+      if (refreshToken == null) { onSuccess(null); return }
+      vaultGet(DEVICE_KEY, (deviceKey: string | null) => {
+        vaultGet(SESSION_ID_KEY, (sessionId: string | null) => {
+          vaultGet(SUBJECT_VERSION_KEY, (subjectVersion: string | null) => {
+            if (deviceKey == null || sessionId == null || subjectVersion == null) {
+              this.clear(() => onFailure(), onFailure)
+              return
+            }
+            onSuccess({ refreshToken: refreshToken, deviceKey: deviceKey, sessionId: sessionId, subjectVersion: subjectVersion })
+          }, (_: string) => onFailure())
+        }, (_: string) => onFailure())
+      }, (_: string) => onFailure())
+    }, (_: string) => onFailure())
+  }
+
+  write(credential: PersistedSessionCredential, onSuccess: () => void, onFailure: () => void): void {
+    if (!vaultAvailability().available) { onFailure(); return }
+    this.writeField(REFRESH_TOKEN_KEY, credential.refreshToken, () => {
+      this.writeField(DEVICE_KEY, credential.deviceKey, () => {
+        this.writeField(SESSION_ID_KEY, credential.sessionId, () => {
+          this.writeField(SUBJECT_VERSION_KEY, credential.subjectVersion, onSuccess, onFailure)
+        }, onFailure)
+      }, onFailure)
+    }, onFailure)
+  }
+
+  clear(onSuccess: () => void, onFailure: () => void): void {
+    if (!vaultAvailability().available) { onFailure(); return }
+  vaultClearNamespace(onSuccess, (_: string) => onFailure())
+  }
+
+  private writeField(key: string, value: string, onSuccess: () => void, onFailure: () => void): void {
+    if (value.length == 0) { this.clear(() => onFailure(), onFailure); return }
+    vaultSet(key, value, ACCESSIBILITY, onSuccess, (_: string) => {
+      // Remove every member after a partial write; never leave a usable token
+      // set after persistence failure.
+      vaultRemove(key, () => this.clear(() => onFailure(), onFailure), (_: string) => this.clear(() => onFailure(), onFailure))
+    })
+  }
+}

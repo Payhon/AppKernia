@@ -1,0 +1,8 @@
+export type PageLoadState = 'loading' | 'content' | 'empty' | 'error' | 'offline' | 'forbidden'
+
+export class ArticleListState {
+  state: PageLoadState = 'loading'
+  nextCursor: string | null = null
+  mutating: boolean = false
+  loadingMore: boolean = false
+}

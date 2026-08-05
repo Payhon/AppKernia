@@ -1,0 +1,31 @@
+export class QueryKey {
+  readonly value: string
+
+  constructor(tenantId: string, resource: string, parameters: string, authSubjectVersion: string) {
+    this.value = tenantId + ':' + resource + ':' + parameters + ':' + authSubjectVersion
+  }
+}
+
+export class QueryCache<T> {
+  private readonly entries: Map<string, T> = new Map<string, T>()
+
+  get(key: QueryKey): T | null {
+    const cached: T | null = this.entries.get(key.value)
+    return cached
+  }
+
+  set(key: QueryKey, value: T): void {
+    this.entries.set(key.value, value)
+  }
+
+  invalidate(prefix: string): void {
+    const keys = Array.from(this.entries.keys())
+    keys.forEach((key: string) => {
+      if (key.startsWith(prefix)) this.entries.delete(key)
+    })
+  }
+
+  clearProtected(): void {
+    this.entries.clear()
+  }
+}

@@ -450,6 +450,11 @@ export class AuthSession {
     return this.#authorizedFetch(input, init);
   }
 
+  /** Sends an authenticated request to the configured Admin API base URL. */
+  adminRequest(path: `/${string}`, init: RequestInit = {}): Promise<Response> {
+    return this.request(`${this.#baseUrl}${path}`, init);
+  }
+
   async bootstrap(): Promise<AuthContextResponse["data"]> {
     const response = await this.request(`${this.#baseUrl}/auth/context`);
     if (!response.ok) throw await toApiError(response);

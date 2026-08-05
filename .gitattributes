@@ -1,0 +1,2 @@
+# DCloud official rules are imported verbatim; retain their checksum-sensitive whitespace.
+apps/ak-mobile/AGENTS.md whitespace=-trailing-space,-blank-at-eof

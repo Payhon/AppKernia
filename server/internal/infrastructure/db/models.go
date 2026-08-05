@@ -181,6 +181,59 @@ type BillingWithdrawal struct {
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 }
 
+type ContentArticle struct {
+	ID             uuid.UUID          `json:"id"`
+	TenantID       uuid.UUID          `json:"tenant_id"`
+	CategoryID     *uuid.UUID         `json:"category_id"`
+	Slug           string             `json:"slug"`
+	Status         string             `json:"status"`
+	Featured       bool               `json:"featured"`
+	SortOrder      int32              `json:"sort_order"`
+	CoverFileID    *uuid.UUID         `json:"cover_file_id"`
+	ReadingMinutes int16              `json:"reading_minutes"`
+	LockVersion    int32              `json:"lock_version"`
+	PublishedAt    pgtype.Timestamptz `json:"published_at"`
+	CreatedBy      *uuid.UUID         `json:"created_by"`
+	UpdatedBy      *uuid.UUID         `json:"updated_by"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ContentArticleBookmark struct {
+	TenantID  uuid.UUID          `json:"tenant_id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	ArticleID uuid.UUID          `json:"article_id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type ContentArticleTranslation struct {
+	ArticleID  uuid.UUID `json:"article_id"`
+	Locale     string    `json:"locale"`
+	Title      string    `json:"title"`
+	Summary    string    `json:"summary"`
+	BodyFormat string    `json:"body_format"`
+	Body       []byte    `json:"body"`
+}
+
+type ContentCategory struct {
+	ID          uuid.UUID          `json:"id"`
+	TenantID    uuid.UUID          `json:"tenant_id"`
+	Slug        string             `json:"slug"`
+	Status      string             `json:"status"`
+	SortOrder   int32              `json:"sort_order"`
+	LockVersion int32              `json:"lock_version"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ContentCategoryTranslation struct {
+	CategoryID  uuid.UUID `json:"category_id"`
+	TenantID    uuid.UUID `json:"tenant_id"`
+	Locale      string    `json:"locale"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+}
+
 type IamBlockRule struct {
 	ID           uuid.UUID          `json:"id"`
 	TenantID     *uuid.UUID         `json:"tenant_id"`
@@ -440,6 +493,13 @@ type IamUserCredential struct {
 	FailedAttempts      int32              `json:"failed_attempts"`
 	LockedUntil         pgtype.Timestamptz `json:"locked_until"`
 	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
+type IamUserPreference struct {
+	UserID                  uuid.UUID          `json:"user_id"`
+	Appearance              string             `json:"appearance"`
+	NotificationPreferences []byte             `json:"notification_preferences"`
+	UpdatedAt               pgtype.Timestamptz `json:"updated_at"`
 }
 
 type IamUserRole struct {
@@ -867,6 +927,19 @@ type SysMenu struct {
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt      pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type SysMobileRelease struct {
+	ID             uuid.UUID          `json:"id"`
+	Platform       string             `json:"platform"`
+	CurrentVersion string             `json:"current_version"`
+	MinimumVersion string             `json:"minimum_version"`
+	UpgradeUrl     *string            `json:"upgrade_url"`
+	ReleaseNotes   []byte             `json:"release_notes"`
+	Active         bool               `json:"active"`
+	LockVersion    int32              `json:"lock_version"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
 // Compile-time module registry. AK does not load or uninstall arbitrary Go code at runtime.

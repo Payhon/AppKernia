@@ -435,6 +435,12 @@
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
     },
     {
+      "table": "sys.mobile_releases",
+      "coverage": "page_backed",
+      "pages": ["system.mobile.releases"],
+      "reason": "移动端发布策略页面管理各平台版本、升级地址、双语说明和生效状态。"
+    },
+    {
       "table": "sys.role_menus",
       "coverage": "page_backed",
       "pages": [
@@ -450,6 +456,42 @@
         "system.integrations.webhooks"
       ],
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "content.article_bookmarks",
+      "coverage": "backend_only",
+      "pages": [],
+      "reason": "移动端书签数据不在 Admin 内容管理页直接维护。"
+    },
+    {
+      "table": "content.article_translations",
+      "coverage": "page_backed",
+      "pages": ["system.content.articles"],
+      "reason": "文章双语内容由 Admin 文章编辑器直接维护。"
+    },
+    {
+      "table": "content.articles",
+      "coverage": "page_backed",
+      "pages": ["system.content.articles"],
+      "reason": "文章列表与生命周期由 Admin 文章页直接维护。"
+    },
+    {
+      "table": "content.categories",
+      "coverage": "page_backed",
+      "pages": ["system.content.articles", "system.content.categories"],
+      "reason": "文章选择分类，分类页直接维护分类目录。"
+    },
+    {
+      "table": "content.category_translations",
+      "coverage": "page_backed",
+      "pages": ["system.content.categories"],
+      "reason": "分类双语名称与说明由分类编辑器直接维护。"
+    },
+    {
+      "table": "iam.user_preferences",
+      "coverage": "backend_only",
+      "pages": [],
+      "reason": "移动端用户偏好由当前用户接口维护，不在 Admin 页面直接编辑。"
     },
     {
       "table": "sys.webhook_endpoints",

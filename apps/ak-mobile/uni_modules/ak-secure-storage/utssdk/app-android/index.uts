@@ -1,0 +1,156 @@
+import Context from 'android.content.Context'
+import Base64 from 'android.util.Base64'
+import KeyGenParameterSpec from 'android.security.keystore.KeyGenParameterSpec'
+import KeyProperties from 'android.security.keystore.KeyProperties'
+import KeyStore from 'java.security.KeyStore'
+import SharedPreferences from 'android.content.SharedPreferences'
+import Cipher from 'javax.crypto.Cipher'
+import KeyGenerator from 'javax.crypto.KeyGenerator'
+import SecretKey from 'javax.crypto.SecretKey'
+import GCMParameterSpec from 'javax.crypto.spec.GCMParameterSpec'
+import Charsets from 'kotlin.text.Charsets'
+import {
+  SecureStorageAccessibility,
+  SecureStorageAvailability,
+  SecureStorageAvailabilityApi,
+  SecureStorageClearNamespace,
+  SecureStorageFailure,
+  SecureStorageGet,
+  SecureStorageReadSuccess,
+  SecureStorageRemove,
+  SecureStorageSet,
+  SecureStorageSuccess,
+} from '../interface.uts'
+
+const KEY_ALIAS = 'ak.secure-storage.v1.master'
+const PREFS_NAME = 'ak.secure-storage.v1'
+const ENTRY_PREFIX = 'entry.'
+const MAX_KEY_LENGTH = 96
+const MAX_VALUE_LENGTH = 8192
+function isValidKey(key: string): boolean {
+  return key.length > 0 && key.length <= MAX_KEY_LENGTH && key.indexOf('..') < 0
+}
+
+function preferences(): SharedPreferences | null {
+  const context = UTSAndroid.getAppContext() as Context | null
+  if (context == null) return null
+  return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+}
+
+function masterKey(): SecretKey | null {
+  try {
+    const keyStore = KeyStore.getInstance('AndroidKeyStore')
+    keyStore.load(null)
+    if (!keyStore.containsAlias(KEY_ALIAS)) {
+      const generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, 'AndroidKeyStore')
+      const specification = new KeyGenParameterSpec.Builder(
+        KEY_ALIAS,
+        KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT,
+      )
+        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
+        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
+        .setKeySize(256)
+        .build()
+      generator.init(specification)
+      generator.generateKey()
+    }
+    return keyStore.getKey(KEY_ALIAS, null) as SecretKey
+  } catch (error) {
+    return null
+  }
+}
+
+function encrypt(value: string): string | null {
+  const key = masterKey()
+  if (key == null) return null
+  try {
+    const cipher = Cipher.getInstance('AES/GCM/NoPadding')
+    cipher.init(Cipher.ENCRYPT_MODE, key)
+    const encrypted = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
+    const nonce = Base64.encodeToString(cipher.getIV(), Base64.NO_WRAP)
+    const payload = Base64.encodeToString(encrypted, Base64.NO_WRAP)
+    return nonce + '.' + payload
+  } catch (error) {
+    return null
+  }
+}
+
+function decrypt(payload: string): string | null {
+  const key = masterKey()
+  if (key == null) return null
+  const parts = payload.split('.')
+  if (parts.length != 2) return null
+  try {
+    const nonce = Base64.decode(parts[0], Base64.NO_WRAP)
+    const encrypted = Base64.decode(parts[1], Base64.NO_WRAP)
+    const cipher = Cipher.getInstance('AES/GCM/NoPadding')
+    cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(128, nonce))
+    return cipher.doFinal(encrypted).toString(Charsets.UTF_8)
+  } catch (error) {
+    return null
+  }
+}
+
+export const availability: SecureStorageAvailabilityApi = function (): SecureStorageAvailability {
+  const available = preferences() != null && masterKey() != null
+  return new SecureStorageAvailability(available, 'android', available ? null : 'unavailable')
+}
+
+export const set: SecureStorageSet = function (
+  key: string,
+  value: string,
+  accessibility: SecureStorageAccessibility,
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  if (!isValidKey(key)) { onFailure('invalid_argument'); return }
+  if (value.length > MAX_VALUE_LENGTH) { onFailure('value_too_large'); return }
+  const encrypted = encrypt(value)
+  const store = preferences()
+  if (encrypted == null || store == null) { onFailure('unavailable'); return }
+  // Accessibility is enforced by the non-exportable Keystore key. Android does
+  // not use a normal preference entry for plaintext; it contains ciphertext only.
+  if (store.edit().putString(ENTRY_PREFIX + key, encrypted).commit()) onSuccess()
+  else onFailure('native_failure')
+}
+
+export const get: SecureStorageGet = function (
+  key: string,
+  onSuccess: SecureStorageReadSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  if (!isValidKey(key)) { onFailure('invalid_argument'); return }
+  const store = preferences()
+  if (store == null) { onFailure('unavailable'); return }
+  const encrypted = store.getString(ENTRY_PREFIX + key, null)
+  if (encrypted == null) { onSuccess(null); return }
+  const value = decrypt(encrypted)
+  if (value == null) {
+    store.edit().remove(ENTRY_PREFIX + key).commit()
+    onFailure('native_failure')
+    return
+  }
+  onSuccess(value)
+}
+
+export const remove: SecureStorageRemove = function (
+  key: string,
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  if (!isValidKey(key)) { onFailure('invalid_argument'); return }
+  const store = preferences()
+  if (store == null) { onFailure('unavailable'); return }
+  if (store.edit().remove(ENTRY_PREFIX + key).commit()) onSuccess()
+  else onFailure('native_failure')
+}
+
+export const clearNamespace: SecureStorageClearNamespace = function (
+  onSuccess: SecureStorageSuccess,
+  onFailure: SecureStorageFailure,
+): void {
+  const store = preferences()
+  if (store == null) { onFailure('unavailable'); return }
+  if (store.edit().clear().commit()) onSuccess()
+  else onFailure('native_failure')
+}

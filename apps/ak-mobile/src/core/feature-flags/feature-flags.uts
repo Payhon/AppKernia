@@ -44,11 +44,11 @@ export class FeatureFlagRegistry {
   }
 
   isEnabled(key: FeatureFlagKey): boolean {
-    return this.values.get(key) ?? false
+    const enabled: boolean | null = this.values.get(key)
+    return enabled != null ? enabled : false
   }
 
   isUnknownEnabled(key: string): boolean {
     return false
   }
 }
-

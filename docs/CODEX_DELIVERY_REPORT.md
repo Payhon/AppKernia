@@ -826,3 +826,50 @@
 - [英文移动语言菜单 375](../artifacts/ui-ux-pro-max/AKADM-login-locale-icon-menu/screenshots/en-US-menu-375.png)
 - 真实浏览器为本机 Docker Admin + Chromium；本功能不涉及新的后端或数据库写入。
 - 未部署生产，Firefox/Safari 未执行。Mobile 未修改，Android/iOS/Harmony 未构建或真机验证。本轮未 commit、未 push，并保留全部既有未提交改动。
+
+## 2026-08-05 Mobile Framework、内容与版本治理追加（实现完成；平台真实设备验收未完成）
+
+### 交付内容
+
+- Mobile：实现 Home、Profile 和可见子页（基本资料、安全中心、设备、通知偏好、语言/外观、帮助/关于、退出登录），以及文章列表/详情、分类筛选、游标分页、书签和分享。所有业务页面通过 `ak-*` 适配层；Home 将本人、未读数与精选文章查询拆分，次要卡片失败不清空整个页面。
+- 安全与网络：会话只持久化 Refresh 凭据；恢复时通过 Refresh 换取短期 Access Token。请求带 `Accept-Language`、超时、取消与结构化错误；401 只在显式 opt-in 的 GET/HEAD 上最多重放一次，写请求绝不隐式重放。文章资源经带鉴权 Header 的下载 Port 获取，URL 不携带 Token。
+- 内容安全：文章正文解析为允许的 heading/paragraph/callout block DTO；详情页未使用 `rich-text` 或 `v-html`。收藏状态以服务端确认结果为准，分享只经平台 Port，不下载或执行远端脚本。
+- Backend：内容/分类/书签、移动个人资料与版本治理的 API、OpenAPI、PostgreSQL migration、sqlc、权限和 Admin/Mobile 客户端契约已随实现同步；实施方提供了临时 PostgreSQL 18 实测证据。没有在本次文档整理阶段重跑会变更或依赖该临时库的测试。
+- Admin：文章/分类管理与移动版本发布页面已实现，包含权限分支、冲突展示、`lock_version`、双语 UI 与响应式表格/Drawer。保存的 E2E 使用确定性 HTTP mock-contract，不冒充真实 Backend/PostgreSQL 集成。
+- i18n：Mobile 使用 `AkI18n` 与完整 `zh-CN`/`en-US` 语言包；默认与最终回退为 `zh-CN`，登录用户偏好走后端，匿名选择仅存非敏感本地偏好。静态契约已验证，不把它替代为三端运行时 UI 证据。
+- 安全存储：`ak-secure-storage` 提供 Android Keystore + AES-GCM、iOS Keychain `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`、Harmony Asset Store 的接口实现，且无普通 Storage fallback 或凭据日志。此结论的验证边界见下方平台项。
+- DCloud：已记录官方 rules/MCP 来源、导入 commit、许可证、`@dcloudio/uni-app-x-mcp@0.0.5` 及本 worktree 的显式 `projectPath`。本 task 已经以 direct-stdio 完成 MCP initialize、tools/list 与 call，结果保存为 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-mobile-framework/mcp-easycom-scan.json`。本机原生 `codex mcp list` 因 vendor binary 损坏不能执行；项目级 MCP server 仍需从仓库根新开/重启 Codex 后才会载入原生工具列表，故不把后者写为已验证。
+
+### 本文档整理阶段实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 37 routes、3 tabs、26 baseline APIs、34 API delta、11 permission delta、33 components、11 privacy capabilities、26 tasks、3 platforms；0 errors / 0 warnings |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN`/`en-US`、default/fallback `zh-CN` 及 backend/admin/mobile reference packs 契约通过 |
+| `python3 apps/ak-mobile/scripts/verify-mobile-framework.py` | 0 | 路由、OpenAPI 片段、文章安全渲染、请求取消、Bootstrap、会话与刷新策略的源级契约通过 |
+| `python3 apps/ak-mobile/scripts/verify-secure-storage-contract.py` | 0 | Android Keystore/AES-GCM、iOS Keychain、Harmony Asset Store、无普通 Storage fallback 和无 native credential logging 的源级契约通过 |
+| `python3 apps/ak-mobile/scripts/test_refresh_policy.py` | 0 | 可执行 fake HttpPort 测试覆盖 1 次 GET 重放、禁用重放、4 种写方法不重放、Refresh 失败清除会话及文章资源 Header 边界 |
+| HBuilderX 5.06 CLI，前一轮唯一临时项目 `ak-mobile-framework-ios-rootqa` 的 iOS compile-only | 0 | 20 页 + `ak-secure-storage`；日志含 `UTS编译完毕`、`ready in 39282ms`；标准基座警告 secure-storage 插件不生效，需 custom base 且 iOS 13+ |
+| HBuilderX 5.06 CLI，第 3 次最终隔离项目 `ak-mobile-framework-ios-final-evidence` 的 iOS 合并代码验证 | 0 | 20 页 + `ak-secure-storage`、UTS 完成、`ready in 30446ms`、正常“已停止运行”；清理前严格搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality` 均为空；仅标准基座/custom base/iOS 13+ 预期提示 |
+| Android 唯一项目 `ak-mobile-framework-android-final-clean-1785906028` 的最终 compile-only | launch exit 未可信捕获；close 成功 | 20 页至 Android class、UTS、`ready in 19314ms`、正常停止；5 处 UTS 值比较修复后静态 7 项、严格错误/警告/Identity 搜索均为 0；仅 compile-only，已清理且无进程 |
+| HBuilderX 5.06 CLI，唯一项目 `ak-mobile-framework-harmony-final.ECScJj` 的 Harmony 最终源码回归 | 0 | 20 页、UTS、`ready in 15236ms`、工程/依赖/运行包制作成功，恰 1 个 `entry-default-unsigned.hap`；严格搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality`、`currentColor` 零匹配（`rg` exit 1） |
+| Admin `pnpm check`（实施方最新运行） | 0 | 16 files / 64 tests、production build、bundle 与 Admin blueprint check 通过 |
+| `go test ./... -count=1 && go vet ./...`（`server`） | 0 | Backend 全量 Go 测试与 vet 通过 |
+| Backend/Admin/Mobile blueprint + i18n + Mobile framework/secure-storage/refresh + `bash -n apps/ak-mobile/scripts/build-platform.sh` + `git diff --check` 组合回归 | 0 | 全部子命令 exit 0 |
+
+表中前 5 条是本代理实际运行的静态/模拟门禁；合计为 5 个命令入口、0 个失败。其余命令结果由对应实施代理提供并按来源标注。所有这些门禁都不等价于安装包、模拟器或真机测试。
+
+### 已保存的 Admin 浏览器/视觉证据
+
+- 内容管理：确定性 mock E2E 覆盖中文文章列表、编辑 Drawer、分类和英文 375；axe JSON 记录 `zh-CN.1440`、`zh-CN.categories.1440`、`en-US.categories.375` 均为 0 serious/critical。
+- 版本管理：确定性 mock E2E 覆盖中文 1440 列表、冲突 Drawer、英文 375；axe JSON 的三个场景均为 0 serious/critical、0 violations，唯一预期控制台记录为一次 409 Conflict。
+- 截图：[内容管理中文 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-content-management/screenshots/1440x900-light.png)、[内容编辑 Drawer](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-content-management/screenshots/drawer-zh-CN-1440.png)、[内容管理英文 375](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-content-management/screenshots/375x812-en-US.png)、[版本管理中文 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-mobile-releases/screenshots/1440x900-light.png)、[版本 Drawer](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-mobile-releases/screenshots/drawer-zh-CN-1440.png)、[版本管理英文 375](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-mobile-releases/screenshots/375x812-en-US.png)。
+- Mobile 的 UI Skill request/output/decisions/checklist 已保存于 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-mobile-framework/`；该 checklist 中的 Android 360×800、iOS 390×844、Harmony 430×932 截图、动态字体、reduced motion 和英文扩展仍未勾选。因此本节不列移动端截图为通过证据。
+
+### 平台、设备与风险边界（实现完成；真实设备验收未执行）
+
+- Android：此前隔离 HBuilderX CLI 的 exit 0 证据不替代最终合并代码。最终 `ak-mobile-framework-android-final-clean-1785906028` 完成 20 页至 Android class、UTS、`ready in 19314ms` 和正常停止。Terra 修复原 identity-equality 4 条并在复编译再修复 profile edit 1 条，共 5 处 `Any?/Boolean` 与 `Int` 长度的 UTS 值比较；静态 7 项、严格错误/警告/Identity 搜索均为 0。launch 数值 exit 因外层 `PIPESTATUS` 误用未可信捕获，project close 成功，因此只记录 compile-only。无 APK/AAB、安装、模拟器、真机或安全存储回读证据，临时项目已清理且无进程。
+- iOS：前一轮 `ak-mobile-framework-ios-rootqa` 的 exit 0 证据保留；第 3 次最终合并代码在 `ak-mobile-framework-ios-final-evidence` 的 HBuilderX 5.06 隔离验证中 CLI exit 0，完成 20 页/`ak-secure-storage` UTS，`ready in 30446ms` 后正常“已停止运行”。清理前严格搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality` 均为空；标准基座/custom base/iOS 13+ 为预期提示。模拟器安装/启动、签名、Keychain 回读/清除均未执行；项目已关闭/清理且无进程。
+- Harmony：最终源码在唯一项目 `ak-mobile-framework-harmony-final.ECScJj` 上以 HBuilderX 5.06 CLI 可信 exit 0 回归；20 页、UTS、`ready in 15236ms`，工程生成、依赖安装和运行包制作成功，恰 1 个 `entry-default-unsigned.hap`。清理前严格搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality`、`currentColor` 均零匹配（`rg` exit 1）。secure-storage 修复为 interface 显式 class、三端 availability new 实例与 Harmony TextDecoder options 显式类型，Asset Store 仍保留。包名/签名/未签名为预期 warning；没有安装、Asset Store 回读或真机 smoke。项目已 close，临时项目/日志已清理，无进程。主题 20/20 覆盖已移除 `currentColor`，并为三种 button variant 的 loading 使用显式 token。
+- Backend 临时 PostgreSQL 18 实测、Admin mock E2E 和本表静态检查都不是生产部署/生产数据验收。真实 Go API/PostgreSQL 浏览器联调、第三方 OAuth/Push、应用商店升级、弱网、三端真机与生产发布仍 blocked/未验证。
+- 本代理没有改动 `apps/ak-mobile` 活跃源码；当前工作树原有的其他未提交实现均予以保留。提交/推送状态由主代理在最终范围和回归结论确定后单独记录。

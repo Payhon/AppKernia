@@ -1,0 +1,21 @@
+import { AkError } from '../../../core/errors/ak-error.uts'
+import { akI18n } from '../../../core/i18n/ak-i18n.uts'
+import { AkHttpPort, HttpCancellation, HttpRequest } from '../../../core/network/http-port.uts'
+
+export type Prefs = { readonly locale: 'zh-CN' | 'en-US'; readonly appearance: 'system' | 'light' | 'dark'; readonly email: boolean; readonly push: boolean; readonly inApp: boolean }
+export type NotificationPrefs = { readonly email: boolean; readonly push: boolean; readonly inApp: boolean }
+type NotificationPreferencesWire = { readonly email: boolean; readonly push: boolean; readonly in_app: boolean }
+type Wire = { readonly locale: 'zh-CN' | 'en-US'; readonly appearance: 'system' | 'light' | 'dark'; readonly notification_preferences: NotificationPreferencesWire }
+type NotificationWire = { readonly notification_preferences: NotificationPreferencesWire }
+
+export class HttpPreferencesRepository {
+  private readonly http: AkHttpPort
+  constructor(http: AkHttpPort) { this.http = http }
+  get(ok: (value: Prefs) => void, fail: (error: AkError) => void): HttpCancellation { return this.http.execute<UTSJSONObject, Wire>(this.request('GET', '/me/preferences', {} as UTSJSONObject), response => ok(this.map(response.data)), fail) }
+  put(value: Prefs, ok: (value: Prefs) => void, fail: (error: AkError) => void): HttpCancellation { const body: Wire = { locale: value.locale, appearance: value.appearance, notification_preferences: { email: value.email, push: value.push, in_app: value.inApp } }; return this.http.execute<Wire, Wire>(this.request('PATCH', '/me/preferences', body), response => ok(this.map(response.data)), fail) }
+  getNotification(ok: (value: NotificationPrefs) => void, fail: (error: AkError) => void): HttpCancellation { return this.http.execute<UTSJSONObject, NotificationWire>(this.request('GET', '/me/notification-preferences', {} as UTSJSONObject), response => ok(this.mapNotification(response.data)), fail) }
+  putNotification(value: NotificationPrefs, ok: (value: NotificationPrefs) => void, fail: (error: AkError) => void): HttpCancellation { const body: NotificationWire = { notification_preferences: { email: value.email, push: value.push, in_app: value.inApp } }; return this.http.execute<NotificationWire, NotificationWire>(this.request('PATCH', '/me/notification-preferences', body), response => ok(this.mapNotification(response.data)), fail) }
+  private request<T>(method: 'GET' | 'PATCH', path: string, body: T | null): HttpRequest<T> { return { method, path, query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: method == 'GET', body, locale: akI18n.getLocale() } }
+  private map(value: Wire): Prefs { return { locale: value.locale, appearance: value.appearance, email: value.notification_preferences.email, push: value.notification_preferences.push, inApp: value.notification_preferences.in_app } }
+  private mapNotification(value: NotificationWire): NotificationPrefs { return { email: value.notification_preferences.email, push: value.notification_preferences.push, inApp: value.notification_preferences.in_app } }
+}

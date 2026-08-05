@@ -15,7 +15,7 @@ initial → loading → content | empty | error | offline | forbidden
 
 | Route Key | pages.json path | Access | Phase | Feature Flag | Permissions | API |
 |---|---|---:|---:|---|---|---|
-| `bootstrap` | `pages/bootstrap/index` | public | P0 | — | — | GET /api/v1/public/config<br>GET /api/v1/public/app-version |
+| `bootstrap` | `pages/bootstrap/index` | public | P0 | — | — | POST /api/v1/auth/token/refresh<br>GET /api/v1/auth/context<br>GET /api/v1/me/preferences |
 | `privacy.consent` | `pages/privacy/consent` | public | P0 | — | — | GET /api/v1/public/legal/{document_type} |
 | `onboarding` | `pages/onboarding/index` | public | P1 | onboarding_enabled | — | — |
 | `auth.login.password` | `pages/auth/login/index` | guest | P0 | — | — | POST /api/v1/auth/login/password<br>GET /api/v1/auth/oauth/providers |

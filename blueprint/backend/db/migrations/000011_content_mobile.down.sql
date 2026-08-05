@@ -1,0 +1,10 @@
+BEGIN;
+DROP TRIGGER IF EXISTS tr_content_articles_touch_updated_at ON content.articles;
+DROP TRIGGER IF EXISTS tr_content_categories_touch_updated_at ON content.categories;
+DROP TABLE IF EXISTS content.article_bookmarks;
+DROP TABLE IF EXISTS content.article_translations;
+DROP TABLE IF EXISTS content.articles;
+DROP TABLE IF EXISTS content.category_translations;
+DROP TABLE IF EXISTS content.categories;
+DROP SCHEMA IF EXISTS content;
+COMMIT;

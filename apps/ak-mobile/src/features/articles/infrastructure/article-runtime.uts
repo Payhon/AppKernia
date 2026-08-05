@@ -1,0 +1,32 @@
+import { AkConfig } from '../../../core/config/config.uts'
+import { AkHttpClient } from '../../../core/network/ak-http-client.uts'
+import { RefreshingHttpPort } from '../../../core/network/refreshing-http-port.uts'
+import { RefreshCoordinator } from '../../../core/network/refresh-coordinator.uts'
+import { MobileAuthService } from '../../auth/mobile-auth-service.uts'
+import { SessionStore } from '../../../core/stores/session-store.uts'
+import { ArticleRepository } from '../application/article-repository.uts'
+import { HttpArticleRepository } from './http-article-repository.uts'
+import { ArticleAssetLoader } from './article-asset-loader.uts'
+
+/**
+ * App bootstrap must configure this runtime from an approved environment
+ * configuration. There is deliberately no embedded API URL or token fallback.
+ */
+export class ArticleRuntime {
+  private repository: ArticleRepository | null = null
+  private assetLoader: ArticleAssetLoader | null = null
+
+  configure(config: AkConfig, session: SessionStore, auth: MobileAuthService | null = null, refresh: RefreshCoordinator | null = null): void {
+    const client = new AkHttpClient(config, session)
+    const port = auth != null && refresh != null ? new RefreshingHttpPort(client, refresh) : client
+    this.repository = new HttpArticleRepository(port)
+    this.assetLoader = auth != null && refresh != null ? new ArticleAssetLoader(config, session, refresh) : null
+  }
+
+  getRepository(): ArticleRepository | null {
+    return this.repository
+  }
+  getAssetLoader(): ArticleAssetLoader | null { return this.assetLoader }
+}
+
+export const articleRuntime = new ArticleRuntime()

@@ -1,0 +1,25 @@
+export class SessionStore {
+  private accessToken: string | null = null
+  private subjectVersion: string = 'anonymous'
+
+  setAccessToken(token: string, subjectVersion: string): void {
+    this.accessToken = token
+    this.subjectVersion = subjectVersion
+  }
+
+  getAccessToken(): string | null {
+    return this.accessToken
+  }
+
+  getSubjectVersion(): string {
+    return this.subjectVersion
+  }
+
+  clear(): void {
+    this.accessToken = null
+    this.subjectVersion = 'anonymous'
+  }
+}
+
+/** Shared in-memory projection of a credential held by SecureSessionStoragePort. */
+export const appSessionStore = new SessionStore()

@@ -1,0 +1,44 @@
+<template>
+  <ak-theme-root><view class="page">
+    <view class="nav"><ak-back-button/><text>{{t('routes.settings.language.title', null)}}</text><view/></view>
+    <ak-status-view v-if="state==='loading'" state="loading" :loading-label="t('common.loading', null)"/>
+    <ak-cell-list v-else>
+      <view class="row" @click="save('zh-CN')"><text>{{t('settings.localeZhCN', null)}}</text><ak-icon v-if="locale==='zh-CN'" name="check"/></view>
+      <view class="row" @click="save('en-US')"><text>{{t('settings.localeEnUS', null)}}</text><ak-icon v-if="locale==='en-US'" name="check"/></view>
+    </ak-cell-list>
+  </view></ak-theme-root>
+</template>
+
+<script lang="uts">
+import {akI18n} from '../../../src/core/i18n/ak-i18n.uts'
+import {preferencesRuntime, Prefs} from '../../../src/features/preferences/infrastructure/preferences-runtime.uts'
+import {NavigationLocaleSync} from '../../../src/core/i18n/navigation-sync.uts'
+
+let prefs: Prefs | null = null
+
+export default {
+  data() { return {state:'loading', locale:'zh-CN'} },
+  computed: { t() { return akI18n.t } },
+  onLoad() {
+    const repository = preferencesRuntime.getRepository()
+    if (repository == null) { this.state='error'; return }
+    repository.get(value => { prefs=value; this.locale=value.locale; this.state='content' }, () => { this.state='error' })
+  },
+  methods: {
+    save(locale: 'zh-CN' | 'en-US') {
+      const repository = preferencesRuntime.getRepository()
+      const currentPrefs: Prefs | null = prefs
+      if (repository == null || currentPrefs == null) return
+      repository.put({locale:locale, appearance:currentPrefs.appearance, email:currentPrefs.email, push:currentPrefs.push, inApp:currentPrefs.inApp}, saved => {
+        prefs=saved
+        this.locale=saved.locale
+        new NavigationLocaleSync(akI18n).apply(saved.locale, 'routes.settings.language.title')
+      }, () => {})
+    },
+  },
+}
+</script>
+
+<style lang="scss">
+.page{height:100%;flex:1;padding:16px}.nav,.row{flex-direction:row;align-items:center;justify-content:space-between}.nav{height:48px}.row{height:58px}
+</style>

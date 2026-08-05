@@ -1,0 +1,48 @@
+import { reactive } from 'vue'
+
+export type Appearance = 'system' | 'light' | 'dark'
+
+type ThemeState = { isDark: boolean }
+
+/** Shared Vue-reactive state consumed by every ak-theme-root instance. */
+export const themeState = reactive({ isDark: false } as ThemeState)
+
+/** Owns the native App theme and mirrors the resolved dark/light value to Vue. */
+export class ThemeStore {
+  private appearance: Appearance = 'system'
+  private listening: boolean = false
+
+  initialize(): void {
+    if (this.listening) return
+    this.listening = true
+    // #ifdef APP
+    uni.onAppThemeChange((result: AppThemeChangeResult) => {
+      themeState.isDark = result.appTheme == 'dark'
+      this.applyNativeChrome()
+    })
+    // #endif
+    this.apply(this.appearance)
+  }
+
+  apply(value: Appearance): void {
+    this.appearance = value
+    // #ifdef APP
+    uni.setAppTheme({ theme: value == 'system' ? 'auto' : value })
+    themeState.isDark = value == 'system' ? uni.getDeviceInfo().osTheme == 'dark' : value == 'dark'
+    // #endif
+    // #ifndef APP
+    themeState.isDark = value == 'dark'
+    // #endif
+    this.applyNativeChrome()
+  }
+
+  isDark(): boolean { return themeState.isDark }
+
+  private applyNativeChrome(): void {
+    const dark: boolean = themeState.isDark
+    uni.setNavigationBarColor({ frontColor: dark ? '#FFFFFF' : '#000000', backgroundColor: dark ? '#0F172A' : '#F8FAFC' })
+    uni.setTabBarStyle({ color: dark ? '#94A3B8' : '#64748B', selectedColor: '#2563EB', backgroundColor: dark ? '#0F172A' : '#F8FAFC', borderStyle: dark ? 'black' : 'white' })
+  }
+}
+
+export const themeStore = new ThemeStore()

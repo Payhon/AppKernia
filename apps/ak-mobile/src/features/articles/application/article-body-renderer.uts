@@ -1,0 +1,64 @@
+import { ArticleBodyFormat } from '../domain/models.uts'
+
+export type ArticleBodyBlockKind = 'heading' | 'paragraph' | 'callout'
+
+export type ArticleBodyBlock = {
+  id: string
+  kind: ArticleBodyBlockKind
+  text: string
+}
+
+type ArticleWireBlock = {
+  readonly type: string
+  readonly text: string
+}
+
+/**
+ * Renders only an allowlisted, text-only representation. Neither Markdown nor
+ * blocks are ever passed to rich-text/HTML rendering, so server content cannot
+ * execute HTML, scripts, or URL handlers in the mobile WebView/native view.
+ */
+export class ArticleBodyRenderer {
+  render(format: ArticleBodyFormat, body: string): Array<ArticleBodyBlock> {
+    if (format == 'blocks') return this.renderBlocks(body)
+    return this.renderMarkdown(body)
+  }
+
+  private renderMarkdown(body: string): Array<ArticleBodyBlock> {
+    const blocks: Array<ArticleBodyBlock> = []
+    const lines: Array<string> = body.split('\n')
+    for (let index = 0; index < lines.length; index++) {
+      const line: string = lines[index].trim()
+      if (line.length == 0) continue
+      const isHeading: boolean = line.startsWith('# ')
+      const isCallout: boolean = line.startsWith('> ')
+      const content: string = isHeading || isCallout ? line.substring(2) : line
+      const kind: ArticleBodyBlockKind = isHeading ? 'heading' : isCallout ? 'callout' : 'paragraph'
+      blocks.push({ id: index.toString(), kind: kind, text: this.cleanText(content) })
+    }
+    return blocks
+  }
+
+  private renderBlocks(body: string): Array<ArticleBodyBlock> {
+    const output: Array<ArticleBodyBlock> = []
+    try {
+      const parsed: Array<ArticleWireBlock> | null = JSON.parse<Array<ArticleWireBlock>>(body)
+      if (parsed == null) return []
+      const source: Array<ArticleWireBlock> = parsed
+      for (let index = 0; index < source.length; index++) {
+        const item: ArticleWireBlock = source[index]
+        if (item.type != 'heading' && item.type != 'paragraph' && item.type != 'callout') continue
+        if (item.text.length == 0) continue
+        const kind: ArticleBodyBlockKind = item.type == 'heading' ? 'heading' : item.type == 'callout' ? 'callout' : 'paragraph'
+        output.push({ id: index.toString(), kind: kind, text: this.cleanText(item.text) })
+      }
+    } catch (error) {
+      return []
+    }
+    return output
+  }
+
+  private cleanText(value: string): string {
+    return value.replace(/<[^>]*>/g, '').replace(/javascript:/gi, '').replace(/data:text\/html/gi, '').trim()
+  }
+}

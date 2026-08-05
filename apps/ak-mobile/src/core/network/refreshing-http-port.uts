@@ -1,0 +1,38 @@
+import { AkError } from '../errors/ak-error.uts'
+import { AkHttpPort, HttpCancellation, HttpRequest, HttpResponse } from './http-port.uts'
+import { RefreshCoordinator } from './refresh-coordinator.uts'
+
+class RefreshingCancellation implements HttpCancellation {
+  private active: HttpCancellation | null = null
+  private cancelled: boolean = false
+  setActive(value: HttpCancellation): void { this.active = value; if (this.cancelled) value.cancel() }
+  cancel(): void { this.cancelled = true; if (this.active != null) this.active.cancel() }
+  isCancelled(): boolean { return this.cancelled }
+}
+
+/** Adds one refresh/replay attempt only for explicitly safe requests. */
+export class RefreshingHttpPort implements AkHttpPort {
+  private readonly base: AkHttpPort
+  private readonly refresh: RefreshCoordinator
+  constructor(base: AkHttpPort, refresh: RefreshCoordinator) { this.base = base; this.refresh = refresh }
+
+  execute<TBody, TData>(request: HttpRequest<TBody>, onSuccess: (response: HttpResponse<TData>) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const cancellation = new RefreshingCancellation()
+    this.executeAttempt(request, false, cancellation, onSuccess, onFailure)
+    return cancellation
+  }
+
+  private executeAttempt<TBody, TData>(request: HttpRequest<TBody>, replayed: boolean, cancellation: RefreshingCancellation, onSuccess: (response: HttpResponse<TData>) => void, onFailure: (error: AkError) => void): void {
+    const task = this.base.execute<TBody, TData>(request, onSuccess, (error: AkError) => {
+      if (cancellation.isCancelled() || error.kind != 'unauthorized' || replayed || !this.canReplay(request)) { onFailure(error); return }
+      this.refresh.refresh(() => {
+        if (!cancellation.isCancelled()) this.executeAttempt(request, true, cancellation, onSuccess, onFailure)
+      }, onFailure)
+    })
+    cancellation.setActive(task)
+  }
+
+  private canReplay<TBody>(request: HttpRequest<TBody>): boolean {
+    return request.retryOnUnauthorized && request.method == 'GET'
+  }
+}

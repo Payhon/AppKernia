@@ -1,5 +1,20 @@
 {
   "schema_version": 1,
-  "description": "相对当前项目 Backend OpenAPI 的待实现 Admin API 增量；当前为空。",
-  "endpoints": []
+  "description": "相对当前 Admin API snapshot 的已实现但待快照刷新端点。",
+  "endpoints": [
+    {"method": "GET", "path": "/admin-api/v1/content/categories"},
+    {"method": "POST", "path": "/admin-api/v1/content/categories"},
+    {"method": "GET", "path": "/admin-api/v1/content/categories/{id}"},
+    {"method": "PATCH", "path": "/admin-api/v1/content/categories/{id}"},
+    {"method": "DELETE", "path": "/admin-api/v1/content/categories/{id}"},
+    {"method": "GET", "path": "/admin-api/v1/content/articles"},
+    {"method": "POST", "path": "/admin-api/v1/content/articles"},
+    {"method": "GET", "path": "/admin-api/v1/content/articles/{id}"},
+    {"method": "PATCH", "path": "/admin-api/v1/content/articles/{id}"},
+    {"method": "DELETE", "path": "/admin-api/v1/content/articles/{id}"},
+    {"method": "POST", "path": "/admin-api/v1/content/articles/{id}/{transition}"},
+    {"method": "GET", "path": "/admin-api/v1/mobile/releases"},
+    {"method": "POST", "path": "/admin-api/v1/mobile/releases"},
+    {"method": "PATCH", "path": "/admin-api/v1/mobile/releases/{id}"}
+  ]
 }

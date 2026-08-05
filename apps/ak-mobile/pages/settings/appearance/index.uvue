@@ -1,0 +1,47 @@
+<template>
+  <ak-theme-root><view class="page">
+    <view class="nav"><ak-back-button/><text>{{t('settings.appearance', null)}}</text><view/></view>
+    <ak-cell-list>
+      <view class="row" @click="save('system')"><text>{{t('settings.system', null)}}</text><ak-icon v-if="appearance==='system'" name="check"/></view>
+      <view class="row" @click="save('light')"><text>{{t('settings.light', null)}}</text><ak-icon v-if="appearance==='light'" name="check"/></view>
+      <view class="row" @click="save('dark')"><text>{{t('settings.dark', null)}}</text><ak-icon v-if="appearance==='dark'" name="check"/></view>
+    </ak-cell-list>
+  </view></ak-theme-root>
+</template>
+
+<script lang="uts">
+import {akI18n} from '../../../src/core/i18n/ak-i18n.uts'
+import {preferencesRuntime, Prefs} from '../../../src/features/preferences/infrastructure/preferences-runtime.uts'
+import {Appearance, themeStore} from '../../../src/core/theme/theme-store.uts'
+
+let pref: Prefs | null = null
+
+export default {
+  data() { return {appearance: 'system'} },
+  computed: { t() { return akI18n.t } },
+  onLoad() {
+    const repository = preferencesRuntime.getRepository()
+    if (repository != null) repository.get(value => { pref = value; this.appearance = value.appearance; themeStore.apply(value.appearance) }, () => {})
+  },
+  methods: {
+    save(value: Appearance) {
+      const repository = preferencesRuntime.getRepository()
+      const currentPref: Prefs | null = pref
+      if (repository == null || currentPref == null) return
+      this.appearance = value
+      themeStore.apply(value)
+      repository.put({locale: currentPref.locale, appearance: value, email: currentPref.email, push: currentPref.push, inApp: currentPref.inApp}, saved => {
+        pref = saved
+        themeStore.apply(saved.appearance)
+      }, () => {
+        this.appearance = currentPref.appearance
+        themeStore.apply(currentPref.appearance)
+      })
+    },
+  },
+}
+</script>
+
+<style lang="scss">
+.page{height:100%;flex:1;padding:16px}.nav,.row{flex-direction:row;align-items:center;justify-content:space-between}.nav{height:48px}.row{height:58px}
+</style>

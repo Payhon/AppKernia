@@ -8,8 +8,8 @@
 |---|---|---|
 | Backend | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环 | 当前 Admin backlog 已收口；生产 Adapter 联调见风险 |
 | Admin | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁 | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险 |
-| Mobile | `AKMOB-000`、`AKMOB-030` 非 UI 部分完成 | 本轮未继续，平台构建仍 blocked |
-| Cross-platform i18n | 蓝图契约通过；Admin 18 个 namespace、双语运行时与登录用户服务端偏好已闭环 | Mobile UI |
+| Mobile | Home、Profile 及子页、文章列表/详情、会话/安全存储/刷新策略与内容契约已实现；Android/iOS 最终 compile-only、Harmony 最终未签名 `.hap` 及静态门禁均通过，主题 20/20 问题已修复 | 三端均未安装运行，设备、签名/发布与安全存储回读验收未完成 |
+| Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线 | Mobile 三端长英文/运行时视觉验收 |
 
 ## 2026-08-04 HotGo 地区编码初始化数据
 
@@ -318,3 +318,17 @@
 - 真实 Chromium 使用键盘打开菜单并切换至英文，`performance.timeOrigin` 不变；375/768/1024/1440 均无横向溢出，桌面中文与移动英文开放菜单的 axe 均为 0 violation，控制台错误为 0。
 - Admin 14 files / 57 tests、lint、strict typecheck、production build、bundle budget、Admin/Mobile/i18n 蓝图校验、UI Skill 检查、E2E 脚本 py_compile 和 `git diff --check` 全部退出 0。
 - 4174 Admin 已使用最终镜像重建且 healthy。未部署生产；Firefox/Safari、Android/iOS/Harmony 和真实移动设备未执行。本轮未 commit、未 push。
+
+## 2026-08-05 Mobile Framework、内容与版本治理（实现完成；平台真实设备验收未完成）
+
+### 状态：实现完成 — 静态/契约、Android/iOS 最终 compile-only 与 Harmony 最终未签名 `.hap` 均已实测；三端设备验收尚未完成
+
+- Mobile 已实现 Home、Profile 及基本资料/安全中心/设备/通知偏好/语言外观/帮助关于/退出登录等可见子页，以及文章列表、详情、分类、书签和分享入口；页面静态登记、移动路由注册表、OpenAPI App API 契约与 Bootstrap 运行时接线均已同步。文章正文只接受受限 block DTO，不使用 `rich-text` 或 `v-html` 渲染不可信内容；私有文章资源下载携带 Bearer Header 且支持取消。
+- Backend 已补齐内容、文章分类、书签、移动个人资料与移动版本治理的 Route/Application/Repository/sqlc/OpenAPI/migration/权限种子契约，并在临时 PostgreSQL 18 库进行实现方实测。该结果不是生产部署或第三方服务联调声明。
+- Admin 已实现文章/分类内容管理和 Android/iOS/Harmony 版本发布管理。两项页面均保留项目内 `ui-ux-pro-max` request、output、decision、review checklist 与截图；Chromium 确定性 mock-contract E2E 的已保存 axe 证据在中英文关键视口均为 0 serious/critical。最新 Admin `pnpm check` exit 0（16 files / 64 tests、build、bundle 与 blueprint check 通过）；该 Admin 浏览器/Mock 证据不替代真实 Go API/PostgreSQL 端到端验收。
+- Mobile P1 主题覆盖 20/20 已修复：移除 `currentColor`，并为三种 button variant 的 loading 状态提供显式 token；Harmony 最终源码实测已通过，修复不替代尚未执行的真实设备验收。
+- `AkI18n`、`zh-CN`/`en-US` 语言包、`Accept-Language` 请求头、登录用户偏好同步和匿名非敏感 locale 偏好均已接入。2026-08-05 本地 i18n 契约校验通过；这仅证明键/占位符契约，不替代三端长英文布局与运行时切换验证。
+- Refresh 凭据经 `ak-secure-storage` Port 保存，不回退至普通 `uni.setStorage`：Android 设计为 Android Keystore + AES-GCM，iOS 为 ThisDeviceOnly Keychain，Harmony 为 Asset Store。静态契约检查与 Swift 语法解析已通过；尚无三端 Keychain/Keystore/Asset Store 真机写入、读取、轮换和登出清除证据。
+- 已引入 DCloud 官方 Codex rules（commit `9ec6ebb2ba57c3634a7be454f2d7c21a02635759`）及 `@dcloudio/uni-app-x-mcp@0.0.5` 的项目级 MCP 配置；仓库根规则仍为更高优先级。本 task 已通过 direct-stdio 的 initialize、tools/list 与 call 验证 MCP 成功，结果保存在 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-mobile-framework/mcp-easycom-scan.json`。本机原生 `codex mcp list` 因 vendor binary 损坏不能执行，且项目级 server 仍需从仓库根重启/重新打开 Codex 才会载入原生工具列表；该限制不影响已保存的 direct-stdio 验证。
+- Mobile `ui-ux-pro-max` 产物已保存，但 Home/Profile/Article List/Detail 的 Android 360×800、iOS 390×844、Harmony 430×932 真机截图及动态字体、reduced motion、英文扩展审查仍待补齐，不能标记移动端视觉验收完成。
+- 平台边界：前一轮唯一临时项目 `ak-mobile-framework-ios-rootqa` 曾以 HBuilderX 5.06 完成 iOS compile-only（20 页与 `ak-secure-storage`，`UTS编译完毕`、`ready in 39282ms`、CLI exit 0）。第 3 次最终隔离证据项目 `ak-mobile-framework-ios-final-evidence` 使用 HBuilderX 5.06 CLI exit 0：20 页与 `ak-secure-storage`、UTS 完成、`ready in 30446ms`、正常“已停止运行”；清理前逐行严格搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality` 均为空。仅标准基座/需 custom base/iOS 13+ 为预期提示；未执行模拟器安装/启动、签名或 Keychain 回读，项目已关闭/清理且无进程。Android 最终唯一项目 `ak-mobile-framework-android-final-clean-1785906028` 已完成 20 页至 Android class、UTS、`ready in 19314ms` 与正常停止；Terra 修复原 4 条 identity-equality warning，复编译额外发现并修复 profile edit 1 条，共 5 处 `Any?/Boolean` 与 `Int` 长度的 UTS 值比较。静态 7 项、严格错误/警告/Identity 搜索均为 0；launch 数值 exit 因外层误用 `PIPESTATUS` 未采集，project close 成功，且仅为 compile-only（非 APK/安装/真机），临时项目已清理且无进程。Harmony 最终最新源码在唯一项目 `ak-mobile-framework-harmony-final.ECScJj` 以 HBuilderX 5.06 CLI 可信 exit 0 实测：20 页、UTS、`ready in 15236ms`、工程生成/依赖/运行包制作成功，恰 1 个 `entry-default-unsigned.hap`。清理前严格逐行搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality`、`currentColor` 均零匹配（`rg` exit 1）。仅包名/签名/未签名为预期 warning；未安装/未真机/未执行 Asset Store 回读，项目已 close，临时项目和日志已清理且无进程。生产发布、三端真机、真实 Push/OAuth/商店升级和三端网络/弱网验收均仍未验证。

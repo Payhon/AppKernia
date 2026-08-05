@@ -1,0 +1,63 @@
+import appManifest from '../../../manifest.json'
+import { AkConfig, AkEnvironment } from '../config/config.uts'
+import { appSessionStore } from '../stores/session-store.uts'
+import { SessionRuntime } from '../stores/session-runtime.uts'
+import { AkSecureSessionStorage } from '../stores/ak-secure-session-storage.uts'
+import { articleRuntime } from '../../features/articles/infrastructure/article-runtime.uts'
+import { authRuntime } from '../../features/auth/auth-runtime.uts'
+import { AkHttpClient } from '../network/ak-http-client.uts'
+import { RefreshCoordinator } from '../network/refresh-coordinator.uts'
+import { profileRuntime } from '../../features/profile/infrastructure/profile-runtime.uts'
+import { notificationsRuntime } from '../../features/notifications/infrastructure/notifications-runtime.uts'
+import { preferencesRuntime } from '../../features/preferences/infrastructure/preferences-runtime.uts'
+import { versionRuntime } from '../../features/version/infrastructure/version-runtime.uts'
+import { NavigationLocaleSync } from '../i18n/navigation-sync.uts'
+import { akI18n } from '../i18n/ak-i18n.uts'
+import { themeStore } from '../theme/theme-store.uts'
+
+type ManifestRuntimeConfig = {
+  readonly environment: string
+  readonly apiBaseUrl: string
+}
+
+/**
+ * Reads only the packaged, approved manifest configuration. No production URL,
+ * access token, or permissive default is embedded in source. A release build
+ * must set `akRuntime.apiBaseUrl` to the approved `/api/v1` base URL.
+ */
+export function initializeAppRuntime(): boolean {
+  const sessionRuntime = new SessionRuntime(appSessionStore, new AkSecureSessionStorage())
+  const manifest: UTSJSONObject = appManifest as UTSJSONObject
+  const raw: UTSJSONObject | null = manifest['akRuntime'] as UTSJSONObject | null
+  if (raw == null) { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
+  const runtime: ManifestRuntimeConfig = raw as ManifestRuntimeConfig
+  if (runtime.apiBaseUrl == null || runtime.apiBaseUrl.length == 0) { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
+  if (runtime.environment != 'development' && runtime.environment != 'test' && runtime.environment != 'production') { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
+  const config = new AkConfig(runtime.environment as AkEnvironment, runtime.apiBaseUrl)
+  const client = new AkHttpClient(config, appSessionStore)
+  authRuntime.configure(client, sessionRuntime)
+  const auth = authRuntime.getService()
+  if (auth != null) {
+    articleRuntime.configure(config, appSessionStore, auth, new RefreshCoordinator(sessionRuntime, auth))
+    profileRuntime.configure(config, appSessionStore, sessionRuntime, auth)
+    notificationsRuntime.configure(config, appSessionStore, sessionRuntime, auth)
+    preferencesRuntime.configure(config, appSessionStore, sessionRuntime, auth)
+    versionRuntime.configure(config, appSessionStore)
+    sessionRuntime.restore((credential) => {
+      if (credential == null) { uni.reLaunch({ url: '/pages/auth/login/index' }); return }
+      authRuntime.restore(credential, () => {
+        completeAuthenticatedBootstrap()
+      }, () => sessionRuntime.signOut(() => { uni.reLaunch({url:'/pages/auth/login/index'}); }))
+    })
+  }
+  return true
+}
+
+/** Login and token restoration share the same context/preferences handoff. */
+export function completeAuthenticatedBootstrap(): void {
+  authRuntime.refreshContext(() => {
+    const preferences = preferencesRuntime.getRepository()
+    if (preferences == null) { uni.reLaunch({ url: '/pages/home/index' }); return }
+    preferences.get(value => { new NavigationLocaleSync(akI18n).apply(value.locale, 'routes.home.title'); themeStore.apply(value.appearance); uni.reLaunch({ url: '/pages/home/index' }) }, () => { uni.reLaunch({url:'/pages/home/index'}); })
+  }, () => authRuntime.signOut(() => { uni.reLaunch({url:'/pages/auth/login/index'}); }))
+}

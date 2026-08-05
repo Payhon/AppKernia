@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 
 const locales = ['zh-CN', 'en-US']
-const namespaces = ['common', 'auth', 'navigation', 'validation', 'errors', 'profile', 'settings', 'system', 'notifications']
+const namespaces = ['common', 'auth', 'navigation', 'validation', 'errors', 'profile', 'settings', 'system', 'notifications', 'content', 'mobile_releases']
 
 function namespaceFor(key) {
   const prefix = key.split('.', 1)[0]

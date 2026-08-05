@@ -164,6 +164,18 @@ a,
   outline-offset: 3px;
 }
 
+.ak-content-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+}
+.ak-content-locale-card { margin: 16px 0; }
+.ak-content-slug { margin-top: 3px; color: var(--ak-muted); font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.ak-content-stale { margin-top: 10px; color: var(--ak-muted); font-size: 13px; }
+@media (max-width: 991px) { .ak-content-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px) { .ak-content-filters { grid-template-columns: 1fr; } }
+
 .ak-auth-layout {
   display: grid;
   grid-template-columns: minmax(360px, 46%) 1fr;
@@ -1653,6 +1665,73 @@ a,
   }
 }
 
+.ak-release-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 320px);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ak-mobile-release-version-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ak-version-value {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ak-release-url {
+  display: inline-block;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  white-space: nowrap;
+}
+
+.ak-release-drawer-alert {
+  margin-bottom: 16px;
+}
+
+.ak-mobile-release-list {
+  display: grid;
+  gap: 12px;
+}
+
+.ak-mobile-release-empty {
+  padding: 32px 16px;
+  color: var(--ak-muted);
+  text-align: center;
+}
+
+.ak-mobile-release-card .ant-card-head {
+  min-height: 44px;
+}
+
+.ak-mobile-release-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 16px;
+}
+
+.ak-mobile-release-facts div {
+  min-width: 0;
+}
+
+.ak-mobile-release-facts dt {
+  margin-bottom: 4px;
+  color: var(--ak-muted);
+  font-size: 12px;
+}
+
+.ak-mobile-release-facts dd {
+  margin: 0;
+}
+
 @media (max-width: 767px) {
   .ak-login-captcha {
     grid-template-columns: minmax(96px, 1fr) 132px 44px;
@@ -2104,6 +2183,11 @@ a,
 
   .ak-page-heading h1.ant-typography {
     font-size: 30px;
+  }
+
+  .ak-release-filters,
+  .ak-mobile-release-version-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

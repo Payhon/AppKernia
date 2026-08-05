@@ -122,6 +122,28 @@
       "phase": "P1"
     },
     {
+      "code": "system.content",
+      "i18n_key": "menu.system.content",
+      "title": "内容管理",
+      "type": "directory",
+      "path": "/system/content",
+      "sort": 90,
+      "parent": "system",
+      "icon": "ReadOutlined",
+      "phase": "P2"
+    },
+    {
+      "code": "system.mobile",
+      "i18n_key": "menu.system.mobile",
+      "title": "移动端管理",
+      "type": "directory",
+      "path": "/system/mobile",
+      "sort": 100,
+      "parent": "system",
+      "icon": "MobileOutlined",
+      "phase": "P2"
+    },
+    {
       "code": "system.settings.configs",
       "i18n_key": "menu.system.settings.configs",
       "title": "系统配置",
@@ -455,6 +477,45 @@
       "permission": "ops.health.read",
       "phase": "P2",
       "backend_status": "existing"
+    },
+    {
+      "code": "system.content.articles",
+      "i18n_key": "menu.system.content.articles",
+      "title": "文章管理",
+      "type": "page",
+      "path": "/system/content/articles",
+      "sort": 10,
+      "parent": "system.content",
+      "component_key": "system.content.articles",
+      "icon": "ReadOutlined",
+      "permission": "content.article.read",
+      "phase": "P2"
+    },
+    {
+      "code": "system.content.categories",
+      "i18n_key": "menu.system.content.categories",
+      "title": "文章分类",
+      "type": "page",
+      "path": "/system/content/categories",
+      "sort": 20,
+      "parent": "system.content",
+      "component_key": "system.content.categories",
+      "icon": "BookOutlined",
+      "permission": "content.category.read",
+      "phase": "P2"
+    },
+    {
+      "code": "system.mobile.releases",
+      "i18n_key": "menu.system.mobile.releases",
+      "title": "移动端发布策略",
+      "type": "page",
+      "path": "/system/mobile/releases",
+      "sort": 10,
+      "parent": "system.mobile",
+      "component_key": "system.mobile.releases",
+      "icon": "MobileOutlined",
+      "permission": "mobile.release.read",
+      "phase": "P2"
     }
   ]
 }

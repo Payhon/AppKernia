@@ -169,6 +169,12 @@
       "path": "/api/v1/me/account-deletion",
       "purpose": "在冷静期内撤销账号注销申请。",
       "phase": "P2"
-    }
+    },
+    { "method": "GET", "path": "/api/v1/article-categories", "purpose": "读取当前租户所有启用文章分类的本地化筛选项。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/article-assets/{file_id}", "purpose": "使用移动会话读取当前租户已发布文章引用的安全图片封面。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/articles", "purpose": "按本地化投影游标检索文章。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/articles/{slug}", "purpose": "读取一篇已发布文章。", "phase": "P1" },
+    { "method": "PUT", "path": "/api/v1/me/article-bookmarks/{article_id}", "purpose": "收藏自己的文章。", "phase": "P1" },
+    { "method": "DELETE", "path": "/api/v1/me/article-bookmarks/{article_id}", "purpose": "取消收藏自己的文章。", "phase": "P1" }
   ]
 }

@@ -1,0 +1,43 @@
+<template>
+  <view class="ak-button" :class="[variantClass, disabled || loading ? 'ak-button-disabled' : 'ak-button-enabled']" @click="handleClick">
+    <text v-if="loading" class="ak-button__loading">{{ loadingText }}</text>
+    <slot v-else />
+  </view>
+</template>
+
+<script lang="uts">
+export default {
+  props: {
+    variant: { type: String, default: 'primary' },
+    loading: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
+    loadingText: { type: String, default: '' },
+  },
+  emits: ['click'],
+  computed: {
+    variantClass(): string {
+      if (this.variant == 'secondary') return 'ak-button-secondary'
+      if (this.variant == 'danger') return 'ak-button-danger'
+      return 'ak-button-primary'
+    },
+  },
+  methods: {
+    handleClick() {
+      if (!this.loading && !this.disabled) this.$emit('click')
+    },
+  },
+}
+</script>
+
+<style lang="scss">
+.ak-button { height:44px; padding:0 16px; border-radius:12px; align-items:center; justify-content:center; }
+.ak-button-primary { background:var(--ak-brand); color:var(--ak-on-brand); }
+.ak-button-secondary { background:var(--ak-surface); border:1px solid var(--ak-border-strong); color:var(--ak-text); }
+.ak-button-danger { background:var(--ak-danger); color:var(--ak-on-danger); }
+.ak-button-enabled { opacity:1; }
+.ak-button-disabled { opacity:0.5; }
+.ak-button__loading { font-size:16px; font-weight:600; }
+.ak-button-primary .ak-button__loading { color:var(--ak-on-brand); }
+.ak-button-secondary .ak-button__loading { color:var(--ak-text); }
+.ak-button-danger .ak-button__loading { color:var(--ak-on-danger); }
+</style>

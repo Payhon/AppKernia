@@ -146,6 +146,7 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 | `iam.mfa_recovery_codes` | 全局 | MFA 恢复码 | 只存哈希；哈希唯一 |
 | `iam.block_rules` | 全局/租户 | IP、CIDR、用户、设备和标识风控规则 | subject/action/status Check |
 | `iam.role_scope_units` | 租户 | 自定义角色组织数据范围 | 同租户角色与组织复合外键 |
+| `iam.user_preferences` | 全局 | 用户主题与通知偏好 | locale 继续以 `iam.users.locale` 为唯一事实源 |
 
 ### 4.2 Organization
 
@@ -173,6 +174,7 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 | `sys.idempotency_keys` | 租户 | 可重试写接口结果缓存 | identity+key 唯一；请求哈希防冲突 |
 | `sys.webhook_endpoints` | 租户 | Webhook 目标、事件和签名秘密 | 密文 Secret、超时和重试限制 |
 | `sys.webhook_deliveries` | Endpoint | Webhook 交付状态和响应摘要 | endpoint+event 唯一 |
+| `sys.mobile_releases` | 全局 | Android/iOS/Harmony 的受控发布与升级策略 | 每平台至多一条 active；双语发布说明；乐观锁 |
 
 ### 4.4 Storage
 

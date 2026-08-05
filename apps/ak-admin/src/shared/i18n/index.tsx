@@ -10,7 +10,9 @@ import { I18nextProvider } from 'react-i18next'
 
 import enAuth from '../../locales/en-US/auth.json'
 import enCommon from '../../locales/en-US/common.json'
+import enContent from '../../locales/en-US/content.json'
 import enErrors from '../../locales/en-US/errors.json'
+import enMobileReleases from '../../locales/en-US/mobile_releases.json'
 import enNavigation from '../../locales/en-US/navigation.json'
 import enNotifications from '../../locales/en-US/notifications.json'
 import enProfile from '../../locales/en-US/profile.json'
@@ -19,7 +21,9 @@ import enSystem from '../../locales/en-US/system.json'
 import enValidation from '../../locales/en-US/validation.json'
 import zhAuth from '../../locales/zh-CN/auth.json'
 import zhCommon from '../../locales/zh-CN/common.json'
+import zhContent from '../../locales/zh-CN/content.json'
 import zhErrors from '../../locales/zh-CN/errors.json'
+import zhMobileReleases from '../../locales/zh-CN/mobile_releases.json'
 import zhNavigation from '../../locales/zh-CN/navigation.json'
 import zhNotifications from '../../locales/zh-CN/notifications.json'
 import zhProfile from '../../locales/zh-CN/profile.json'
@@ -32,8 +36,8 @@ export const supportedLocales = ['zh-CN', 'en-US'] as const
 export type AdminLocale = (typeof supportedLocales)[number]
 
 const localeStorageKey = 'ak.admin.locale'
-const enCatalog = { ...enAuth, ...enCommon, ...enErrors, ...enNavigation, ...enNotifications, ...enProfile, ...enSettings, ...enSystem, ...enValidation }
-const zhCatalog = { ...zhAuth, ...zhCommon, ...zhErrors, ...zhNavigation, ...zhNotifications, ...zhProfile, ...zhSettings, ...zhSystem, ...zhValidation }
+const enCatalog = { ...enAuth, ...enCommon, ...enContent, ...enErrors, ...enMobileReleases, ...enNavigation, ...enNotifications, ...enProfile, ...enSettings, ...enSystem, ...enValidation }
+const zhCatalog = { ...zhAuth, ...zhCommon, ...zhContent, ...zhErrors, ...zhMobileReleases, ...zhNavigation, ...zhNotifications, ...zhProfile, ...zhSettings, ...zhSystem, ...zhValidation }
 
 function readStoredLocale(): string | null {
   try {
