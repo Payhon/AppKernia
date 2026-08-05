@@ -12,12 +12,15 @@ import (
 
 const MaxAvatarBytes int64 = 5 * 1024 * 1024
 
+const MaxFileBytes int64 = 100 * 1024 * 1024
+
 var (
 	ErrFeatureDisabled = errors.New("avatar upload is disabled")
 	ErrUploadInvalid   = errors.New("avatar upload is invalid")
 	ErrUploadNotFound  = errors.New("avatar upload session not found")
 	ErrAvatarNotFound  = errors.New("avatar not found")
 	ErrObjectNotFound  = errors.New("object not found")
+	ErrStorageConfig   = errors.New("object storage configuration is unavailable")
 )
 
 type Principal struct {
@@ -38,12 +41,16 @@ type CreateAvatarUpload struct {
 	MediaType    string
 	ExpectedSize int64
 	ObjectKey    string
+	Provider     string
+	Bucket       string
 	ExpiresAt    time.Time
 }
 
 type AvatarUploadSession struct {
 	ID           uuid.UUID
 	ObjectKey    string
+	Provider     string
+	Bucket       string
 	OriginalName string
 	MediaType    string
 	ExpectedSize int64
@@ -55,6 +62,8 @@ type CompleteAvatarUpload struct {
 	ClientMetadata
 	UploadSessionID uuid.UUID
 	ObjectKey       string
+	Provider        string
+	Bucket          string
 	OriginalName    string
 	MediaType       string
 	Extension       string
@@ -65,6 +74,8 @@ type CompleteAvatarUpload struct {
 type AvatarObject struct {
 	FileID    uuid.UUID
 	ObjectKey string
+	Provider  string
+	Bucket    string
 	MediaType string
 	SizeBytes int64
 	SHA256    []byte
@@ -74,6 +85,26 @@ type AvatarObject struct {
 type AvatarCompletion struct {
 	FileID    uuid.UUID
 	ObjectKey string
+	Provider  string
+	Bucket    string
+}
+
+type UploadPolicy struct {
+	Provider          string   `json:"provider"`
+	Bucket            string   `json:"-"`
+	PathPrefix        string   `json:"-"`
+	MaxImageBytes     int64    `json:"max_image_bytes"`
+	MaxFileBytes      int64    `json:"max_file_bytes"`
+	ImageMediaTypes   []string `json:"image_media_types"`
+	FileMediaTypes    []string `json:"file_media_types"`
+	ConfigurationSafe bool     `json:"configuration_safe"`
+}
+
+type ObjectRef struct {
+	TenantID uuid.UUID
+	Provider string
+	Bucket   string
+	Key      string
 }
 
 type Repository interface {
@@ -84,7 +115,8 @@ type Repository interface {
 }
 
 type ObjectStore interface {
-	Put(context.Context, string, []byte) error
-	Open(context.Context, string) (io.ReadCloser, error)
-	Delete(context.Context, string) error
+	ResolvePolicy(context.Context, uuid.UUID) (UploadPolicy, error)
+	Put(context.Context, ObjectRef, []byte) error
+	Open(context.Context, ObjectRef) (io.ReadCloser, error)
+	Delete(context.Context, ObjectRef) error
 }

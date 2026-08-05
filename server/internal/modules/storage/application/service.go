@@ -52,16 +52,20 @@ func (service *Service) CreateAvatarUpload(
 	if !service.enabled || service.objects == nil {
 		return UploadTarget{}, domain.ErrFeatureDisabled
 	}
+	policy, err := service.objects.ResolvePolicy(ctx, principal.TenantID)
+	if err != nil {
+		return UploadTarget{}, err
+	}
 	name := strings.TrimSpace(filepath.Base(input.OriginalName))
 	mediaType, extension, ok := normalizeImageType(input.MediaType)
-	if !ok || name == "" || name == "." || len(name) > 240 || input.SizeBytes <= 0 || input.SizeBytes > domain.MaxAvatarBytes {
+	if !ok || !contains(policy.ImageMediaTypes, mediaType) || name == "" || name == "." || len(name) > 240 || input.SizeBytes <= 0 || input.SizeBytes > policy.MaxImageBytes || input.SizeBytes > domain.MaxAvatarBytes {
 		return UploadTarget{}, domain.ErrUploadInvalid
 	}
 	expiresAt := service.clock().UTC().Add(uploadLifetime)
-	objectKey := fmt.Sprintf("avatars/%s/%s/%s%s", principal.TenantID, principal.UserID, uuid.New(), extension)
+	objectKey := withPrefix(policy.PathPrefix, fmt.Sprintf("avatars/%s/%s/%s%s", principal.TenantID, principal.UserID, uuid.New(), extension))
 	session, err := service.repository.CreateAvatarUpload(ctx, domain.CreateAvatarUpload{
 		Principal: principal, OriginalName: name, MediaType: mediaType,
-		ExpectedSize: input.SizeBytes, ObjectKey: objectKey, ExpiresAt: expiresAt,
+		ExpectedSize: input.SizeBytes, ObjectKey: objectKey, Provider: policy.Provider, Bucket: policy.Bucket, ExpiresAt: expiresAt,
 	})
 	if err != nil {
 		return UploadTarget{}, err
@@ -105,21 +109,22 @@ func (service *Service) UploadAvatar(
 		return uuid.Nil, domain.ErrUploadInvalid
 	}
 	digest := sha256.Sum256(content)
-	if err = service.objects.Put(ctx, session.ObjectKey, content); err != nil {
+	ref := domain.ObjectRef{TenantID: principal.TenantID, Provider: session.Provider, Bucket: session.Bucket, Key: session.ObjectKey}
+	if err = service.objects.Put(ctx, ref, content); err != nil {
 		return uuid.Nil, err
 	}
 	completion, err := service.repository.CompleteAvatarUpload(ctx, domain.CompleteAvatarUpload{
 		Principal: principal, ClientMetadata: client, UploadSessionID: uploadID,
-		ObjectKey: session.ObjectKey, OriginalName: session.OriginalName,
+		ObjectKey: session.ObjectKey, Provider: session.Provider, Bucket: session.Bucket, OriginalName: session.OriginalName,
 		MediaType: configuredType, Extension: strings.TrimPrefix(extension, "."),
 		SizeBytes: int64(len(content)), SHA256: digest[:],
 	})
 	if err != nil {
-		_ = service.objects.Delete(ctx, session.ObjectKey)
+		_ = service.objects.Delete(ctx, ref)
 		return uuid.Nil, err
 	}
 	if completion.ObjectKey != session.ObjectKey {
-		_ = service.objects.Delete(ctx, session.ObjectKey)
+		_ = service.objects.Delete(ctx, ref)
 	}
 	return completion.FileID, nil
 }
@@ -132,11 +137,28 @@ func (service *Service) OpenAvatar(ctx context.Context, principal domain.Princip
 	if err != nil {
 		return domain.AvatarObject{}, nil, err
 	}
-	reader, err := service.objects.Open(ctx, object.ObjectKey)
+	reader, err := service.objects.Open(ctx, domain.ObjectRef{TenantID: principal.TenantID, Provider: object.Provider, Bucket: object.Bucket, Key: object.ObjectKey})
 	if err != nil {
 		return domain.AvatarObject{}, nil, err
 	}
 	return object, reader, nil
+}
+
+func withPrefix(prefix, key string) string {
+	prefix = strings.Trim(strings.TrimSpace(prefix), "/")
+	if prefix == "" {
+		return key
+	}
+	return prefix + "/" + key
+}
+
+func contains(values []string, value string) bool {
+	for _, candidate := range values {
+		if candidate == value {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeImageType(raw string) (string, string, bool) {

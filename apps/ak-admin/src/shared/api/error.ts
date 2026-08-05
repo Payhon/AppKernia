@@ -5,6 +5,7 @@ export class ApiError extends Error {
   readonly code: string
   readonly messageKey: string
   readonly requestId: string | undefined
+  readonly details: ErrorResponse['error']['details'] | undefined
 
   constructor(status: number, response?: ErrorResponse) {
     super(response?.error.message ?? `HTTP ${String(status)}`)
@@ -13,6 +14,7 @@ export class ApiError extends Error {
     this.code = response?.error.code ?? 'COMMON.UNKNOWN'
     this.messageKey = response?.error.message_key ?? 'errors.common.unknown'
     this.requestId = response?.request_id
+    this.details = response?.error.details
   }
 }
 

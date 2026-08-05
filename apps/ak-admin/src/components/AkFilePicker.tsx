@@ -2,7 +2,9 @@ import { Button, Input, Modal, Table, Tag, Typography } from "antd";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AdminFile } from "../generated/api/types.gen";
+import { useAuthStore } from "../features/auth/store";
 import { useAdminFiles } from "../features/files/hooks";
+import { AkFileUploader } from "./AkFileUploader";
 
 interface AkFilePickerProps {
   open: boolean;
@@ -14,6 +16,7 @@ export function AkFilePicker({ open, onClose, onSelect }: AkFilePickerProps) {
   const { t } = useTranslation();
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<AdminFile | null>(null);
+  const canUpload = useAuthStore((state) => state.context?.permissions.includes("storage.file.upload") ?? false);
   const files = useAdminFiles({ q, status: "ready", page: 1, page_size: 50 });
   const selectable = (file: AdminFile) =>
     file.status === "ready" && ["clean", "skipped"].includes(file.scan_status);
@@ -38,6 +41,7 @@ export function AkFilePicker({ open, onClose, onSelect }: AkFilePickerProps) {
         value={q}
         onChange={(event) => { setQ(event.target.value); }}
       />
+      {canUpload ? <AkFileUploader compact onUploaded={async (file) => { setSelected(file); await files.refetch(); }} /> : null}
       <Table
         className="ak-file-picker-table"
         columns={[

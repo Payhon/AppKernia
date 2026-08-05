@@ -43,6 +43,7 @@ export function LocaleSwitcher({ variant = 'select' }: LocaleSwitcherProps) {
       <span className="ak-locale-control ak-locale-control-icon">
         <Tooltip title={t('profile.language.title')}>
           <Dropdown
+            getPopupContainer={(triggerNode) => triggerNode.parentElement ?? triggerNode}
             menu={{
               items,
               onClick: ({ key }) => { void changeLocale(key as AdminLocale) },
@@ -54,6 +55,7 @@ export function LocaleSwitcher({ variant = 'select' }: LocaleSwitcherProps) {
             trigger={['click']}
           >
             <Button
+              aria-describedby={saveError ? 'ak-locale-save-error' : undefined}
               aria-label={t('profile.language.title')}
               className="ak-shell-icon-button"
               icon={<TranslationOutlined />}

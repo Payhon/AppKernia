@@ -11,15 +11,16 @@ import (
 )
 
 var (
-	ErrEmailAlreadyExists = errors.New("email already exists")
-	ErrIdentityNotFound   = errors.New("identity not found")
-	ErrRefreshInvalid     = errors.New("refresh token is invalid")
-	ErrRefreshReused      = errors.New("refresh token reuse detected")
-	ErrSessionNotFound    = errors.New("session not found")
-	ErrDeviceNotFound     = errors.New("device not found")
-	ErrPasswordChanged    = errors.New("password changed concurrently")
-	ErrResetTokenInvalid  = errors.New("password reset token is invalid")
-	ErrRegistrationTenant = errors.New("registration tenant is unavailable")
+	ErrEmailAlreadyExists  = errors.New("email already exists")
+	ErrIdentityNotFound    = errors.New("identity not found")
+	ErrRefreshInvalid      = errors.New("refresh token is invalid")
+	ErrRefreshReused       = errors.New("refresh token reuse detected")
+	ErrSessionNotFound     = errors.New("session not found")
+	ErrDeviceNotFound      = errors.New("device not found")
+	ErrPasswordChanged     = errors.New("password changed concurrently")
+	ErrResetTokenInvalid   = errors.New("password reset token is invalid")
+	ErrRegistrationTenant  = errors.New("registration tenant is unavailable")
+	ErrLoginCaptchaInvalid = errors.New("login captcha is invalid")
 )
 
 type User struct {
@@ -70,7 +71,11 @@ type Repository interface {
 	UpdateSelfProfile(context.Context, UpdateSelfProfile) (User, error)
 	GetSelfPasswordState(context.Context, uuid.UUID) (SelfPasswordState, error)
 	ChangeSelfPassword(context.Context, ChangeSelfPassword) error
-	RecordLoginFailure(context.Context, LoginFailure) error
+	LoginCaptchaRequired(context.Context, []byte, time.Time) (bool, error)
+	RecordLoginFailure(context.Context, LoginFailure) (int32, error)
+	ResetLoginFailures(context.Context, []byte) error
+	CreateLoginCaptcha(context.Context, LoginCaptchaChallenge) (uuid.UUID, error)
+	VerifyLoginCaptcha(context.Context, LoginCaptchaAttempt) error
 	PreparePasswordReset(context.Context, PreparePasswordReset) (*PasswordResetRecipient, error)
 	GetPasswordResetState(context.Context, []byte) (PasswordResetState, error)
 	ResetPassword(context.Context, ResetPassword) error
@@ -125,6 +130,24 @@ type LoginFailure struct {
 	RequestID string
 	IPAddress *netip.Addr
 	UserAgent string
+	ScopeHash []byte
+	FailedAt  time.Time
+	ExpiresAt time.Time
+}
+
+type LoginCaptchaChallenge struct {
+	ScopeHash  []byte
+	AnswerSalt []byte
+	AnswerHash []byte
+	CreatedAt  time.Time
+	ExpiresAt  time.Time
+}
+
+type LoginCaptchaAttempt struct {
+	ID        uuid.UUID
+	ScopeHash []byte
+	Answer    string
+	Now       time.Time
 }
 
 type SelfPasswordState struct {

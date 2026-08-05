@@ -110,6 +110,32 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+  /admin-api/v1/auth/login/captcha:
+    post:
+      summary: Create a short-lived image CAPTCHA for an Admin login retry
+      description: Creates a single-use PNG challenge bound to the normalized email, Admin audience, and request source. Creating a new challenge invalidates an earlier active challenge for the same scope.
+      operationId: createAdminLoginCaptcha
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminLoginCaptchaRequest"
+      responses:
+        "200":
+          description: A non-cacheable, short-lived, single-use PNG challenge.
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminLoginCaptchaResponse"
+        "422":
+          $ref: "#/components/responses/ValidationFailed"
   /admin-api/v1/auth/public-config:
     get:
       summary: Read public Admin authentication configuration
@@ -367,7 +393,7 @@ paths:
   /admin-api/v1/me/avatar/upload-session:
     post:
       summary: Create a self-scoped avatar upload session
-      description: Creates a short-lived upload target for the authenticated user's avatar. The server selects tenant, owner and object key; the client cannot provide them.
+      description: Creates a short-lived upload target for the authenticated user's browser-cropped avatar. The server selects tenant, owner, configured local/S3/MinIO provider and random object key; the client cannot provide them or receive storage credentials.
       operationId: createAdminSelfAvatarUploadSession
       security:
         - adminBearer: []
@@ -389,8 +415,8 @@ paths:
         "422": {$ref: "#/components/responses/ValidationFailed"}
   /admin-api/v1/me/avatar/upload-sessions/{id}/content:
     put:
-      summary: Upload and attach avatar content for a self-scoped local development session
-      description: Development-local ObjectStore adapter endpoint. Production adapters return an external presigned target while preserving the session contract.
+      summary: Upload and attach browser-cropped avatar content
+      description: Uploads through the tenant's configured ObjectStore adapter (development local, S3, or MinIO), then validates MIME magic, dimensions, size and ownership before attaching the object to the current user.
       operationId: uploadAdminSelfAvatarContent
       security:
         - adminBearer: []
@@ -1453,6 +1479,13 @@ paths:
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [enabled, disabled]}}]
       responses: {"200": {description: Compile-time module catalog., content: {application/json: {schema: {$ref: "#/components/schemas/AdminModuleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/files/upload-policy:
+    get:
+      summary: Read the effective tenant upload policy without exposing storage credentials or bucket names
+      operationId: getAdminFileUploadPolicy
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
+      responses: {"200": {description: Effective provider and server-enforced upload constraints., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileUploadPolicyResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "503": {description: Storage configuration is incomplete or unavailable., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
   /admin-api/v1/files/upload-sessions:
     post:
       summary: Create a tenant-scoped multipart upload session
@@ -1493,7 +1526,7 @@ paths:
       summary: List tenant-scoped files
       operationId: listAdminFiles
       security: [{adminBearer: []}]
-      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [pending, ready, quarantined]}}, {name: scan_status, in: query, schema: {type: string, enum: [pending, clean, infected, failed, skipped]}}, {name: media_type, in: query, schema: {type: string}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [pending, ready, quarantined]}}, {name: scan_status, in: query, schema: {type: string, enum: [pending, clean, infected, failed, skipped]}}, {name: media_type, in: query, schema: {type: string}}, {name: provider, in: query, schema: {type: string, enum: [local, s3, minio]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Object keys and checksums are not exposed., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
   /admin-api/v1/files/{id}:
     parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
@@ -1523,7 +1556,7 @@ paths:
       responses: {"200": {description: Download target., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileDownloadResponse"}}}}, "409": {description: File is not ready or scan-safe., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
   /admin-api/v1/files/{id}/content:
     get:
-      summary: Stream a scan-safe file from the development-local adapter
+      summary: Stream a scan-safe private file from the tenant's configured storage adapter
       operationId: downloadAdminFileContent
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
@@ -2955,6 +2988,30 @@ components:
       properties:
         email: {type: string, format: email, maxLength: 320}
         password: {type: string, minLength: 12, maxLength: 256, format: password}
+        captcha_id: {type: string, format: uuid, description: Required only after the server returns IAM.AUTH.CAPTCHA_REQUIRED.}
+        captcha_answer: {type: string, pattern: '^[2-9]{6}$', description: Required only after the server returns IAM.AUTH.CAPTCHA_REQUIRED.}
+    AdminLoginCaptchaRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties:
+        email: {type: string, format: email, maxLength: 320}
+    AdminLoginCaptchaResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties:
+        code: {type: string, const: OK}
+        message: {type: string}
+        data:
+          type: object
+          additionalProperties: false
+          required: [captcha_id, image_base64, mime_type, expires_in_seconds]
+          properties:
+            captcha_id: {type: string, format: uuid}
+            image_base64: {type: string, contentEncoding: base64, description: Base64-encoded PNG bytes. The answer is never returned as text or vector content.}
+            mime_type: {type: string, const: image/png}
+            expires_in_seconds: {type: integer, format: int64, minimum: 1, maximum: 300}
+        request_id: {type: string}
     AdminRegistrationRequest:
       type: object
       additionalProperties: false
@@ -3603,13 +3660,18 @@ components:
     AdminFileUploadSession:
       type: object
       additionalProperties: false
-      required: [id, original_name, media_type, expected_size, part_size, status, expires_at, uploaded_parts]
-      properties: {id: {type: string, format: uuid}, original_name: {type: string}, media_type: {type: string}, expected_size: {type: integer, format: int64}, part_size: {type: integer, format: int64}, status: {type: string, enum: [initiated, uploading]}, expires_at: {type: string, format: date-time}, uploaded_parts: {type: array, items: {$ref: "#/components/schemas/AdminFilePart"}}}
+      required: [id, original_name, media_type, expected_size, part_size, status, provider, expires_at, uploaded_parts]
+      properties: {id: {type: string, format: uuid}, original_name: {type: string}, media_type: {type: string}, expected_size: {type: integer, format: int64}, part_size: {type: integer, format: int64}, status: {type: string, enum: [initiated, uploading]}, provider: {type: string, enum: [local, s3, minio]}, expires_at: {type: string, format: date-time}, uploaded_parts: {type: array, items: {$ref: "#/components/schemas/AdminFilePart"}}}
+    AdminFileUploadPolicy:
+      type: object
+      additionalProperties: false
+      required: [provider, max_image_bytes, max_file_bytes, image_media_types, file_media_types, configuration_safe]
+      properties: {provider: {type: string, enum: [local, s3, minio]}, max_image_bytes: {type: integer, format: int64, minimum: 1, maximum: 5242880}, max_file_bytes: {type: integer, format: int64, minimum: 1, maximum: 104857600}, image_media_types: {type: array, items: {type: string}}, file_media_types: {type: array, items: {type: string}}, configuration_safe: {type: boolean}}
     AdminFile:
       type: object
       additionalProperties: false
-      required: [id, original_name, media_type, extension, size_bytes, status, scan_status, usage_count, created_at, updated_at]
-      properties: {id: {type: string, format: uuid}, original_name: {type: string}, media_type: {type: string}, extension: {type: string}, size_bytes: {type: integer, format: int64}, status: {type: string, enum: [pending, ready, quarantined]}, scan_status: {type: string, enum: [pending, clean, infected, failed, skipped]}, usage_count: {type: integer, format: int64, minimum: 0}, owner_user_id: {type: [string, "null"], format: uuid}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+      required: [id, original_name, media_type, extension, size_bytes, provider, status, scan_status, usage_count, created_at, updated_at]
+      properties: {id: {type: string, format: uuid}, original_name: {type: string}, media_type: {type: string}, extension: {type: string}, size_bytes: {type: integer, format: int64}, provider: {type: string, enum: [local, s3, minio]}, status: {type: string, enum: [pending, ready, quarantined]}, scan_status: {type: string, enum: [pending, clean, infected, failed, skipped]}, usage_count: {type: integer, format: int64, minimum: 0}, owner_user_id: {type: [string, "null"], format: uuid}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
     AdminFileUsage:
       type: object
       additionalProperties: false
@@ -3631,6 +3693,10 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminFileUploadSession"}, request_id: {type: string}}
+    AdminFileUploadPolicyResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminFileUploadPolicy"}, request_id: {type: string}}
     AdminFilePartResponse:
       type: object
       required: [code, message, data, request_id]

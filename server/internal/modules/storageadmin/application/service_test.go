@@ -25,7 +25,7 @@ type fakeRepo struct {
 }
 
 func (r *fakeRepo) CreateUpload(_ context.Context, in files.CreateUpload) (files.UploadSession, error) {
-	r.session = files.UploadSession{ID: uuid.New(), OriginalName: in.OriginalName, MediaType: in.MediaType, ExpectedSize: in.ExpectedSize, PartSize: files.PartSize, Status: "initiated", ObjectKey: in.ObjectKey, ExpiresAt: in.ExpiresAt, UploadedParts: []files.Part{}}
+	r.session = files.UploadSession{ID: uuid.New(), OriginalName: in.OriginalName, MediaType: in.MediaType, ExpectedSize: in.ExpectedSize, PartSize: files.PartSize, Status: "initiated", Provider: in.Provider, Bucket: in.Bucket, ObjectKey: in.ObjectKey, ExpiresAt: in.ExpiresAt, UploadedParts: []files.Part{}}
 	return r.session, nil
 }
 func (r *fakeRepo) GetUpload(context.Context, uuid.UUID, uuid.UUID) (files.UploadSession, error) {
@@ -63,19 +63,22 @@ func (r *fakeRepo) DeleteFile(context.Context, files.Principal, uuid.UUID) (file
 
 type memoryObjects struct{ values map[string][]byte }
 
-func (m *memoryObjects) Put(_ context.Context, key string, value []byte) error {
-	m.values[key] = bytes.Clone(value)
+func (m *memoryObjects) ResolvePolicy(context.Context, uuid.UUID) (files.UploadPolicy, error) {
+	return files.UploadPolicy{Provider: "local", Bucket: "appkernia-local", MaxImageBytes: 5 * 1024 * 1024, MaxFileBytes: files.MaxFileBytes, ImageMediaTypes: []string{"image/jpeg", "image/png", "image/webp"}, FileMediaTypes: []string{"text/plain", "application/octet-stream"}, ConfigurationSafe: true}, nil
+}
+func (m *memoryObjects) Put(_ context.Context, ref files.ObjectRef, value []byte) error {
+	m.values[ref.Key] = bytes.Clone(value)
 	return nil
 }
-func (m *memoryObjects) Open(_ context.Context, key string) (io.ReadCloser, error) {
-	value, ok := m.values[key]
+func (m *memoryObjects) Open(_ context.Context, ref files.ObjectRef) (io.ReadCloser, error) {
+	value, ok := m.values[ref.Key]
 	if !ok {
 		return nil, files.ErrNotFound
 	}
 	return io.NopCloser(bytes.NewReader(value)), nil
 }
-func (m *memoryObjects) Delete(_ context.Context, key string) error {
-	delete(m.values, key)
+func (m *memoryObjects) Delete(_ context.Context, ref files.ObjectRef) error {
+	delete(m.values, ref.Key)
 	return nil
 }
 

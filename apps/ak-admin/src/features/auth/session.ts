@@ -7,6 +7,8 @@ import type {
   AdminDashboardSummaryResponse,
   AdminDashboardTrendsResponse,
   AdminLoginRequest,
+  AdminLoginCaptchaRequest,
+  AdminLoginCaptchaResponse,
   AdminRegistrationRequestWritable,
   AdminRegistrationResponse,
   AdminForgotPasswordRequest,
@@ -97,6 +99,7 @@ import type {
   AdminFileUploadRequest,
   AdminFileUploadSession,
   AdminFileUploadSessionResponse,
+  AdminFileUploadPolicyResponse,
   AdminFilePartResponse,
   AdminFileUsageListResponse,
   AdminFileDownloadResponse,
@@ -144,6 +147,8 @@ import type {
 import { toApiError } from "../../shared/api/error";
 
 type LoginRequest = AdminLoginRequest;
+type LoginCaptchaRequest = AdminLoginCaptchaRequest;
+type LoginCaptcha = AdminLoginCaptchaResponse["data"];
 type TokenResponse = AdminTokenResponse;
 type AuthContextResponse = AdminAuthContextResponse;
 type PublicConfig = PublicConfigResponse["data"];
@@ -278,6 +283,7 @@ export interface AdminFileFilters {
   status?: string;
   scan_status?: string;
   media_type?: string;
+  provider?: string;
   page?: number;
   page_size?: number;
 }
@@ -379,6 +385,12 @@ export class AuthSession {
     });
     if (!response.ok) throw await toApiError(response);
     this.#storeTokenResponse((await response.json()) as TokenResponse);
+  }
+
+  async createLoginCaptcha(input: LoginCaptchaRequest): Promise<LoginCaptcha> {
+    const response = await this.#anonymousWrite("/auth/login/captcha", input);
+    if (!response.ok) throw await toApiError(response);
+    return ((await response.json()) as AdminLoginCaptchaResponse).data;
   }
 
   async publicConfig(): Promise<PublicConfig> {
@@ -1113,6 +1125,12 @@ export class AuthSession {
     );
     if (!response.ok) throw await toApiError(response);
     return ((await response.json()) as AdminFileResponse).data;
+  }
+
+  async adminFileUploadPolicy(): Promise<AdminFileUploadPolicyResponse["data"]> {
+    const response = await this.request(`${this.#baseUrl}/files/upload-policy`);
+    if (!response.ok) throw await toApiError(response);
+    return ((await response.json()) as AdminFileUploadPolicyResponse).data;
   }
 
   async adminFileUsages(

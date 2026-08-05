@@ -16,6 +16,23 @@ import type {
 } from "../auth/session";
 import { useTenantKey } from "../tenants/hooks";
 
+export type AdminConfigSaveOperation =
+  | {
+      id: string;
+      input: AdminConfigWriteRequestWritable;
+      kind: "update";
+    }
+  | {
+      id: string;
+      input: AdminConfigSecretRequestWritable;
+      kind: "secret";
+    };
+
+export interface AdminConfigSaveManyResult {
+  failures: { error: unknown; id: string }[];
+  successIds: string[];
+}
+
 export function useAdminConfigs(filters: AdminConfigFilters) {
   const tenantId = useTenantKey();
   return useQuery({
@@ -73,6 +90,35 @@ export function useAdminConfigMutations() {
         input: AdminConfigSecretRequestWritable;
       }) => authSession.rotateAdminConfigSecret(id, input),
       onSuccess: invalidate,
+    }),
+    saveMany: useMutation({
+      mutationFn: async (
+        operations: AdminConfigSaveOperation[],
+      ): Promise<AdminConfigSaveManyResult> => {
+        const result: AdminConfigSaveManyResult = {
+          failures: [],
+          successIds: [],
+        };
+        for (const operation of operations) {
+          try {
+            if (operation.kind === "secret")
+              await authSession.rotateAdminConfigSecret(
+                operation.id,
+                operation.input,
+              );
+            else
+              await authSession.updateAdminConfig(
+                operation.id,
+                operation.input,
+              );
+            result.successIds.push(operation.id);
+          } catch (error) {
+            result.failures.push({ error, id: operation.id });
+          }
+        }
+        return result;
+      },
+      onSettled: invalidate,
     }),
   };
 }

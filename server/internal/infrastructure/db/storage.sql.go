@@ -42,16 +42,18 @@ INSERT INTO storage.upload_sessions (
     media_type, expected_size, status, expires_at
 )
 VALUES (
-    $1, $2, 'local', 'appkernia-local',
-    $3, $4, $5,
-    $6, 'initiated', $7
+    $1, $2, $3, $4,
+    $5, $6, $7,
+    $8, 'initiated', $9
 )
-RETURNING id, object_key, expires_at
+RETURNING id, provider, bucket_name, object_key, expires_at
 `
 
 type CreateSelfAvatarUploadSessionParams struct {
 	TenantID     uuid.UUID          `json:"tenant_id"`
 	UserID       uuid.UUID          `json:"user_id"`
+	Provider     string             `json:"provider"`
+	BucketName   string             `json:"bucket_name"`
 	ObjectKey    string             `json:"object_key"`
 	OriginalName string             `json:"original_name"`
 	MediaType    *string            `json:"media_type"`
@@ -60,15 +62,19 @@ type CreateSelfAvatarUploadSessionParams struct {
 }
 
 type CreateSelfAvatarUploadSessionRow struct {
-	ID        uuid.UUID          `json:"id"`
-	ObjectKey string             `json:"object_key"`
-	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+	ID         uuid.UUID          `json:"id"`
+	Provider   string             `json:"provider"`
+	BucketName string             `json:"bucket_name"`
+	ObjectKey  string             `json:"object_key"`
+	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
 }
 
 func (q *Queries) CreateSelfAvatarUploadSession(ctx context.Context, arg CreateSelfAvatarUploadSessionParams) (CreateSelfAvatarUploadSessionRow, error) {
 	row := q.db.QueryRow(ctx, createSelfAvatarUploadSession,
 		arg.TenantID,
 		arg.UserID,
+		arg.Provider,
+		arg.BucketName,
 		arg.ObjectKey,
 		arg.OriginalName,
 		arg.MediaType,
@@ -76,7 +82,13 @@ func (q *Queries) CreateSelfAvatarUploadSession(ctx context.Context, arg CreateS
 		arg.ExpiresAt,
 	)
 	var i CreateSelfAvatarUploadSessionRow
-	err := row.Scan(&i.ID, &i.ObjectKey, &i.ExpiresAt)
+	err := row.Scan(
+		&i.ID,
+		&i.Provider,
+		&i.BucketName,
+		&i.ObjectKey,
+		&i.ExpiresAt,
+	)
 	return i, err
 }
 
@@ -114,7 +126,7 @@ func (q *Queries) GetSelfAvatarFileIDForUpdate(ctx context.Context, userID uuid.
 }
 
 const getSelfAvatarObject = `-- name: GetSelfAvatarObject :one
-SELECT f.id, f.object_key, f.media_type, f.size_bytes, f.sha256, f.updated_at
+SELECT f.id, f.provider, f.bucket_name, f.object_key, f.media_type, f.size_bytes, f.sha256, f.updated_at
 FROM iam.users AS u
 JOIN storage.files AS f ON f.id = u.avatar_file_id
 WHERE u.id = $1
@@ -133,12 +145,14 @@ type GetSelfAvatarObjectParams struct {
 }
 
 type GetSelfAvatarObjectRow struct {
-	ID        uuid.UUID          `json:"id"`
-	ObjectKey string             `json:"object_key"`
-	MediaType *string            `json:"media_type"`
-	SizeBytes int64              `json:"size_bytes"`
-	Sha256    []byte             `json:"sha256"`
-	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	ID         uuid.UUID          `json:"id"`
+	Provider   string             `json:"provider"`
+	BucketName string             `json:"bucket_name"`
+	ObjectKey  string             `json:"object_key"`
+	MediaType  *string            `json:"media_type"`
+	SizeBytes  int64              `json:"size_bytes"`
+	Sha256     []byte             `json:"sha256"`
+	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
 }
 
 func (q *Queries) GetSelfAvatarObject(ctx context.Context, arg GetSelfAvatarObjectParams) (GetSelfAvatarObjectRow, error) {
@@ -146,6 +160,8 @@ func (q *Queries) GetSelfAvatarObject(ctx context.Context, arg GetSelfAvatarObje
 	var i GetSelfAvatarObjectRow
 	err := row.Scan(
 		&i.ID,
+		&i.Provider,
+		&i.BucketName,
 		&i.ObjectKey,
 		&i.MediaType,
 		&i.SizeBytes,
@@ -156,12 +172,11 @@ func (q *Queries) GetSelfAvatarObject(ctx context.Context, arg GetSelfAvatarObje
 }
 
 const getSelfAvatarUploadSession = `-- name: GetSelfAvatarUploadSession :one
-SELECT id, tenant_id, user_id, object_key, original_name, media_type, expected_size, expires_at
+SELECT id, tenant_id, user_id, provider, bucket_name, object_key, original_name, media_type, expected_size, expires_at
 FROM storage.upload_sessions
 WHERE id = $1
   AND tenant_id = $2
   AND user_id = $3
-  AND provider = 'local'
   AND status = 'initiated'
   AND expires_at > now()
 `
@@ -176,6 +191,8 @@ type GetSelfAvatarUploadSessionRow struct {
 	ID           uuid.UUID          `json:"id"`
 	TenantID     uuid.UUID          `json:"tenant_id"`
 	UserID       uuid.UUID          `json:"user_id"`
+	Provider     string             `json:"provider"`
+	BucketName   string             `json:"bucket_name"`
 	ObjectKey    string             `json:"object_key"`
 	OriginalName string             `json:"original_name"`
 	MediaType    *string            `json:"media_type"`
@@ -190,6 +207,8 @@ func (q *Queries) GetSelfAvatarUploadSession(ctx context.Context, arg GetSelfAva
 		&i.ID,
 		&i.TenantID,
 		&i.UserID,
+		&i.Provider,
+		&i.BucketName,
 		&i.ObjectKey,
 		&i.OriginalName,
 		&i.MediaType,
@@ -206,20 +225,22 @@ INSERT INTO storage.files (
     metadata
 )
 VALUES (
-    $1, $2, 'local', 'appkernia-local',
-    $3, $4, $5,
-    $6, $7, $8, 'private',
-    'ready', 'skipped', jsonb_build_object('purpose', 'avatar', 'adapter', 'development-local')
+    $1, $2, $3, $4,
+    $5, $6, $7,
+    $8, $9, $10, 'private',
+    'ready', 'skipped', jsonb_build_object('purpose', 'avatar', 'adapter', $3::varchar)
 )
 ON CONFLICT (tenant_id, sha256, size_bytes)
     WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL
 DO UPDATE SET updated_at = storage.files.updated_at
-RETURNING id, object_key
+RETURNING id, provider, bucket_name, object_key
 `
 
 type InsertReadySelfAvatarFileParams struct {
 	TenantID     uuid.UUID  `json:"tenant_id"`
 	UserID       *uuid.UUID `json:"user_id"`
+	Provider     string     `json:"provider"`
+	BucketName   string     `json:"bucket_name"`
 	ObjectKey    string     `json:"object_key"`
 	OriginalName string     `json:"original_name"`
 	MediaType    *string    `json:"media_type"`
@@ -229,14 +250,18 @@ type InsertReadySelfAvatarFileParams struct {
 }
 
 type InsertReadySelfAvatarFileRow struct {
-	ID        uuid.UUID `json:"id"`
-	ObjectKey string    `json:"object_key"`
+	ID         uuid.UUID `json:"id"`
+	Provider   string    `json:"provider"`
+	BucketName string    `json:"bucket_name"`
+	ObjectKey  string    `json:"object_key"`
 }
 
 func (q *Queries) InsertReadySelfAvatarFile(ctx context.Context, arg InsertReadySelfAvatarFileParams) (InsertReadySelfAvatarFileRow, error) {
 	row := q.db.QueryRow(ctx, insertReadySelfAvatarFile,
 		arg.TenantID,
 		arg.UserID,
+		arg.Provider,
+		arg.BucketName,
 		arg.ObjectKey,
 		arg.OriginalName,
 		arg.MediaType,
@@ -245,7 +270,12 @@ func (q *Queries) InsertReadySelfAvatarFile(ctx context.Context, arg InsertReady
 		arg.Sha256,
 	)
 	var i InsertReadySelfAvatarFileRow
-	err := row.Scan(&i.ID, &i.ObjectKey)
+	err := row.Scan(
+		&i.ID,
+		&i.Provider,
+		&i.BucketName,
+		&i.ObjectKey,
+	)
 	return i, err
 }
 
@@ -315,12 +345,11 @@ func (q *Queries) InsertSelfAvatarUsage(ctx context.Context, arg InsertSelfAvata
 }
 
 const lockSelfAvatarUploadSession = `-- name: LockSelfAvatarUploadSession :one
-SELECT id, tenant_id, user_id, object_key, original_name, media_type, expected_size, expires_at
+SELECT id, tenant_id, user_id, provider, bucket_name, object_key, original_name, media_type, expected_size, expires_at
 FROM storage.upload_sessions
 WHERE id = $1
   AND tenant_id = $2
   AND user_id = $3
-  AND provider = 'local'
   AND status = 'initiated'
   AND expires_at > now()
 FOR UPDATE
@@ -336,6 +365,8 @@ type LockSelfAvatarUploadSessionRow struct {
 	ID           uuid.UUID          `json:"id"`
 	TenantID     uuid.UUID          `json:"tenant_id"`
 	UserID       uuid.UUID          `json:"user_id"`
+	Provider     string             `json:"provider"`
+	BucketName   string             `json:"bucket_name"`
 	ObjectKey    string             `json:"object_key"`
 	OriginalName string             `json:"original_name"`
 	MediaType    *string            `json:"media_type"`
@@ -350,6 +381,8 @@ func (q *Queries) LockSelfAvatarUploadSession(ctx context.Context, arg LockSelfA
 		&i.ID,
 		&i.TenantID,
 		&i.UserID,
+		&i.Provider,
+		&i.BucketName,
 		&i.ObjectKey,
 		&i.OriginalName,
 		&i.MediaType,

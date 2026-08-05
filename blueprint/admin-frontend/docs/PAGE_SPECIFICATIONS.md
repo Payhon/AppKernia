@@ -36,14 +36,14 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 |---|---|
 | 阶段 | P2 |
 | View Permission | `sys.config.read` |
-| Schema | `sys.config_items` |
+| Schema | `sys.config_items`, `storage.upload_sessions`, `storage.upload_parts` |
 | 后端状态 | `existing` |
 
 **筛选**：module_code, config_group, config_key, value_type, status, is_public, is_secret
 
-**主要动作**：新建配置, 编辑, 启停, 轮换 Secret
+**主要动作**：选择配置分类, 新建配置, 编辑当前值, 轮换 Secret, 使用当前云存储策略测试上传
 
-**UX 规范**：模块/分组 + 配置表；Secret 永不回显明文，使用保持不变/替换/轮换语义。
+**UX 规范**：左侧分类 + 配置表；目录元数据只读，当前值可编辑；Secret 永不回显明文，使用保持不变/替换/轮换语义；分类选择写入 URL。
 
 **API**
 
@@ -51,6 +51,11 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - `POST /admin-api/v1/configs`
 - `PATCH /admin-api/v1/configs/{id}`
 - `POST /admin-api/v1/configs/{id}/rotate-secret`
+- `GET /admin-api/v1/files/upload-policy`
+- `POST /admin-api/v1/files/upload-sessions`
+- `PUT /admin-api/v1/files/upload-sessions/{id}/parts/{partNumber}`
+- `POST /admin-api/v1/files/upload-sessions/{id}/complete`
+- `DELETE /admin-api/v1/files/upload-sessions/{id}`
 
 **页面验收**
 
@@ -58,6 +63,8 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - View Permission 在路由层阻断；Action Permission 控制动作展示。
 - Loading、Empty、Error、403 和数据刷新状态完整。
 - 敏感字段只使用服务端脱敏值，不在前端“还原” Hash/密文。
+- 初始目录包含基本、邮件、短信、登录注册、提现、云存储、地理位置、支付和微信；目录元数据不能通过客户端篡改。
+- 云存储测试上传遵循服务端策略，不展示 Secret、Bucket 或对象键。
 
 ## `system.settings.dictionaries` — 字典管理
 
@@ -380,11 +387,16 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 **API**
 
+- `GET /admin-api/v1/files/upload-policy`
 - `GET /admin-api/v1/files`
 - `GET /admin-api/v1/files/{id}`
 - `POST /admin-api/v1/files/upload-sessions`
+- `GET /admin-api/v1/files/upload-sessions/{id}`
+- `PUT /admin-api/v1/files/upload-sessions/{id}/parts/{partNumber}`
 - `POST /admin-api/v1/files/upload-sessions/{id}/complete`
+- `DELETE /admin-api/v1/files/upload-sessions/{id}`
 - `POST /admin-api/v1/files/{id}/presign-download`
+- `GET /admin-api/v1/files/{id}/content`
 - `GET /admin-api/v1/files/{id}/usages`
 - `DELETE /admin-api/v1/files/{id}`
 
@@ -783,9 +795,9 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 **筛选**：无
 
-**主要动作**：修改头像, 更新昵称/姓名/语言/时区
+**主要动作**：选择并在浏览器裁剪头像、通过配置的对象存储上传、更新昵称/姓名/语言/时区
 
-**UX 规范**：头像菜单进入；窄列布局，保存后同步 Auth Context。
+**UX 规范**：头像菜单进入；窄列布局；头像裁剪同时支持拖动与键盘控制，上传状态不影响资料表单；保存后同步 Auth Context。
 
 **API**
 
@@ -872,19 +884,20 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 |---|---|
 | 阶段 | P0 |
 | Route Policy | `anonymous-only` |
-| Schema | `iam.sessions`, `iam.refresh_tokens`, `audit.login_events` |
+| Schema | `iam.sessions`, `iam.refresh_tokens`, `iam.login_failure_states`, `iam.login_captcha_challenges`, `audit.login_events` |
 | 后端状态 | `existing` |
 
 **筛选**：无
 
-**主要动作**：密码登录, 可选验证码/MFA
+**主要动作**：密码登录, 三次失败后图形验证码, 可选 MFA
 
-**UX 规范**：登录成功只接受同源 redirect；错误不泄露账号是否存在。
+**UX 规范**：登录成功只接受同源 redirect；错误不泄露账号是否存在；图形验证码由服务端失败状态触发，刷新页面不可绕过。
 
 **API**
 
 - `GET /admin-api/v1/auth/public-config`
 - `POST /admin-api/v1/auth/login`
+- `POST /admin-api/v1/auth/login/captcha`
 - `POST /admin-api/v1/auth/token/refresh`
 
 **页面验收**

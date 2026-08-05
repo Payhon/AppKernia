@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
 	"net/netip"
@@ -25,6 +26,8 @@ var (
 	ErrRegistrationValidation = errors.New("registration validation failed")
 	ErrResetTokenInvalid      = errors.New("password reset token is invalid")
 	ErrTenantUnavailable      = errors.New("tenant is unavailable to this user")
+	ErrCaptchaRequired        = errors.New("login captcha is required")
+	ErrCaptchaInvalid         = errors.New("login captcha is invalid")
 )
 
 type ClientMetadata struct {
@@ -72,10 +75,12 @@ type RemoveSelfDeviceInput struct {
 }
 
 type LoginInput struct {
-	Email    string
-	Password string
-	Audience string
-	Client   ClientMetadata
+	Email         string
+	Password      string
+	Audience      string
+	Client        ClientMetadata
+	CaptchaID     *uuid.UUID
+	CaptchaAnswer string
 }
 
 type SwitchTenantInput struct {
@@ -93,13 +98,14 @@ type SessionTokens struct {
 }
 
 type AuthService struct {
-	identities        domain.Repository
-	sessions          domain.SessionRepository
-	issuer            *TokenIssuer
-	clock             func() time.Time
-	dummyPasswordHash string
-	anonymous         AnonymousAuthConfig
-	resetNotifier     PasswordResetNotifier
+	identities         domain.Repository
+	sessions           domain.SessionRepository
+	issuer             *TokenIssuer
+	clock              func() time.Time
+	dummyPasswordHash  string
+	anonymous          AnonymousAuthConfig
+	resetNotifier      PasswordResetNotifier
+	loginProtectionKey []byte
 }
 
 func NewAuthService(identities domain.Repository, sessions domain.SessionRepository, issuer *TokenIssuer, options ...AuthOption) (*AuthService, error) {
@@ -107,10 +113,15 @@ func NewAuthService(identities domain.Repository, sessions domain.SessionReposit
 	if err != nil {
 		return nil, fmt.Errorf("create login timing defense: %w", err)
 	}
+	loginProtectionKey := make([]byte, 32)
+	if _, err = rand.Read(loginProtectionKey); err != nil {
+		return nil, fmt.Errorf("create login protection key: %w", err)
+	}
 	service := &AuthService{
 		identities: identities, sessions: sessions, issuer: issuer,
 		clock: time.Now, dummyPasswordHash: dummyPasswordHash,
-		resetNotifier: disabledPasswordResetNotifier{},
+		resetNotifier:      disabledPasswordResetNotifier{},
+		loginProtectionKey: loginProtectionKey,
 	}
 	for _, option := range options {
 		option(service)
@@ -122,6 +133,25 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 	deviceKey, err := normalizeDeviceKey(input.Client.DeviceKey)
 	if err != nil {
 		return SessionTokens{}, err
+	}
+	now := service.clock().UTC()
+	scopeHash := loginScopeHash(service.loginProtectionKey, input.Email, input.Audience, input.Client.IPAddress)
+	captchaRequired, err := service.identities.LoginCaptchaRequired(ctx, scopeHash, now)
+	if err != nil {
+		return SessionTokens{}, fmt.Errorf("read login protection state: %w", err)
+	}
+	if captchaRequired {
+		if input.CaptchaID == nil || strings.TrimSpace(input.CaptchaAnswer) == "" {
+			return SessionTokens{}, ErrCaptchaRequired
+		}
+		if err = service.identities.VerifyLoginCaptcha(ctx, domain.LoginCaptchaAttempt{
+			ID: *input.CaptchaID, ScopeHash: scopeHash, Answer: input.CaptchaAnswer, Now: now,
+		}); err != nil {
+			if errors.Is(err, domain.ErrLoginCaptchaInvalid) {
+				return SessionTokens{}, ErrCaptchaInvalid
+			}
+			return SessionTokens{}, fmt.Errorf("verify login captcha: %w", err)
+		}
 	}
 	credential, findErr := service.identities.FindCredentialByEmail(ctx, input.Email)
 	passwordHash := service.dummyPasswordHash
@@ -135,10 +165,14 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 			value := credential.User.ID
 			userID = &value
 		}
-		_ = service.identities.RecordLoginFailure(ctx, domain.LoginFailure{
+		failureCount, recordErr := service.identities.RecordLoginFailure(ctx, domain.LoginFailure{
 			UserID: userID, Audience: input.Audience, RequestID: input.Client.RequestID,
 			IPAddress: input.Client.IPAddress, UserAgent: input.Client.UserAgent,
+			ScopeHash: scopeHash, FailedAt: now, ExpiresAt: now.Add(loginFailureWindow),
 		})
+		if recordErr == nil && failureCount >= loginCaptchaThreshold {
+			return SessionTokens{}, ErrCaptchaRequired
+		}
 		return SessionTokens{}, ErrInvalidCredentials
 	}
 	if !validAudience(input.Audience) {
@@ -152,7 +186,9 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 	if err != nil {
 		return SessionTokens{}, err
 	}
-	now := service.clock().UTC()
+	if err = service.identities.ResetLoginFailures(ctx, scopeHash); err != nil {
+		return SessionTokens{}, fmt.Errorf("reset login protection state: %w", err)
+	}
 	refreshExpiresAt := now.Add(30 * 24 * time.Hour)
 	session, err := service.sessions.CreateSession(ctx, domain.CreateSession{
 		UserID: credential.User.ID, TenantID: tenants[0].ID, Audience: input.Audience,

@@ -3,7 +3,6 @@ package domain
 import (
 	"context"
 	"errors"
-	"io"
 	"time"
 
 	storagedomain "github.com/appkernia/appkernia/server/internal/modules/storage/domain"
@@ -11,7 +10,7 @@ import (
 )
 
 const (
-	MaxFileBytes int64 = 100 * 1024 * 1024
+	MaxFileBytes int64 = storagedomain.MaxFileBytes
 	PartSize     int64 = 5 * 1024 * 1024
 )
 
@@ -24,6 +23,7 @@ var (
 	ErrScanBlocked      = errors.New("file scan gate blocked access")
 	ErrFileInUse        = errors.New("file is in use")
 	ErrFeatureDisabled  = errors.New("file storage is disabled")
+	ErrStorageConfig    = storagedomain.ErrStorageConfig
 )
 
 type Principal struct {
@@ -40,6 +40,7 @@ type FileFilter struct {
 	Status     string
 	ScanStatus string
 	MediaType  string
+	Provider   string
 	Page       int32
 	PageSize   int32
 }
@@ -52,11 +53,13 @@ type File struct {
 	SizeBytes    int64      `json:"size_bytes"`
 	Status       string     `json:"status"`
 	ScanStatus   string     `json:"scan_status"`
+	Provider     string     `json:"provider"`
 	UsageCount   int64      `json:"usage_count"`
 	OwnerUserID  *uuid.UUID `json:"owner_user_id,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
 	ObjectKey    string     `json:"-"`
+	Bucket       string     `json:"-"`
 	SHA256       []byte     `json:"-"`
 }
 
@@ -83,7 +86,9 @@ type UploadSession struct {
 	ExpectedSize  int64     `json:"expected_size"`
 	PartSize      int64     `json:"part_size"`
 	Status        string    `json:"status"`
+	Provider      string    `json:"provider"`
 	ObjectKey     string    `json:"-"`
+	Bucket        string    `json:"-"`
 	ExpiresAt     time.Time `json:"expires_at"`
 	UploadedParts []Part    `json:"uploaded_parts"`
 }
@@ -101,6 +106,8 @@ type CreateUpload struct {
 	MediaType    string
 	ExpectedSize int64
 	ObjectKey    string
+	Provider     string
+	Bucket       string
 	ExpiresAt    time.Time
 }
 
@@ -108,6 +115,8 @@ type CompleteUpload struct {
 	Principal
 	UploadID   uuid.UUID
 	ObjectKey  string
+	Provider   string
+	Bucket     string
 	MediaType  string
 	Extension  string
 	SizeBytes  int64
@@ -127,10 +136,8 @@ type Repository interface {
 	DeleteFile(context.Context, Principal, uuid.UUID) (File, error)
 }
 
-type ObjectStore interface {
-	Put(context.Context, string, []byte) error
-	Open(context.Context, string) (io.ReadCloser, error)
-	Delete(context.Context, string) error
-}
+type UploadPolicy = storagedomain.UploadPolicy
+type ObjectRef = storagedomain.ObjectRef
+type ObjectStore = storagedomain.ObjectStore
 
 var _ ObjectStore = (storagedomain.ObjectStore)(nil)

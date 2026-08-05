@@ -13,6 +13,29 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const completeLoginCaptchaAttempt = `-- name: CompleteLoginCaptchaAttempt :exec
+UPDATE iam.login_captcha_challenges
+SET attempt_count = attempt_count + 1,
+    consumed_at = CASE
+        WHEN $1::boolean OR attempt_count + 1 >= 5 THEN $2
+        ELSE consumed_at
+    END
+WHERE id = $3
+  AND consumed_at IS NULL
+  AND attempt_count < 5
+`
+
+type CompleteLoginCaptchaAttemptParams struct {
+	Consume bool               `json:"consume"`
+	NowAt   pgtype.Timestamptz `json:"now_at"`
+	ID      uuid.UUID          `json:"id"`
+}
+
+func (q *Queries) CompleteLoginCaptchaAttempt(ctx context.Context, arg CompleteLoginCaptchaAttemptParams) error {
+	_, err := q.db.Exec(ctx, completeLoginCaptchaAttempt, arg.Consume, arg.NowAt, arg.ID)
+	return err
+}
+
 const createRefreshToken = `-- name: CreateRefreshToken :one
 INSERT INTO iam.refresh_tokens (
     session_id, token_hash, parent_token_id, expires_at, created_ip
@@ -112,6 +135,16 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (I
 	return i, err
 }
 
+const deleteLoginFailureState = `-- name: DeleteLoginFailureState :exec
+DELETE FROM iam.login_failure_states
+WHERE scope_hash = $1
+`
+
+func (q *Queries) DeleteLoginFailureState(ctx context.Context, scopeHash []byte) error {
+	_, err := q.db.Exec(ctx, deleteLoginFailureState, scopeHash)
+	return err
+}
+
 const deleteSelfDevice = `-- name: DeleteSelfDevice :exec
 DELETE FROM iam.devices
 WHERE id = $1
@@ -126,6 +159,25 @@ type DeleteSelfDeviceParams struct {
 func (q *Queries) DeleteSelfDevice(ctx context.Context, arg DeleteSelfDeviceParams) error {
 	_, err := q.db.Exec(ctx, deleteSelfDevice, arg.DeviceID, arg.UserID)
 	return err
+}
+
+const getActiveLoginFailureCount = `-- name: GetActiveLoginFailureCount :one
+SELECT failure_count
+FROM iam.login_failure_states
+WHERE scope_hash = $1
+  AND expires_at > $2
+`
+
+type GetActiveLoginFailureCountParams struct {
+	ScopeHash []byte             `json:"scope_hash"`
+	NowAt     pgtype.Timestamptz `json:"now_at"`
+}
+
+func (q *Queries) GetActiveLoginFailureCount(ctx context.Context, arg GetActiveLoginFailureCountParams) (int32, error) {
+	row := q.db.QueryRow(ctx, getActiveLoginFailureCount, arg.ScopeHash, arg.NowAt)
+	var failure_count int32
+	err := row.Scan(&failure_count)
+	return failure_count, err
 }
 
 const getActiveSession = `-- name: GetActiveSession :one
@@ -202,6 +254,36 @@ func (q *Queries) GetAuthContextUser(ctx context.Context, arg GetAuthContextUser
 		&i.TenantCode,
 		&i.TenantName,
 	)
+	return i, err
+}
+
+const getLoginCaptchaForUpdate = `-- name: GetLoginCaptchaForUpdate :one
+SELECT answer_salt, answer_hash, attempt_count
+FROM iam.login_captcha_challenges
+WHERE id = $1
+  AND scope_hash = $2
+  AND consumed_at IS NULL
+  AND expires_at > $3
+  AND attempt_count < 5
+FOR UPDATE
+`
+
+type GetLoginCaptchaForUpdateParams struct {
+	ID        uuid.UUID          `json:"id"`
+	ScopeHash []byte             `json:"scope_hash"`
+	NowAt     pgtype.Timestamptz `json:"now_at"`
+}
+
+type GetLoginCaptchaForUpdateRow struct {
+	AnswerSalt   []byte `json:"answer_salt"`
+	AnswerHash   []byte `json:"answer_hash"`
+	AttemptCount int16  `json:"attempt_count"`
+}
+
+func (q *Queries) GetLoginCaptchaForUpdate(ctx context.Context, arg GetLoginCaptchaForUpdateParams) (GetLoginCaptchaForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getLoginCaptchaForUpdate, arg.ID, arg.ScopeHash, arg.NowAt)
+	var i GetLoginCaptchaForUpdateRow
+	err := row.Scan(&i.AnswerSalt, &i.AnswerHash, &i.AttemptCount)
 	return i, err
 }
 
@@ -293,6 +375,43 @@ func (q *Queries) InsertFailedLoginEvent(ctx context.Context, arg InsertFailedLo
 		arg.UserAgent,
 	)
 	return err
+}
+
+const insertLoginCaptchaChallenge = `-- name: InsertLoginCaptchaChallenge :one
+INSERT INTO iam.login_captcha_challenges (
+    scope_hash, answer_salt, answer_hash, expires_at, created_at
+)
+VALUES (
+    $1, $2, $3,
+    $4, $5
+)
+RETURNING id, expires_at
+`
+
+type InsertLoginCaptchaChallengeParams struct {
+	ScopeHash  []byte             `json:"scope_hash"`
+	AnswerSalt []byte             `json:"answer_salt"`
+	AnswerHash []byte             `json:"answer_hash"`
+	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
+type InsertLoginCaptchaChallengeRow struct {
+	ID        uuid.UUID          `json:"id"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+}
+
+func (q *Queries) InsertLoginCaptchaChallenge(ctx context.Context, arg InsertLoginCaptchaChallengeParams) (InsertLoginCaptchaChallengeRow, error) {
+	row := q.db.QueryRow(ctx, insertLoginCaptchaChallenge,
+		arg.ScopeHash,
+		arg.AnswerSalt,
+		arg.AnswerHash,
+		arg.ExpiresAt,
+		arg.CreatedAt,
+	)
+	var i InsertLoginCaptchaChallengeRow
+	err := row.Scan(&i.ID, &i.ExpiresAt)
+	return i, err
 }
 
 const insertRefreshReuseSecurityEvent = `-- name: InsertRefreshReuseSecurityEvent :exec
@@ -437,6 +556,23 @@ func (q *Queries) InsertSuccessfulLoginEvent(ctx context.Context, arg InsertSucc
 		arg.UserAgent,
 		arg.DeviceRegistered,
 	)
+	return err
+}
+
+const invalidateActiveLoginCaptchas = `-- name: InvalidateActiveLoginCaptchas :exec
+UPDATE iam.login_captcha_challenges
+SET consumed_at = COALESCE(consumed_at, $1)
+WHERE scope_hash = $2
+  AND consumed_at IS NULL
+`
+
+type InvalidateActiveLoginCaptchasParams struct {
+	NowAt     pgtype.Timestamptz `json:"now_at"`
+	ScopeHash []byte             `json:"scope_hash"`
+}
+
+func (q *Queries) InvalidateActiveLoginCaptchas(ctx context.Context, arg InvalidateActiveLoginCaptchasParams) error {
+	_, err := q.db.Exec(ctx, invalidateActiveLoginCaptchas, arg.NowAt, arg.ScopeHash)
 	return err
 }
 
@@ -800,6 +936,33 @@ WHERE session_id = $1 AND revoked_at IS NULL
 func (q *Queries) RevokeSessionRefreshTokens(ctx context.Context, sessionID uuid.UUID) error {
 	_, err := q.db.Exec(ctx, revokeSessionRefreshTokens, sessionID)
 	return err
+}
+
+const upsertLoginFailureState = `-- name: UpsertLoginFailureState :one
+INSERT INTO iam.login_failure_states (scope_hash, failure_count, last_failed_at, expires_at)
+VALUES ($1, 1, $2, $3)
+ON CONFLICT (scope_hash) DO UPDATE
+SET failure_count = CASE
+        WHEN iam.login_failure_states.expires_at > $2
+            THEN LEAST(iam.login_failure_states.failure_count + 1, 1000000)
+        ELSE 1
+    END,
+    last_failed_at = $2,
+    expires_at = $3
+RETURNING failure_count
+`
+
+type UpsertLoginFailureStateParams struct {
+	ScopeHash []byte             `json:"scope_hash"`
+	NowAt     pgtype.Timestamptz `json:"now_at"`
+	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
+}
+
+func (q *Queries) UpsertLoginFailureState(ctx context.Context, arg UpsertLoginFailureStateParams) (int32, error) {
+	row := q.db.QueryRow(ctx, upsertLoginFailureState, arg.ScopeHash, arg.NowAt, arg.ExpiresAt)
+	var failure_count int32
+	err := row.Scan(&failure_count)
+	return failure_count, err
 }
 
 const upsertWebDevice = `-- name: UpsertWebDevice :one

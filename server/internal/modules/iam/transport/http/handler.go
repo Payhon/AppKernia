@@ -34,8 +34,21 @@ type Handler struct {
 }
 
 type loginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email         string `json:"email"`
+	Password      string `json:"password"`
+	CaptchaID     string `json:"captcha_id"`
+	CaptchaAnswer string `json:"captcha_answer"`
+}
+
+type loginCaptchaRequest struct {
+	Email string `json:"email"`
+}
+
+type loginCaptchaResponse struct {
+	CaptchaID    string `json:"captcha_id"`
+	ImageBase64  string `json:"image_base64"`
+	MimeType     string `json:"mime_type"`
+	ExpiresInSec int64  `json:"expires_in_seconds"`
 }
 
 type switchTenantRequest struct {
@@ -113,22 +126,61 @@ func NewHandler(auth *application.AuthService, catalog *i18n.Catalog, allowedOri
 
 func (handler *Handler) Login(request *ghttp.Request) {
 	var body loginRequest
-	if err := json.NewDecoder(request.Body).Decode(&body); err != nil || strings.TrimSpace(body.Email) == "" || body.Password == "" {
+	if err := decodeSingleJSON(request, &body); err != nil || strings.TrimSpace(body.Email) == "" || body.Password == "" {
 		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
+	}
+	var captchaID *uuid.UUID
+	if strings.TrimSpace(body.CaptchaID) != "" {
+		parsed, err := uuid.Parse(body.CaptchaID)
+		if err != nil {
+			handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+			return
+		}
+		captchaID = &parsed
 	}
 	tokens, err := handler.auth.Login(request.Context(), application.LoginInput{
 		Email: body.Email, Password: body.Password, Audience: adminAudience, Client: clientMetadata(request),
+		CaptchaID: captchaID, CaptchaAnswer: body.CaptchaAnswer,
 	})
-	if errors.Is(err, application.ErrDeviceValidation) {
+	switch {
+	case errors.Is(err, application.ErrDeviceValidation):
+		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+	case errors.Is(err, application.ErrCaptchaRequired):
+		handler.writeError(request, http.StatusUnauthorized, "IAM.AUTH.CAPTCHA_REQUIRED", "errors.iam.auth.captcha_required")
+	case errors.Is(err, application.ErrCaptchaInvalid):
+		handler.writeError(request, http.StatusUnprocessableEntity, "IAM.AUTH.CAPTCHA_INVALID", "errors.iam.auth.captcha_invalid")
+	case errors.Is(err, application.ErrInvalidCredentials):
+		handler.writeError(request, http.StatusUnauthorized, "IAM.AUTH.INVALID_CREDENTIALS", "errors.iam.auth.invalid_credentials")
+	case err != nil:
+		handler.writeError(request, http.StatusInternalServerError, "COMMON.UNKNOWN", "errors.common.unknown")
+	default:
+		handler.writeSession(request, tokens)
+	}
+}
+
+func (handler *Handler) LoginCaptcha(request *ghttp.Request) {
+	var body loginCaptchaRequest
+	if err := decodeSingleJSON(request, &body); err != nil || strings.TrimSpace(body.Email) == "" {
 		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
 	}
-	if err != nil {
-		handler.writeError(request, http.StatusUnauthorized, "IAM.AUTH.INVALID_CREDENTIALS", "errors.iam.auth.invalid_credentials")
-		return
+	challenge, err := handler.auth.CreateLoginCaptcha(request.Context(), body.Email, adminAudience, clientMetadata(request))
+	switch {
+	case errors.Is(err, application.ErrProfileValidation):
+		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+	case err != nil:
+		handler.writeError(request, http.StatusInternalServerError, "COMMON.UNKNOWN", "errors.common.unknown")
+	default:
+		request.Response.Header().Set("Cache-Control", "no-store")
+		request.Response.WriteJsonExit(httpx.Success[loginCaptchaResponse]{
+			Code: "OK", Message: "OK", RequestID: httpx.RequestID(request),
+			Data: loginCaptchaResponse{
+				CaptchaID: challenge.ID.String(), ImageBase64: challenge.ImageBase64,
+				MimeType: challenge.MimeType, ExpiresInSec: challenge.ExpiresInSec,
+			},
+		})
 	}
-	handler.writeSession(request, tokens)
 }
 
 func (handler *Handler) SwitchTenant(request *ghttp.Request) {

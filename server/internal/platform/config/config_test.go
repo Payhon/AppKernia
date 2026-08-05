@@ -6,6 +6,7 @@ func TestLoadDevelopmentDefaults(t *testing.T) {
 	t.Setenv("AK_ENV", "development")
 	t.Setenv("AK_HTTP_ADDR", "")
 	t.Setenv("AK_DATABASE_URL", "")
+	t.Setenv("AK_LOGIN_PROTECTION_KEY_BASE64", "")
 	t.Setenv("AK_SHUTDOWN_TIMEOUT", "")
 	t.Setenv("AK_ADMIN_REGISTRATION_ENABLED", "")
 	t.Setenv("AK_PASSWORD_RECOVERY_ENABLED", "")
@@ -31,7 +32,7 @@ func TestLoadDevelopmentDefaults(t *testing.T) {
 	if cfg.AdminOrigin != "http://localhost:4173" {
 		t.Fatalf("AdminOrigin = %q", cfg.AdminOrigin)
 	}
-	if cfg.AdminRegistrationEnabled || cfg.PasswordRecoveryEnabled || cfg.AvatarUploadEnabled || cfg.FileStorageEnabled || cfg.MultiTenantEnabled || cfg.MFAEnabled || cfg.OAuthEnabled || cfg.PasswordRecoveryAdapter != "local" || cfg.ObjectStorageAdapter != "local" || cfg.OAuthAdapter != "local-mock" {
+	if cfg.AdminRegistrationEnabled || cfg.PasswordRecoveryEnabled || cfg.AvatarUploadEnabled || cfg.FileStorageEnabled || cfg.MultiTenantEnabled || cfg.MFAEnabled || cfg.OAuthEnabled || cfg.PasswordRecoveryAdapter != "local" || cfg.ObjectStorageAdapter != "configured" || cfg.OAuthAdapter != "local-mock" {
 		t.Fatalf("anonymous auth defaults must fail closed with the development adapter available: %#v", cfg)
 	}
 	if cfg.LocalObjectStorageDir == "" {
@@ -43,6 +44,7 @@ func TestLoadOAuthConfigurationFailsClosed(t *testing.T) {
 	t.Setenv("AK_ENV", "production")
 	t.Setenv("AK_DATABASE_URL", "postgres://example.invalid/appkernia")
 	t.Setenv("AK_JWT_PRIVATE_KEY_BASE64", "test-signing-key")
+	t.Setenv("AK_LOGIN_PROTECTION_KEY_BASE64", developmentLoginProtectionKeyBase64)
 	t.Setenv("AK_CONFIG_MASTER_KEY_BASE64", "dGVzdC1jb25maWctbWFzdGVyLWtleS0zMmJ5dGVzIQ==")
 	t.Setenv("AK_OAUTH_ENABLED", "true")
 	t.Setenv("AK_OAUTH_ADAPTER", "")
@@ -59,6 +61,8 @@ func TestLoadAvatarStorageConfigurationFailsClosed(t *testing.T) {
 	t.Setenv("AK_ENV", "production")
 	t.Setenv("AK_DATABASE_URL", "postgres://example.invalid/appkernia")
 	t.Setenv("AK_JWT_PRIVATE_KEY_BASE64", "test-signing-key")
+	t.Setenv("AK_LOGIN_PROTECTION_KEY_BASE64", developmentLoginProtectionKeyBase64)
+	t.Setenv("AK_CONFIG_MASTER_KEY_BASE64", "configured-test-master-key")
 	t.Setenv("AK_AVATAR_UPLOAD_ENABLED", "true")
 	t.Setenv("AK_OBJECT_STORAGE_ADAPTER", "")
 	if _, err := Load(); err == nil {
@@ -69,12 +73,17 @@ func TestLoadAvatarStorageConfigurationFailsClosed(t *testing.T) {
 	if _, err := Load(); err == nil {
 		t.Fatal("Load() expected the local object storage adapter to be rejected outside development")
 	}
+	t.Setenv("AK_OBJECT_STORAGE_ADAPTER", "configured")
+	if _, err := Load(); err != nil {
+		t.Fatalf("Load() configured object storage error = %v", err)
+	}
 }
 
 func TestLoadAnonymousAuthConfigurationFailsClosed(t *testing.T) {
 	t.Setenv("AK_ENV", "production")
 	t.Setenv("AK_DATABASE_URL", "postgres://example.invalid/appkernia")
 	t.Setenv("AK_JWT_PRIVATE_KEY_BASE64", "test-signing-key")
+	t.Setenv("AK_LOGIN_PROTECTION_KEY_BASE64", developmentLoginProtectionKeyBase64)
 	t.Setenv("AK_PASSWORD_RECOVERY_ENABLED", "true")
 	t.Setenv("AK_PASSWORD_RECOVERY_ADAPTER", "")
 	if _, err := Load(); err == nil {
@@ -90,6 +99,7 @@ func TestLoadProductionRequiresSigningKey(t *testing.T) {
 	t.Setenv("AK_ENV", "production")
 	t.Setenv("AK_DATABASE_URL", "postgres://example.invalid/appkernia")
 	t.Setenv("AK_JWT_PRIVATE_KEY_BASE64", "")
+	t.Setenv("AK_LOGIN_PROTECTION_KEY_BASE64", developmentLoginProtectionKeyBase64)
 	if _, err := Load(); err == nil {
 		t.Fatal("Load() expected a signing key error")
 	}
@@ -98,7 +108,19 @@ func TestLoadProductionRequiresSigningKey(t *testing.T) {
 func TestLoadProductionRequiresDatabaseURL(t *testing.T) {
 	t.Setenv("AK_ENV", "production")
 	t.Setenv("AK_DATABASE_URL", "")
+	t.Setenv("AK_LOGIN_PROTECTION_KEY_BASE64", developmentLoginProtectionKeyBase64)
 	if _, err := Load(); err == nil {
 		t.Fatal("Load() expected an error")
+	}
+}
+
+func TestLoadProductionRequiresLoginProtectionKey(t *testing.T) {
+	t.Setenv("AK_ENV", "production")
+	t.Setenv("AK_DATABASE_URL", "postgres://example.invalid/appkernia")
+	t.Setenv("AK_JWT_PRIVATE_KEY_BASE64", "test-signing-key")
+	t.Setenv("AK_CONFIG_MASTER_KEY_BASE64", "dGVzdC1jb25maWctbWFzdGVyLWtleS0zMmJ5dGVzIQ==")
+	t.Setenv("AK_LOGIN_PROTECTION_KEY_BASE64", "")
+	if _, err := Load(); err == nil {
+		t.Fatal("Load() expected a login protection key error")
 	}
 }

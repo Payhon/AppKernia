@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "AK 核心 51 张 PostgreSQL 表的 UI 覆盖分类。不是每张基础设施表都应暴露 CRUD；所有表必须明确归类。",
+  "description": "AK 核心 53 张 PostgreSQL 表的 UI 覆盖分类。不是每张基础设施表都应暴露 CRUD；所有表必须明确归类。",
   "coverage_types": {
     "page_backed": "页面直接读取、管理或聚合展示",
     "indirect_aggregate": "页面仅展示脱敏聚合信息，不暴露原始记录或 Secret",
@@ -52,6 +52,22 @@
         "system.users.accounts"
       ],
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "iam.login_captcha_challenges",
+      "coverage": "indirect_aggregate",
+      "pages": [
+        "auth.login"
+      ],
+      "reason": "登录页仅消费一次性图形挑战，原始答案哈希、盐和挑战记录不对管理员暴露。"
+    },
+    {
+      "table": "iam.login_failure_states",
+      "coverage": "indirect_aggregate",
+      "pages": [
+        "auth.login"
+      ],
+      "reason": "登录页仅根据稳定错误码呈现渐进式验证码，不读取或展示失败状态原始记录。"
     },
     {
       "table": "iam.mfa_factors",

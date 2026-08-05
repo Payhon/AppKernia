@@ -1,15 +1,16 @@
-import { Avatar, Button, Card, Form, Input, Progress, Select, Typography } from 'antd'
+import { Button, Card, Form, Input, Select, Typography } from 'antd'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 
 import type { AdminUpdateMeRequest, SupportedLocale } from '../generated/api/types.gen'
+import { AkAvatarUploader } from '../components/AkAvatarUploader'
+import { ProfileNavigation } from '../components/ProfileNavigation'
 import { useAuthStore } from '../features/auth/store'
 import { selfAvatarQueryOptions, selfProfileQueryKey, useSelfAvatarQuery, useSelfProfileQuery } from '../features/profile/hooks'
 import { useLocale } from '../shared/i18n'
-import { ProfileNavigation } from '../components/ProfileNavigation'
 
 interface ProfileValues {
   display_name: string
@@ -46,12 +47,7 @@ export function ProfileBasicPage() {
   const uploadAvatar = useAuthStore((state) => state.uploadAvatar)
   const avatarEnabled = useAuthStore((state) => state.context?.feature_flags['avatar_upload'] === true)
   const [feedback, setFeedback] = useState<'success' | 'error' | null>(null)
-  const [avatarFeedback, setAvatarFeedback] = useState<'success' | 'invalid' | 'error' | null>(null)
-  const [avatarFile, setAvatarFile] = useState<File | null>(null)
-  const [avatarProgress, setAvatarProgress] = useState(0)
-  const [avatarPreviewURL, setAvatarPreviewURL] = useState<string | null>(null)
   const [storedAvatarURL, setStoredAvatarURL] = useState<string | null>(null)
-  const avatarInput = useRef<HTMLInputElement>(null)
   const avatar = useSelfAvatarQuery(profile.data?.avatar_url ?? null)
   const zones = useMemo(() => timeZones().map((value) => ({ label: value, value })), [])
   const { control, handleSubmit, reset, setError, formState } = useForm<ProfileValues>({
@@ -71,47 +67,6 @@ export function ProfileBasicPage() {
     setStoredAvatarURL(next)
     return () => { URL.revokeObjectURL(next) }
   }, [avatar.data])
-
-  useEffect(() => {
-    if (!avatarFile) {
-      setAvatarPreviewURL(null)
-      return
-    }
-    const next = URL.createObjectURL(avatarFile)
-    setAvatarPreviewURL(next)
-    return () => { URL.revokeObjectURL(next) }
-  }, [avatarFile])
-
-  const chooseAvatar = (file: File | null) => {
-    setAvatarFeedback(null)
-    setAvatarProgress(0)
-    if (!file) {
-      setAvatarFile(null)
-      return
-    }
-    const validType = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/webp'
-    if (!validType || file.size <= 0 || file.size > 5 * 1024 * 1024) {
-      setAvatarFile(null)
-      setAvatarFeedback('invalid')
-      return
-    }
-    setAvatarFile(file)
-  }
-
-  const submitAvatar = async () => {
-    if (!avatarFile) return
-    setAvatarFeedback(null)
-    try {
-      const updated = await uploadAvatar(avatarFile, setAvatarProgress)
-      queryClient.setQueryData(selfProfileQueryKey, updated)
-      if (updated.avatar_url) await queryClient.fetchQuery(selfAvatarQueryOptions(updated.avatar_url))
-      setAvatarFile(null)
-      setAvatarFeedback('success')
-    } catch {
-      setAvatarProgress(0)
-      setAvatarFeedback('error')
-    }
-  }
 
   const submit = handleSubmit(async (values) => {
     setFeedback(null)
@@ -148,42 +103,19 @@ export function ProfileBasicPage() {
       <ProfileNavigation active="basic" />
       <Card className="ak-settings-card">
         {avatarEnabled ? (
-          <section className="ak-avatar-editor" aria-labelledby="profile-avatar-label">
-            <div className="ak-avatar-preview">
-              <Avatar
-                alt={t('profile.avatar.alt', { name: profile.data.display_name })}
-                size={88}
-                src={avatarPreviewURL ?? storedAvatarURL ?? undefined}
-              >
-                {profile.data.display_name.slice(0, 1).toUpperCase()}
-              </Avatar>
-              <div>
-                <Typography.Title id="profile-avatar-label" level={2}>{t('profile.avatar.label')}</Typography.Title>
-                <Typography.Paragraph type="secondary">{t('profile.avatar.description')}</Typography.Paragraph>
-              </div>
-            </div>
-            <div className="ak-avatar-actions">
-              <Button onClick={() => { avatarInput.current?.click() }}>{t('profile.avatar.change')}</Button>
-              <input
-                accept="image/jpeg,image/png,image/webp"
-                hidden
-                id="profile-avatar-file"
-                onChange={(event) => {
-                  chooseAvatar(event.currentTarget.files?.[0] ?? null)
-                  event.currentTarget.value = ''
-                }}
-                ref={avatarInput}
-                type="file"
-              />
-              <Button disabled={!avatarFile} loading={avatarProgress > 0 && avatarProgress < 100} onClick={() => { void submitAvatar() }} type="primary">
-                {t('profile.avatar.submit')}
-              </Button>
-            </div>
-            {avatarProgress > 0 ? <Progress aria-label={t('profile.avatar.progress', { percent: avatarProgress })} percent={avatarProgress} size="small" /> : null}
-            {avatarFeedback === 'success' ? <div className="ak-form-success" role="status">{t('profile.avatar.success')}</div> : null}
-            {avatarFeedback === 'invalid' ? <div className="ak-form-error" role="alert">{t('profile.avatar.invalid')}</div> : null}
-            {avatarFeedback === 'error' ? <div className="ak-form-error" role="alert">{t('profile.avatar.upload_error')}</div> : null}
-          </section>
+          <AkAvatarUploader
+            alt={t('profile.avatar.alt', { name: profile.data.display_name })}
+            currentSrc={storedAvatarURL}
+            fallback={profile.data.display_name.slice(0, 1).toUpperCase()}
+            onUpload={async (file, onProgress) => {
+              const updated = await uploadAvatar(file, onProgress)
+              queryClient.setQueryData(selfProfileQueryKey, updated)
+              if (updated.avatar_url) {
+                await queryClient.invalidateQueries({ queryKey: ['self', 'avatar'] })
+                await queryClient.fetchQuery(selfAvatarQueryOptions(updated.avatar_url))
+              }
+            }}
+          />
         ) : null}
         {feedback === 'success' ? <div className="ak-form-success" role="status">{t('profile.save_success')}</div> : null}
         {feedback === 'error' ? <div className="ak-form-error" role="alert">{t('profile.save_error')}</div> : null}

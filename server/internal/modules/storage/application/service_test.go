@@ -22,7 +22,7 @@ type fakeRepository struct {
 
 func (repository *fakeRepository) CreateAvatarUpload(_ context.Context, input domain.CreateAvatarUpload) (domain.AvatarUploadSession, error) {
 	repository.session = domain.AvatarUploadSession{
-		ID: uuid.New(), ObjectKey: input.ObjectKey, OriginalName: input.OriginalName,
+		ID: uuid.New(), Provider: input.Provider, Bucket: input.Bucket, ObjectKey: input.ObjectKey, OriginalName: input.OriginalName,
 		MediaType: input.MediaType, ExpectedSize: input.ExpectedSize, ExpiresAt: input.ExpiresAt,
 	}
 	return repository.session, nil
@@ -44,15 +44,18 @@ func (repository *fakeRepository) GetAvatarObject(context.Context, domain.Princi
 
 type memoryStore struct{ values map[string][]byte }
 
-func (store *memoryStore) Put(_ context.Context, key string, content []byte) error {
-	store.values[key] = bytes.Clone(content)
+func (store *memoryStore) ResolvePolicy(context.Context, uuid.UUID) (domain.UploadPolicy, error) {
+	return domain.UploadPolicy{Provider: "local", Bucket: "appkernia-local", MaxImageBytes: domain.MaxAvatarBytes, MaxFileBytes: domain.MaxFileBytes, ImageMediaTypes: []string{"image/jpeg", "image/png", "image/webp"}, FileMediaTypes: []string{"application/octet-stream"}, ConfigurationSafe: true}, nil
+}
+func (store *memoryStore) Put(_ context.Context, ref domain.ObjectRef, content []byte) error {
+	store.values[ref.Key] = bytes.Clone(content)
 	return nil
 }
-func (store *memoryStore) Open(_ context.Context, key string) (io.ReadCloser, error) {
-	return io.NopCloser(bytes.NewReader(store.values[key])), nil
+func (store *memoryStore) Open(_ context.Context, ref domain.ObjectRef) (io.ReadCloser, error) {
+	return io.NopCloser(bytes.NewReader(store.values[ref.Key])), nil
 }
-func (store *memoryStore) Delete(_ context.Context, key string) error {
-	delete(store.values, key)
+func (store *memoryStore) Delete(_ context.Context, ref domain.ObjectRef) error {
+	delete(store.values, ref.Key)
 	return nil
 }
 
@@ -96,7 +99,7 @@ func TestAvatarUploadRejectsDisabledInvalidAndSpoofedContent(t *testing.T) {
 		t.Fatalf("invalid CreateAvatarUpload() error = %v", err)
 	}
 	repository.session = domain.AvatarUploadSession{
-		ID: uuid.New(), ObjectKey: "avatars/test.png", OriginalName: "test.png",
+		ID: uuid.New(), Provider: "local", Bucket: "appkernia-local", ObjectKey: "avatars/test.png", OriginalName: "test.png",
 		MediaType: "image/png", ExpectedSize: 8, ExpiresAt: time.Now().Add(time.Minute),
 	}
 	if _, err := enabled.UploadAvatar(context.Background(), principal, repository.session.ID, []byte("notimage"), domain.ClientMetadata{RequestID: "request-2"}); err != domain.ErrUploadInvalid {

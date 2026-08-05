@@ -115,6 +115,33 @@ describe('AuthSession', () => {
     expect(config.feature_flags['admin_registration']).toBe(false)
   })
 
+  it('creates an anonymous login captcha without leaking auth headers', async () => {
+    const captchaId = crypto.randomUUID()
+    const fetchMock = vi.fn<typeof fetch>((input, init) => {
+      expect(input).toBe('/admin-api/v1/auth/login/captcha')
+      expect(init?.method).toBe('POST')
+      expect(init?.credentials).toBe('include')
+      const headers = new Headers(init?.headers)
+      expect(headers.get('Accept-Language')).toBe('en-US')
+      expect(headers.get('Authorization')).toBeNull()
+      expect(init?.body).toBe(JSON.stringify({ email: 'admin@example.test' }))
+      return Promise.resolve(Response.json({
+        code: 'OK', message: 'OK', request_id: 'captcha-request',
+        data: { captcha_id: captchaId, image_base64: 'iVBORw0KGgo=', mime_type: 'image/png', expires_in_seconds: 300 },
+      }))
+    })
+    const session = new AuthSession({
+      baseUrl: '/admin-api/v1', tokens: new MemoryTokenStore(), clearTenantCache: vi.fn(),
+      readLocale: () => 'en-US', fetch: fetchMock,
+    })
+
+    const captcha = await session.createLoginCaptcha({ email: 'admin@example.test' })
+
+    expect(captcha.captcha_id).toBe(captchaId)
+    expect(captcha.mime_type).toBe('image/png')
+    expect(fetchMock).toHaveBeenCalledOnce()
+  })
+
   it('submits anonymous registration and recovery writes once with locale and no auth token', async () => {
     const fetchMock = vi.fn<typeof fetch>((input, init) => {
       const url = input instanceof Request ? input.url : input instanceof URL ? input.href : input

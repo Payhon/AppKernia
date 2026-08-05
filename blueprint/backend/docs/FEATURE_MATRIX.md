@@ -129,6 +129,7 @@ POST /api/v1/auth/logout-all
 
 ```text
 POST /admin-api/v1/auth/login
+POST /admin-api/v1/auth/login/captcha
 POST /admin-api/v1/auth/token/refresh
 POST /admin-api/v1/auth/logout
 GET  /admin-api/v1/auth/context
@@ -139,6 +140,7 @@ GET  /admin-api/v1/auth/context
 - 用户名/邮箱/手机号规范化。
 - Argon2id 密码哈希。
 - 登录失败统一文案，防账号枚举。
+- Admin 同一 HMAC 保护范围在 30 分钟内第三次失败后强制短时、一次性 PNG 图形验证码；刷新客户端不能绕过。
 - Access Token + 旋转 Refresh Token。
 - Audience 隔离：`ak-mobile`、`ak-admin`、`ak-api`。
 - 登录风控、失败次数和临时锁定。
@@ -155,6 +157,7 @@ GET  /admin-api/v1/auth/context
 - 已消费 Token 重用撤销 Session Family，并创建高等级安全事件。
 - Admin Token 不能访问 Mobile-only Token Audience，反之亦然。
 - 密码、Token 和 OTP 不出现在日志。
+- 已知与未知账号前两次均返回稳定凭据错误，第三次均返回 `IAM.AUTH.CAPTCHA_REQUIRED`；挑战与标识、Audience、来源绑定，错误/过期/已消费挑战不可复用，成功登录清零该范围失败状态。
 
 ### 3.2 密码与验证
 
@@ -207,7 +210,7 @@ POST  /api/v1/me/avatar/upload-session
 **验收**
 
 - 普通资料更新不能直接把邮箱/手机号标记为已验证。
-- 头像只能引用当前用户有权使用且已通过检查的文件。
+- 头像由浏览器裁剪为受控正方形后，通过当前租户配置的 local/S3/MinIO ObjectStore Adapter 上传；服务端仍校验当前用户、租户、MIME 魔数、尺寸、大小和随机对象 Key，客户端不能指定 Bucket 或对象路径。
 
 ### 4.2 我的会话和设备
 
@@ -526,6 +529,7 @@ GET   /admin-api/v1/configs
 POST  /admin-api/v1/configs
 PATCH /admin-api/v1/configs/{id}
 POST  /admin-api/v1/configs/{id}/rotate-secret
+GET   /admin-api/v1/files/upload-policy
 ```
 
 **权限码**
@@ -543,6 +547,8 @@ sys.config.rotate_secret
 - 秘密配置加密存储；列表和详情不返回明文。
 - 配置按 value_type 和 JSON Schema 校验。
 - 修改后缓存精确失效。
+- `seed core` 为活动租户幂等补齐 9 类系统目录配置，并保留现有值和密封 Secret。
+- 目录配置只允许修改当前值或轮换 Secret，目录元数据和默认值不可变。
 
 ---
 
@@ -552,10 +558,15 @@ sys.config.rotate_secret
 
 ```text
 POST /api/v1/me/avatar/upload-session
+GET  /admin-api/v1/files/upload-policy
 POST /admin-api/v1/files/upload-sessions
+GET  /admin-api/v1/files/upload-sessions/{id}
+PUT  /admin-api/v1/files/upload-sessions/{id}/parts/{partNumber}
 POST /admin-api/v1/files/upload-sessions/{id}/complete
+DELETE /admin-api/v1/files/upload-sessions/{id}
 GET  /admin-api/v1/files
 POST /admin-api/v1/files/{id}/presign-download
+GET  /admin-api/v1/files/{id}/content
 DELETE /admin-api/v1/files/{id}
 ```
 
@@ -582,6 +593,8 @@ storage.file.delete
 - 扩展名/MIME 欺骗、超限、跨租户下载被拒绝。
 - 只有 ready 且 clean/skipped 文件可引用。
 - V1 不接受任意远程 URL 转存。
+- 上传策略和对象路由由租户的 local/S3-compatible/MinIO 配置决定；生产禁止 local 和非 TLS 远端 Endpoint。
+- Admin 响应可展示 provider，但不得返回 Bucket、Object Key 或存储凭据。
 
 ---
 
@@ -773,7 +786,9 @@ sys.module.read
 
 **验收**
 
-- 地区数据版本化导入，稳定 code 不随名称改变。
+- `blueprint/backend/spec/core-regions.json` 固定记录来源提交、许可证和层级映射；当前 HotGo 快照含 3,663 条地区编码，规范化为 34/357/3,272 条 0/1/2 级记录。
+- `ak-cli seed core` 按父级优先顺序幂等 upsert，稳定 code 不随名称改变；缺失经纬度保留为 `NULL`，不伪造邮编或坐标。
+- 地区目录是带来源版本的初始化快照，不宣称等同于最新官方行政区划；升级必须重新生成目录、审查 diff 并重跑完整性测试。
 - `sys.modules` 只显示编译期模块和版本，不支持上传/安装二进制。
 
 ---

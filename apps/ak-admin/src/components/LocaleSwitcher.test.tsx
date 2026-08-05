@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { useAuthStore, type AuthContext } from '../features/auth/store'
 import { LocaleProvider } from '../shared/i18n'
@@ -15,12 +15,51 @@ const context: AuthContext = {
   server_time: '2026-08-03T00:00:00Z',
 }
 
+beforeAll(() => {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    value: vi.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  })
+  class TestResizeObserver {
+    observe() { return undefined }
+    disconnect() { return undefined }
+    unobserve() { return undefined }
+  }
+  Object.defineProperty(globalThis, 'ResizeObserver', {
+    configurable: true,
+    value: TestResizeObserver,
+  })
+})
+
 afterEach(() => {
   cleanup()
   useAuthStore.setState({ context: null, status: 'anonymous' })
 })
 
 describe('LocaleSwitcher', () => {
+  it('opens an accessible icon menu and changes the anonymous locale', async () => {
+    render(<LocaleProvider><LocaleSwitcher variant="icon" /></LocaleProvider>)
+    const trigger = screen.getByRole('button', { name: /显示语言|Display language/ })
+    expect(trigger.querySelector('.anticon-translation')).not.toBeNull()
+    fireEvent.click(trigger)
+
+    const current = document.documentElement.lang
+    const nextLocale = current === 'zh-CN' ? 'en-US' : 'zh-CN'
+    const nextLabel = nextLocale === 'zh-CN' ? '简体中文' : 'English'
+    fireEvent.click(await screen.findByRole('menuitem', { name: nextLabel }))
+
+    await waitFor(() => { expect(document.documentElement.lang).toBe(nextLocale) })
+  })
+
   it('rolls back and announces an authenticated persistence failure', async () => {
     const updateLocale = vi.fn<() => Promise<void>>().mockRejectedValue(new Error('network'))
     useAuthStore.setState({ context, status: 'authenticated', updateLocale })

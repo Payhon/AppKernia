@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { AdminAuthContextResponse, AdminMe, AdminOnlineSessionRevokeResponse, AdminSelfDeviceRemoveResponse, AdminSelfSessionRevokeResponse, AdminUpdateMeRequest } from '../../generated/api/types.gen'
+import type { AdminAuthContextResponse, AdminLoginRequest, AdminMe, AdminOnlineSessionRevokeResponse, AdminSelfDeviceRemoveResponse, AdminSelfSessionRevokeResponse, AdminUpdateMeRequest } from '../../generated/api/types.gen'
 import { readActiveLocale } from '../../shared/i18n'
 import { purgeTenantScopedQueries, queryClient } from '../../shared/query-client'
 import { AuthSession, MemoryTokenStore } from './session'
@@ -26,7 +26,7 @@ export const authSession = new AuthSession({
 interface AuthState {
   context: AuthContext | null
   status: AuthStatus
-  login: (email: string, password: string) => Promise<AuthContext>
+  login: (input: AdminLoginRequest) => Promise<AuthContext>
   logout: () => Promise<void>
   switchTenant: (tenantId: string) => Promise<AuthContext>
   refreshContext: () => Promise<AuthContext>
@@ -41,10 +41,10 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   context: null,
   status: 'anonymous',
-  login: async (email, password) => {
+  login: async (input) => {
     set({ status: 'authenticating' })
     try {
-      await authSession.login({ email, password })
+      await authSession.login(input)
       const context = await authSession.bootstrap()
       set({ context, status: 'authenticated' })
       return context

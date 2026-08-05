@@ -68,3 +68,57 @@ ON CONFLICT (tenant_id, code) WHERE deleted_at IS NULL DO UPDATE SET
     is_system = true,
     status = 'active',
     updated_at = now();
+
+-- name: ListActiveTenantIDsForConfigSeed :many
+SELECT id
+FROM iam.tenants
+WHERE status = 'active' AND deleted_at IS NULL
+ORDER BY id;
+
+-- name: UpsertTenantCoreConfig :one
+INSERT INTO sys.config_items (
+    tenant_id, module_code, config_group, config_key, display_name, value_type,
+    value_json, default_value_json, is_secret, is_public, validation_schema,
+    description, sort_order, status
+)
+VALUES (
+    sqlc.arg('tenant_id'), sqlc.arg('module_code'), sqlc.arg('config_group'),
+    sqlc.arg('config_key'), sqlc.arg('display_name'), sqlc.arg('value_type'),
+    sqlc.narg('value_json'), sqlc.narg('default_value_json'), sqlc.arg('is_secret'),
+    sqlc.arg('is_public'), sqlc.arg('validation_schema'), sqlc.arg('description'),
+    sqlc.arg('sort_order'), sqlc.arg('status')
+)
+ON CONFLICT (tenant_id, module_code, config_group, config_key)
+    WHERE tenant_id IS NOT NULL
+DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    default_value_json = CASE WHEN sys.config_items.is_secret THEN NULL ELSE EXCLUDED.default_value_json END,
+    is_public = CASE WHEN sys.config_items.is_secret THEN false ELSE EXCLUDED.is_public END,
+    validation_schema = EXCLUDED.validation_schema,
+    description = EXCLUDED.description,
+    sort_order = EXCLUDED.sort_order,
+    updated_at = now()
+RETURNING id;
+
+-- name: UpsertCoreRegion :exec
+INSERT INTO sys.regions (
+    code, parent_code, level, name, full_name, postal_code,
+    longitude, latitude, status, metadata
+)
+VALUES (
+    sqlc.arg('code'), sqlc.narg('parent_code'), sqlc.arg('level'),
+    sqlc.arg('name'), sqlc.narg('full_name'), sqlc.narg('postal_code'),
+    sqlc.narg('longitude'), sqlc.narg('latitude'), sqlc.arg('status'),
+    sqlc.arg('metadata')
+)
+ON CONFLICT (code) DO UPDATE SET
+    parent_code = EXCLUDED.parent_code,
+    level = EXCLUDED.level,
+    name = EXCLUDED.name,
+    full_name = EXCLUDED.full_name,
+    postal_code = COALESCE(EXCLUDED.postal_code, sys.regions.postal_code),
+    longitude = COALESCE(EXCLUDED.longitude, sys.regions.longitude),
+    latitude = COALESCE(EXCLUDED.latitude, sys.regions.latitude),
+    status = EXCLUDED.status,
+    metadata = sys.regions.metadata || EXCLUDED.metadata,
+    updated_at = now();

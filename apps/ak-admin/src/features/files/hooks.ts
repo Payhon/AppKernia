@@ -24,6 +24,16 @@ export function useAdminFile(id: string | null) {
   });
 }
 
+export function useAdminFileUploadPolicy(enabled = true) {
+  const tenantId = useTenantKey();
+  return useQuery({
+    queryKey: ["tenant", tenantId, "files", "upload-policy"],
+    queryFn: () => authSession.adminFileUploadPolicy(),
+    enabled,
+    staleTime: 30_000,
+  });
+}
+
 export function useAdminFileUsages(id: string | null) {
   const tenantId = useTenantKey();
   return useQuery({

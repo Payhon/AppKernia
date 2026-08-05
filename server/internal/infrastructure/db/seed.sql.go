@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const grantAllActivePermissionsToRole = `-- name: GrantAllActivePermissionsToRole :execrows
@@ -31,6 +32,33 @@ func (q *Queries) GrantAllActivePermissionsToRole(ctx context.Context, arg Grant
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const listActiveTenantIDsForConfigSeed = `-- name: ListActiveTenantIDsForConfigSeed :many
+SELECT id
+FROM iam.tenants
+WHERE status = 'active' AND deleted_at IS NULL
+ORDER BY id
+`
+
+func (q *Queries) ListActiveTenantIDsForConfigSeed(ctx context.Context) ([]uuid.UUID, error) {
+	rows, err := q.db.Query(ctx, listActiveTenantIDsForConfigSeed)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uuid.UUID{}
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const syncDefaultTenantRoles = `-- name: SyncDefaultTenantRoles :execrows
@@ -127,6 +155,59 @@ func (q *Queries) UpsertCorePermission(ctx context.Context, arg UpsertCorePermis
 	return id, err
 }
 
+const upsertCoreRegion = `-- name: UpsertCoreRegion :exec
+INSERT INTO sys.regions (
+    code, parent_code, level, name, full_name, postal_code,
+    longitude, latitude, status, metadata
+)
+VALUES (
+    $1, $2, $3,
+    $4, $5, $6,
+    $7, $8, $9,
+    $10
+)
+ON CONFLICT (code) DO UPDATE SET
+    parent_code = EXCLUDED.parent_code,
+    level = EXCLUDED.level,
+    name = EXCLUDED.name,
+    full_name = EXCLUDED.full_name,
+    postal_code = COALESCE(EXCLUDED.postal_code, sys.regions.postal_code),
+    longitude = COALESCE(EXCLUDED.longitude, sys.regions.longitude),
+    latitude = COALESCE(EXCLUDED.latitude, sys.regions.latitude),
+    status = EXCLUDED.status,
+    metadata = sys.regions.metadata || EXCLUDED.metadata,
+    updated_at = now()
+`
+
+type UpsertCoreRegionParams struct {
+	Code       string         `json:"code"`
+	ParentCode *string        `json:"parent_code"`
+	Level      int16          `json:"level"`
+	Name       string         `json:"name"`
+	FullName   *string        `json:"full_name"`
+	PostalCode *string        `json:"postal_code"`
+	Longitude  pgtype.Numeric `json:"longitude"`
+	Latitude   pgtype.Numeric `json:"latitude"`
+	Status     string         `json:"status"`
+	Metadata   []byte         `json:"metadata"`
+}
+
+func (q *Queries) UpsertCoreRegion(ctx context.Context, arg UpsertCoreRegionParams) error {
+	_, err := q.db.Exec(ctx, upsertCoreRegion,
+		arg.Code,
+		arg.ParentCode,
+		arg.Level,
+		arg.Name,
+		arg.FullName,
+		arg.PostalCode,
+		arg.Longitude,
+		arg.Latitude,
+		arg.Status,
+		arg.Metadata,
+	)
+	return err
+}
+
 const upsertSystemAdminRole = `-- name: UpsertSystemAdminRole :one
 INSERT INTO iam.roles (
     tenant_id, code, name, description, role_type, data_scope,
@@ -144,6 +225,71 @@ RETURNING id
 
 func (q *Queries) UpsertSystemAdminRole(ctx context.Context, tenantID uuid.UUID) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, upsertSystemAdminRole, tenantID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const upsertTenantCoreConfig = `-- name: UpsertTenantCoreConfig :one
+INSERT INTO sys.config_items (
+    tenant_id, module_code, config_group, config_key, display_name, value_type,
+    value_json, default_value_json, is_secret, is_public, validation_schema,
+    description, sort_order, status
+)
+VALUES (
+    $1, $2, $3,
+    $4, $5, $6,
+    $7, $8, $9,
+    $10, $11, $12,
+    $13, $14
+)
+ON CONFLICT (tenant_id, module_code, config_group, config_key)
+    WHERE tenant_id IS NOT NULL
+DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    default_value_json = CASE WHEN sys.config_items.is_secret THEN NULL ELSE EXCLUDED.default_value_json END,
+    is_public = CASE WHEN sys.config_items.is_secret THEN false ELSE EXCLUDED.is_public END,
+    validation_schema = EXCLUDED.validation_schema,
+    description = EXCLUDED.description,
+    sort_order = EXCLUDED.sort_order,
+    updated_at = now()
+RETURNING id
+`
+
+type UpsertTenantCoreConfigParams struct {
+	TenantID         *uuid.UUID `json:"tenant_id"`
+	ModuleCode       string     `json:"module_code"`
+	ConfigGroup      string     `json:"config_group"`
+	ConfigKey        string     `json:"config_key"`
+	DisplayName      string     `json:"display_name"`
+	ValueType        string     `json:"value_type"`
+	ValueJson        []byte     `json:"value_json"`
+	DefaultValueJson []byte     `json:"default_value_json"`
+	IsSecret         bool       `json:"is_secret"`
+	IsPublic         bool       `json:"is_public"`
+	ValidationSchema []byte     `json:"validation_schema"`
+	Description      *string    `json:"description"`
+	SortOrder        int32      `json:"sort_order"`
+	Status           string     `json:"status"`
+}
+
+func (q *Queries) UpsertTenantCoreConfig(ctx context.Context, arg UpsertTenantCoreConfigParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, upsertTenantCoreConfig,
+		arg.TenantID,
+		arg.ModuleCode,
+		arg.ConfigGroup,
+		arg.ConfigKey,
+		arg.DisplayName,
+		arg.ValueType,
+		arg.ValueJson,
+		arg.DefaultValueJson,
+		arg.IsSecret,
+		arg.IsPublic,
+		arg.ValidationSchema,
+		arg.Description,
+		arg.SortOrder,
+		arg.Status,
+	)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err

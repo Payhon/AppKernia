@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/appkernia/appkernia/server/internal/modules/storage/domain"
+	"github.com/google/uuid"
 )
 
 type LocalObjectStore struct {
@@ -27,8 +28,21 @@ func NewLocalObjectStore(root string) (*LocalObjectStore, error) {
 	return &LocalObjectStore{root: absolute}, nil
 }
 
-func (store *LocalObjectStore) Put(_ context.Context, objectKey string, content []byte) error {
-	target, err := store.resolve(objectKey)
+func (store *LocalObjectStore) ResolvePolicy(_ context.Context, _ uuid.UUID) (domain.UploadPolicy, error) {
+	return domain.UploadPolicy{
+		Provider: "local", Bucket: "appkernia-local", MaxImageBytes: domain.MaxAvatarBytes,
+		MaxFileBytes:      domain.MaxFileBytes,
+		ImageMediaTypes:   []string{"image/jpeg", "image/png", "image/webp"},
+		FileMediaTypes:    []string{"application/pdf", "application/json", "application/zip", "application/octet-stream", "text/plain", "text/csv", "image/jpeg", "image/png", "image/webp"},
+		ConfigurationSafe: true,
+	}, nil
+}
+
+func (store *LocalObjectStore) Put(_ context.Context, ref domain.ObjectRef, content []byte) error {
+	if err := validateLocalRef(ref); err != nil {
+		return err
+	}
+	target, err := store.resolve(ref.Key)
 	if err != nil {
 		return err
 	}
@@ -60,8 +74,11 @@ func (store *LocalObjectStore) Put(_ context.Context, objectKey string, content 
 	return nil
 }
 
-func (store *LocalObjectStore) Open(_ context.Context, objectKey string) (io.ReadCloser, error) {
-	target, err := store.resolve(objectKey)
+func (store *LocalObjectStore) Open(_ context.Context, ref domain.ObjectRef) (io.ReadCloser, error) {
+	if err := validateLocalRef(ref); err != nil {
+		return nil, err
+	}
+	target, err := store.resolve(ref.Key)
 	if err != nil {
 		return nil, err
 	}
@@ -75,13 +92,23 @@ func (store *LocalObjectStore) Open(_ context.Context, objectKey string) (io.Rea
 	return file, nil
 }
 
-func (store *LocalObjectStore) Delete(_ context.Context, objectKey string) error {
-	target, err := store.resolve(objectKey)
+func (store *LocalObjectStore) Delete(_ context.Context, ref domain.ObjectRef) error {
+	if err := validateLocalRef(ref); err != nil {
+		return err
+	}
+	target, err := store.resolve(ref.Key)
 	if err != nil {
 		return err
 	}
 	if err = os.Remove(target); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return fmt.Errorf("delete local object: %w", err)
+	}
+	return nil
+}
+
+func validateLocalRef(ref domain.ObjectRef) error {
+	if ref.TenantID == uuid.Nil || ref.Provider != "local" || ref.Bucket != "appkernia-local" {
+		return errors.New("local object reference is invalid")
 	}
 	return nil
 }

@@ -1,0 +1,28 @@
+{
+  "form.en-US.1440": {
+    "violations": [],
+    "critical_or_serious": 0
+  },
+  "table.en-US.1440": {
+    "violations": [],
+    "critical_or_serious": 0
+  },
+  "form.zh-CN.1440": {
+    "violations": [],
+    "critical_or_serious": 0
+  },
+  "form.zh-CN.375": {
+    "violations": [],
+    "critical_or_serious": 0
+  },
+  "workflow": {
+    "default_form_mode": true,
+    "dirty_navigation_guard": true,
+    "unified_save_status": 200,
+    "restored_original_status": 200,
+    "table_mode_preserved": true,
+    "file_picker_and_upload_entry": true,
+    "mobile_no_overflow": true,
+    "unexpected_console_errors": []
+  }
+}

@@ -21,7 +21,7 @@ export function AuthFrame({ children, descriptionKey, headingKey }: AuthFramePro
         <div aria-hidden="true" className="ak-auth-orbit" />
       </section>
       <section className="ak-auth-form-section">
-        <div className="ak-auth-toolbar"><LocaleSwitcher /></div>
+        <div className="ak-auth-toolbar"><LocaleSwitcher variant="icon" /></div>
         <Card className="ak-auth-card" variant="borderless">
           <Typography.Title level={2}>{t(headingKey)}</Typography.Title>
           <Typography.Paragraph type="secondary">{t(descriptionKey)}</Typography.Paragraph>

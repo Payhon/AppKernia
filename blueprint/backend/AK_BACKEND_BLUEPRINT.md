@@ -364,6 +364,8 @@ SYSTEM.CONFIG.VERSION_CONFLICT
 
 - 按 IP、账号标识、设备组合限流。
 - 登录失败不暴露“账号存在/不存在”差异。
+- Admin 登录在同一标识、Audience 与来源的 HMAC 保护范围内连续失败三次后，必须由服务端强制一次性图形验证码；客户端刷新不能清除失败状态。
+- 图形挑战使用短时 PNG、一次登录尝试即消费，错误/过期/超限不可复用；成功登录清零对应失败范围。
 - 管理端支持 TOTP 和 WebAuthn MFA。
 - 验证码只保存哈希；邮箱/手机号等低熵目标只保存服务端 Keyed HMAC-SHA-256 和脱敏 Hint，防止离线字典反查。
 - 邮件、短信等实际投递目标在 `notify.deliveries` 中使用信封加密密文、HMAC Hash、Hint 和 Key Version 分离保存。
@@ -912,6 +914,7 @@ type Module interface {
 - 管理菜单。
 - 系统字典。
 - 基础配置定义。
+- 版本化地区编码目录。
 
 `ak-cli bootstrap-admin`：
 

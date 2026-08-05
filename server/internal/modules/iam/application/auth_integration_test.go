@@ -4,6 +4,8 @@ package application_test
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"os"
@@ -17,6 +19,124 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+func TestAdminLoginRequiresCaptchaAfterThirdFailureAndResetsAfterSuccess(t *testing.T) {
+	databaseURL := os.Getenv("AK_TEST_DATABASE_URL")
+	if databaseURL == "" {
+		t.Skip("AK_TEST_DATABASE_URL is not set")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	pool, err := pgxpool.New(ctx, databaseURL)
+	if err != nil {
+		t.Fatalf("create test pool: %v", err)
+	}
+	defer pool.Close()
+
+	suffix := uuid.NewString()
+	email := "captcha-" + suffix + "@example.test"
+	password := "captcha integration password"
+	passwordHash, err := application.HashPassword(password)
+	if err != nil {
+		t.Fatalf("hash password: %v", err)
+	}
+	repo := repository.NewPostgres(pool)
+	if _, _, err = repo.CreateIdentity(ctx, domain.CreateIdentity{
+		TenantCode: "captcha-" + suffix, TenantName: "Captcha Tenant", Email: email,
+		DisplayName: "Captcha User", Locale: "zh-CN", PasswordHash: passwordHash,
+	}); err != nil {
+		t.Fatalf("create identity: %v", err)
+	}
+	issuer, err := application.NewDevelopmentTokenIssuer()
+	if err != nil {
+		t.Fatalf("create token issuer: %v", err)
+	}
+	loginProtectionKey := []byte("integration-login-protection-key")
+	service, err := application.NewAuthService(repo, repo, issuer, application.WithLoginProtectionKey(loginProtectionKey))
+	if err != nil {
+		t.Fatalf("create auth service: %v", err)
+	}
+
+	for attempt := 1; attempt <= 3; attempt++ {
+		_, loginErr := service.Login(ctx, application.LoginInput{
+			Email: email, Password: "wrong password", Audience: "ak-admin",
+			Client: application.ClientMetadata{RequestID: fmt.Sprintf("captcha-failure-%s-%d", suffix, attempt)},
+		})
+		if attempt < 3 && !errors.Is(loginErr, application.ErrInvalidCredentials) {
+			t.Fatalf("failure %d must remain a generic credential error, got %v", attempt, loginErr)
+		}
+		if attempt == 3 && !errors.Is(loginErr, application.ErrCaptchaRequired) {
+			t.Fatalf("third failure must require captcha, got %v", loginErr)
+		}
+	}
+	if _, loginErr := service.Login(ctx, application.LoginInput{
+		Email: email, Password: password, Audience: "ak-admin",
+	}); !errors.Is(loginErr, application.ErrCaptchaRequired) {
+		t.Fatalf("refreshing the client must not bypass captcha, got %v", loginErr)
+	}
+
+	keyDigest := sha256.Sum256(append([]byte("appkernia-login-protection\x00"), loginProtectionKey...))
+	scopeHasher := hmac.New(sha256.New, keyDigest[:])
+	scopeHasher.Write([]byte(email + "\nak-admin\nunknown"))
+	scopeHash := scopeHasher.Sum(nil)
+	createChallenge := func(answer string) uuid.UUID {
+		t.Helper()
+		salt := []byte("0123456789abcdef")
+		hasher := sha256.New()
+		hasher.Write(salt)
+		hasher.Write([]byte(answer))
+		now := time.Now().UTC()
+		id, challengeErr := repo.CreateLoginCaptcha(ctx, domain.LoginCaptchaChallenge{
+			ScopeHash: scopeHash, AnswerSalt: salt, AnswerHash: hasher.Sum(nil),
+			CreatedAt: now, ExpiresAt: now.Add(5 * time.Minute),
+		})
+		if challengeErr != nil {
+			t.Fatalf("create known captcha: %v", challengeErr)
+		}
+		return id
+	}
+
+	wrongID := createChallenge("234567")
+	if _, loginErr := service.Login(ctx, application.LoginInput{
+		Email: email, Password: password, Audience: "ak-admin", CaptchaID: &wrongID, CaptchaAnswer: "876543",
+	}); !errors.Is(loginErr, application.ErrCaptchaInvalid) {
+		t.Fatalf("wrong captcha must be rejected before password authentication, got %v", loginErr)
+	}
+
+	consumedID := createChallenge("234567")
+	if _, loginErr := service.Login(ctx, application.LoginInput{
+		Email: email, Password: "wrong password", Audience: "ak-admin", CaptchaID: &consumedID, CaptchaAnswer: "234567",
+	}); !errors.Is(loginErr, application.ErrCaptchaRequired) {
+		t.Fatalf("a valid captcha with invalid credentials must keep protection active, got %v", loginErr)
+	}
+	if _, loginErr := service.Login(ctx, application.LoginInput{
+		Email: email, Password: password, Audience: "ak-admin", CaptchaID: &consumedID, CaptchaAnswer: "234567",
+	}); !errors.Is(loginErr, application.ErrCaptchaInvalid) {
+		t.Fatalf("a consumed captcha must not be reusable, got %v", loginErr)
+	}
+
+	expiredID := createChallenge("234567")
+	if _, err = pool.Exec(ctx, `UPDATE iam.login_captcha_challenges SET created_at = now() - interval '2 minutes', expires_at = now() - interval '1 minute' WHERE id = $1`, expiredID); err != nil {
+		t.Fatalf("expire known captcha: %v", err)
+	}
+	if _, loginErr := service.Login(ctx, application.LoginInput{
+		Email: email, Password: password, Audience: "ak-admin", CaptchaID: &expiredID, CaptchaAnswer: "234567",
+	}); !errors.Is(loginErr, application.ErrCaptchaInvalid) {
+		t.Fatalf("an expired captcha must be rejected, got %v", loginErr)
+	}
+
+	validID := createChallenge("234567")
+	if _, loginErr := service.Login(ctx, application.LoginInput{
+		Email: email, Password: password, Audience: "ak-admin", CaptchaID: &validID, CaptchaAnswer: "234567",
+	}); loginErr != nil {
+		t.Fatalf("valid captcha and credentials must authenticate: %v", loginErr)
+	}
+	if _, loginErr := service.Login(ctx, application.LoginInput{
+		Email: email, Password: "wrong again", Audience: "ak-admin",
+	}); !errors.Is(loginErr, application.ErrInvalidCredentials) {
+		t.Fatalf("successful login must reset the failure threshold, got %v", loginErr)
+	}
+}
 
 func TestConcurrentRefreshRotatesOnceAndRevokesOnReuse(t *testing.T) {
 	databaseURL := os.Getenv("AK_TEST_DATABASE_URL")

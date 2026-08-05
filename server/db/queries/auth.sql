@@ -53,6 +53,66 @@ VALUES (
     'failure', 'invalid_credentials', sqlc.narg('client_ip'), sqlc.narg('user_agent')
 );
 
+-- name: GetActiveLoginFailureCount :one
+SELECT failure_count
+FROM iam.login_failure_states
+WHERE scope_hash = sqlc.arg('scope_hash')
+  AND expires_at > sqlc.arg('now_at');
+
+-- name: UpsertLoginFailureState :one
+INSERT INTO iam.login_failure_states (scope_hash, failure_count, last_failed_at, expires_at)
+VALUES (sqlc.arg('scope_hash'), 1, sqlc.arg('now_at'), sqlc.arg('expires_at'))
+ON CONFLICT (scope_hash) DO UPDATE
+SET failure_count = CASE
+        WHEN iam.login_failure_states.expires_at > sqlc.arg('now_at')
+            THEN LEAST(iam.login_failure_states.failure_count + 1, 1000000)
+        ELSE 1
+    END,
+    last_failed_at = sqlc.arg('now_at'),
+    expires_at = sqlc.arg('expires_at')
+RETURNING failure_count;
+
+-- name: DeleteLoginFailureState :exec
+DELETE FROM iam.login_failure_states
+WHERE scope_hash = sqlc.arg('scope_hash');
+
+-- name: InvalidateActiveLoginCaptchas :exec
+UPDATE iam.login_captcha_challenges
+SET consumed_at = COALESCE(consumed_at, sqlc.arg('now_at'))
+WHERE scope_hash = sqlc.arg('scope_hash')
+  AND consumed_at IS NULL;
+
+-- name: InsertLoginCaptchaChallenge :one
+INSERT INTO iam.login_captcha_challenges (
+    scope_hash, answer_salt, answer_hash, expires_at, created_at
+)
+VALUES (
+    sqlc.arg('scope_hash'), sqlc.arg('answer_salt'), sqlc.arg('answer_hash'),
+    sqlc.arg('expires_at'), sqlc.arg('created_at')
+)
+RETURNING id, expires_at;
+
+-- name: GetLoginCaptchaForUpdate :one
+SELECT answer_salt, answer_hash, attempt_count
+FROM iam.login_captcha_challenges
+WHERE id = sqlc.arg('id')
+  AND scope_hash = sqlc.arg('scope_hash')
+  AND consumed_at IS NULL
+  AND expires_at > sqlc.arg('now_at')
+  AND attempt_count < 5
+FOR UPDATE;
+
+-- name: CompleteLoginCaptchaAttempt :exec
+UPDATE iam.login_captcha_challenges
+SET attempt_count = attempt_count + 1,
+    consumed_at = CASE
+        WHEN sqlc.arg('consume')::boolean OR attempt_count + 1 >= 5 THEN sqlc.arg('now_at')
+        ELSE consumed_at
+    END
+WHERE id = sqlc.arg('id')
+  AND consumed_at IS NULL
+  AND attempt_count < 5;
+
 -- name: GetRefreshTokenForUpdate :one
 SELECT rt.id AS refresh_token_id,
        rt.session_id,

@@ -5,6 +5,61 @@
 
 ## 交付摘要
 
+### 2026-08-04 HotGo 地区编码数据移植
+
+- 从 HotGo 固定提交 `c6191f7126c0ece4f4357014684f479836643822` 的 `hg_sys_provinces` PostgreSQL Seed 转换出 3,663 条 AppKernia 版本化地区目录，完整性为 34 个根、357 个二级、3,272 个三级、0 重复编码、0 缺失父级、5 条缺失坐标。
+- 新增确定性导入脚本、目录来源元数据和 HotGo MIT 完整声明；HotGo 参考仓库位于已忽略的 `tmp/`，交付构建不依赖它。
+- Backend 新增 sqlc `UpsertCoreRegion` 与 Serializable `CoreRegions`，`ak-cli seed core` 现在输出 `regions=3663`；连续执行两次未产生重复编码，已有非空邮编/坐标不会被目录空值覆盖。
+- 现有公开/管理地区 API 与 `/system/settings/regions` 后台树表无需新增视觉结构即可读取目录；专项 E2E 已改为以北京 `110000` → 市辖区 `110100` 验证懒加载。
+- PostgreSQL 18 实测数值编码目录为 3,663 条、34 个根、0 个孤儿；公开 API 返回北京及子级且 `has_children=true`。本轮数据是 HotGo 源提交快照，未声明为 2026 年最新官方行政区划。
+- 真实 Admin 登录与 `/admin-api/v1/regions` 根/子查询均返回 200；一次性验收用户和租户随后精确禁用，活动 Session 复核为 0，未写入或输出固定密码。
+
+### 本轮实际命令与结果
+
+| 命令 | 退出码 | 结果 |
+|---|---:|---|
+| `python3 scripts/import_hotgo_regions.py ...` | 0 | 确定性生成 3,663 条；层级 `34/357/3272` |
+| `go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.31.1 generate` | 0 | `UpsertCoreRegion` 生成代码同步 |
+| `go test ./internal/seed ./cmd/ak-cli` | 0 | 地区目录来源、数量、父级顺序、坐标范围和配置目录测试通过 |
+| 本地 PostgreSQL 18 连续两次 `go run ./cmd/ak-cli seed core` | 0 / 0 | 两次均输出 `regions=3663`，幂等执行成功 |
+| PostgreSQL 目录/孤儿/北京链路探针 | 0 | `3663 / 34 / 357 / 3272 / missing=5 / orphan=0`；北京三级链路字段正确 |
+| 容器内 `GET /api/v1/regions` 根级及 `parent_code=110000` | 0 | 34 条初始化根数据可读，北京 `has_children=true`，子级返回市辖区 |
+| 既有忽略文件中的本机测试账号登录 | 1（HTTP 401） | 凭据不属于当前数据库或已失效；未把失败写成通过，也未输出凭据 |
+| 一次性 bootstrap → Admin 登录 → 两次 `/admin-api/v1/regions` → 精确禁用 | 0 | 登录、根查询、子查询均 HTTP 200；结束后 user/tenant=`disabled`、active sessions=`0` |
+| 首轮 Admin validator 路径 | 1 | 误用不存在的 `tools/validate_blueprint.py`；更正为 `scripts/validate_blueprint_specs.py` 后退出 0 |
+| `make -C server check` + `go test -json ./...` | 0 | gofmt/vet/默认测试通过；82 个 test pass events、0 failed |
+| Backend/Admin/Mobile/i18n validators + Python py_compile + `git diff --check` | 0 | 四类契约、两个导入/E2E 脚本语法和补丁格式通过 |
+| `docker compose build seed && docker compose run --rm --no-deps seed` | 0 | Go 1.26.5 Seed 镜像构建成功；容器输出 `regions=3663` |
+
+### 2026-08-04 系统初始配置与云存储补充
+
+- 参考 HotGo 在线系统配置页及忽略目录 `tmp/hotgo` 中的源码结构，独立实现 9 个分类/55 个安全默认配置项；`tmp/` 已加入 `.gitignore`，参考源码不会进入版本控制。
+- `seed core` 现对所有活动租户幂等写入配置目录，保留现有值与 Secret；目录元数据由 `x-appkernia-catalog` 标记并在 Repository 层锁定，只开放当前值修改和 Secret 轮换。
+- 云存储完成 local/S3-compatible/MinIO 配置 Adapter、AES-GCM Secret 解密、上传策略、provider/bucket/object key 持久化、OpenAPI/sqlc/生成 Client、provider 筛选、私有下载和删除闭环；生产拒绝 local 与非 TLS 远端配置。
+- Admin 系统配置页完成 9 分类导航、URL 持久化、双语目录名称、目录字段只读保护、Secret 不回显；新增可复用 `AkFileUploader` 并接入系统配置、文件管理和 `AkFilePicker`。
+- 本地 PostgreSQL 18/Docker API 实际完成一次 48 B 文件的分片上传、组装、私有下载内容比对、内部引用核对和 API 删除。公开响应不含 bucket/object key，配置 Secret 默认均为空。
+- UI 使用项目内 `ui-ux-pro-max`，保存 request/output/decisions/checklist、Master/page override 与 4 张 1800×952 Chrome 截图；Chrome 中验证 `zh-CN`/`en-US` 即时切换和目录编辑抽屉仅开放 Current value。
+- 本轮创建的本地 Chrome 验收 user/tenant 已精确设为 disabled，并撤销 11 个 Session/Refresh 记录；已知测试密码再次登录返回 HTTP 401，未影响用户原有账号或数据。
+- 验证边界：没有 S3/MinIO 真实账号，真实云端请求未执行；local 容器链路、配置安全规则、MinIO SDK 编译与单元/集成验证已完成。暗色模式与 768 px Chrome 截图未执行，不冒充已验收。
+
+### 本轮实际命令与结果
+
+| 命令 | 退出码 | 结果 |
+|---|---:|---|
+| `git clone git@github.com:bufanyun/hotgo.git tmp/hotgo` | 0 | 只读参考源码，固定到 `c6191f...`，目录被 Git 忽略 |
+| `make sqlc-generate`（server） | 0 | provider/bucket 查询与生成代码同步 |
+| `GOTOOLCHAIN=go1.26.5 go mod tidy && make check`（server） | 0 | gofmt、vet、默认测试全通过；最终默认 suite 78 tests / 0 failed |
+| `AK_TEST_DATABASE_URL=... go test -tags=integration ./internal/modules/storageadmin/repository ./internal/modules/systemsettings/repository ./internal/modules/storage/repository -count=1 -v` | 0 | 8 个 PostgreSQL 18 集成测试通过 |
+| Docker/curl 上传生命周期探针 | 0 | policy、分片、完成、provider 列表、私有下载、内部引用及删除全部通过 |
+| `npm run generate && npm run lint && npm run typecheck && npm run test`（Admin） | 0 | OpenAPI/i18n/routes 生成，10 files / 45 tests，strict typecheck 通过；首轮 lint 曾发现 1 个冗余条件，修复后重跑为 0 |
+| `npm run build && npm run validate:bundle && npm run validate:blueprint && npm run check:ui-skill` | 0 | 4158 modules；最终 initial gzip 203,784 B；最大 chunk 165,429 B；Admin 蓝图与 Skill 检查通过 |
+| `docker compose build admin` | 0 | Node 24.18.1 + pnpm 11.18.0 production build 通过 |
+| Backend/Admin/Mobile/i18n 四项 validator | 0 | 0 errors/warnings；Admin 152 existing APIs + 0 delta |
+| `govulncheck ./...` | 0 | 项目调用路径可达漏洞 0；另有 2 个 imported package 和 1 个 module 提示不在调用路径 |
+| `npx --yes @redocly/cli@2.12.4 lint server/openapi/openapi.yaml` | 0 | OpenAPI 有效；保留 1 个既有 license、3 个既有 ambiguous file path warnings |
+| `docker compose up --build -d api` / `AK_ADMIN_PORT=4174 docker compose up -d admin` | 0 | API/Admin/PostgreSQL healthy，`/healthz` 返回 `ok` |
+| Backend/Admin checksum manifest 全量 `shasum -c` | 1 | 本轮修改的 7 个蓝图文件及新 `core-configs.json` 均为 OK；仓库既有 manifest 对其他历史已修改蓝图仍有 6/20 个陈旧项，本轮未批量覆盖无关历史指纹 |
+
 - 真实运行项目内 `ui-ux-pro-max`，保存 Master、登录/App Shell/Dashboard override、决策、检查表和截图索引。
 - 将 Admin 从 core library 扩展为可运行 SPA：双语登录、App Shell、移动导航、Dashboard 空态、错误页、静态 registry/resolver、权限与安全 redirect。
 - 将 Admin 运行时路由从手工 `createRoute` 树迁移为 TanStack Router file-based：最终 60 个路由源文件位于 `src/routes`，构建期生成类型安全 `routeTree.gen.ts`，Vite 自动路由级代码分割。
@@ -359,7 +414,7 @@
 - `AKADM-100` 已完成；部门与岗位的后端授权、租户隔离、递归防环、占用冲突、审计和 Admin UI 已闭环。
 - `AKADM-110` 已完成；用户列表/详情、启停/解锁/重置、角色和组织分配、会话、导入导出及批量动作已闭环。
 - `AKADM-120/130/140/150/200/210/220/230/240/250/260/300/310` 已完成；当前 Admin 蓝图没有剩余依赖任务。
-- 地区生产数据的版本化导入 CLI 尚未实现；当前验证的是真实 PostgreSQL 查询、250 子节点懒加载和 Admin UI，不把测试夹具等同于生产地区数据管道。
+- 地区生产数据的版本化导入 CLI 已于 2026-08-04 通过 HotGo 固定快照补齐；此前 250 子节点夹具仍仅用于大树上限测试，不作为初始化目录来源。
 - `AKADM-220` 的 multipart cancel/resume、scan gate、usage viewer、`AkFilePicker` 与 delete-in-use Backend/Admin 闭环已完成。生产对象存储和实际恶意软件扫描 Adapter/Worker 因未配置第三方设施尚未联调；本轮 development-local 完成后标记 `skipped`，pending/infected/failed 均 fail-closed，不能据此声称生产扫描通过。
 - OpenAPI 最终 lint 退出 0 但保留 4 个 warning：1 个既有 proprietary license warning，3 个由蓝图固定 `/files/upload-sessions/{id}` 与 `/files/{id}/usages|presign-download|content` 产生的结构歧义提示；真实 GoFrame 路由和 Docker HTTP E2E 已通过，但文档工具 warning 未隐藏。
 - Backend 为当前 Admin 蓝图提供的注册/密码恢复、自作用域、业务管理、API Client/Webhook、访问规则、服务状态和 MFA/OAuth 契约均已闭环。生产对象存储、恶意软件扫描、通知投递和外部 OAuth Adapter 因未提供第三方凭据/设施尚未联调；各 local Adapter 在 production 均 fail-closed。
@@ -640,3 +695,134 @@
 - 浏览器验证使用 Chromium 与确定性 HTTP mock-contract；头像安全加载路径由现有 AuthSession/query 实现复用，但本轮截图使用无头像首字母状态。
 - Firefox、Safari 与生产部署未执行。Mobile 应用未修改，Android/iOS/Harmony 未构建或真机验证。
 - 本轮未 commit、未 push，并完整保留此前未提交的视觉焕新、侧栏与用户 `DESIGN.md` 改动。
+
+## 2026-08-05 Admin 登录图形验证码追加
+
+### 交付内容
+
+- 服务端新增 30 分钟失败窗口、第三次失败触发、5 分钟 PNG 数字挑战、范围 HMAC、盐化答案 Hash、一次性消费与 5 次尝试上限；成功登录重置失败状态。
+- 新增 migration `000010` 的 2 张 IAM 表、sqlc 查询/Repository、匿名验证码接口、登录请求字段与两个稳定错误码；同步 OpenAPI、生成 Client、双语 Catalog、Backend/Admin 蓝图契约与数据库文档。
+- Admin 登录页只信任服务端 `IAM.AUTH.CAPTCHA_REQUIRED`，不使用可绕过的前端失败计数；新增双语可访问验证码输入、PNG 图片、刷新/加载/错误状态和响应式布局。
+- 实际执行项目内 `ui-ux-pro-max`，保存 request、skill output、decisions、review checklist、登录页 design-system override 和三档关键视口截图。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `make sqlc-generate` | 0 | migration/query 对应的 sqlc 模型与方法生成成功 |
+| 首次定向 IAM integration | 1 | 误用旧数据库口令，PostgreSQL 拒绝认证；读取当前 Compose 配置后重跑 |
+| 第二次定向 IAM integration | 1 | 新增过期挑战 fixture 首次违反 `expires_at > created_at` 检查约束；同时回拨创建/过期时间后重跑 |
+| 最终定向验证码 integration | 0 | 第三次门槛、刷新不可绕过、错误/过期/已消费挑战、成功与阈值重置通过 |
+| `AK_TEST_DATABASE_URL=... go test -tags=integration ./internal/modules/iam/application -count=1` | 0 | IAM PostgreSQL 全量集成测试通过，耗时 7.974s |
+| `make check` | 0 | Go vet 与 Backend 全量单元测试通过 |
+| `npm run test -- --run src/pages/LoginPage.test.tsx` | 0 | 前两次隐藏、第三次显示、刷新行为与 axe-core 0 violations 通过 |
+| `npm run check` | 0 | API/i18n/48 routes 生成、lint、strict typecheck、11 files/47 tests、4,158 modules build、bundle budget、Admin validator 全通过 |
+| `docker compose build admin && docker compose up -d --no-deps admin` | 0 | Node 24.18.1 生产镜像重建到 4174；最终 API/Admin/PostgreSQL 均 healthy |
+| Chromium 真实 API 验收 | 0 | 第三次后显示、刷新后仍强制、PNG 图片、自动聚焦、双语错误即时切换；375/768/1440 的 `scrollWidth == clientWidth` |
+| PostgreSQL 精确验收清理 | 0 | 只删除管理员浏览器测试 scope 的 6 条 challenge 与 1 条 failure state，未清理其他用户/集成 fixture |
+
+### 截图索引与验证边界
+
+- [中文移动 375](../artifacts/ui-ux-pro-max/AKADM-login-captcha/screenshots/login-captcha-zh-CN-375.jpg)
+- [英文平板 768](../artifacts/ui-ux-pro-max/AKADM-login-captcha/screenshots/login-captcha-en-US-768.jpg)
+- [英文桌面 1440](../artifacts/ui-ux-pro-max/AKADM-login-captcha/screenshots/login-captcha-en-US-1440.jpg)
+- 真实浏览器使用本机 Chrome/Chromium 与 Docker Go API/PostgreSQL，不是 mock；验证码答案未由代理读取或提交，成功/消费路径由受控 PostgreSQL integration fixture 验证。
+- axe-core 在 jsdom 渲染路径为 0 violations；真实浏览器同时核对 accessibility tree、可见 label、焦点与三视口无溢出。Firefox/Safari 与生产环境未执行。
+- Mobile 无改动；Android/iOS/Harmony 未构建或真机验证。本轮未 commit、未 push。
+
+## 2026-08-05 个人头像裁剪与 configured ObjectStore 上传追加
+
+### 交付内容
+
+- 新增公共 `AkImageCropper`、`AkAvatarUploader` 与纯函数裁剪模块，支持拖动、Slider 缩放、90 度旋转、键盘微调、512×512 PNG Canvas 导出、对象 URL 生命周期、进度、成功/错误 live feedback 和失败后原裁剪重试。
+- `/profile/basic` 通过 typed upload callback 复用现有本人作用域 `/me/avatar` API，上传成功更新 Profile Query、私有 Blob 与 Auth Context；客户端不接收 Bucket、对象键或云存储凭据。
+- local development、S3、MinIO 均沿用系统配置驱动的 ObjectStore adapter；OpenAPI/蓝图明确服务端随机对象键、MIME magic/尺寸/大小/所有权校验与私有读取边界。
+- 本地 Compose 与 `.env.example` 默认打开头像 Feature Flag，使 4174 开箱可见；生产仍由显式环境配置控制。
+- 双语事实源、设计系统 Profile override、`ui-ux-pro-max` 四类产物与 7 张真实截图已保存。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `ui-ux-pro-max` design-system + UX + React + Web 查询 | 0 | 采用现有 Admin Master、浏览器裁剪、具名键盘控制、进度/live region 与对象 URL 清理；拒绝不一致营销布局、外部字体和替代色板 |
+| 定向 lint + strict typecheck + Vitest | 0 | 裁剪数学、文件预检、组件裁剪/进度/axe、头像 API 两阶段上传通过；Slider accessible name 首轮 axe serious 后改用官方 `ariaLabelForHandle` 并清零 |
+| 最终 `npm run check` | 0 | 13 files / 54 tests、4,161 modules production build、initial gzip 204,737 B、最大 lazy chunk 165,429 B、Admin blueprint 全部通过 |
+| `make check` | 0 | Go vet 与 Backend 全量单元测试通过，storage/configured ObjectStore 测试包含在内 |
+| Backend/Admin/Mobile 蓝图 + i18n + `git diff --check` | 0 | 10 migrations/60 tables、35 menus/48 routes/153 APIs、Mobile 静态蓝图与中英文 key/占位符一致性通过 |
+| Docker Admin/API build + Compose recreate | 0 | 4174 Admin、API、PostgreSQL 均 healthy；头像 Feature Flag 已启用 |
+| 4174 Docker Chromium + PostgreSQL 实际上传 | 0 | 512×512 PNG、进度 100%、页面/顶部头像同步；DB 为 local provider、ready/skipped 文件、completed session，上传对象 248226 bytes |
+| 精确验收清理 | 0 | 恢复管理员 `avatar_file_id=NULL`；只删除本次 usage/session/file 与对应 local 对象，复核计数均为 0 |
+
+### 截图索引与验证边界
+
+- [中文桌面裁剪 1440](../artifacts/ui-ux-pro-max/AKADM-profile-avatar-crop/screenshots/zh-CN-crop-1440.jpg)
+- [中文桌面上传成功 1440](../artifacts/ui-ux-pro-max/AKADM-profile-avatar-crop/screenshots/zh-CN-upload-success-1440.jpg)
+- [英文平板预览 768](../artifacts/ui-ux-pro-max/AKADM-profile-avatar-crop/screenshots/en-US-ready-768.jpg)
+- [英文移动个人中心 375](../artifacts/ui-ux-pro-max/AKADM-profile-avatar-crop/screenshots/en-US-profile-375.jpg)
+- [英文移动裁剪 375](../artifacts/ui-ux-pro-max/AKADM-profile-avatar-crop/screenshots/en-US-crop-375.jpg)
+- 真实浏览器验证使用本机 Docker Go API/PostgreSQL 和 configured local adapter；S3/MinIO 仅完成代码、配置解析和自动化测试，未使用真实第三方 Bucket/凭据，因此不标记生产云联调通过。
+- Firefox/Safari 与生产部署未执行。Mobile 未修改，Android/iOS/Harmony 未构建或真机验证。本轮未 commit、未 push。
+
+## 2026-08-05 系统配置表单模式与统一保存追加
+
+### 交付内容
+
+- 新增公共 `AkConfigValueField`，根据配置定义渲染文本、URI/Email、长文本、整数/小数、布尔、枚举、JSON、日期、Secret 及 File ID 控件；File ID 复用 `AkFilePicker` 和既有云存储上传组件。
+- 系统配置页默认表单模式，顶部 Segmented 可切换至完整保留的表格定义管理模式；默认模式不写冗余 URL，表格模式持久化 `mode=table`。
+- 统一保存只处理变更项，保留乐观版本与 Secret rotation；顺序执行的部分失败会逐项反馈，失败草稿不丢失。分类/模式切换与浏览器离开均保护脏数据。
+- 新增组件验证测试与真实 E2E；修复真实 axe 暴露的未选中 Switch 和表格公开标签对比度问题。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm lint` / `pnpm typecheck` / `pnpm build` | 0 / 0 / 0 | ESLint、TypeScript strict、48 routes 和 4,163 modules production build 通过；宿主 Node 26 engine warning 如实保留 |
+| `pnpm test` | 0 | 14 files / 56 tests 通过，新增动态配置字段的 label/axe 与 JSON/数字校验覆盖 |
+| `pnpm validate:bundle` | 0 | initial gzip 205,602 B；最大 lazy chunk 165,429 B；均在预算内 |
+| Admin blueprint / Mobile blueprint / i18n / UI Skill | 0 | 35 menus、48 routes、108 permissions、153 APIs；Mobile 0 error/warning；双语 key/占位符一致；Skill 可用 |
+| 首次系统 Python E2E | 1 | 缺少 `playwright` 模块；改用已有 `/Users/payhon/.venv/3.12` 环境后继续，不冒充通过 |
+| Chromium E2E 中间运行 | 1 | 真实发现 Ant 默认 Switch 与 cyan Tag 对比度不足，以及测试定位/默认取消文案差异；修正样式与稳健定位后从头重跑 |
+| 最终 `e2e_config_form_mode.py`（4174） | 0 | 默认表单、脏数据拦截、保存/恢复 HTTP 200、表格模式、双语、文件选择/上传入口、375 无溢出、控制台错误 0；四组 axe violations 均为 0 |
+| PostgreSQL 精确复核 | 0 | 浏览器测试完成后 `site.name` 已恢复为 `AppKernia` |
+| Docker Admin build/recreate + `docker compose ps admin` | 0 | 4174 Admin 使用最终生产构建且 healthy |
+| `python3 -m py_compile ...` + `git diff --check` | 0 | E2E 脚本语法与补丁格式通过 |
+
+### 截图索引与验证边界
+
+- [中文表单模式 1440](../artifacts/ui-ux-pro-max/AKADM-system-config-form-mode/screenshots/zh-CN-form-1440.png)
+- [中文表格模式 1440](../artifacts/ui-ux-pro-max/AKADM-system-config-form-mode/screenshots/zh-CN-table-1440.png)
+- [英文表单模式 375](../artifacts/ui-ux-pro-max/AKADM-system-config-form-mode/screenshots/en-US-form-375.png)
+- 真实浏览器为本机 Docker Go API/PostgreSQL + Chromium；统一保存是一项 UI 操作，但复用现有逐项版本化接口，不是数据库原子批处理。
+- 未部署生产，Firefox/Safari 未执行。Mobile 未修改，Android/iOS/Harmony 未构建或真机验证。本轮未 commit、未 push，并保留全部既有未提交改动。
+
+## 2026-08-05 登录页图标语言菜单追加
+
+### 交付内容
+
+- `AuthFrame` 改用公共 `LocaleSwitcher variant="icon"`，因此登录、注册、找回密码和重置密码页面保持统一语言入口。
+- 图标按钮复用 Ant Design `TranslationOutlined` 与 selectable Dropdown；当前 locale 使用 `selectedKeys`，按钮具备双语 accessible name、可见 focus，并关联异步保存错误。
+- Dropdown 挂载至触发器父区域，避免 portal 内容落在页面 landmark 之外；同时提高当前语言文字对比度至 WCAG AA。
+- 新增图标菜单单测与真实 Chromium E2E，覆盖键盘打开/选择、无刷新切换、双语选中态、四视口无溢出、axe 与控制台。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `ui-ux-pro-max` design-system + UX + React + Web 查询 | 0 | 保存 request/output/decisions/checklist；采用语义 icon button、选中菜单、visible focus、键盘与 WCAG AA 建议 |
+| 首次图标 Dropdown 单测 | 1 | jsdom 缺少 `ResizeObserver`；补充与仓库其他 Ant Popup 测试一致的浏览器 API 桩后重跑 |
+| `pnpm exec vitest run src/components/LocaleSwitcher.test.tsx` | 0 | 2 项测试通过：匿名图标菜单切换与已认证偏好保存失败回滚 |
+| `pnpm lint` / `pnpm typecheck` / `pnpm build` | 0 / 0 / 0 | ESLint、TypeScript strict、48 routes 和 4,163 modules production build 通过；宿主 Node 26 engine warning如实保留 |
+| `pnpm test` | 0 | 14 files / 57 tests 全部通过 |
+| `pnpm validate:bundle` | 0 | initial gzip 205,596 B，最大 lazy chunk 165,429 B，均在预算内 |
+| Admin / Mobile / i18n / UI Skill validators | 0 | 35 menus、48 routes、108 permissions、153 APIs；Mobile 0 error/warning；双语契约与 Skill 检查通过 |
+| Chromium E2E 中间运行 | 1 | 先修正测试使用的错误标题；随后真实发现 Dropdown portal landmark 和当前菜单项 4.38:1 对比度问题，修正后从头重跑 |
+| 最终 `e2e_login_locale_menu.py`（4174） | 0 | 原生 Select 不存在、图标存在、键盘切换、双语选中态、不刷新、375/768/1024/1440 无溢出；两组 axe 0 violation、控制台错误 0 |
+| Docker Admin build/recreate + `docker compose ps admin` | 0 | 4174 Admin 使用最终生产镜像且 healthy |
+| E2E `py_compile` + `git diff --check` | 0 | 自动化脚本语法和补丁格式通过 |
+
+### 截图索引与验证边界
+
+- [中文桌面语言菜单 1440](../artifacts/ui-ux-pro-max/AKADM-login-locale-icon-menu/screenshots/zh-CN-menu-1440.png)
+- [英文移动语言菜单 375](../artifacts/ui-ux-pro-max/AKADM-login-locale-icon-menu/screenshots/en-US-menu-375.png)
+- 真实浏览器为本机 Docker Admin + Chromium；本功能不涉及新的后端或数据库写入。
+- 未部署生产，Firefox/Safari 未执行。Mobile 未修改，Android/iOS/Harmony 未构建或真机验证。本轮未 commit、未 push，并保留全部既有未提交改动。

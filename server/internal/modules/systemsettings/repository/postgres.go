@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
 
 	settings "github.com/appkernia/appkernia/server/internal/modules/systemsettings/domain"
 	"github.com/google/uuid"
@@ -244,6 +245,9 @@ func (r *Postgres) UpdateConfig(ctx context.Context, p settings.Principal, id uu
 	if before.IsLocked || before.IsSecret != in.IsSecret {
 		return settings.ConfigItem{}, settings.ErrLocked
 	}
+	if catalogConfig(before) && (before.ModuleCode != in.ModuleCode || before.ConfigGroup != in.ConfigGroup || before.ConfigKey != in.ConfigKey || before.DisplayName != in.DisplayName || before.ValueType != in.ValueType || !sameJSON(before.DefaultValue, in.DefaultValue) || before.IsPublic != in.IsPublic || before.Description != in.Description || before.SortOrder != in.SortOrder || before.Status != in.Status || !sameJSON(before.ValidationSchema, in.ValidationSchema)) {
+		return settings.ConfigItem{}, settings.ErrLocked
+	}
 	tag, err := tx.Exec(ctx, `UPDATE sys.config_items SET module_code=$1,config_group=$2,config_key=$3,display_name=$4,value_type=$5,value_json=$6,default_value_json=$7,is_public=$8,validation_schema=$9,description=nullif($10,''),sort_order=$11,status=$12,version=version+1,updated_by=$13 WHERE tenant_id=$14 AND id=$15 AND version=$16`, in.ModuleCode, in.ConfigGroup, in.ConfigKey, in.DisplayName, in.ValueType, nullableJSON(in.Value), nullableJSON(in.DefaultValue), in.IsPublic, []byte(in.ValidationSchema), in.Description, in.SortOrder, in.Status, p.UserID, p.TenantID, id, in.Version)
 	if err != nil {
 		return settings.ConfigItem{}, classify(err)
@@ -262,6 +266,20 @@ func (r *Postgres) UpdateConfig(ctx context.Context, p settings.Principal, id uu
 		return settings.ConfigItem{}, err
 	}
 	return after, nil
+}
+
+func catalogConfig(item settings.ConfigItem) bool {
+	var schema map[string]any
+	if json.Unmarshal(item.ValidationSchema, &schema) != nil {
+		return false
+	}
+	value, _ := schema["x-appkernia-catalog"].(bool)
+	return value
+}
+
+func sameJSON(left, right json.RawMessage) bool {
+	var a, b any
+	return json.Unmarshal(left, &a) == nil && json.Unmarshal(right, &b) == nil && reflect.DeepEqual(a, b)
 }
 func (r *Postgres) RotateSecret(ctx context.Context, p settings.Principal, id uuid.UUID, version int32, sealed []byte, keyVersion int32) (settings.ConfigItem, error) {
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})

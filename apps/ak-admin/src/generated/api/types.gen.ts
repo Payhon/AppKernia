@@ -705,6 +705,33 @@ export type AdminUserImportResponse = {
 export type AdminLoginRequest = {
     email: string;
     password: string;
+    /**
+     * Required only after the server returns IAM.AUTH.CAPTCHA_REQUIRED.
+     */
+    captcha_id?: string;
+    /**
+     * Required only after the server returns IAM.AUTH.CAPTCHA_REQUIRED.
+     */
+    captcha_answer?: string;
+};
+
+export type AdminLoginCaptchaRequest = {
+    email: string;
+};
+
+export type AdminLoginCaptchaResponse = {
+    code: 'OK';
+    message: string;
+    data: {
+        captcha_id: string;
+        /**
+         * Base64-encoded PNG bytes. The answer is never returned as text or vector content.
+         */
+        image_base64: string;
+        mime_type: 'image/png';
+        expires_in_seconds: number;
+    };
+    request_id: string;
 };
 
 export type AdminRegistrationRequest = {
@@ -1227,8 +1254,18 @@ export type AdminFileUploadSession = {
     expected_size: number;
     part_size: number;
     status: 'initiated' | 'uploading';
+    provider: 'local' | 's3' | 'minio';
     expires_at: string;
     uploaded_parts: Array<AdminFilePart>;
+};
+
+export type AdminFileUploadPolicy = {
+    provider: 'local' | 's3' | 'minio';
+    max_image_bytes: number;
+    max_file_bytes: number;
+    image_media_types: Array<string>;
+    file_media_types: Array<string>;
+    configuration_safe: boolean;
 };
 
 export type AdminFile = {
@@ -1237,6 +1274,7 @@ export type AdminFile = {
     media_type: string;
     extension: string;
     size_bytes: number;
+    provider: 'local' | 's3' | 'minio';
     status: 'pending' | 'ready' | 'quarantined';
     scan_status: 'pending' | 'clean' | 'infected' | 'failed' | 'skipped';
     usage_count: number;
@@ -1279,6 +1317,13 @@ export type AdminFileUploadSessionResponse = {
     code: string;
     message: string;
     data: AdminFileUploadSession;
+    request_id: string;
+};
+
+export type AdminFileUploadPolicyResponse = {
+    code: string;
+    message: string;
+    data: AdminFileUploadPolicy;
     request_id: string;
 };
 
@@ -2460,6 +2505,34 @@ export type AdminLoginResponses = {
 };
 
 export type AdminLoginResponse = AdminLoginResponses[keyof AdminLoginResponses];
+
+export type CreateAdminLoginCaptchaData = {
+    body: AdminLoginCaptchaRequest;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/auth/login/captcha';
+};
+
+export type CreateAdminLoginCaptchaErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminLoginCaptchaError = CreateAdminLoginCaptchaErrors[keyof CreateAdminLoginCaptchaErrors];
+
+export type CreateAdminLoginCaptchaResponses = {
+    /**
+     * A non-cacheable, short-lived, single-use PNG challenge.
+     */
+    200: AdminLoginCaptchaResponse;
+};
+
+export type CreateAdminLoginCaptchaResponse = CreateAdminLoginCaptchaResponses[keyof CreateAdminLoginCaptchaResponses];
 
 export type GetAdminPublicConfigData = {
     body?: never;
@@ -5753,6 +5826,42 @@ export type ListAdminModulesResponses = {
 
 export type ListAdminModulesResponse = ListAdminModulesResponses[keyof ListAdminModulesResponses];
 
+export type GetAdminFileUploadPolicyData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/files/upload-policy';
+};
+
+export type GetAdminFileUploadPolicyErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Storage configuration is incomplete or unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type GetAdminFileUploadPolicyError = GetAdminFileUploadPolicyErrors[keyof GetAdminFileUploadPolicyErrors];
+
+export type GetAdminFileUploadPolicyResponses = {
+    /**
+     * Effective provider and server-enforced upload constraints.
+     */
+    200: AdminFileUploadPolicyResponse;
+};
+
+export type GetAdminFileUploadPolicyResponse = GetAdminFileUploadPolicyResponses[keyof GetAdminFileUploadPolicyResponses];
+
 export type CreateAdminFileUploadSessionData = {
     body: AdminFileUploadRequest;
     headers?: {
@@ -5917,6 +6026,7 @@ export type ListAdminFilesData = {
         status?: 'pending' | 'ready' | 'quarantined';
         scan_status?: 'pending' | 'clean' | 'infected' | 'failed' | 'skipped';
         media_type?: string;
+        provider?: 'local' | 's3' | 'minio';
         page?: number;
         page_size?: number;
     };

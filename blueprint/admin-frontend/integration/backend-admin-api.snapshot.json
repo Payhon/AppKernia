@@ -9,6 +9,10 @@
     },
     {
       "method": "POST",
+      "path": "/admin-api/v1/auth/login/captcha"
+    },
+    {
+      "method": "POST",
       "path": "/admin-api/v1/auth/token/refresh"
     },
     {
@@ -340,8 +344,24 @@
       "path": "/admin-api/v1/files/upload-sessions"
     },
     {
+      "method": "GET",
+      "path": "/admin-api/v1/files/upload-policy"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/files/upload-sessions/{id}"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/files/upload-sessions/{id}/parts/{partNumber}"
+    },
+    {
       "method": "POST",
       "path": "/admin-api/v1/files/upload-sessions/{id}/complete"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/files/upload-sessions/{id}"
     },
     {
       "method": "GET",
@@ -350,6 +370,10 @@
     {
       "method": "POST",
       "path": "/admin-api/v1/files/{id}/presign-download"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/files/{id}/content"
     },
     {
       "method": "DELETE",

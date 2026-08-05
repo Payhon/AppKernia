@@ -11,6 +11,30 @@
 | Mobile | `AKMOB-000`、`AKMOB-030` 非 UI 部分完成 | 本轮未继续，平台构建仍 blocked |
 | Cross-platform i18n | 蓝图契约通过；Admin 18 个 namespace、双语运行时与登录用户服务端偏好已闭环 | Mobile UI |
 
+## 2026-08-04 HotGo 地区编码初始化数据
+
+- 新增 `blueprint/backend/spec/core-regions.json`，从 HotGo `c6191f7126c0ece4f4357014684f479836643822` 的 PostgreSQL `hg_sys_provinces` 数据确定性生成 3,663 条地区记录；34/357/3,272 条源 1/2/3 级数据按 AppKernia 契约规范化为 0/1/2 级，编码无重复、父级无缺失。
+- `ak-cli seed core` 新增全局地区目录幂等 upsert，按父级优先写入 `sys.regions`；名称、全名、层级、状态和来源元数据跟随目录更新，已有邮编及源数据缺失时的已有坐标不会被空值覆盖。
+- 保留 HotGo 拼音首字母、源层级和排序元数据；源中 5 条缺失坐标按 `NULL` 落库，不伪造邮编。根级/子级公开 API 及带 `sys.region.read` 的 Admin API 已在 PostgreSQL 18 上返回北京 → 市辖区真实数据，`has_children=true`。
+- 新增可重复执行的 `scripts/import_hotgo_regions.py` 与完整 MIT 第三方声明；`tmp/hotgo` 继续被 `.gitignore` 排除，运行时和构建不依赖参考仓库。
+- 现有 `/system/settings/regions` 后台页面直接消费同一 API，树表懒加载无需视觉结构调整；专项 E2E 夹具已改为验证初始化目录中的北京/市辖区，不再依赖手工 `E2E Child` 数据。
+- 本地数据库连续执行两次 Seed 均输出 `regions=3663`；数值编码目录查询为 3,663 条、34 个根、0 个孤儿、5 条缺失坐标。该目录明确是 HotGo 固定提交快照，未核验为 2026 年最新官方行政区划。
+- Admin API 验收使用一次性本机 bootstrap 身份完成登录、根查询与子级查询；结束后该用户和租户均设为 disabled，活动 Session 为 0。旧 `LOCAL_TEST_ACCESS` 对当前数据库已返回 401，未复用或暴露其中凭据。
+- 最终 Backend `make check`、Backend/Admin/Mobile 蓝图和 i18n 校验全部通过；Go JSON 测试统计为 82 个通过事件、0 失败。Seed Docker 镜像使用 Go 1.26.5 构建成功并在容器内再次写入 `regions=3663`。
+
+## 2026-08-04 系统初始配置与可配置云存储
+
+- 新增 `blueprint/backend/spec/core-configs.json` 作为初始配置目录事实源，共 9 个分类、55 个配置项：基本、邮件、短信、登录注册、提现、云存储、地理位置、支付和微信。`seed core` 会对全部活动租户幂等补齐目录，同时保留租户已修改的当前值和已密封 Secret；本机 PostgreSQL 18 验证为 `55/55` 目录标记、`0` 个默认 Secret 密文。
+- 初始目录项允许修改当前值或轮换 Secret，但模块、分组、键、名称、类型、默认值、校验规则、可见性、排序和状态由服务端锁定，避免后台误改系统契约；普通租户自定义配置仍保持原有 CRUD 能力。
+- 系统配置页改为分类优先的信息架构，分类选择写入 URL；9 个分类和 55 个配置名均有 `zh-CN`/`en-US` 语义翻译。密钥只显示“未配置/已配置”，编辑抽屉只允许替换，服务端和浏览器均不回显明文。
+- 对象存储改为租户配置驱动的 `configured` Adapter：开发环境支持 local，生产支持 S3-compatible 与 MinIO；Endpoint、TLS、path-style、region、bucket、路径前缀、AccessKey/Secret/Session Token、文件/图片大小和 MIME 白名单均从租户配置解析。Secret 继续使用既有 AES-256-GCM 密封值，非开发环境拒绝 local 和明文 HTTP Endpoint。
+- 新增 `GET /admin-api/v1/files/upload-policy`，文件会话和持久化记录保存 provider/bucket/object key，但 Admin API 只返回 provider，不返回 bucket/object key。文件列表新增 provider 筛选；头像和后台文件上传均路由到配置 Adapter。
+- 新增可复用 `AkFileUploader`，包含策略预取、文件类型/大小前置校验、分片、进度、暂停、续传、取消、失败重试和完成回调；已接入文件管理、文件选择器及云存储配置页测试上传。
+- 真实本地 API 生命周期已完成：policy → create session → upload part → complete → provider filter/list → private download → delete；数据库确认内部引用为 `local|appkernia-local|object_key`，公开响应确认不含 bucket/object key。
+- 项目内 `ui-ux-pro-max` 产物、Master/page override、双语 1800×952 Chrome 截图和目录配置编辑保护截图已保存。当前 Admin Shell 无暗色模式控制，且已连接 Chrome 窗口未安全调整到 768 px，因此暗色/768 截图明确记为未验证。
+- Backend `make check` 通过，默认 Go suite 为 78 个测试；本轮存储/配置 PostgreSQL 集成专项 8 个测试通过。Admin 为 10 个文件/45 个 Vitest，lint、strict typecheck、Vite production build、bundle budget、Node 24 Docker build、三蓝图/i18n 校验均通过。
+- 验证边界：local Adapter 已完成真实容器与对象卷闭环；S3/MinIO 没有提供真实凭据，本轮仅完成实现、配置解析、端点/安全规则单元测试与正确 Node/Go 生产构建，不声明真实云服务上传已验收。更换已有文件所依赖的 provider/bucket 前需先迁移对象。
+
 ## 2026-08-04 GitHub 开源开发体验收口
 
 - 新增标准 MIT `LICENSE`，根/Admin package metadata 同步声明 MIT；新增 `CONTRIBUTING.md` 与 `SECURITY.md`，明确契约同步、双语、UI Skill、安全报告和平台验证边界。
@@ -172,7 +196,7 @@
 - `AKADM-140` 已完成：审计列表、服务端递归脱敏、安全事件详情/处理、URL 恢复、事务审计与双语响应式 UI 闭环。
 - `AKADM-150` 已完成：租户在线会话安全提示、精确读写权限、脱敏标识、Refresh family 撤销、不可变审计、URL 状态和列表刷新闭环。
 - `AKADM-200` 已完成：配置/字典权限、Secret 密封与不回显、公共配置最小暴露、事务审计及 Admin 双语响应式 UI 闭环。
-- `AKADM-210` 的 API/Admin 验收已完成：地区懒加载大树和编译期只读模块目录均通过 PostgreSQL/Chromium 验证；生产地区数据的版本化导入 CLI 尚未实现，保持为后续 Backend 运维工具项，不伪报完成。
+- `AKADM-210` 的 API/Admin 验收已完成：地区懒加载大树和编译期只读模块目录均通过 PostgreSQL/Chromium 验证；版本化地区初始化目录及幂等导入 CLI 已于 2026-08-04 补齐。
 - `AKADM-220` 已完成：文件列表/详情、multipart cancel/resume、scan gate、usage viewer、`AkFilePicker`、delete-in-use 警告、真实下载、双语响应式 UI、PostgreSQL 与 Docker Chromium 验收均闭环。
 - `AKADM-230` 已完成：公告、消息、模板、精确收件确认、服务端内容清洗、投递详情与失败重试的 Backend/Admin 闭环已通过 PostgreSQL、Docker Chromium 与双语视觉验收。
 - `AKADM-240` 已完成：编译期 handler、Cron/IANA/DST、misfire/overlap、River Worker、手动执行幂等、事务审计、Admin 双语响应式 UI 和真实运行历史均通过 PostgreSQL/Docker/Chromium 验收。
@@ -245,3 +269,52 @@
 - Chromium mock-contract 真实点击覆盖账户菜单、角色、个人中心、语言选中与英文切换、全屏进入/退出、375px 移动端和无水平溢出；最终 axe violations 为 0。
 - `ui-ux-pro-max` request/output/decisions/checklist 与 4 张截图保存在 `artifacts/ui-ux-pro-max/AKADM-header-utilities/`。
 - 本机 `http://localhost:4173` Admin 已使用 Node 24.18.1 Docker 镜像重建，健康探针返回 `ok`。未部署生产，Firefox/Safari 未执行。
+
+## 2026-08-05 Admin 登录失败三次后图形验证码
+
+### 状态：完成
+
+- 登录保护门槛由服务端持久化计算：同一规范化账号、Admin audience 与来源 IP 在 30 分钟内累计失败 3 次后，后续登录必须提交验证码；页面刷新、更换前端会话或直接调用登录 API 均不能绕过。
+- 新增 `iam.login_failure_states` 与 `iam.login_captcha_challenges`、migration `000010` 和 sqlc Repository。挑战有效期 5 分钟、最多尝试 5 次、正确答案一次性消费；答案只保存随机盐 SHA-256 Hash，登录范围使用独立配置密钥 HMAC，不在接口、DOM、日志或数据库中保存答案明文。
+- 新增匿名 `POST /admin-api/v1/auth/login/captcha`，登录请求支持 `captcha_id`/`captcha_answer`；稳定错误码为 `IAM.AUTH.CAPTCHA_REQUIRED` 与 `IAM.AUTH.CAPTCHA_INVALID`，OpenAPI、Admin 生成 Client、Backend/Admin 双语 Catalog 与蓝图快照已同步。
+- Admin 前两次失败保持原表单；第三次服务端返回稳定错误码后才展示 6 位数字 PNG、可见 label、`one-time-code`、加载 live region、刷新按钮和错误 alert，并自动聚焦验证码输入。失败提示保存翻译键，因此已有错误在 `zh-CN`/`en-US` 切换时即时更新。
+- `ui-ux-pro-max` 产物、登录页 override、决策与 review checklist 已保存。真实 Chromium 验证 375/768/1440 三视口均无水平溢出，并确认中英文运行时切换、PNG data URL、焦点和响应式布局；axe-core 单元渲染检查为 0 violations。
+- PostgreSQL 集成测试覆盖前两次通用失败、第三次强制验证码、刷新不可绕过、错误/过期/已消费挑战、正确登录及成功后阈值重置；IAM 全量 integration suite、Backend `make check` 与 Admin `npm run check` 均通过。
+- 本机 Compose 已统一并重建到 `http://localhost:4174`，API/Admin/PostgreSQL 健康。验收后已精确删除管理员测试范围内 6 条挑战和 1 条失败状态，浏览器恢复为空白且不显示验证码的登录页。
+- 未部署生产；Firefox/Safari、Android、iOS、Harmony 与真实移动设备未执行，本项仅完成本机 Chromium + Docker/PostgreSQL 闭环。
+
+## 2026-08-05 个人中心头像裁剪与云存储上传
+
+### 状态：完成（本机 configured ObjectStore）
+
+- 新增可复用 `AkAvatarUploader` 与 `AkImageCropper`：JPEG/PNG/WebP 预检、浏览器端正方形裁剪、拖动、缩放、90 度旋转、键盘方向微调、512×512 PNG 输出、预览、进度、失败重试和 Object URL 释放均由公共能力承载。
+- 个人中心复用既有本人作用域头像 API；服务端负责租户/用户/随机对象键，按系统云存储配置路由 local、S3 或 MinIO，并继续执行 MIME magic、尺寸、大小、所有权与存储策略校验。上传成功同步 Profile Query、私有头像 Blob 和 Auth Context，无需刷新。
+- 本地 Compose 默认启用 `AK_AVATAR_UPLOAD_ENABLED`，避免功能代码存在但个人中心不可达；生产环境仍可显式关闭 Feature Flag。
+- 中英文事实源、OpenAPI 说明、Admin/Backend 蓝图、Profile 页面 override 与 `ui-ux-pro-max` request/output/decisions/checklist 已同步。
+- Docker Chromium 在 4174 实际完成裁剪与上传，PostgreSQL 记录 local provider、ready 文件和 completed session；验收后精确清理测试头像及对象并恢复管理员原状态。375/768/1440 无水平溢出，移动端头像说明改为纵向布局。
+- Admin 全量 13 个测试文件、54 项测试、strict typecheck、lint、production build 与 bundle budget 通过。Backend `make check`、四套蓝图/i18n 校验、Docker Admin/API 构建均通过。
+- 外部 S3/MinIO 因未提供真实 Bucket/凭据未联调，不冒充生产云上传；Firefox/Safari、Android/iOS/Harmony 与真实移动设备未执行。本轮未 commit、未 push。
+
+## 2026-08-05 系统配置表单模式与统一保存
+
+### 状态：完成（本机 Docker Chromium + PostgreSQL）
+
+- `/system/settings/configs` 默认进入表单模式，顶部提供有明确标签的“表单模式 / 表格模式”切换；原表格筛选、配置定义新建/编辑及 Secret 单独轮换能力完整保留。
+- 表单按服务端配置定义动态生成文本、长文本、数字、布尔、枚举、JSON、日期、Secret 和文件选择控件；Logo 文件配置复用公共 `AkFilePicker` 及云存储上传入口。
+- “保存全部更改”只提交脏字段，继续使用后端版本号和 Secret 专用接口。一次 UI 操作会顺序调用现有版本化接口，并明确呈现部分失败，失败草稿保留重试；不伪装成数据库原子批处理。
+- 切换分类、模式或离开页面前保护未保存内容；锁定、禁用或无权限配置不可编辑；Secret 既有值不回显，空白表示不变。
+- `zh-CN`/`en-US` 事实源与生成 Catalog 已同步；项目内 `ui-ux-pro-max` request/output/decisions/checklist、页面 design-system override 和三张截图已保存。
+- Admin lint、strict typecheck、production build、14 files / 56 tests、bundle budget、Admin/Mobile/i18n 蓝图校验、UI Skill 检查和 `git diff --check` 全部退出 0。
+- 4174 Docker Admin 已重建且 healthy。真实 Chromium 覆盖默认模式、脏数据拦截、统一保存并精确恢复、表格模式、双语、文件上传入口、375 无横向溢出；四组 axe 均为 0 violation，控制台错误为 0。
+- PostgreSQL 复核 `site.name = AppKernia`。未部署生产；Firefox/Safari、Android/iOS/Harmony 和真实移动设备未执行。本轮未 commit、未 push。
+
+## 2026-08-05 登录页图标语言菜单
+
+### 状态：完成（本机 Docker Chromium）
+
+- 登录及共享认证页面的原生语言 Select 已替换为 40px 翻译图标按钮；点击或键盘激活后弹出 `简体中文 / English` 菜单，当前语言具有语义选中态和高对比可见背景。
+- 复用公共 `LocaleSwitcher` 的 icon variant，不新增登录页专用状态；匿名本地偏好、无刷新切换以及登录后服务端偏好保存/失败回滚行为保持不变。
+- 语言弹层挂载回触发器所在 landmark，图标按钮使用现有双语 accessible name，并通过 `aria-describedby` 关联可能的保存错误。
+- 真实 Chromium 使用键盘打开菜单并切换至英文，`performance.timeOrigin` 不变；375/768/1024/1440 均无横向溢出，桌面中文与移动英文开放菜单的 axe 均为 0 violation，控制台错误为 0。
+- Admin 14 files / 57 tests、lint、strict typecheck、production build、bundle budget、Admin/Mobile/i18n 蓝图校验、UI Skill 检查、E2E 脚本 py_compile 和 `git diff --check` 全部退出 0。
+- 4174 Admin 已使用最终镜像重建且 healthy。未部署生产；Firefox/Safari、Android/iOS/Harmony 和真实移动设备未执行。本轮未 commit、未 push。

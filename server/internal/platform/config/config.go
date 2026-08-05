@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -10,9 +11,10 @@ import (
 )
 
 const (
-	defaultHTTPAddr        = ":8080"
-	defaultShutdown        = 15 * time.Second
-	developmentDatabaseDSN = "postgres://appkernia:appkernia-dev-only@localhost:55432/appkernia?sslmode=disable"
+	defaultHTTPAddr                     = ":8080"
+	defaultShutdown                     = 15 * time.Second
+	developmentDatabaseDSN              = "postgres://appkernia:appkernia-dev-only@localhost:55432/appkernia?sslmode=disable"
+	developmentLoginProtectionKeyBase64 = "YXBwa2VybmlhLWRldi1sb2dpbi1rZXktMzJieXRlcyE="
 )
 
 type Config struct {
@@ -22,6 +24,7 @@ type Config struct {
 	AdminOrigin                 string
 	JWTKeyID                    string
 	JWTPrivateKey               string
+	LoginProtectionKeyBase64    string
 	AdminRegistrationEnabled    bool
 	AdminRegistrationTenantCode string
 	PasswordRecoveryEnabled     bool
@@ -50,6 +53,7 @@ func Load() (Config, error) {
 		AdminOrigin:                 os.Getenv("AK_ADMIN_ORIGIN"),
 		JWTKeyID:                    os.Getenv("AK_JWT_KEY_ID"),
 		JWTPrivateKey:               os.Getenv("AK_JWT_PRIVATE_KEY_BASE64"),
+		LoginProtectionKeyBase64:    strings.TrimSpace(os.Getenv("AK_LOGIN_PROTECTION_KEY_BASE64")),
 		AdminRegistrationTenantCode: strings.TrimSpace(os.Getenv("AK_ADMIN_REGISTRATION_TENANT_CODE")),
 		PasswordRecoveryAdapter:     strings.ToLower(strings.TrimSpace(os.Getenv("AK_PASSWORD_RECOVERY_ADAPTER"))),
 		ObjectStorageAdapter:        strings.ToLower(strings.TrimSpace(os.Getenv("AK_OBJECT_STORAGE_ADAPTER"))),
@@ -107,6 +111,9 @@ func Load() (Config, error) {
 	if cfg.JWTKeyID == "" {
 		cfg.JWTKeyID = "development-ephemeral"
 	}
+	if cfg.LoginProtectionKeyBase64 == "" && cfg.Environment == "development" {
+		cfg.LoginProtectionKeyBase64 = developmentLoginProtectionKeyBase64
+	}
 	if cfg.AdminRegistrationTenantCode == "" {
 		cfg.AdminRegistrationTenantCode = "local"
 	}
@@ -114,7 +121,7 @@ func Load() (Config, error) {
 		cfg.PasswordRecoveryAdapter = "local"
 	}
 	if cfg.ObjectStorageAdapter == "" && cfg.Environment == "development" {
-		cfg.ObjectStorageAdapter = "local"
+		cfg.ObjectStorageAdapter = "configured"
 	}
 	if cfg.WebhookAdapter == "" {
 		if cfg.Environment == "development" {
@@ -138,6 +145,12 @@ func Load() (Config, error) {
 	if cfg.Environment != "development" && cfg.JWTPrivateKey == "" {
 		return Config{}, errors.New("AK_JWT_PRIVATE_KEY_BASE64 is required outside development")
 	}
+	if cfg.Environment != "development" && cfg.LoginProtectionKeyBase64 == "" {
+		return Config{}, errors.New("AK_LOGIN_PROTECTION_KEY_BASE64 is required outside development")
+	}
+	if key, decodeErr := base64.StdEncoding.DecodeString(cfg.LoginProtectionKeyBase64); decodeErr != nil || len(key) != 32 {
+		return Config{}, errors.New("AK_LOGIN_PROTECTION_KEY_BASE64 must encode exactly 32 bytes")
+	}
 	if cfg.Environment != "development" && cfg.ConfigMasterKeyBase64 == "" {
 		return Config{}, errors.New("AK_CONFIG_MASTER_KEY_BASE64 is required outside development")
 	}
@@ -156,11 +169,11 @@ func Load() (Config, error) {
 	if cfg.ObjectStorageAdapter == "local" && cfg.Environment != "development" {
 		return Config{}, errors.New("AK_OBJECT_STORAGE_ADAPTER=local is allowed only in development")
 	}
-	if cfg.ObjectStorageAdapter != "" && cfg.ObjectStorageAdapter != "local" {
+	if cfg.ObjectStorageAdapter != "" && cfg.ObjectStorageAdapter != "local" && cfg.ObjectStorageAdapter != "configured" {
 		return Config{}, fmt.Errorf("AK_OBJECT_STORAGE_ADAPTER %q is not configured in this build", cfg.ObjectStorageAdapter)
 	}
-	if (cfg.AvatarUploadEnabled || cfg.FileStorageEnabled) && cfg.ObjectStorageAdapter == "local" && cfg.LocalObjectStorageDir == "" {
-		return Config{}, errors.New("AK_LOCAL_OBJECT_STORAGE_DIR is required for the local object storage adapter")
+	if (cfg.AvatarUploadEnabled || cfg.FileStorageEnabled) && (cfg.ObjectStorageAdapter == "local" || (cfg.ObjectStorageAdapter == "configured" && cfg.Environment == "development")) && cfg.LocalObjectStorageDir == "" {
+		return Config{}, errors.New("AK_LOCAL_OBJECT_STORAGE_DIR is required when development storage can use the local driver")
 	}
 	if cfg.WebhooksEnabled && cfg.WebhookAdapter != "http" && cfg.WebhookAdapter != "local-mock" {
 		return Config{}, fmt.Errorf("AK_WEBHOOK_ADAPTER %q is not configured in this build", cfg.WebhookAdapter)

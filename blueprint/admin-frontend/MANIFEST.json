@@ -73,8 +73,8 @@
     },
     {
       "path": "docs/PAGE_SPECIFICATIONS.md",
-      "bytes": 31314,
-      "sha256": "8d811eb4e9f434f0f7f3c653d0f28c319b3a5ec735f9c0629a9dfa442e3d4d0d"
+      "bytes": 32487,
+      "sha256": "1d64a6258658b03ef51f0aa1cd8f2ad62e93e7cfa77b0a4bea123dc31a4ce4d2"
     },
     {
       "path": "docs/REFERENCE_NOTES.md",
@@ -153,8 +153,8 @@
     },
     {
       "path": "integration/backend-admin-api.snapshot.json",
-      "bytes": 8462,
-      "sha256": "f7c2e30f5189fda5f32af09537f7d27f26a0e40fc1f416810c9e51dd17ab80b7"
+      "bytes": 13081,
+      "sha256": "556c3d5eca8fe2407e3aa7c4a8c125071172ce425cb39f9aac3912a5072ebb0d"
     },
     {
       "path": "integration/backend-core-menus.v2.json",
@@ -178,8 +178,8 @@
     },
     {
       "path": "integration/schema-menu-page-mapping.csv",
-      "bytes": 10206,
-      "sha256": "69206e0282888324697516897d2c82f851f415f35edc92015ff0f4724b03029d"
+      "bytes": 10823,
+      "sha256": "887a7294eb84ad9a31770a5a7e523896f0689fb5bea3401f57516bd16aeb1034"
     },
     {
       "path": "prompts/AGENT_BOOTSTRAP_PROMPT.md",
@@ -228,8 +228,8 @@
     },
     {
       "path": "spec/page-api-schema-map.json",
-      "bytes": 15777,
-      "sha256": "58d7509a9c39f936ed1bd5c3494a593ec7f7f3d35f35326548cf41b168689a31"
+      "bytes": 16742,
+      "sha256": "36f0de4962f9bebb892376be2a2304fe45eb46e0322b726b2191f0933deb5daa"
     },
     {
       "path": "spec/page-permission-matrix.json",

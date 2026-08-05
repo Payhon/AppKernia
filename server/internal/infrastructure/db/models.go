@@ -212,6 +212,24 @@ type IamDevice struct {
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
+type IamLoginCaptchaChallenge struct {
+	ID           uuid.UUID          `json:"id"`
+	ScopeHash    []byte             `json:"scope_hash"`
+	AnswerSalt   []byte             `json:"answer_salt"`
+	AnswerHash   []byte             `json:"answer_hash"`
+	AttemptCount int16              `json:"attempt_count"`
+	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
+	ConsumedAt   pgtype.Timestamptz `json:"consumed_at"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type IamLoginFailureState struct {
+	ScopeHash    []byte             `json:"scope_hash"`
+	FailureCount int32              `json:"failure_count"`
+	LastFailedAt pgtype.Timestamptz `json:"last_failed_at"`
+	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
+}
+
 type IamMfaFactor struct {
 	ID              uuid.UUID          `json:"id"`
 	UserID          uuid.UUID          `json:"user_id"`
@@ -247,6 +265,20 @@ type IamOauthAccount struct {
 	Status           string             `json:"status"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+type IamOauthBindingChallenge struct {
+	ID                    uuid.UUID          `json:"id"`
+	UserID                uuid.UUID          `json:"user_id"`
+	TenantID              uuid.UUID          `json:"tenant_id"`
+	Provider              string             `json:"provider"`
+	StateHash             []byte             `json:"state_hash"`
+	AuthorizationCodeHash []byte             `json:"authorization_code_hash"`
+	PkceVerifierEncrypted []byte             `json:"pkce_verifier_encrypted"`
+	PkceChallenge         string             `json:"pkce_challenge"`
+	ExpiresAt             pgtype.Timestamptz `json:"expires_at"`
+	ConsumedAt            pgtype.Timestamptz `json:"consumed_at"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
 }
 
 type IamPasswordHistory struct {

@@ -167,7 +167,15 @@ func seedCorePermissions(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("seeded core permissions=%d menus=%d\n", permissionCount, menuCount)
+	configCount, err := seed.CoreConfigs(context.Background(), pool, "../blueprint/backend/spec/core-configs.json")
+	if err != nil {
+		return err
+	}
+	regionCount, err := seed.CoreRegions(context.Background(), pool, "../blueprint/backend/spec/core-regions.json")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("seeded core permissions=%d menus=%d tenant_configs=%d regions=%d\n", permissionCount, menuCount, configCount, regionCount)
 	return nil
 }
 
@@ -200,6 +208,7 @@ func bootstrapAdmin(args []string) error {
 	user, tenant, granted, grantedMenus, err := seed.BootstrapAdmin(context.Background(), pool, seed.BootstrapAdminInput{
 		TenantCode: *tenantCode, TenantName: *tenantName, Email: *email,
 		DisplayName: *displayName, Locale: *locale, Password: password,
+		ConfigCatalogPath: "../blueprint/backend/spec/core-configs.json",
 	})
 	if err != nil {
 		return err

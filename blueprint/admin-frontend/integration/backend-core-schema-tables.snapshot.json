@@ -8,6 +8,8 @@
     "audit.security_events",
     "iam.block_rules",
     "iam.devices",
+    "iam.login_captcha_challenges",
+    "iam.login_failure_states",
     "iam.mfa_factors",
     "iam.mfa_recovery_codes",
     "iam.oauth_accounts",

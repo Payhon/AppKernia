@@ -47,6 +47,12 @@ func (h *Handler) CreateUpload(r *ghttp.Request) {
 		h.ok(r, 201, out)
 	}
 }
+func (h *Handler) UploadPolicy(r *ghttp.Request) {
+	out, err := h.service.UploadPolicy(r.Context(), token(r))
+	if !h.fail(r, err) {
+		h.ok(r, 200, out)
+	}
+}
 func (h *Handler) GetUpload(r *ghttp.Request) {
 	id, ok := routerID(r, "id")
 	if !ok {
@@ -105,7 +111,7 @@ func (h *Handler) List(r *ghttp.Request) {
 		h.fail(r, files.ErrInvalid)
 		return
 	}
-	out, err := h.service.ListFiles(r.Context(), token(r), files.FileFilter{Query: r.GetQuery("q").String(), Status: r.GetQuery("status").String(), ScanStatus: r.GetQuery("scan_status").String(), MediaType: r.GetQuery("media_type").String(), Page: int32(page), PageSize: int32(size)})
+	out, err := h.service.ListFiles(r.Context(), token(r), files.FileFilter{Query: r.GetQuery("q").String(), Status: r.GetQuery("status").String(), ScanStatus: r.GetQuery("scan_status").String(), MediaType: r.GetQuery("media_type").String(), Provider: r.GetQuery("provider").String(), Page: int32(page), PageSize: int32(size)})
 	if !h.fail(r, err) {
 		h.ok(r, 200, out)
 	}
@@ -204,7 +210,7 @@ func (h *Handler) fail(r *ghttp.Request, err error) bool {
 		status, code, key = 409, "STORAGE.SCAN.BLOCKED", "errors.common.conflict"
 	case errors.Is(err, files.ErrFileInUse):
 		status, code, key = 409, "STORAGE.FILE.IN_USE", "errors.common.conflict"
-	case errors.Is(err, files.ErrFeatureDisabled):
+	case errors.Is(err, files.ErrFeatureDisabled), errors.Is(err, files.ErrStorageConfig):
 		status, code, key = 503, "STORAGE.UNAVAILABLE", "errors.common.unknown"
 	}
 	r.Response.Header().Set("Cache-Control", "no-store")

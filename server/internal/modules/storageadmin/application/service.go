@@ -61,13 +61,28 @@ func (s *Service) CreateUpload(ctx context.Context, token, requestID string, nam
 	if err != nil {
 		return files.UploadSession{}, err
 	}
+	policy, err := s.objects.ResolvePolicy(ctx, auth.Tenant.ID)
+	if err != nil {
+		return files.UploadSession{}, err
+	}
 	name = strings.TrimSpace(filepath.Base(name))
 	mediaType = normalizeMediaType(mediaType)
-	if name == "" || name == "." || len(name) > 1000 || mediaType == "" || size <= 0 || size > files.MaxFileBytes || strings.TrimSpace(requestID) == "" {
+	if name == "" || name == "." || len(name) > 1000 || mediaType == "" || !contains(policy.FileMediaTypes, mediaType) || size <= 0 || size > policy.MaxFileBytes || size > files.MaxFileBytes || strings.TrimSpace(requestID) == "" {
 		return files.UploadSession{}, files.ErrInvalid
 	}
-	objectKey := "files/" + auth.Tenant.ID.String() + "/" + uuid.New().String()
-	return s.repo.CreateUpload(ctx, files.CreateUpload{Principal: principal(auth, requestID, "", ""), OriginalName: name, MediaType: mediaType, ExpectedSize: size, ObjectKey: objectKey, ExpiresAt: s.clock().UTC().Add(uploadLifetime)})
+	objectKey := withPrefix(policy.PathPrefix, "files/"+auth.Tenant.ID.String()+"/"+uuid.New().String())
+	return s.repo.CreateUpload(ctx, files.CreateUpload{Principal: principal(auth, requestID, "", ""), OriginalName: name, MediaType: mediaType, ExpectedSize: size, ObjectKey: objectKey, Provider: policy.Provider, Bucket: policy.Bucket, ExpiresAt: s.clock().UTC().Add(uploadLifetime)})
+}
+
+func (s *Service) UploadPolicy(ctx context.Context, token string) (files.UploadPolicy, error) {
+	if !s.enabled || s.objects == nil {
+		return files.UploadPolicy{}, files.ErrFeatureDisabled
+	}
+	auth, err := s.authorize(ctx, token, "storage.file.upload")
+	if err != nil {
+		return files.UploadPolicy{}, err
+	}
+	return s.objects.ResolvePolicy(ctx, auth.Tenant.ID)
 }
 
 func (s *Service) GetUpload(ctx context.Context, token string, id uuid.UUID) (files.UploadSession, error) {
@@ -83,6 +98,10 @@ func (s *Service) GetUpload(ctx context.Context, token string, id uuid.UUID) (fi
 
 func partKey(session files.UploadSession, number int32) string {
 	return session.ObjectKey + ".parts/" + leftPad(number)
+}
+
+func objectRef(tenantID uuid.UUID, session files.UploadSession, key string) files.ObjectRef {
+	return files.ObjectRef{TenantID: tenantID, Provider: session.Provider, Bucket: session.Bucket, Key: key}
 }
 
 func leftPad(value int32) string {
@@ -111,11 +130,12 @@ func (s *Service) UploadPart(ctx context.Context, token string, uploadID uuid.UU
 	}
 	digest := sha256.Sum256(content)
 	part := files.Part{PartNumber: number, SizeBytes: int64(len(content)), ETag: hex.EncodeToString(digest[:]), Checksum: digest[:]}
-	if err = s.objects.Put(ctx, partKey(session, number), content); err != nil {
+	partRef := objectRef(auth.Tenant.ID, session, partKey(session, number))
+	if err = s.objects.Put(ctx, partRef, content); err != nil {
 		return files.Part{}, err
 	}
 	if err = s.repo.UpsertPart(ctx, auth.Tenant.ID, uploadID, part); err != nil {
-		_ = s.objects.Delete(ctx, partKey(session, number))
+		_ = s.objects.Delete(ctx, partRef)
 		return files.Part{}, err
 	}
 	return part, nil
@@ -134,9 +154,9 @@ func (s *Service) CancelUpload(ctx context.Context, token, requestID, ipAddress,
 		return err
 	}
 	for _, part := range session.UploadedParts {
-		_ = s.objects.Delete(ctx, partKey(session, part.PartNumber))
+		_ = s.objects.Delete(ctx, objectRef(auth.Tenant.ID, session, partKey(session, part.PartNumber)))
 	}
-	_ = s.objects.Delete(ctx, session.ObjectKey)
+	_ = s.objects.Delete(ctx, objectRef(auth.Tenant.ID, session, session.ObjectKey))
 	return nil
 }
 
@@ -163,7 +183,7 @@ func (s *Service) CompleteUpload(ctx context.Context, token, requestID, ipAddres
 		if part.PartNumber != number {
 			return files.File{}, files.ErrUploadIncomplete
 		}
-		reader, openErr := s.objects.Open(ctx, partKey(session, number))
+		reader, openErr := s.objects.Open(ctx, objectRef(auth.Tenant.ID, session, partKey(session, number)))
 		if openErr != nil {
 			return files.File{}, files.ErrUploadIncomplete
 		}
@@ -181,20 +201,21 @@ func (s *Service) CompleteUpload(ctx context.Context, token, requestID, ipAddres
 	if !mediaCompatible(session.MediaType, actual) {
 		return files.File{}, files.ErrInvalid
 	}
-	if err = s.objects.Put(ctx, session.ObjectKey, content); err != nil {
+	finalRef := objectRef(auth.Tenant.ID, session, session.ObjectKey)
+	if err = s.objects.Put(ctx, finalRef, content); err != nil {
 		return files.File{}, err
 	}
 	extension := strings.TrimPrefix(strings.ToLower(filepath.Ext(session.OriginalName)), ".")
-	file, err := s.repo.CompleteUpload(ctx, files.CompleteUpload{Principal: principal(auth, requestID, ipAddress, userAgent), UploadID: id, ObjectKey: session.ObjectKey, MediaType: actual, Extension: extension, SizeBytes: int64(len(content)), SHA256: hasher.Sum(nil), ScanStatus: "skipped"})
+	file, err := s.repo.CompleteUpload(ctx, files.CompleteUpload{Principal: principal(auth, requestID, ipAddress, userAgent), UploadID: id, ObjectKey: session.ObjectKey, Provider: session.Provider, Bucket: session.Bucket, MediaType: actual, Extension: extension, SizeBytes: int64(len(content)), SHA256: hasher.Sum(nil), ScanStatus: "skipped"})
 	if err != nil {
-		_ = s.objects.Delete(ctx, session.ObjectKey)
+		_ = s.objects.Delete(ctx, finalRef)
 		return files.File{}, err
 	}
 	if file.ObjectKey != session.ObjectKey {
-		_ = s.objects.Delete(ctx, session.ObjectKey)
+		_ = s.objects.Delete(ctx, finalRef)
 	}
 	for _, part := range session.UploadedParts {
-		_ = s.objects.Delete(ctx, partKey(session, part.PartNumber))
+		_ = s.objects.Delete(ctx, objectRef(auth.Tenant.ID, session, partKey(session, part.PartNumber)))
 	}
 	return file, nil
 }
@@ -204,14 +225,14 @@ func (s *Service) ListFiles(ctx context.Context, token string, filter files.File
 	if err != nil {
 		return files.FilePage{}, err
 	}
-	filter.Query, filter.Status, filter.ScanStatus, filter.MediaType = strings.TrimSpace(filter.Query), strings.TrimSpace(filter.Status), strings.TrimSpace(filter.ScanStatus), strings.TrimSpace(filter.MediaType)
+	filter.Query, filter.Status, filter.ScanStatus, filter.MediaType, filter.Provider = strings.TrimSpace(filter.Query), strings.TrimSpace(filter.Status), strings.TrimSpace(filter.ScanStatus), strings.TrimSpace(filter.MediaType), strings.TrimSpace(filter.Provider)
 	if filter.Page == 0 {
 		filter.Page = 1
 	}
 	if filter.PageSize == 0 {
 		filter.PageSize = 20
 	}
-	if filter.Page < 1 || filter.PageSize < 1 || filter.PageSize > 100 || len(filter.Query) > 160 || !oneOf(filter.Status, "", "pending", "ready", "quarantined") || !oneOf(filter.ScanStatus, "", "pending", "clean", "infected", "failed", "skipped") {
+	if filter.Page < 1 || filter.PageSize < 1 || filter.PageSize > 100 || len(filter.Query) > 160 || !oneOf(filter.Status, "", "pending", "ready", "quarantined") || !oneOf(filter.ScanStatus, "", "pending", "clean", "infected", "failed", "skipped") || !oneOf(filter.Provider, "", "local", "s3", "minio") {
 		return files.FilePage{}, files.ErrInvalid
 	}
 	return s.repo.ListFiles(ctx, auth.Tenant.ID, filter)
@@ -246,7 +267,7 @@ func (s *Service) OpenDownload(ctx context.Context, token string, id uuid.UUID) 
 	if file.Status != "ready" || !oneOf(file.ScanStatus, "clean", "skipped") {
 		return files.File{}, nil, files.ErrScanBlocked
 	}
-	reader, err := s.objects.Open(ctx, file.ObjectKey)
+	reader, err := s.objects.Open(ctx, files.ObjectRef{TenantID: auth.Tenant.ID, Provider: file.Provider, Bucket: file.Bucket, Key: file.ObjectKey})
 	if err != nil {
 		return files.File{}, nil, err
 	}
@@ -264,7 +285,24 @@ func (s *Service) DeleteFile(ctx context.Context, token, requestID, ipAddress, u
 	if err != nil {
 		return err
 	}
-	return s.objects.Delete(ctx, file.ObjectKey)
+	return s.objects.Delete(ctx, files.ObjectRef{TenantID: auth.Tenant.ID, Provider: file.Provider, Bucket: file.Bucket, Key: file.ObjectKey})
+}
+
+func withPrefix(prefix, key string) string {
+	prefix = strings.Trim(strings.TrimSpace(prefix), "/")
+	if prefix == "" {
+		return key
+	}
+	return prefix + "/" + key
+}
+
+func contains(values []string, value string) bool {
+	for _, candidate := range values {
+		if candidate == value {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeMediaType(value string) string {

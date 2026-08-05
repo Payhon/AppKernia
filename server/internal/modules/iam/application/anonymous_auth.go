@@ -2,6 +2,7 @@ package application
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"net/mail"
 	"strings"
@@ -22,6 +23,13 @@ type AnonymousAuthConfig struct {
 }
 
 type AuthOption func(*AuthService)
+
+func WithLoginProtectionKey(key []byte) AuthOption {
+	return func(service *AuthService) {
+		digest := sha256.Sum256(append([]byte("appkernia-login-protection\x00"), key...))
+		service.loginProtectionKey = digest[:]
+	}
+}
 
 func WithAnonymousAuth(config AnonymousAuthConfig, notifier PasswordResetNotifier) AuthOption {
 	return func(service *AuthService) {

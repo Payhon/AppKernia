@@ -25,7 +25,7 @@ func NewPostgres(pool *pgxpool.Pool) *Postgres {
 func (repository *Postgres) CreateAvatarUpload(ctx context.Context, input domain.CreateAvatarUpload) (domain.AvatarUploadSession, error) {
 	mediaType := input.MediaType
 	row, err := db.New(repository.pool).CreateSelfAvatarUploadSession(ctx, db.CreateSelfAvatarUploadSessionParams{
-		TenantID: input.TenantID, UserID: input.UserID, ObjectKey: input.ObjectKey,
+		TenantID: input.TenantID, UserID: input.UserID, Provider: input.Provider, BucketName: input.Bucket, ObjectKey: input.ObjectKey,
 		OriginalName: input.OriginalName, MediaType: &mediaType, ExpectedSize: input.ExpectedSize,
 		ExpiresAt: pgtype.Timestamptz{Time: input.ExpiresAt, Valid: true},
 	})
@@ -33,7 +33,7 @@ func (repository *Postgres) CreateAvatarUpload(ctx context.Context, input domain
 		return domain.AvatarUploadSession{}, fmt.Errorf("create avatar upload session: %w", err)
 	}
 	return domain.AvatarUploadSession{
-		ID: row.ID, ObjectKey: row.ObjectKey, OriginalName: input.OriginalName,
+		ID: row.ID, Provider: row.Provider, Bucket: row.BucketName, ObjectKey: row.ObjectKey, OriginalName: input.OriginalName,
 		MediaType: input.MediaType, ExpectedSize: input.ExpectedSize, ExpiresAt: row.ExpiresAt.Time,
 	}, nil
 }
@@ -49,7 +49,7 @@ func (repository *Postgres) GetAvatarUpload(ctx context.Context, principal domai
 		return domain.AvatarUploadSession{}, fmt.Errorf("get avatar upload session: %w", err)
 	}
 	return domain.AvatarUploadSession{
-		ID: row.ID, ObjectKey: row.ObjectKey, OriginalName: row.OriginalName,
+		ID: row.ID, Provider: row.Provider, Bucket: row.BucketName, ObjectKey: row.ObjectKey, OriginalName: row.OriginalName,
 		MediaType: valueOrEmpty(row.MediaType), ExpectedSize: row.ExpectedSize, ExpiresAt: row.ExpiresAt.Time,
 	}, nil
 }
@@ -70,7 +70,7 @@ func (repository *Postgres) CompleteAvatarUpload(ctx context.Context, input doma
 	if err != nil {
 		return domain.AvatarCompletion{}, fmt.Errorf("lock avatar upload session: %w", err)
 	}
-	if session.ObjectKey != input.ObjectKey || session.ExpectedSize != input.SizeBytes || valueOrEmpty(session.MediaType) != input.MediaType {
+	if session.ObjectKey != input.ObjectKey || session.Provider != input.Provider || session.BucketName != input.Bucket || session.ExpectedSize != input.SizeBytes || valueOrEmpty(session.MediaType) != input.MediaType {
 		return domain.AvatarCompletion{}, domain.ErrUploadInvalid
 	}
 	beforeFileID, err := queries.GetSelfAvatarFileIDForUpdate(ctx, input.UserID)
@@ -84,7 +84,7 @@ func (repository *Postgres) CompleteAvatarUpload(ctx context.Context, input doma
 	extension := input.Extension
 	ownerID := input.UserID
 	storedFile, err := queries.InsertReadySelfAvatarFile(ctx, db.InsertReadySelfAvatarFileParams{
-		TenantID: input.TenantID, UserID: &ownerID, ObjectKey: input.ObjectKey,
+		TenantID: input.TenantID, UserID: &ownerID, Provider: input.Provider, BucketName: input.Bucket, ObjectKey: input.ObjectKey,
 		OriginalName: input.OriginalName, MediaType: &mediaType, Extension: &extension,
 		SizeBytes: input.SizeBytes, Sha256: input.SHA256,
 	})
@@ -123,7 +123,7 @@ func (repository *Postgres) CompleteAvatarUpload(ctx context.Context, input doma
 	if err = tx.Commit(ctx); err != nil {
 		return domain.AvatarCompletion{}, fmt.Errorf("commit self avatar update: %w", err)
 	}
-	return domain.AvatarCompletion{FileID: fileID, ObjectKey: storedFile.ObjectKey}, nil
+	return domain.AvatarCompletion{FileID: fileID, Provider: storedFile.Provider, Bucket: storedFile.BucketName, ObjectKey: storedFile.ObjectKey}, nil
 }
 
 func (repository *Postgres) GetAvatarObject(ctx context.Context, principal domain.Principal) (domain.AvatarObject, error) {
@@ -137,7 +137,7 @@ func (repository *Postgres) GetAvatarObject(ctx context.Context, principal domai
 		return domain.AvatarObject{}, fmt.Errorf("get self avatar object: %w", err)
 	}
 	return domain.AvatarObject{
-		FileID: row.ID, ObjectKey: row.ObjectKey, MediaType: valueOrEmpty(row.MediaType),
+		FileID: row.ID, Provider: row.Provider, Bucket: row.BucketName, ObjectKey: row.ObjectKey, MediaType: valueOrEmpty(row.MediaType),
 		SizeBytes: row.SizeBytes, SHA256: row.Sha256, UpdatedAt: row.UpdatedAt.Time,
 	}, nil
 }

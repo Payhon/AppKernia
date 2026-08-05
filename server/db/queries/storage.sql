@@ -4,29 +4,27 @@ INSERT INTO storage.upload_sessions (
     media_type, expected_size, status, expires_at
 )
 VALUES (
-    sqlc.arg('tenant_id'), sqlc.arg('user_id'), 'local', 'appkernia-local',
+    sqlc.arg('tenant_id'), sqlc.arg('user_id'), sqlc.arg('provider'), sqlc.arg('bucket_name'),
     sqlc.arg('object_key'), sqlc.arg('original_name'), sqlc.arg('media_type'),
     sqlc.arg('expected_size'), 'initiated', sqlc.arg('expires_at')
 )
-RETURNING id, object_key, expires_at;
+RETURNING id, provider, bucket_name, object_key, expires_at;
 
 -- name: GetSelfAvatarUploadSession :one
-SELECT id, tenant_id, user_id, object_key, original_name, media_type, expected_size, expires_at
+SELECT id, tenant_id, user_id, provider, bucket_name, object_key, original_name, media_type, expected_size, expires_at
 FROM storage.upload_sessions
 WHERE id = sqlc.arg('id')
   AND tenant_id = sqlc.arg('tenant_id')
   AND user_id = sqlc.arg('user_id')
-  AND provider = 'local'
   AND status = 'initiated'
   AND expires_at > now();
 
 -- name: LockSelfAvatarUploadSession :one
-SELECT id, tenant_id, user_id, object_key, original_name, media_type, expected_size, expires_at
+SELECT id, tenant_id, user_id, provider, bucket_name, object_key, original_name, media_type, expected_size, expires_at
 FROM storage.upload_sessions
 WHERE id = sqlc.arg('id')
   AND tenant_id = sqlc.arg('tenant_id')
   AND user_id = sqlc.arg('user_id')
-  AND provider = 'local'
   AND status = 'initiated'
   AND expires_at > now()
 FOR UPDATE;
@@ -44,15 +42,15 @@ INSERT INTO storage.files (
     metadata
 )
 VALUES (
-    sqlc.arg('tenant_id'), sqlc.arg('user_id'), 'local', 'appkernia-local',
+    sqlc.arg('tenant_id'), sqlc.arg('user_id'), sqlc.arg('provider'), sqlc.arg('bucket_name'),
     sqlc.arg('object_key'), sqlc.arg('original_name'), sqlc.arg('media_type'),
     sqlc.arg('extension'), sqlc.arg('size_bytes'), sqlc.arg('sha256'), 'private',
-    'ready', 'skipped', jsonb_build_object('purpose', 'avatar', 'adapter', 'development-local')
+    'ready', 'skipped', jsonb_build_object('purpose', 'avatar', 'adapter', sqlc.arg('provider')::varchar)
 )
 ON CONFLICT (tenant_id, sha256, size_bytes)
     WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL
 DO UPDATE SET updated_at = storage.files.updated_at
-RETURNING id, object_key;
+RETURNING id, provider, bucket_name, object_key;
 
 -- name: CompleteSelfAvatarUploadSession :exec
 UPDATE storage.upload_sessions
@@ -98,7 +96,7 @@ VALUES (
 );
 
 -- name: GetSelfAvatarObject :one
-SELECT f.id, f.object_key, f.media_type, f.size_bytes, f.sha256, f.updated_at
+SELECT f.id, f.provider, f.bucket_name, f.object_key, f.media_type, f.size_bytes, f.sha256, f.updated_at
 FROM iam.users AS u
 JOIN storage.files AS f ON f.id = u.avatar_file_id
 WHERE u.id = sqlc.arg('user_id')

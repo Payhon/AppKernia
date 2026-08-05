@@ -100,7 +100,12 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	if cfg.Environment == "development" && cfg.PasswordRecoveryAdapter == "local" {
 		resetNotifier = iamrepo.NewLocalPasswordResetNotifier()
 	}
-	authService, err := iamapp.NewAuthService(iamRepository, iamRepository, issuer, iamapp.WithAnonymousAuth(
+	loginProtectionKey, err := base64.StdEncoding.DecodeString(cfg.LoginProtectionKeyBase64)
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("configure login protection key: %w", err)
+	}
+	authService, err := iamapp.NewAuthService(iamRepository, iamRepository, issuer, iamapp.WithLoginProtectionKey(loginProtectionKey), iamapp.WithAnonymousAuth(
 		iamapp.AnonymousAuthConfig{
 			AdminRegistrationEnabled: cfg.AdminRegistrationEnabled,
 			RegistrationTenantCode:   cfg.AdminRegistrationTenantCode,
@@ -124,13 +129,23 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		"oauth":              cfg.OAuthEnabled,
 	}
 	authHandler := iamhttp.NewHandler(authService, catalog, cfg.AdminOrigin, cfg.Environment != "development", featureFlags)
+	settingsSealer, err := configSecretSealer(cfg)
+	if err != nil {
+		pool.Close()
+		return nil, err
+	}
 	storageRepository := storagerepo.NewPostgres(pool)
 	var objectStore storagedomain.ObjectStore
-	if (cfg.AvatarUploadEnabled || cfg.FileStorageEnabled) && cfg.Environment == "development" && cfg.ObjectStorageAdapter == "local" {
-		objectStore, err = storagerepo.NewLocalObjectStore(cfg.LocalObjectStorageDir)
+	if cfg.AvatarUploadEnabled || cfg.FileStorageEnabled {
+		switch cfg.ObjectStorageAdapter {
+		case "local":
+			objectStore, err = storagerepo.NewLocalObjectStore(cfg.LocalObjectStorageDir)
+		case "configured":
+			objectStore, err = storagerepo.NewConfiguredObjectStore(pool, settingsSealer, cfg.LocalObjectStorageDir, cfg.Environment)
+		}
 		if err != nil {
 			pool.Close()
-			return nil, fmt.Errorf("create local object storage adapter: %w", err)
+			return nil, fmt.Errorf("create object storage adapter: %w", err)
 		}
 	}
 	storageService := storageapp.NewService(storageRepository, objectStore, cfg.AvatarUploadEnabled)
@@ -159,11 +174,6 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	sessionAdminRepository := sessionadminrepo.NewPostgres(pool)
 	sessionAdminService := sessionadminapp.NewService(authService, sessionAdminRepository)
 	sessionAdminHandler := sessionadminhttp.NewHandler(sessionAdminService, catalog)
-	settingsSealer, err := configSecretSealer(cfg)
-	if err != nil {
-		pool.Close()
-		return nil, err
-	}
 	settingsRepository := settingsrepo.NewPostgres(pool)
 	settingsService := settingsapp.NewService(authService, settingsRepository, settingsSealer)
 	settingsHandler := settingshttp.NewHandler(settingsService, catalog)
@@ -223,6 +233,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/password/forgot", authHandler.ForgotPassword)
 		group.POST("/password/reset", authHandler.ResetPassword)
 		group.POST("/login", authHandler.Login)
+		group.POST("/login/captcha", authHandler.LoginCaptcha)
 		group.POST("/switch-tenant", authHandler.SwitchTenant)
 		group.POST("/token/refresh", authHandler.Refresh)
 		group.POST("/logout", authHandler.Logout)
@@ -249,6 +260,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.PUT("/me/avatar/upload-sessions/{id}/content", storageHandler.UploadAvatarContent)
 		group.GET("/me/avatar/content", storageHandler.AvatarContent)
 		group.POST("/files/upload-sessions", storageAdminHandler.CreateUpload)
+		group.GET("/files/upload-policy", storageAdminHandler.UploadPolicy)
 		group.GET("/files/upload-sessions/{id}", storageAdminHandler.GetUpload)
 		group.PUT("/files/upload-sessions/{id}/parts/{partNumber}", storageAdminHandler.UploadPart)
 		group.DELETE("/files/upload-sessions/{id}", storageAdminHandler.CancelUpload)

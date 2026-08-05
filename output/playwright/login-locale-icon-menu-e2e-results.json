@@ -1,0 +1,27 @@
+{
+  "zh-CN.1440.axe": [],
+  "en-US.375.axe": [],
+  "workflow": {
+    "native_select_removed": true,
+    "translation_icon_present": true,
+    "keyboard_open_and_select": true,
+    "selected_state_zh_CN": true,
+    "selected_state_en_US": true,
+    "locale_changed_without_reload": true,
+    "viewports": {
+      "1440": {
+        "no_horizontal_overflow": true
+      },
+      "1024": {
+        "no_horizontal_overflow": true
+      },
+      "768": {
+        "no_horizontal_overflow": true
+      },
+      "375": {
+        "no_horizontal_overflow": true
+      }
+    },
+    "unexpected_console_errors": []
+  }
+}

@@ -61,6 +61,7 @@ WHERE f.tenant_id = $1 AND f.deleted_at IS NULL
   AND ($3::text = '' OR f.status = $3)
   AND ($4::text = '' OR f.scan_status = $4)
   AND ($5::text = '' OR f.media_type ILIKE $5 || '%')
+  AND ($6::text = '' OR f.provider = $6)
 `
 
 type CountAdminFilesParams struct {
@@ -69,6 +70,7 @@ type CountAdminFilesParams struct {
 	Status     string    `json:"status"`
 	ScanStatus string    `json:"scan_status"`
 	MediaType  string    `json:"media_type"`
+	Provider   string    `json:"provider"`
 }
 
 func (q *Queries) CountAdminFiles(ctx context.Context, arg CountAdminFilesParams) (int64, error) {
@@ -78,6 +80,7 @@ func (q *Queries) CountAdminFiles(ctx context.Context, arg CountAdminFilesParams
 		arg.Status,
 		arg.ScanStatus,
 		arg.MediaType,
+		arg.Provider,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -90,16 +93,18 @@ INSERT INTO storage.upload_sessions (
     media_type, expected_size, part_size, status, expires_at
 )
 VALUES (
-    $1, $2, 'local', 'appkernia-local',
-    $3, $4, $5,
-    $6, $7, 'initiated', $8
+    $1, $2, $3, $4,
+    $5, $6, $7,
+    $8, $9, 'initiated', $10
 )
-RETURNING id, original_name, media_type, expected_size, part_size, status, object_key, expires_at
+RETURNING id, original_name, media_type, expected_size, part_size, status, provider, bucket_name, object_key, expires_at
 `
 
 type CreateAdminFileUploadSessionParams struct {
 	TenantID     uuid.UUID          `json:"tenant_id"`
 	UserID       uuid.UUID          `json:"user_id"`
+	Provider     string             `json:"provider"`
+	BucketName   string             `json:"bucket_name"`
 	ObjectKey    string             `json:"object_key"`
 	OriginalName string             `json:"original_name"`
 	MediaType    *string            `json:"media_type"`
@@ -115,6 +120,8 @@ type CreateAdminFileUploadSessionRow struct {
 	ExpectedSize int64              `json:"expected_size"`
 	PartSize     *int64             `json:"part_size"`
 	Status       string             `json:"status"`
+	Provider     string             `json:"provider"`
+	BucketName   string             `json:"bucket_name"`
 	ObjectKey    string             `json:"object_key"`
 	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
 }
@@ -123,6 +130,8 @@ func (q *Queries) CreateAdminFileUploadSession(ctx context.Context, arg CreateAd
 	row := q.db.QueryRow(ctx, createAdminFileUploadSession,
 		arg.TenantID,
 		arg.UserID,
+		arg.Provider,
+		arg.BucketName,
 		arg.ObjectKey,
 		arg.OriginalName,
 		arg.MediaType,
@@ -138,6 +147,8 @@ func (q *Queries) CreateAdminFileUploadSession(ctx context.Context, arg CreateAd
 		&i.ExpectedSize,
 		&i.PartSize,
 		&i.Status,
+		&i.Provider,
+		&i.BucketName,
 		&i.ObjectKey,
 		&i.ExpiresAt,
 	)
@@ -145,7 +156,7 @@ func (q *Queries) CreateAdminFileUploadSession(ctx context.Context, arg CreateAd
 }
 
 const getAdminFile = `-- name: GetAdminFile :one
-SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size_bytes,
+SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size_bytes, f.provider, f.bucket_name,
        f.status, f.scan_status, f.created_at, f.updated_at, f.object_key, f.sha256,
        (SELECT count(*) FROM storage.file_usages u WHERE u.tenant_id = f.tenant_id AND u.file_id = f.id) AS usage_count
 FROM storage.files f
@@ -164,6 +175,8 @@ type GetAdminFileRow struct {
 	MediaType    *string            `json:"media_type"`
 	Extension    *string            `json:"extension"`
 	SizeBytes    int64              `json:"size_bytes"`
+	Provider     string             `json:"provider"`
+	BucketName   string             `json:"bucket_name"`
 	Status       string             `json:"status"`
 	ScanStatus   string             `json:"scan_status"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
@@ -183,6 +196,8 @@ func (q *Queries) GetAdminFile(ctx context.Context, arg GetAdminFileParams) (Get
 		&i.MediaType,
 		&i.Extension,
 		&i.SizeBytes,
+		&i.Provider,
+		&i.BucketName,
 		&i.Status,
 		&i.ScanStatus,
 		&i.CreatedAt,
@@ -195,7 +210,7 @@ func (q *Queries) GetAdminFile(ctx context.Context, arg GetAdminFileParams) (Get
 }
 
 const getAdminFileUploadSession = `-- name: GetAdminFileUploadSession :one
-SELECT id, original_name, media_type, expected_size, part_size, status, object_key, expires_at
+SELECT id, original_name, media_type, expected_size, part_size, status, provider, bucket_name, object_key, expires_at
 FROM storage.upload_sessions
 WHERE id = $1 AND tenant_id = $2
   AND status IN ('initiated', 'uploading') AND expires_at > now()
@@ -213,6 +228,8 @@ type GetAdminFileUploadSessionRow struct {
 	ExpectedSize int64              `json:"expected_size"`
 	PartSize     *int64             `json:"part_size"`
 	Status       string             `json:"status"`
+	Provider     string             `json:"provider"`
+	BucketName   string             `json:"bucket_name"`
 	ObjectKey    string             `json:"object_key"`
 	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
 }
@@ -227,6 +244,8 @@ func (q *Queries) GetAdminFileUploadSession(ctx context.Context, arg GetAdminFil
 		&i.ExpectedSize,
 		&i.PartSize,
 		&i.Status,
+		&i.Provider,
+		&i.BucketName,
 		&i.ObjectKey,
 		&i.ExpiresAt,
 	)
@@ -288,21 +307,23 @@ INSERT INTO storage.files (
     media_type, extension, size_bytes, sha256, visibility, status, scan_status, metadata
 )
 VALUES (
-    $1, $2, 'local', 'appkernia-local',
-    $3, $4, $5,
-    $6, $7, $8, 'private',
-    'ready', $9, jsonb_build_object('adapter', 'development-local')
+    $1, $2, $3, $4,
+    $5, $6, $7,
+    $8, $9, $10, 'private',
+    'ready', $11, jsonb_build_object('adapter', $3::varchar)
 )
 ON CONFLICT (tenant_id, sha256, size_bytes)
     WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL
 DO UPDATE SET updated_at = storage.files.updated_at
 RETURNING id, owner_user_id, original_name, media_type, extension, size_bytes, status,
-          scan_status, created_at, updated_at, object_key, sha256
+          scan_status, provider, bucket_name, created_at, updated_at, object_key, sha256
 `
 
 type InsertReadyAdminFileParams struct {
 	TenantID     uuid.UUID  `json:"tenant_id"`
 	OwnerUserID  *uuid.UUID `json:"owner_user_id"`
+	Provider     string     `json:"provider"`
+	BucketName   string     `json:"bucket_name"`
 	ObjectKey    string     `json:"object_key"`
 	OriginalName string     `json:"original_name"`
 	MediaType    *string    `json:"media_type"`
@@ -321,6 +342,8 @@ type InsertReadyAdminFileRow struct {
 	SizeBytes    int64              `json:"size_bytes"`
 	Status       string             `json:"status"`
 	ScanStatus   string             `json:"scan_status"`
+	Provider     string             `json:"provider"`
+	BucketName   string             `json:"bucket_name"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 	ObjectKey    string             `json:"object_key"`
@@ -331,6 +354,8 @@ func (q *Queries) InsertReadyAdminFile(ctx context.Context, arg InsertReadyAdmin
 	row := q.db.QueryRow(ctx, insertReadyAdminFile,
 		arg.TenantID,
 		arg.OwnerUserID,
+		arg.Provider,
+		arg.BucketName,
 		arg.ObjectKey,
 		arg.OriginalName,
 		arg.MediaType,
@@ -349,6 +374,8 @@ func (q *Queries) InsertReadyAdminFile(ctx context.Context, arg InsertReadyAdmin
 		&i.SizeBytes,
 		&i.Status,
 		&i.ScanStatus,
+		&i.Provider,
+		&i.BucketName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.ObjectKey,
@@ -445,7 +472,7 @@ func (q *Queries) ListAdminFileUsages(ctx context.Context, arg ListAdminFileUsag
 }
 
 const listAdminFiles = `-- name: ListAdminFiles :many
-SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size_bytes,
+SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size_bytes, f.provider,
        f.status, f.scan_status, f.created_at, f.updated_at,
        (SELECT count(*) FROM storage.file_usages u WHERE u.tenant_id = f.tenant_id AND u.file_id = f.id) AS usage_count
 FROM storage.files f
@@ -454,8 +481,9 @@ WHERE f.tenant_id = $1 AND f.deleted_at IS NULL
   AND ($3::text = '' OR f.status = $3)
   AND ($4::text = '' OR f.scan_status = $4)
   AND ($5::text = '' OR f.media_type ILIKE $5 || '%')
+  AND ($6::text = '' OR f.provider = $6)
 ORDER BY f.created_at DESC, f.id DESC
-LIMIT $7 OFFSET $6
+LIMIT $8 OFFSET $7
 `
 
 type ListAdminFilesParams struct {
@@ -464,6 +492,7 @@ type ListAdminFilesParams struct {
 	Status     string    `json:"status"`
 	ScanStatus string    `json:"scan_status"`
 	MediaType  string    `json:"media_type"`
+	Provider   string    `json:"provider"`
 	PageOffset int32     `json:"page_offset"`
 	PageSize   int32     `json:"page_size"`
 }
@@ -475,6 +504,7 @@ type ListAdminFilesRow struct {
 	MediaType    *string            `json:"media_type"`
 	Extension    *string            `json:"extension"`
 	SizeBytes    int64              `json:"size_bytes"`
+	Provider     string             `json:"provider"`
 	Status       string             `json:"status"`
 	ScanStatus   string             `json:"scan_status"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
@@ -489,6 +519,7 @@ func (q *Queries) ListAdminFiles(ctx context.Context, arg ListAdminFilesParams) 
 		arg.Status,
 		arg.ScanStatus,
 		arg.MediaType,
+		arg.Provider,
 		arg.PageOffset,
 		arg.PageSize,
 	)
@@ -506,6 +537,7 @@ func (q *Queries) ListAdminFiles(ctx context.Context, arg ListAdminFilesParams) 
 			&i.MediaType,
 			&i.Extension,
 			&i.SizeBytes,
+			&i.Provider,
 			&i.Status,
 			&i.ScanStatus,
 			&i.CreatedAt,
@@ -523,7 +555,7 @@ func (q *Queries) ListAdminFiles(ctx context.Context, arg ListAdminFilesParams) 
 }
 
 const lockAdminFileForDelete = `-- name: LockAdminFileForDelete :one
-SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size_bytes,
+SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size_bytes, f.provider, f.bucket_name,
        f.status, f.scan_status, f.created_at, f.updated_at, f.object_key, f.sha256,
        (SELECT count(*) FROM storage.file_usages u WHERE u.tenant_id = f.tenant_id AND u.file_id = f.id) AS usage_count
 FROM storage.files f
@@ -543,6 +575,8 @@ type LockAdminFileForDeleteRow struct {
 	MediaType    *string            `json:"media_type"`
 	Extension    *string            `json:"extension"`
 	SizeBytes    int64              `json:"size_bytes"`
+	Provider     string             `json:"provider"`
+	BucketName   string             `json:"bucket_name"`
 	Status       string             `json:"status"`
 	ScanStatus   string             `json:"scan_status"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
@@ -562,6 +596,8 @@ func (q *Queries) LockAdminFileForDelete(ctx context.Context, arg LockAdminFileF
 		&i.MediaType,
 		&i.Extension,
 		&i.SizeBytes,
+		&i.Provider,
+		&i.BucketName,
 		&i.Status,
 		&i.ScanStatus,
 		&i.CreatedAt,
@@ -574,7 +610,7 @@ func (q *Queries) LockAdminFileForDelete(ctx context.Context, arg LockAdminFileF
 }
 
 const lockAdminFileUploadSession = `-- name: LockAdminFileUploadSession :one
-SELECT id, user_id, original_name, media_type, expected_size, part_size, status, object_key, expires_at
+SELECT id, user_id, original_name, media_type, expected_size, part_size, status, provider, bucket_name, object_key, expires_at
 FROM storage.upload_sessions
 WHERE id = $1 AND tenant_id = $2
   AND status IN ('initiated', 'uploading') AND expires_at > now()
@@ -594,6 +630,8 @@ type LockAdminFileUploadSessionRow struct {
 	ExpectedSize int64              `json:"expected_size"`
 	PartSize     *int64             `json:"part_size"`
 	Status       string             `json:"status"`
+	Provider     string             `json:"provider"`
+	BucketName   string             `json:"bucket_name"`
 	ObjectKey    string             `json:"object_key"`
 	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
 }
@@ -609,6 +647,8 @@ func (q *Queries) LockAdminFileUploadSession(ctx context.Context, arg LockAdminF
 		&i.ExpectedSize,
 		&i.PartSize,
 		&i.Status,
+		&i.Provider,
+		&i.BucketName,
 		&i.ObjectKey,
 		&i.ExpiresAt,
 	)
