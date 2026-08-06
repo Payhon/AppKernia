@@ -1165,3 +1165,25 @@
 - 本机 Node 为 26.5.0，Admin 检查产生 Node 24 engine warning；GitHub workflow 固定 Node 24.18.1，pnpm 固定 11.18.0。
 - 这次只修复 CI 环境和被检查器暴露的 Mobile 类型边界；没有 API、数据库、权限或可见 UI 变更。
 - Android/iOS/Harmony 的 compile、安装、模拟器和真机均未在本轮重新执行，不能用静态 CI 结果替代平台验收。
+
+## 2026-08-06 Mobile Framework 主分支同步复核
+
+### 交付结论
+
+- 本地 `main` 与 `origin/main` 均为 `ddaaa4e`，且 `6256b90` 是其祖先；逐路径集合比对确认原 worktree 中的 `apps/ak-mobile` 框架文件在主分支缺失数为 0。
+- 主分支包含 20 个 UVue 页面并全部使用 `ak-theme-root`，同时保留 `6256b90` 之后新增的四页面视觉证据与 5 个 Mobile 类型边界修正，没有把当前主分支降级为旧 worktree 快照。
+- 修复静态 verifier 对旧 `Map<string, any>` 阅读时长插值的硬编码，改为校验当前 `Map<string, string>` 的 `minutes.toString()` 边界。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| Mobile Framework 文件集合与 Git 祖先关系比对 | 0 | `6256b90` 已在 `main`；框架文件缺失 0，页面 20/20，主题根 20/20 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 37 routes、3 tabs、34 API delta、11 permission delta，0 error/warning |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN`/`en-US` key、占位符、default/fallback 契约通过 |
+| Mobile framework / secure-storage / refresh-policy 校验 | 0 | 三项源级与 fake HttpPort 门禁通过 |
+| `git diff --check` | 0 | 补丁格式通过 |
+
+### 验证边界
+
+- 本轮是主分支文件完整性和静态契约复核，没有重新执行 Android/iOS/Harmony compile、安装、模拟器或真机；既有平台证据仍以此前交付记录为准。

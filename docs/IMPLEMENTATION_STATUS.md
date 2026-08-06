@@ -434,3 +434,12 @@
 - `mobile-blueprint` job 原先缺少 `rg`。显式安装 `ripgrep` 后又暴露最新 Mobile 源码的 9 处禁用 `any`：现将 i18n 参数统一为 `Map<string, string>`，数值在边界转字符串，并使用 `UTSJSONObject.getString` 读取 Catalog/Header。
 - 最新 `origin/main` 隔离工作树中，Mobile static check、全蓝图/i18n 校验、workflow YAML/actionlint、Admin 全量 check 均退出 0；Admin 为 16 个测试文件、64 项测试并完成 production build/bundle/blueprint 校验。
 - 本机 Admin 检查使用 Node 26.5.0，因仓库要求 Node 24 产生 engine warning；CI 仍固定 Node 24.18.1。此次类型收紧后的 Android/iOS/Harmony compile 与真机未执行，不将静态 CI 修复标记为平台验收。
+
+## 2026-08-06 Mobile Framework 主分支同步复核
+
+### 状态：完成（文件完整性与静态契约）
+
+- 当前本地 `main` 与 `origin/main` 同步，Mobile Framework 提交 `6256b90` 已在主分支历史中；与原独立 worktree 比对后，`apps/ak-mobile` 不缺少任何框架文件，20 个注册页面均存在且 20/20 使用 `ak-theme-root`。
+- 主分支在框架提交之后增加了四页面视觉证据，并对 Home、文章页、i18n 和 HTTP Header 类型边界做了后续收紧；没有使用旧 worktree 覆盖这些更新。
+- 后续类型收紧把阅读时长插值改为 `Map<string, string>`，原框架 verifier 仍检查旧的动态参数写法。本轮同步更新检查片段为 `minutes.toString()`，不改变运行时业务逻辑或可见 UI。
+- Mobile Blueprint、统一 i18n、framework contract、secure-storage contract、refresh policy fake HttpPort 与 `git diff --check` 均退出 0。未重新执行三端 compile、安装或真机验证。

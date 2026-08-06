@@ -78,7 +78,7 @@ def check_query_and_lifecycle() -> None:
     for fragment in ("Accept-Language", "Authorization", "timeout: this.config.requestTimeoutMs", "task.abort()", "errorFromStatus"):
         required(fragment in client, f"HTTP client missing {fragment}")
     home = (ROOT / "pages/home/index.uvue").read_text(encoding="utf-8")
-    for fragment in ("onLoad() { this.reload() }", "profiles.profile", "profiles.unreadCount", "articles.list", "onUnload() { this.cancelRequests() }", "featured: true", "[['count', minutes]]"):
+    for fragment in ("onLoad() { this.reload() }", "profiles.profile", "profiles.unreadCount", "articles.list", "onUnload() { this.cancelRequests() }", "featured: true", "[['count', minutes.toString()]]"):
         required(fragment in home, f"home data lifecycle missing {fragment}")
 
 
