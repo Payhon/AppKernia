@@ -1,0 +1,380 @@
+{
+  "zh-CN": {
+    "collapsed": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "collapsed": true,
+      "storedMode": "collapsed",
+      "sider": {
+        "left": 0,
+        "right": 80,
+        "width": 80
+      },
+      "handle": {
+        "left": 80,
+        "right": 98,
+        "top": 430,
+        "bottom": 470,
+        "width": 18,
+        "height": 40,
+        "centerY": 450
+      },
+      "hideHandle": {
+        "left": 80,
+        "right": 98,
+        "top": 398,
+        "bottom": 426,
+        "width": 18,
+        "height": 28
+      },
+      "edgeRestore": null,
+      "headerRestore": null
+    },
+    "route_navigation": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "collapsed": true,
+      "storedMode": "collapsed",
+      "sider": {
+        "left": 0,
+        "right": 80,
+        "width": 80
+      },
+      "handle": {
+        "left": 80,
+        "right": 98,
+        "top": 430,
+        "bottom": 470,
+        "width": 18,
+        "height": 40,
+        "centerY": 450
+      },
+      "hideHandle": {
+        "left": 80,
+        "right": 98,
+        "top": 398,
+        "bottom": 426,
+        "width": 18,
+        "height": 28
+      },
+      "edgeRestore": null,
+      "headerRestore": null
+    },
+    "normal_handle_style": {
+      "backgroundColor": "rgba(255, 255, 255, 0.94)",
+      "borderRightColor": "rgb(216, 216, 216)",
+      "color": "rgb(23, 23, 23)",
+      "opacity": "0",
+      "hovered": false,
+      "hitClass": ""
+    },
+    "hover_handle_style": {
+      "backgroundColor": "rgb(23, 23, 23)",
+      "borderRightColor": "rgb(23, 23, 23)",
+      "color": "rgb(255, 255, 255)",
+      "opacity": "1",
+      "hovered": true,
+      "hitClass": ""
+    },
+    "hidden": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "collapsed": null,
+      "storedMode": "hidden",
+      "sider": null,
+      "handle": null,
+      "hideHandle": null,
+      "edgeRestore": {
+        "left": 0,
+        "right": 18,
+        "top": 430,
+        "bottom": 470,
+        "width": 18,
+        "height": 40,
+        "centerY": 450,
+        "opacity": "0.48"
+      },
+      "headerRestore": {
+        "visible": true,
+        "isFirstAction": true
+      }
+    },
+    "edge_hover_style": {
+      "backgroundColor": "rgb(23, 23, 23)",
+      "borderRightColor": "rgb(23, 23, 23)",
+      "color": "rgb(255, 255, 255)",
+      "opacity": "1",
+      "hovered": true,
+      "hitClass": ""
+    },
+    "expanded": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "collapsed": false,
+      "storedMode": "expanded",
+      "sider": {
+        "left": 0,
+        "right": 248,
+        "width": 248
+      },
+      "handle": {
+        "left": 248,
+        "right": 266,
+        "top": 430,
+        "bottom": 470,
+        "width": 18,
+        "height": 40,
+        "centerY": 450
+      },
+      "hideHandle": null,
+      "edgeRestore": null,
+      "headerRestore": null
+    },
+    "popup_counts": {
+      "initial": 0,
+      "root_hover": 1,
+      "group_hover": 2,
+      "pointer_leave": 0
+    },
+    "second_level": [
+      {
+        "text": "系统设置用户管理权限设置文件存储通知中心任务集成审计安全运行监控",
+        "rect": {
+          "left": 70,
+          "right": 240.125,
+          "top": 126,
+          "bottom": 576,
+          "width": 170.125,
+          "height": 450
+        },
+        "backgroundColor": "rgba(10, 10, 10, 0.86)",
+        "borderRadius": "0px 10px 10px 0px",
+        "backdropFilter": "saturate(1.5) blur(14px)",
+        "boxShadow": "rgba(0, 0, 0, 0.22) 0px 1px 2px 0px, rgba(0, 0, 0, 0.24) 8px 12px 28px 0px"
+      }
+    ],
+    "third_level": [
+      {
+        "text": "系统设置用户管理权限设置文件存储通知中心任务集成审计安全运行监控",
+        "rect": {
+          "left": 70,
+          "right": 240.125,
+          "top": 126,
+          "bottom": 576,
+          "width": 170.125,
+          "height": 450
+        },
+        "backgroundColor": "rgba(10, 10, 10, 0.86)",
+        "borderRadius": "0px 10px 10px 0px",
+        "backdropFilter": "saturate(1.5) blur(14px)",
+        "boxShadow": "rgba(0, 0, 0, 0.22) 0px 1px 2px 0px, rgba(0, 0, 0, 0.24) 8px 12px 28px 0px"
+      },
+      {
+        "text": "系统配置字典管理地区管理",
+        "rect": {
+          "left": 223,
+          "right": 383,
+          "top": 137,
+          "bottom": 317,
+          "width": 160,
+          "height": 180
+        },
+        "backgroundColor": "rgba(10, 10, 10, 0.86)",
+        "borderRadius": "0px 10px 10px 0px",
+        "backdropFilter": "saturate(1.5) blur(14px)",
+        "boxShadow": "rgba(0, 0, 0, 0.22) 0px 1px 2px 0px, rgba(0, 0, 0, 0.24) 8px 12px 28px 0px"
+      }
+    ]
+  },
+  "en-US": {
+    "collapsed": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "collapsed": true,
+      "storedMode": "collapsed",
+      "sider": {
+        "left": 0,
+        "right": 80,
+        "width": 80
+      },
+      "handle": {
+        "left": 80,
+        "right": 98,
+        "top": 430,
+        "bottom": 470,
+        "width": 18,
+        "height": 40,
+        "centerY": 450
+      },
+      "hideHandle": {
+        "left": 80,
+        "right": 98,
+        "top": 398,
+        "bottom": 426,
+        "width": 18,
+        "height": 28
+      },
+      "edgeRestore": null,
+      "headerRestore": null
+    },
+    "route_navigation": null,
+    "normal_handle_style": {
+      "backgroundColor": "rgba(255, 255, 255, 0.94)",
+      "borderRightColor": "rgb(216, 216, 216)",
+      "color": "rgb(23, 23, 23)",
+      "opacity": "0",
+      "hovered": false,
+      "hitClass": ""
+    },
+    "hover_handle_style": {
+      "backgroundColor": "rgb(23, 23, 23)",
+      "borderRightColor": "rgb(23, 23, 23)",
+      "color": "rgb(255, 255, 255)",
+      "opacity": "1",
+      "hovered": true,
+      "hitClass": ""
+    },
+    "hidden": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "collapsed": null,
+      "storedMode": "hidden",
+      "sider": null,
+      "handle": null,
+      "hideHandle": null,
+      "edgeRestore": {
+        "left": 0,
+        "right": 18,
+        "top": 430,
+        "bottom": 470,
+        "width": 18,
+        "height": 40,
+        "centerY": 450,
+        "opacity": "0.48"
+      },
+      "headerRestore": {
+        "visible": true,
+        "isFirstAction": true
+      }
+    },
+    "edge_hover_style": {
+      "backgroundColor": "rgb(23, 23, 23)",
+      "borderRightColor": "rgb(23, 23, 23)",
+      "color": "rgb(255, 255, 255)",
+      "opacity": "1",
+      "hovered": true,
+      "hitClass": ""
+    },
+    "expanded": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "collapsed": false,
+      "storedMode": "expanded",
+      "sider": {
+        "left": 0,
+        "right": 248,
+        "width": 248
+      },
+      "handle": {
+        "left": 248,
+        "right": 266,
+        "top": 430,
+        "bottom": 470,
+        "width": 18,
+        "height": 40,
+        "centerY": 450
+      },
+      "hideHandle": null,
+      "edgeRestore": null,
+      "headerRestore": null
+    },
+    "popup_counts": {
+      "initial": 0,
+      "root_hover": 1,
+      "group_hover": 2,
+      "pointer_leave": 0
+    },
+    "second_level": [
+      {
+        "text": "System SettingsUser ManagementAccess ControlFile StorageNotification CenterJobs & IntegrationsAudit & SecurityMonitoring",
+        "rect": {
+          "left": 70,
+          "right": 308.515625,
+          "top": 126,
+          "bottom": 576,
+          "width": 238.515625,
+          "height": 450
+        },
+        "backgroundColor": "rgba(10, 10, 10, 0.86)",
+        "borderRadius": "0px 10px 10px 0px",
+        "backdropFilter": "saturate(1.5) blur(14px)",
+        "boxShadow": "rgba(0, 0, 0, 0.22) 0px 1px 2px 0px, rgba(0, 0, 0, 0.24) 8px 12px 28px 0px"
+      }
+    ],
+    "third_level": [
+      {
+        "text": "System SettingsUser ManagementAccess ControlFile StorageNotification CenterJobs & IntegrationsAudit & SecurityMonitoring",
+        "rect": {
+          "left": 70,
+          "right": 308.515625,
+          "top": 126,
+          "bottom": 576,
+          "width": 238.515625,
+          "height": 450
+        },
+        "backgroundColor": "rgba(10, 10, 10, 0.86)",
+        "borderRadius": "0px 10px 10px 0px",
+        "backdropFilter": "saturate(1.5) blur(14px)",
+        "boxShadow": "rgba(0, 0, 0, 0.22) 0px 1px 2px 0px, rgba(0, 0, 0, 0.24) 8px 12px 28px 0px"
+      },
+      {
+        "text": "System ConfigurationDictionariesRegions",
+        "rect": {
+          "left": 291,
+          "right": 525.40625,
+          "top": 137,
+          "bottom": 317,
+          "width": 234.40625,
+          "height": 180
+        },
+        "backgroundColor": "rgba(10, 10, 10, 0.86)",
+        "borderRadius": "0px 10px 10px 0px",
+        "backdropFilter": "saturate(1.5) blur(14px)",
+        "boxShadow": "rgba(0, 0, 0, 0.22) 0px 1px 2px 0px, rgba(0, 0, 0, 0.24) 8px 12px 28px 0px"
+      }
+    ]
+  },
+  "axe_serious_or_critical": [],
+  "mobile_hidden_drawer": {
+    "viewport": {
+      "width": 375,
+      "height": 812
+    },
+    "storedMode": "hidden",
+    "edgeRestoreHidden": true,
+    "headerRestoreHidden": true,
+    "drawerOpened": true,
+    "drawerRect": {
+      "left": 0,
+      "right": 280,
+      "width": 280
+    },
+    "horizontalOverflow": false
+  },
+  "horizontal_overflow": false,
+  "console_errors": []
+}
