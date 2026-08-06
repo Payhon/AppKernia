@@ -70,6 +70,35 @@ type itemRequest struct {
 	Status    string          `json:"status"`
 }
 
+type regionCreateRequest struct {
+	Code       string   `json:"code"`
+	ParentCode string   `json:"parent_code"`
+	Name       string   `json:"name"`
+	FullName   string   `json:"full_name"`
+	PostalCode string   `json:"postal_code"`
+	Longitude  *float64 `json:"longitude"`
+	Latitude   *float64 `json:"latitude"`
+	Status     string   `json:"status"`
+}
+
+func (x regionCreateRequest) input() settings.RegionCreateInput {
+	return settings.RegionCreateInput{Code: x.Code, ParentCode: x.ParentCode, Name: x.Name, FullName: x.FullName, PostalCode: x.PostalCode, Longitude: x.Longitude, Latitude: x.Latitude, Status: x.Status}
+}
+
+type regionUpdateRequest struct {
+	Name       string   `json:"name"`
+	FullName   string   `json:"full_name"`
+	PostalCode string   `json:"postal_code"`
+	Longitude  *float64 `json:"longitude"`
+	Latitude   *float64 `json:"latitude"`
+	Status     string   `json:"status"`
+	Version    int32    `json:"version"`
+}
+
+func (x regionUpdateRequest) input() settings.RegionUpdateInput {
+	return settings.RegionUpdateInput{Name: x.Name, FullName: x.FullName, PostalCode: x.PostalCode, Longitude: x.Longitude, Latitude: x.Latitude, Status: x.Status, Version: x.Version}
+}
+
 func (x itemRequest) input() settings.DictItemInput {
 	return settings.DictItemInput{ItemValue: x.ItemValue, Label: x.Label, Locale: x.Locale, Color: x.Color, CSSClass: x.CSSClass, SortOrder: x.SortOrder, IsDefault: x.IsDefault, Extra: x.Extra, Status: x.Status}
 }
@@ -245,6 +274,40 @@ func (h *Handler) Regions(r *ghttp.Request) {
 		h.ok(r, 200, map[string]any{"items": out})
 	}
 }
+func (h *Handler) CreateRegion(r *ghttp.Request) {
+	var body regionCreateRequest
+	if !decode(r, &body) {
+		h.fail(r, settings.ErrInvalid)
+		return
+	}
+	out, err := h.service.CreateRegion(r.Context(), token(r), principal(r), body.input())
+	if !h.fail(r, err) {
+		h.ok(r, 201, out)
+	}
+}
+func (h *Handler) UpdateRegion(r *ghttp.Request) {
+	code := strings.TrimSpace(r.GetRouter("code").String())
+	var body regionUpdateRequest
+	if code == "" || !decode(r, &body) {
+		h.fail(r, settings.ErrInvalid)
+		return
+	}
+	out, err := h.service.UpdateRegion(r.Context(), token(r), principal(r), code, body.input())
+	if !h.fail(r, err) {
+		h.ok(r, 200, out)
+	}
+}
+func (h *Handler) DeleteRegion(r *ghttp.Request) {
+	code := strings.TrimSpace(r.GetRouter("code").String())
+	if code == "" {
+		h.fail(r, settings.ErrInvalid)
+		return
+	}
+	err := h.service.DeleteRegion(r.Context(), token(r), principal(r), code)
+	if !h.fail(r, err) {
+		h.ok(r, 200, map[string]bool{"deleted": true})
+	}
+}
 func (h *Handler) PublicRegions(r *ghttp.Request) {
 	f, ok := regionFilter(r)
 	if !ok {
@@ -256,13 +319,18 @@ func (h *Handler) PublicRegions(r *ghttp.Request) {
 		h.ok(r, 200, map[string]any{"items": out})
 	}
 }
-func (h *Handler) Modules(r *ghttp.Request) {
-	out, err := h.service.ListModules(r.Context(), token(r), settings.ModuleFilter{Query: r.GetQuery("q").String(), Status: r.GetQuery("status").String()})
+func (h *Handler) AdminDictionary(r *ghttp.Request) {
+	out, err := h.service.ResolveAdminDictionary(r.Context(), token(r), r.GetRouter("code").String(), string(httpx.Locale(r)))
 	if !h.fail(r, err) {
-		h.ok(r, 200, map[string]any{"items": out})
+		h.ok(r, 200, out)
 	}
 }
-
+func (h *Handler) PublicDictionary(r *ghttp.Request) {
+	out, err := h.service.ResolvePublicDictionary(r.Context(), r.GetRouter("code").String(), string(httpx.Locale(r)))
+	if !h.fail(r, err) {
+		h.ok(r, 200, out)
+	}
+}
 func token(r *ghttp.Request) string {
 	v := strings.TrimSpace(r.Header.Get("Authorization"))
 	if len(v) > 7 && strings.EqualFold(v[:7], "Bearer ") {

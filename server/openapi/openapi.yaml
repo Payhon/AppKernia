@@ -110,6 +110,13 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+  /api/v1/public/dictionaries/{code}:
+    get:
+      summary: Resolve an active public dictionary using tenant-neutral locale fallback
+      operationId: getPublicDictionary
+      security: []
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: code, in: path, required: true, schema: {type: string, pattern: "^[a-z][a-z0-9_.-]{1,159}$"}}]
+      responses: {"200": {description: Public consumption fields only., content: {application/json: {schema: {$ref: "#/components/schemas/ResolvedDictionaryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
   /admin-api/v1/auth/login/captcha:
     post:
       summary: Create a short-lived image CAPTCHA for an Admin login retry
@@ -1466,19 +1473,49 @@ paths:
         "409": {description: "The session is absent, expired, or already revoked.", content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
   /admin-api/v1/regions:
     get:
-      summary: Lazily list or search the read-only region catalog
+      summary: Lazily list or search the global region catalog
       operationId: listAdminRegions
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: parent_code, in: query, schema: {type: string, maxLength: 32}}, {name: level, in: query, schema: {type: integer, minimum: 0, maximum: 10}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 200, default: 100}}]
       responses: {"200": {description: Region nodes with has_children for lazy expansion., content: {application/json: {schema: {$ref: "#/components/schemas/RegionListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
-  /admin-api/v1/modules:
-    get:
-      summary: List compile-time modules and capabilities
-      operationId: listAdminModules
-      description: Read-only catalog. Runtime upload, installation, uninstallation and binary execution are intentionally unsupported.
+    post:
+      summary: Create a direct child below a province-level or city-level region
+      operationId: createAdminRegion
       security: [{adminBearer: []}]
-      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [enabled, disabled]}}]
-      responses: {"200": {description: Compile-time module catalog., content: {application/json: {schema: {$ref: "#/components/schemas/AdminModuleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminRegionCreateRequest"}}}}
+      responses:
+        "201": {description: Region child created with a server-derived level., content: {application/json: {schema: {$ref: "#/components/schemas/AdminRegionResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {description: Region code already exists., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+  /admin-api/v1/regions/{code}:
+    parameters: [{name: code, in: path, required: true, schema: {type: string, pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$"}}]
+    patch:
+      summary: Update mutable fields of a region without changing its code or hierarchy
+      operationId: updateAdminRegion
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminRegionUpdateRequest"}}}}
+      responses:
+        "200": {description: Region updated and marked as manually managed., content: {application/json: {schema: {$ref: "#/components/schemas/AdminRegionResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {description: Optimistic-lock version conflict., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+    delete:
+      summary: Soft-delete a leaf region
+      operationId: deleteAdminRegion
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
+      responses:
+        "200": {description: Leaf region soft-deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBooleanResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {description: Region still has non-deleted children., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
   /admin-api/v1/files/upload-policy:
     get:
       summary: Read the effective tenant upload policy without exposing storage credentials or bucket names
@@ -1526,7 +1563,7 @@ paths:
       summary: List tenant-scoped files
       operationId: listAdminFiles
       security: [{adminBearer: []}]
-      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [pending, ready, quarantined]}}, {name: scan_status, in: query, schema: {type: string, enum: [pending, clean, infected, failed, skipped]}}, {name: media_type, in: query, schema: {type: string}}, {name: provider, in: query, schema: {type: string, enum: [local, s3, minio]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [pending, ready, quarantined]}}, {name: scan_status, in: query, schema: {type: string, enum: [pending, clean, infected, failed, skipped]}}, {name: media_type, in: query, schema: {type: string}}, {name: provider, in: query, schema: {type: string, x-appkernia-dictionary: storage.driver}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Object keys and checksums are not exposed., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
   /admin-api/v1/files/{id}:
     parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
@@ -1690,6 +1727,35 @@ paths:
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTemplateRequest"}}}}
       responses: {"200": {description: Template updated and audited., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTemplateResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {description: "Duplicate code, channel and locale.", content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/notification-templates/{id}/sms-bindings:
+    get:
+      summary: List tenant SMS provider bindings for a template
+      operationId: listAdminSMSTemplateBindings
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Provider bindings without credentials., content: {application/json: {schema: {$ref: "#/components/schemas/AdminSMSTemplateBindingListResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /admin-api/v1/notification-templates/{id}/sms-bindings/{provider}:
+    put:
+      summary: Create or replace an audited SMS provider template binding
+      operationId: upsertAdminSMSTemplateBinding
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: provider, in: path, required: true, schema: {type: string, enum: [tencent, aliyun]}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminSMSTemplateBindingRequest"}}}}
+      responses: {"200": {description: Binding saved and audited., content: {application/json: {schema: {$ref: "#/components/schemas/AdminSMSTemplateBindingResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+    delete:
+      summary: Delete an audited SMS provider template binding
+      operationId: deleteAdminSMSTemplateBinding
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: provider, in: path, required: true, schema: {type: string, enum: [tencent, aliyun]}}]
+      responses: {"200": {description: Binding deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBooleanResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /admin-api/v1/notification-templates/{id}/test:
+    post:
+      summary: Enqueue a billable real delivery from a saved email or SMS template
+      operationId: testAdminNotificationTemplate
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTemplateTestRequest"}}}}
+      responses: {"202": {description: Encrypted delivery and River job created atomically., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationDeliveryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {$ref: "#/components/responses/ServiceUnavailable"}}
   /admin-api/v1/notification-deliveries:
     get:
       summary: List tenant notification deliveries without encrypted targets or provider payloads
@@ -1710,6 +1776,7 @@ paths:
       operationId: retryAdminNotificationDelivery
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRetryRequest"}}}}
       responses: {"200": {description: Delivery reset to pending and audited. A configured worker adapter performs the next attempt., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationDeliveryResponse"}}}}, "409": {description: Delivery is not failed or exhausted its attempt budget., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
   /admin-api/v1/job-handlers:
     get:
@@ -1816,6 +1883,13 @@ paths:
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDictionaryTypeWriteRequest"}}}}
       responses: {"201": {description: Created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDictionaryTypeResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/dictionaries/{code}:
+    get:
+      summary: Resolve tenant-overlaid active dictionary options for internal Admin consumption
+      operationId: getAdminDictionary
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: code, in: path, required: true, schema: {type: string, pattern: "^[a-z][a-z0-9_.-]{1,159}$"}}]
+      responses: {"200": {description: Merged consumption fields without internal overlay structure., content: {application/json: {schema: {$ref: "#/components/schemas/ResolvedDictionaryResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
   /admin-api/v1/dict-types/{id}:
     patch:
       summary: Update a tenant dictionary type
@@ -3598,19 +3672,49 @@ components:
     Region:
       type: object
       additionalProperties: false
-      required: [code, parent_code, level, name, full_name, postal_code, longitude, latitude, status, has_children, updated_at]
+      required: [code, parent_code, level, name, full_name, postal_code, longitude, latitude, status, has_children, version, updated_at]
       properties:
-        code: {type: string}
-        parent_code: {type: [string, "null"]}
-        level: {type: integer}
-        name: {type: string}
-        full_name: {type: string}
-        postal_code: {type: string}
+        code: {type: string, maxLength: 32}
+        parent_code: {type: [string, "null"], maxLength: 32}
+        level: {type: integer, minimum: 0, maximum: 10}
+        name: {type: string, maxLength: 160}
+        full_name: {type: string, maxLength: 500}
+        postal_code: {type: string, maxLength: 24}
         longitude: {type: [number, "null"]}
         latitude: {type: [number, "null"]}
         status: {type: string, enum: [active, disabled]}
         has_children: {type: boolean}
+        version: {type: integer, format: int32, minimum: 1}
         updated_at: {type: string, format: date-time}
+    AdminRegionCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [code, parent_code, name, full_name, postal_code, longitude, latitude, status]
+      properties:
+        code: {type: string, pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$"}
+        parent_code: {type: string, pattern: "^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$"}
+        name: {type: string, minLength: 1, maxLength: 160}
+        full_name: {type: string, minLength: 1, maxLength: 500}
+        postal_code: {type: string, maxLength: 24}
+        longitude: {type: [number, "null"], minimum: -180, maximum: 180}
+        latitude: {type: [number, "null"], minimum: -90, maximum: 90}
+        status: {type: string, enum: [active, disabled]}
+    AdminRegionUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [name, full_name, postal_code, longitude, latitude, status, version]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 160}
+        full_name: {type: string, minLength: 1, maxLength: 500}
+        postal_code: {type: string, maxLength: 24}
+        longitude: {type: [number, "null"], minimum: -180, maximum: 180}
+        latitude: {type: [number, "null"], minimum: -90, maximum: 90}
+        status: {type: string, enum: [active, disabled]}
+        version: {type: integer, format: int32, minimum: 1}
+    AdminRegionResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/Region"}, request_id: {type: string}}
     RegionListResponse:
       type: object
       required: [code, message, data, request_id]
@@ -3621,31 +3725,6 @@ components:
           type: object
           required: [items]
           properties: {items: {type: array, items: {$ref: "#/components/schemas/Region"}}}
-        request_id: {type: string}
-    AdminModule:
-      type: object
-      additionalProperties: false
-      required: [id, code, name, version, description, capabilities, status, installed_at, updated_at]
-      properties:
-        id: {type: string, format: uuid}
-        code: {type: string}
-        name: {type: string}
-        version: {type: string}
-        description: {type: string}
-        capabilities: {type: object, additionalProperties: true}
-        status: {type: string, enum: [enabled, disabled]}
-        installed_at: {type: string, format: date-time}
-        updated_at: {type: string, format: date-time}
-    AdminModuleListResponse:
-      type: object
-      required: [code, message, data, request_id]
-      properties:
-        code: {type: string, const: OK}
-        message: {type: string}
-        data:
-          type: object
-          required: [items]
-          properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminModule"}}}
         request_id: {type: string}
     AdminFileUploadRequest:
       type: object
@@ -3661,17 +3740,17 @@ components:
       type: object
       additionalProperties: false
       required: [id, original_name, media_type, expected_size, part_size, status, provider, expires_at, uploaded_parts]
-      properties: {id: {type: string, format: uuid}, original_name: {type: string}, media_type: {type: string}, expected_size: {type: integer, format: int64}, part_size: {type: integer, format: int64}, status: {type: string, enum: [initiated, uploading]}, provider: {type: string, enum: [local, s3, minio]}, expires_at: {type: string, format: date-time}, uploaded_parts: {type: array, items: {$ref: "#/components/schemas/AdminFilePart"}}}
+      properties: {id: {type: string, format: uuid}, original_name: {type: string}, media_type: {type: string}, expected_size: {type: integer, format: int64}, part_size: {type: integer, format: int64}, status: {type: string, enum: [initiated, uploading]}, provider: {type: string, x-appkernia-dictionary: storage.driver}, expires_at: {type: string, format: date-time}, uploaded_parts: {type: array, items: {$ref: "#/components/schemas/AdminFilePart"}}}
     AdminFileUploadPolicy:
       type: object
       additionalProperties: false
       required: [provider, max_image_bytes, max_file_bytes, image_media_types, file_media_types, configuration_safe]
-      properties: {provider: {type: string, enum: [local, s3, minio]}, max_image_bytes: {type: integer, format: int64, minimum: 1, maximum: 5242880}, max_file_bytes: {type: integer, format: int64, minimum: 1, maximum: 104857600}, image_media_types: {type: array, items: {type: string}}, file_media_types: {type: array, items: {type: string}}, configuration_safe: {type: boolean}}
+      properties: {provider: {type: string, x-appkernia-dictionary: storage.driver}, max_image_bytes: {type: integer, format: int64, minimum: 1, maximum: 5242880}, max_file_bytes: {type: integer, format: int64, minimum: 1, maximum: 104857600}, image_media_types: {type: array, items: {type: string}}, file_media_types: {type: array, items: {type: string}}, configuration_safe: {type: boolean}}
     AdminFile:
       type: object
       additionalProperties: false
       required: [id, original_name, media_type, extension, size_bytes, provider, status, scan_status, usage_count, created_at, updated_at]
-      properties: {id: {type: string, format: uuid}, original_name: {type: string}, media_type: {type: string}, extension: {type: string}, size_bytes: {type: integer, format: int64}, provider: {type: string, enum: [local, s3, minio]}, status: {type: string, enum: [pending, ready, quarantined]}, scan_status: {type: string, enum: [pending, clean, infected, failed, skipped]}, usage_count: {type: integer, format: int64, minimum: 0}, owner_user_id: {type: [string, "null"], format: uuid}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+      properties: {id: {type: string, format: uuid}, original_name: {type: string}, media_type: {type: string}, extension: {type: string}, size_bytes: {type: integer, format: int64}, provider: {type: string, x-appkernia-dictionary: storage.driver}, status: {type: string, enum: [pending, ready, quarantined]}, scan_status: {type: string, enum: [pending, clean, infected, failed, skipped]}, usage_count: {type: integer, format: int64, minimum: 0}, owner_user_id: {type: [string, "null"], format: uuid}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
     AdminFileUsage:
       type: object
       additionalProperties: false
@@ -3794,23 +3873,26 @@ components:
     AdminNotificationTemplate:
       type: object
       additionalProperties: false
-      required: [id, code, name, channel, locale, subject_template, body_template, variables_schema, status, created_at, updated_at]
+      required: [id, tenant_id, code, name, channel, locale, subject_template, body_template, body_format, variables_schema, status, is_locked, created_at, updated_at]
       properties:
         id: {type: string, format: uuid}
+        tenant_id: {type: [string, "null"], format: uuid}
         code: {type: string}
         name: {type: string}
         channel: {$ref: "#/components/schemas/AdminNotificationTemplateChannel"}
         locale: {type: [string, "null"], enum: [zh-CN, en-US, null]}
         subject_template: {type: [string, "null"]}
         body_template: {type: string}
+        body_format: {type: string, enum: [plain, html]}
         variables_schema: {type: object, additionalProperties: true, description: JSON Schema object declaring every double-brace template variable.}
         status: {type: string, enum: [active, disabled]}
+        is_locked: {type: boolean}
         created_at: {type: string, format: date-time}
         updated_at: {type: string, format: date-time}
     AdminNotificationTemplateRequest:
       type: object
       additionalProperties: false
-      required: [code, name, channel, locale, subject_template, body_template, variables_schema, status]
+      required: [code, name, channel, locale, subject_template, body_template, body_format, variables_schema, status]
       properties:
         code: {type: string, pattern: "^[a-z][a-z0-9_.-]{1,95}$"}
         name: {type: string, minLength: 1, maxLength: 160}
@@ -3818,6 +3900,7 @@ components:
         locale: {type: [string, "null"], enum: [zh-CN, en-US, null]}
         subject_template: {type: [string, "null"], maxLength: 500}
         body_template: {type: string, minLength: 1, maxLength: 100000}
+        body_format: {type: string, enum: [plain, html]}
         variables_schema: {type: object, additionalProperties: true}
         status: {type: string, enum: [active, disabled]}
     AdminNotificationTemplatePage:
@@ -3833,10 +3916,37 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/AdminNotificationTemplatePage"}, request_id: {type: string}}
+    AdminSMSTemplateBinding:
+      type: object
+      additionalProperties: false
+      required: [id, template_id, provider, external_template_id, sign_name, parameter_order, status, version, created_at, updated_at]
+      properties: {id: {type: string, format: uuid}, template_id: {type: string, format: uuid}, provider: {type: string, enum: [tencent, aliyun]}, external_template_id: {type: string}, sign_name: {type: string}, parameter_order: {type: array, items: {type: string}}, status: {type: string, enum: [active, disabled]}, version: {type: integer, format: int32, minimum: 1}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+    AdminSMSTemplateBindingRequest:
+      type: object
+      additionalProperties: false
+      required: [external_template_id, sign_name, parameter_order, status, version]
+      properties: {external_template_id: {type: string, minLength: 1, maxLength: 255}, sign_name: {type: string, maxLength: 120}, parameter_order: {type: array, maxItems: 50, uniqueItems: true, items: {type: string, pattern: "^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$"}}, status: {type: string, enum: [active, disabled]}, version: {type: integer, format: int32, minimum: 1}}
+    AdminSMSTemplateBindingResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/AdminSMSTemplateBinding"}, request_id: {type: string}}
+    AdminSMSTemplateBindingListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {type: array, items: {$ref: "#/components/schemas/AdminSMSTemplateBinding"}}, request_id: {type: string}}
+    AdminNotificationTemplateTestRequest:
+      type: object
+      additionalProperties: false
+      required: [target, provider, variables, confirm_billable]
+      properties: {target: {type: string, minLength: 3, maxLength: 320}, provider: {type: string, enum: [smtp, tencent, aliyun]}, variables: {type: object, maxProperties: 100, additionalProperties: {type: string}}, confirm_billable: {type: boolean, description: Must be true for SMS because a real provider request can incur charges.}}
+    AdminNotificationRetryRequest:
+      type: object
+      additionalProperties: false
+      properties: {acknowledge_duplicate_risk: {type: boolean, default: false, description: Required when retry_risk is duplicate_possible or manual_review.}}
     AdminNotificationDelivery:
       type: object
       additionalProperties: false
-      required: [id, channel, target_hint, provider, status, attempt_count, max_attempts, scheduled_at, error_code, error_summary, created_at, updated_at]
+      required: [id, channel, target_hint, provider, status, attempt_count, max_attempts, scheduled_at, error_code, error_summary, retryable, retry_risk, created_at, updated_at]
       properties:
         id: {type: string, format: uuid}
         message_id: {type: [string, "null"], format: uuid}
@@ -3845,6 +3955,7 @@ components:
         channel: {type: string, enum: [email, sms, push, webhook]}
         target_hint: {type: string, description: Safe server-generated hint; ciphertext and hash are never returned.}
         provider: {type: string}
+        provider_message_id: {type: string, description: Safe provider receipt identifier when available.}
         status: {type: string, enum: [pending, processing, sent, failed, cancelled]}
         attempt_count: {type: integer, format: int32, minimum: 0}
         max_attempts: {type: integer, format: int32, minimum: 1}
@@ -3853,6 +3964,8 @@ components:
         sent_at: {type: [string, "null"], format: date-time}
         error_code: {type: string, description: Stable safe error category; never a provider payload.}
         error_summary: {type: string, maxLength: 500, description: Bounded control-character-free recovery summary.}
+        retryable: {type: boolean, description: True only for explicit transient provider rejection below the attempt limit.}
+        retry_risk: {type: string, enum: [none, duplicate_possible, manual_review]}
         created_at: {type: string, format: date-time}
         updated_at: {type: string, format: date-time}
     AdminNotificationDeliveryPage:
@@ -4032,8 +4145,8 @@ components:
       properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminConfigPage"}, request_id: {type: string}}
     AdminDictionaryType:
       type: object
-      required: [id, tenant_id, code, name, description, status, is_system, is_locked, created_at, updated_at]
-      properties: {id: {type: string, format: uuid}, tenant_id: {type: [string, "null"], format: uuid}, code: {type: string}, name: {type: string}, description: {type: string}, status: {type: string, enum: [active, disabled]}, is_system: {type: boolean}, is_locked: {type: boolean}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+      required: [id, tenant_id, code, name, name_key, description, description_key, visibility, extension_policy, status, is_system, is_locked, created_at, updated_at]
+      properties: {id: {type: string, format: uuid}, tenant_id: {type: [string, "null"], format: uuid}, code: {type: string}, name: {type: string}, name_key: {type: string}, description: {type: string}, description_key: {type: string}, visibility: {type: string, enum: [internal, public]}, extension_policy: {type: string, enum: [fixed, open, registered, s3_compatible]}, status: {type: string, enum: [active, disabled]}, is_system: {type: boolean}, is_locked: {type: boolean}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
     AdminDictionaryTypeWriteRequest:
       type: object
       additionalProperties: false
@@ -4053,8 +4166,8 @@ components:
       properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminDictionaryTypePage"}, request_id: {type: string}}
     AdminDictionaryItem:
       type: object
-      required: [id, dict_type_id, item_value, label, locale, color, css_class, sort_order, is_default, extra, status, is_locked, created_at, updated_at]
-      properties: {id: {type: string, format: uuid}, dict_type_id: {type: string, format: uuid}, item_value: {type: string}, label: {type: string}, locale: {type: [string, "null"], enum: [zh-CN, en-US, null]}, color: {type: string}, css_class: {type: string}, sort_order: {type: integer, format: int32}, is_default: {type: boolean}, extra: {type: object, additionalProperties: true}, status: {type: string, enum: [active, disabled]}, is_locked: {type: boolean}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+      required: [id, dict_type_id, tenant_id, item_value, label, locale, color, css_class, sort_order, is_default, extra, status, is_locked, created_at, updated_at]
+      properties: {id: {type: string, format: uuid}, dict_type_id: {type: string, format: uuid}, tenant_id: {type: [string, "null"], format: uuid}, item_value: {type: string}, label: {type: string}, locale: {type: [string, "null"], enum: [zh-CN, en-US, null]}, color: {type: string}, css_class: {type: string}, sort_order: {type: integer, format: int32}, is_default: {type: boolean}, extra: {type: object, additionalProperties: true}, status: {type: string, enum: [active, disabled]}, is_locked: {type: boolean}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
     AdminDictionaryItemWriteRequest:
       type: object
       additionalProperties: false
@@ -4072,6 +4185,20 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminDictionaryItemPage"}, request_id: {type: string}}
+    DictionaryOption:
+      type: object
+      additionalProperties: false
+      required: [value, label, is_default, extra]
+      properties: {value: {type: string}, label: {type: string}, color: {type: string}, css_class: {type: string}, is_default: {type: boolean}, extra: {type: object, additionalProperties: true}}
+    ResolvedDictionary:
+      type: object
+      additionalProperties: false
+      required: [code, locale, extension_policy, items]
+      properties: {code: {type: string}, locale: {$ref: "#/components/schemas/SupportedLocale"}, extension_policy: {type: string, enum: [fixed, open, registered, s3_compatible]}, items: {type: array, items: {$ref: "#/components/schemas/DictionaryOption"}}}
+    ResolvedDictionaryResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/ResolvedDictionary"}, request_id: {type: string}}
     AdminAPIClientSecret:
       type: object
       required: [id, prefix, created_at]
@@ -4247,8 +4374,14 @@ components:
     AdminOpsModule:
       type: object
       additionalProperties: false
-      required: [code, version, status]
-      properties: {code: {type: string}, version: {type: string}, status: {type: string, enum: [enabled, disabled]}}
+      required: [code, name_key, description_key, version, capabilities, status]
+      properties:
+        code: {type: string}
+        name_key: {type: string}
+        description_key: {type: string}
+        version: {type: string}
+        capabilities: {type: object, additionalProperties: {type: boolean}}
+        status: {type: string, enum: [enabled, disabled]}
     AdminOpsQueue:
       type: object
       additionalProperties: false

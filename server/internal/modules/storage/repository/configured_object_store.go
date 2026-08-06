@@ -40,6 +40,11 @@ type storageProfile struct {
 	SessionToken    string
 }
 
+type storageDriverMetadata struct {
+	Adapter  string `json:"adapter"`
+	Provider string `json:"provider"`
+}
+
 func NewConfiguredObjectStore(pool *pgxpool.Pool, secrets SecretOpener, localRoot, environment string) (*ConfiguredObjectStore, error) {
 	if pool == nil || secrets == nil {
 		return nil, errors.New("configured object storage requires PostgreSQL and a secret opener")
@@ -196,24 +201,78 @@ WHERE tenant_id = $1 AND module_code = 'storage' AND config_group = 'cloud'
 		ImageMediaTypes: stringSlice(values, "storage.image_media_types", []string{"image/jpeg", "image/png", "image/webp"}),
 		FileMediaTypes:  stringSlice(values, "storage.file_media_types", []string{"application/pdf", "application/json", "application/zip", "application/octet-stream", "text/plain", "text/csv", "image/jpeg", "image/png", "image/webp"}),
 	}, Region: stringValue(values, "storage.region", ""), UseSSL: boolValue(values, "storage.use_ssl", true), ForcePathStyle: boolValue(values, "storage.force_path_style", false), AccessKeyID: secrets["storage.access_key_id"], SecretAccessKey: secrets["storage.secret_access_key"], SessionToken: secrets["storage.session_token"]}
+	driver, err := store.resolveDriver(ctx, tenantID, profile.Provider)
+	if err != nil {
+		return storageProfile{}, domain.ErrStorageConfig
+	}
 	if profile.Provider == "local" {
-		if store.environment != "development" || store.local == nil {
+		if driver.Adapter != "local" || store.environment != "development" || store.local == nil {
 			return storageProfile{}, domain.ErrStorageConfig
 		}
 		profile.Bucket = "appkernia-local"
 		profile.ConfigurationSafe = true
 		return profile, nil
 	}
-	if profile.Provider != "s3" && profile.Provider != "minio" {
+	if driver.Adapter != "s3_compatible" {
 		return storageProfile{}, domain.ErrStorageConfig
+	}
+	if profile.Provider == "oss" || profile.Provider == "cos" || profile.Provider == "qiniu" {
+		profile.ForcePathStyle = false
 	}
 	profile.Bucket = strings.TrimSpace(stringValue(values, "storage.bucket", ""))
 	profile.Endpoint, profile.UseSSL, err = normalizeEndpoint(stringValue(values, "storage.endpoint", ""), profile.UseSSL)
-	if err != nil || profile.Bucket == "" || profile.AccessKeyID == "" || profile.SecretAccessKey == "" || (!profile.UseSSL && store.environment != "development") {
+	if err != nil || validateProviderProfile(profile.Provider, profile.Endpoint, profile.Region) != nil || profile.Bucket == "" || profile.AccessKeyID == "" || profile.SecretAccessKey == "" || (!profile.UseSSL && store.environment != "development") {
 		return storageProfile{}, domain.ErrStorageConfig
 	}
 	profile.ConfigurationSafe = true
 	return profile, nil
+}
+
+func validateProviderProfile(provider, endpoint, region string) error {
+	host := strings.ToLower(strings.TrimSpace(endpoint))
+	region = strings.ToLower(strings.TrimSpace(region))
+	switch provider {
+	case "cos":
+		if region == "" || !strings.HasPrefix(host, "cos.") || !strings.HasSuffix(host, ".myqcloud.com") || !strings.Contains(host, "."+region+".") {
+			return errors.New("Tencent COS endpoint must match the configured region")
+		}
+	case "oss":
+		if region == "" || !strings.HasPrefix(host, "oss-") || !strings.HasSuffix(host, ".aliyuncs.com") || !strings.Contains(host, region) {
+			return errors.New("Alibaba OSS endpoint must match the configured region")
+		}
+	case "qiniu":
+		if region == "" || !strings.HasSuffix(host, ".qiniucs.com") {
+			return errors.New("Qiniu Kodo endpoint and region are required")
+		}
+	}
+	return nil
+}
+
+func (store *ConfiguredObjectStore) resolveDriver(ctx context.Context, tenantID uuid.UUID, provider string) (storageDriverMetadata, error) {
+	var raw json.RawMessage
+	err := store.pool.QueryRow(ctx, `
+WITH ranked AS (
+    SELECT i.extra,i.status,
+           row_number() OVER (ORDER BY
+             CASE WHEN i.locale='zh-CN' THEN 0 WHEN i.locale IS NULL THEN 1 ELSE 2 END,
+             CASE WHEN i.tenant_id=$1 THEN 0 ELSE 1 END,
+             i.id) AS rank
+    FROM sys.dict_types d
+    JOIN sys.dict_items i ON i.dict_type_id=d.id
+    WHERE d.code='storage.driver' AND d.status='active'
+      AND (d.tenant_id IS NULL OR d.tenant_id=$1)
+      AND (i.tenant_id IS NULL OR i.tenant_id=$1)
+      AND i.item_value=$2
+)
+SELECT extra FROM ranked WHERE rank=1 AND status='active'`, tenantID, provider).Scan(&raw)
+	if err != nil {
+		return storageDriverMetadata{}, err
+	}
+	var metadata storageDriverMetadata
+	if json.Unmarshal(raw, &metadata) != nil || metadata.Adapter == "" {
+		return storageDriverMetadata{}, domain.ErrStorageConfig
+	}
+	return metadata, nil
 }
 
 func normalizeEndpoint(raw string, secure bool) (string, bool, error) {

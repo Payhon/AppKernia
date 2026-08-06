@@ -1,0 +1,120 @@
+{
+  "version": 1,
+  "modules": [
+    {
+      "code": "iam",
+      "name": "Identity and Access",
+      "name_key": "ops.modules.iam.name",
+      "description": "Authentication, users, tenants, roles, sessions, MFA, OAuth and access rules.",
+      "description_key": "ops.modules.iam.description",
+      "capabilities": {
+        "authentication": true,
+        "users": true,
+        "tenants": true,
+        "roles": true,
+        "sessions": true,
+        "mfa": true,
+        "oauth": true,
+        "access_rules": true
+      },
+      "status": "enabled"
+    },
+    {
+      "code": "org",
+      "name": "Organization",
+      "name_key": "ops.modules.org.name",
+      "description": "Organization units, positions and user assignments.",
+      "description_key": "ops.modules.org.description",
+      "capabilities": {
+        "units": true,
+        "positions": true,
+        "assignments": true
+      },
+      "status": "enabled"
+    },
+    {
+      "code": "sys",
+      "name": "System Foundation",
+      "name_key": "ops.modules.sys.name",
+      "description": "Configuration, dictionaries, regions, menus, API clients and webhooks.",
+      "description_key": "ops.modules.sys.description",
+      "capabilities": {
+        "configuration": true,
+        "dictionaries": true,
+        "regions": true,
+        "menus": true,
+        "api_clients": true,
+        "webhooks": true
+      },
+      "status": "enabled"
+    },
+    {
+      "code": "storage",
+      "name": "Object Storage",
+      "name_key": "ops.modules.storage.name",
+      "description": "Avatars, files, multipart uploads and private downloads.",
+      "description_key": "ops.modules.storage.description",
+      "capabilities": {
+        "avatars": true,
+        "files": true,
+        "multipart_upload": true,
+        "private_download": true
+      },
+      "status": "enabled"
+    },
+    {
+      "code": "notify",
+      "name": "Notifications",
+      "name_key": "ops.modules.notify.name",
+      "description": "Notices, messages, templates and delivery tracking.",
+      "description_key": "ops.modules.notify.description",
+      "capabilities": {
+        "notices": true,
+        "messages": true,
+        "templates": true,
+        "deliveries": true
+      },
+      "status": "enabled"
+    },
+    {
+      "code": "jobs",
+      "name": "Scheduled Jobs",
+      "name_key": "ops.modules.jobs.name",
+      "description": "Schedules, execution history and background workers.",
+      "description_key": "ops.modules.jobs.description",
+      "capabilities": {
+        "schedules": true,
+        "runs": true,
+        "worker": true
+      },
+      "status": "enabled"
+    },
+    {
+      "code": "audit",
+      "name": "Audit and Security",
+      "name_key": "ops.modules.audit.name",
+      "description": "Operation logs, login logs and security events.",
+      "description_key": "ops.modules.audit.description",
+      "capabilities": {
+        "operation_logs": true,
+        "login_logs": true,
+        "security_events": true
+      },
+      "status": "enabled"
+    },
+    {
+      "code": "ops",
+      "name": "Operations",
+      "name_key": "ops.modules.ops.name",
+      "description": "Health checks, runtime diagnostics, dependency status and queue summaries.",
+      "description_key": "ops.modules.ops.description",
+      "capabilities": {
+        "health": true,
+        "runtime_summary": true,
+        "dependency_status": true,
+        "queue_summary": true
+      },
+      "status": "enabled"
+    }
+  ]
+}

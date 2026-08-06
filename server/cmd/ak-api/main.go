@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/appkernia/appkernia/server/internal/bootstrap"
+	"github.com/appkernia/appkernia/server/internal/platform/buildinfo"
 	"github.com/appkernia/appkernia/server/internal/platform/config"
 )
 
@@ -19,6 +20,7 @@ func main() {
 }
 
 func run() error {
+	fmt.Printf("ak-api version=%s commit=%s\n", buildinfo.Version, buildinfo.Commit)
 	cfg, err := config.Load()
 	if err != nil {
 		return err

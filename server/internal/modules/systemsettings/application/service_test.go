@@ -20,10 +20,17 @@ func (f fakeAuthenticator) Authenticate(context.Context, string, string) (iamdom
 }
 
 type fakeRepository struct {
-	principal settings.Principal
-	input     settings.ConfigInput
-	sealed    []byte
-	version   int32
+	principal         settings.Principal
+	input             settings.ConfigInput
+	regionCreateInput settings.RegionCreateInput
+	regionUpdateInput settings.RegionUpdateInput
+	regionCode        string
+	sealed            []byte
+	version           int32
+}
+
+func (f *fakeRepository) ResolveDictionary(_ context.Context, _ *uuid.UUID, code, locale string, _ bool) (settings.ResolvedDictionary, error) {
+	return settings.ResolvedDictionary{Code: code, Locale: locale, ExtensionPolicy: "open", Items: []settings.DictionaryOption{}}, nil
 }
 
 func (*fakeRepository) ListPublicConfigs(context.Context) (map[string]json.RawMessage, error) {
@@ -32,10 +39,18 @@ func (*fakeRepository) ListPublicConfigs(context.Context) (map[string]json.RawMe
 func (*fakeRepository) ListRegions(context.Context, settings.RegionFilter) ([]settings.Region, error) {
 	return nil, nil
 }
-func (*fakeRepository) ListModules(context.Context, settings.ModuleFilter) ([]settings.Module, error) {
-	return nil, nil
+func (f *fakeRepository) CreateRegion(_ context.Context, p settings.Principal, in settings.RegionCreateInput) (settings.Region, error) {
+	f.principal, f.regionCreateInput = p, in
+	return settings.Region{Code: in.Code, ParentCode: &in.ParentCode, Name: in.Name, Version: 1}, nil
 }
-
+func (f *fakeRepository) UpdateRegion(_ context.Context, p settings.Principal, code string, in settings.RegionUpdateInput) (settings.Region, error) {
+	f.principal, f.regionCode, f.regionUpdateInput = p, code, in
+	return settings.Region{Code: code, Name: in.Name, Version: in.Version + 1}, nil
+}
+func (f *fakeRepository) DeleteRegion(_ context.Context, p settings.Principal, code string) error {
+	f.principal, f.regionCode = p, code
+	return nil
+}
 func (*fakeRepository) ListConfigs(context.Context, uuid.UUID, settings.PageFilter) (settings.ConfigPage, error) {
 	return settings.ConfigPage{}, nil
 }
@@ -90,17 +105,50 @@ func TestServiceRequiresExactPermission(t *testing.T) {
 }
 
 func TestCatalogRequiresExactPermissionsAndValidatesLargeTreeFilters(t *testing.T) {
-	service := NewService(fakeAuthenticator{auth: authContext("sys.region.reader", "sys.module.reader")}, &fakeRepository{}, &fakeSealer{})
+	service := NewService(fakeAuthenticator{auth: authContext("sys.region.reader")}, &fakeRepository{}, &fakeSealer{})
 	if _, err := service.ListRegions(context.Background(), "token", settings.RegionFilter{}); !errors.Is(err, settings.ErrForbidden) {
 		t.Fatalf("region prefix permission authorized: %v", err)
 	}
-	service = NewService(fakeAuthenticator{auth: authContext("sys.region.read", "sys.module.read")}, &fakeRepository{}, &fakeSealer{})
+	service = NewService(fakeAuthenticator{auth: authContext("sys.region.read")}, &fakeRepository{}, &fakeSealer{})
 	tooLarge := int16(11)
 	if _, err := service.ListRegions(context.Background(), "token", settings.RegionFilter{Level: &tooLarge}); !errors.Is(err, settings.ErrInvalid) {
 		t.Fatalf("invalid region level: %v", err)
 	}
-	if _, err := service.ListModules(context.Background(), "token", settings.ModuleFilter{Status: "installed"}); !errors.Is(err, settings.ErrInvalid) {
-		t.Fatalf("runtime module status accepted: %v", err)
+}
+
+func TestRegionWritesRequireExactPermissionsAndValidateImmutableHierarchyInputs(t *testing.T) {
+	repository := &fakeRepository{}
+	service := NewService(fakeAuthenticator{auth: authContext("sys.region.creator")}, repository, &fakeSealer{})
+	create := settings.RegionCreateInput{Code: "990100", ParentCode: "990000", Name: "测试市", FullName: "测试省 / 测试市", Status: "active"}
+	if _, err := service.CreateRegion(context.Background(), "token", settings.Principal{}, create); !errors.Is(err, settings.ErrForbidden) {
+		t.Fatalf("prefix create permission authorized: %v", err)
+	}
+
+	service = NewService(fakeAuthenticator{auth: authContext("sys.region.create")}, repository, &fakeSealer{})
+	created, err := service.CreateRegion(context.Background(), "token", settings.Principal{RequestID: "region-create"}, create)
+	if err != nil || created.Code != create.Code || repository.principal.TenantID == uuid.Nil || repository.regionCreateInput.ParentCode != create.ParentCode {
+		t.Fatalf("create region=%+v input=%+v principal=%+v err=%v", created, repository.regionCreateInput, repository.principal, err)
+	}
+	invalid := create
+	invalid.ParentCode = invalid.Code
+	if _, err = service.CreateRegion(context.Background(), "token", settings.Principal{}, invalid); !errors.Is(err, settings.ErrInvalid) {
+		t.Fatalf("self-parent create error=%v", err)
+	}
+
+	service = NewService(fakeAuthenticator{auth: authContext("sys.region.update")}, repository, &fakeSealer{})
+	update := settings.RegionUpdateInput{Name: "测试市（新）", FullName: "测试省 / 测试市（新）", Status: "active", Version: 1}
+	updated, err := service.UpdateRegion(context.Background(), "token", settings.Principal{}, create.Code, update)
+	if err != nil || updated.Version != 2 || repository.regionCode != create.Code {
+		t.Fatalf("update region=%+v code=%s err=%v", updated, repository.regionCode, err)
+	}
+	update.Version = 0
+	if _, err = service.UpdateRegion(context.Background(), "token", settings.Principal{}, create.Code, update); !errors.Is(err, settings.ErrInvalid) {
+		t.Fatalf("zero version update error=%v", err)
+	}
+
+	service = NewService(fakeAuthenticator{auth: authContext("sys.region.delete")}, repository, &fakeSealer{})
+	if err = service.DeleteRegion(context.Background(), "token", settings.Principal{}, create.Code); err != nil || repository.regionCode != create.Code {
+		t.Fatalf("delete code=%s err=%v", repository.regionCode, err)
 	}
 }
 

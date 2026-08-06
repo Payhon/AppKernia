@@ -597,11 +597,29 @@
       "status": "active"
     },
     {
-      "code": "sys.module.read",
-      "name": "查看模块",
+      "code": "sys.region.create",
+      "name": "新增地区",
       "module_code": "sys",
-      "resource_name": "module",
-      "action_name": "read",
+      "resource_name": "region",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.region.update",
+      "name": "编辑地区",
+      "module_code": "sys",
+      "resource_name": "region",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.region.delete",
+      "name": "删除地区",
+      "module_code": "sys",
+      "resource_name": "region",
+      "action_name": "delete",
       "permission_kind": "api",
       "status": "active"
     },
@@ -791,6 +809,15 @@
       "module_code": "notify",
       "resource_name": "template",
       "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.template.test",
+      "name": "测试发送通知模板",
+      "module_code": "notify",
+      "resource_name": "template",
+      "action_name": "test",
       "permission_kind": "api",
       "status": "active"
     },

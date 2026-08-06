@@ -13,7 +13,7 @@ import (
 
 const createDictItem = `-- name: CreateDictItem :one
 INSERT INTO sys.dict_items (dict_type_id,item_value,label,locale,color,css_class,sort_order,is_default,extra,status)
-VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id, dict_type_id, item_value, label, locale, color, css_class, sort_order, is_default, extra, status, created_at, updated_at
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id, dict_type_id, item_value, label, locale, color, css_class, sort_order, is_default, extra, status, created_at, updated_at, tenant_id
 `
 
 type CreateDictItemParams struct {
@@ -57,6 +57,7 @@ func (q *Queries) CreateDictItem(ctx context.Context, arg CreateDictItemParams) 
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TenantID,
 	)
 	return i, err
 }
@@ -136,7 +137,7 @@ func (q *Queries) CreateTenantConfig(ctx context.Context, arg CreateTenantConfig
 
 const createTenantDictType = `-- name: CreateTenantDictType :one
 INSERT INTO sys.dict_types (tenant_id, code, name, description, is_system, status)
-VALUES ($1,$2,$3,$4,false,$5) RETURNING id, tenant_id, code, name, description, is_system, status, created_at, updated_at
+VALUES ($1,$2,$3,$4,false,$5) RETURNING id, tenant_id, code, name, description, is_system, status, created_at, updated_at, name_key, description_key, visibility, extension_policy
 `
 
 type CreateTenantDictTypeParams struct {
@@ -166,6 +167,10 @@ func (q *Queries) CreateTenantDictType(ctx context.Context, arg CreateTenantDict
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.NameKey,
+		&i.DescriptionKey,
+		&i.Visibility,
+		&i.ExtensionPolicy,
 	)
 	return i, err
 }
@@ -183,7 +188,7 @@ func (q *Queries) DeleteDictItem(ctx context.Context, id uuid.UUID) (int64, erro
 }
 
 const getDictItemForUpdate = `-- name: GetDictItemForUpdate :one
-SELECT i.id, i.dict_type_id, i.item_value, i.label, i.locale, i.color, i.css_class, i.sort_order, i.is_default, i.extra, i.status, i.created_at, i.updated_at FROM sys.dict_items i JOIN sys.dict_types d ON d.id=i.dict_type_id
+SELECT i.id, i.dict_type_id, i.item_value, i.label, i.locale, i.color, i.css_class, i.sort_order, i.is_default, i.extra, i.status, i.created_at, i.updated_at, i.tenant_id FROM sys.dict_items i JOIN sys.dict_types d ON d.id=i.dict_type_id
 WHERE (d.tenant_id IS NULL OR d.tenant_id=$1) AND i.id=$2 FOR UPDATE OF i
 `
 
@@ -209,6 +214,7 @@ func (q *Queries) GetDictItemForUpdate(ctx context.Context, arg GetDictItemForUp
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.TenantID,
 	)
 	return i, err
 }
@@ -253,7 +259,7 @@ func (q *Queries) GetTenantConfigForUpdate(ctx context.Context, arg GetTenantCon
 }
 
 const getVisibleDictType = `-- name: GetVisibleDictType :one
-SELECT id, tenant_id, code, name, description, is_system, status, created_at, updated_at FROM sys.dict_types WHERE (tenant_id IS NULL OR tenant_id = $1) AND id = $2
+SELECT id, tenant_id, code, name, description, is_system, status, created_at, updated_at, name_key, description_key, visibility, extension_policy FROM sys.dict_types WHERE (tenant_id IS NULL OR tenant_id = $1) AND id = $2
 `
 
 type GetVisibleDictTypeParams struct {
@@ -274,12 +280,16 @@ func (q *Queries) GetVisibleDictType(ctx context.Context, arg GetVisibleDictType
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.NameKey,
+		&i.DescriptionKey,
+		&i.Visibility,
+		&i.ExtensionPolicy,
 	)
 	return i, err
 }
 
 const listDictItems = `-- name: ListDictItems :many
-SELECT id, dict_type_id, item_value, label, locale, color, css_class, sort_order, is_default, extra, status, created_at, updated_at FROM sys.dict_items WHERE dict_type_id = $1 ORDER BY sort_order, id
+SELECT id, dict_type_id, item_value, label, locale, color, css_class, sort_order, is_default, extra, status, created_at, updated_at, tenant_id FROM sys.dict_items WHERE dict_type_id = $1 ORDER BY sort_order, id
 `
 
 func (q *Queries) ListDictItems(ctx context.Context, dictTypeID uuid.UUID) ([]SysDictItem, error) {
@@ -305,6 +315,7 @@ func (q *Queries) ListDictItems(ctx context.Context, dictTypeID uuid.UUID) ([]Sy
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.TenantID,
 		); err != nil {
 			return nil, err
 		}
@@ -364,7 +375,7 @@ func (q *Queries) ListVisibleConfigs(ctx context.Context, tenantID *uuid.UUID) (
 }
 
 const listVisibleDictTypes = `-- name: ListVisibleDictTypes :many
-SELECT id, tenant_id, code, name, description, is_system, status, created_at, updated_at FROM sys.dict_types WHERE tenant_id IS NULL OR tenant_id = $1 ORDER BY name, id
+SELECT id, tenant_id, code, name, description, is_system, status, created_at, updated_at, name_key, description_key, visibility, extension_policy FROM sys.dict_types WHERE tenant_id IS NULL OR tenant_id = $1 ORDER BY name, id
 `
 
 func (q *Queries) ListVisibleDictTypes(ctx context.Context, tenantID *uuid.UUID) ([]SysDictType, error) {
@@ -386,6 +397,10 @@ func (q *Queries) ListVisibleDictTypes(ctx context.Context, tenantID *uuid.UUID)
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.NameKey,
+			&i.DescriptionKey,
+			&i.Visibility,
+			&i.ExtensionPolicy,
 		); err != nil {
 			return nil, err
 		}

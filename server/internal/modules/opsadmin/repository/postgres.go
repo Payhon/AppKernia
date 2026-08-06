@@ -6,6 +6,7 @@ import (
 	"time"
 
 	ops "github.com/appkernia/appkernia/server/internal/modules/opsadmin/domain"
+	"github.com/appkernia/appkernia/server/internal/platform/buildinfo"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -44,15 +45,15 @@ func (r *Postgres) Health(ctx context.Context) ops.Health {
 }
 func (r *Postgres) Runtime(ctx context.Context, tenant uuid.UUID, started time.Time) (ops.RuntimeSummary, error) {
 	now := r.now().UTC()
-	out := ops.RuntimeSummary{AppVersion: "0.1.0", GoVersion: runtime.Version(), UptimeSeconds: int64(now.Sub(started).Seconds()), Modules: []ops.Module{}, Queue: ops.Queue{Status: "unknown"}, GeneratedAt: now}
-	rows, e := r.pool.Query(ctx, `SELECT code::text,version,status FROM sys.modules ORDER BY code`)
+	out := ops.RuntimeSummary{AppVersion: buildinfo.Version, GoVersion: runtime.Version(), UptimeSeconds: int64(now.Sub(started).Seconds()), Modules: []ops.Module{}, Queue: ops.Queue{Status: "unknown"}, GeneratedAt: now}
+	rows, e := r.pool.Query(ctx, `SELECT code::text,name_key,description_key,version,capabilities,status FROM sys.modules ORDER BY code`)
 	if e != nil {
 		return out, e
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var m ops.Module
-		if e = rows.Scan(&m.Code, &m.Version, &m.Status); e != nil {
+		if e = rows.Scan(&m.Code, &m.NameKey, &m.DescriptionKey, &m.Version, &m.Capabilities, &m.Status); e != nil {
 			return out, e
 		}
 		out.Modules = append(out.Modules, m)

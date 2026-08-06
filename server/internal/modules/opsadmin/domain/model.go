@@ -2,6 +2,7 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -23,9 +24,12 @@ type Health struct {
 	CheckedAt    time.Time    `json:"checked_at"`
 }
 type Module struct {
-	Code    string `json:"code"`
-	Version string `json:"version"`
-	Status  string `json:"status"`
+	Code           string          `json:"code"`
+	NameKey        string          `json:"name_key"`
+	DescriptionKey string          `json:"description_key"`
+	Version        string          `json:"version"`
+	Capabilities   json.RawMessage `json:"capabilities"`
+	Status         string          `json:"status"`
 }
 type Queue struct {
 	Status          string     `json:"status"`

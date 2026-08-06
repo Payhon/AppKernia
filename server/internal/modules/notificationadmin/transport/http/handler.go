@@ -178,6 +178,58 @@ func (h *Handler) UpdateTemplate(r *ghttp.Request) {
 	}
 }
 
+func (h *Handler) SMSTemplateBindings(r *ghttp.Request) {
+	id, ok := routerID(r)
+	if !ok {
+		h.fail(r, notify.ErrInvalid)
+		return
+	}
+	out, err := h.service.ListSMSTemplateBindings(r.Context(), token(r), id)
+	if !h.fail(r, err) {
+		h.ok(r, 200, out)
+	}
+}
+
+func (h *Handler) UpsertSMSTemplateBinding(r *ghttp.Request) {
+	id, ok := routerID(r)
+	var body notify.SMSTemplateBindingInput
+	if !ok || !decode(r, &body) {
+		h.fail(r, notify.ErrInvalid)
+		return
+	}
+	provider := strings.TrimSpace(r.GetRouter("provider").String())
+	out, err := h.service.UpsertSMSTemplateBinding(r.Context(), token(r), requestPrincipal(r), id, provider, body)
+	if !h.fail(r, err) {
+		h.ok(r, 200, out)
+	}
+}
+
+func (h *Handler) DeleteSMSTemplateBinding(r *ghttp.Request) {
+	id, ok := routerID(r)
+	provider := strings.TrimSpace(r.GetRouter("provider").String())
+	if !ok {
+		h.fail(r, notify.ErrInvalid)
+		return
+	}
+	err := h.service.DeleteSMSTemplateBinding(r.Context(), token(r), requestPrincipal(r), id, provider)
+	if !h.fail(r, err) {
+		h.ok(r, 200, map[string]bool{"deleted": true})
+	}
+}
+
+func (h *Handler) TestTemplate(r *ghttp.Request) {
+	id, ok := routerID(r)
+	var body notify.TemplateTestInput
+	if !ok || !decode(r, &body) {
+		h.fail(r, notify.ErrInvalid)
+		return
+	}
+	out, err := h.service.TestTemplate(r.Context(), token(r), requestPrincipal(r), id, body)
+	if !h.fail(r, err) {
+		h.ok(r, 202, out)
+	}
+}
+
 func (h *Handler) Deliveries(r *ghttp.Request) {
 	f, ok := pageFilter(r)
 	if !ok {
@@ -203,12 +255,14 @@ func (h *Handler) Delivery(r *ghttp.Request) {
 }
 func (h *Handler) RetryDelivery(r *ghttp.Request) {
 	id, ok := routerID(r)
-	var body struct{}
+	var body struct {
+		AcknowledgeDuplicateRisk bool `json:"acknowledge_duplicate_risk"`
+	}
 	if !ok || !decodeOptional(r, &body) {
 		h.fail(r, notify.ErrInvalid)
 		return
 	}
-	out, err := h.service.RetryDelivery(r.Context(), token(r), requestPrincipal(r), id)
+	out, err := h.service.RetryDelivery(r.Context(), token(r), requestPrincipal(r), id, body.AcknowledgeDuplicateRisk)
 	if !h.fail(r, err) {
 		h.ok(r, 200, out)
 	}
@@ -254,6 +308,8 @@ func (h *Handler) fail(r *ghttp.Request, err error) bool {
 		status, code, key = 409, "NOTIFY.RECIPIENT.EMPTY", "errors.common.conflict"
 	case errors.Is(err, notify.ErrRetryNotAllowed):
 		status, code, key = 409, "NOTIFY.DELIVERY.RETRY_NOT_ALLOWED", "errors.common.conflict"
+	case errors.Is(err, notify.ErrDeliveryUnavailable):
+		status, code, key = 503, "NOTIFY.DELIVERY.UNAVAILABLE", "errors.common.unavailable"
 	}
 	r.Response.Header().Set("Cache-Control", "no-store")
 	r.Response.WriteHeader(status)

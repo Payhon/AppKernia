@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"time"
@@ -85,6 +84,16 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create PostgreSQL pool: %w", err)
 	}
+	settingsSealer, err := configSecretSealer(cfg)
+	if err != nil {
+		pool.Close()
+		return nil, err
+	}
+	riverInsertClient, err := river.NewClient(riverpgxv5.New(pool), &river.Config{SkipUnknownJobCheck: true})
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("create River insert client: %w", err)
+	}
 	catalog, err := i18n.LoadCatalog()
 	if err != nil {
 		pool.Close()
@@ -99,6 +108,12 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	var resetNotifier iamapp.PasswordResetNotifier
 	if cfg.Environment == "development" && cfg.PasswordRecoveryAdapter == "local" {
 		resetNotifier = iamrepo.NewLocalPasswordResetNotifier()
+	} else if cfg.PasswordRecoveryAdapter == "notification" {
+		resetNotifier, err = notificationadminrepo.NewPasswordResetNotifier(pool, riverInsertClient, settingsSealer, cfg.AdminOrigin)
+		if err != nil {
+			pool.Close()
+			return nil, fmt.Errorf("create password reset notifier: %w", err)
+		}
 	}
 	loginProtectionKey, err := base64.StdEncoding.DecodeString(cfg.LoginProtectionKeyBase64)
 	if err != nil {
@@ -129,11 +144,6 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		"oauth":              cfg.OAuthEnabled,
 	}
 	authHandler := iamhttp.NewHandler(authService, catalog, cfg.AdminOrigin, cfg.Environment != "development", featureFlags)
-	settingsSealer, err := configSecretSealer(cfg)
-	if err != nil {
-		pool.Close()
-		return nil, err
-	}
 	storageRepository := storagerepo.NewPostgres(pool)
 	var objectStore storagedomain.ObjectStore
 	if cfg.AvatarUploadEnabled || cfg.FileStorageEnabled {
@@ -182,14 +192,9 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		MFAEnabled: cfg.MFAEnabled, OAuthEnabled: cfg.OAuthEnabled, OAuthAdapter: cfg.OAuthAdapter, AdminOrigin: cfg.AdminOrigin,
 	})
 	identitySecurityHandler := identitysecurityhttp.NewHandler(identitySecurityService, catalog)
-	notificationAdminRepository := notificationadminrepo.NewPostgres(pool)
-	notificationAdminService := notificationadminapp.NewService(authService, notificationAdminRepository)
+	notificationAdminRepository := notificationadminrepo.NewPostgres(pool, riverInsertClient)
+	notificationAdminService := notificationadminapp.NewService(authService, notificationAdminRepository, notificationadminapp.WithDictionaryResolver(settingsRepository), notificationadminapp.WithTargetSealer(settingsSealer))
 	notificationAdminHandler := notificationadminhttp.NewHandler(notificationAdminService, catalog)
-	riverInsertClient, err := river.NewClient(riverpgxv5.New(pool), &river.Config{SkipUnknownJobCheck: true})
-	if err != nil {
-		pool.Close()
-		return nil, fmt.Errorf("create River insert client: %w", err)
-	}
 	jobAdminRepository := jobadminrepo.NewPostgres(pool, riverInsertClient)
 	jobAdminService := jobadminapp.NewService(authService, jobAdminRepository)
 	jobAdminHandler := jobadminhttp.NewHandler(jobAdminService, catalog)
@@ -224,6 +229,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	})
 	server.Group("/api/v1", func(group *ghttp.RouterGroup) {
 		group.GET("/public/config", handler.PublicConfig)
+		group.GET("/public/dictionaries/{code}", settingsHandler.PublicDictionary)
 		group.GET("/regions", settingsHandler.PublicRegions)
 		group.POST("/auth/client-token", apiClientAdminHandler.Token)
 	})
@@ -330,6 +336,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/configs", settingsHandler.CreateConfig)
 		group.PATCH("/configs/{id}", settingsHandler.UpdateConfig)
 		group.POST("/configs/{id}/rotate-secret", settingsHandler.RotateSecret)
+		group.GET("/dictionaries/{code}", settingsHandler.AdminDictionary)
 		group.GET("/dict-types", settingsHandler.DictTypes)
 		group.POST("/dict-types", settingsHandler.CreateDictType)
 		group.PATCH("/dict-types/{id}", settingsHandler.UpdateDictType)
@@ -338,7 +345,9 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.PATCH("/dict-items/{id}", settingsHandler.UpdateDictItem)
 		group.DELETE("/dict-items/{id}", settingsHandler.DeleteDictItem)
 		group.GET("/regions", settingsHandler.Regions)
-		group.GET("/modules", settingsHandler.Modules)
+		group.POST("/regions", settingsHandler.CreateRegion)
+		group.PATCH("/regions/{code}", settingsHandler.UpdateRegion)
+		group.DELETE("/regions/{code}", settingsHandler.DeleteRegion)
 		group.GET("/notices", notificationAdminHandler.Notices)
 		group.POST("/notices", notificationAdminHandler.CreateNotice)
 		group.GET("/notices/{id}", notificationAdminHandler.Notice)
@@ -358,6 +367,10 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/notification-templates", notificationAdminHandler.Templates)
 		group.POST("/notification-templates", notificationAdminHandler.CreateTemplate)
 		group.PATCH("/notification-templates/{id}", notificationAdminHandler.UpdateTemplate)
+		group.GET("/notification-templates/{id}/sms-bindings", notificationAdminHandler.SMSTemplateBindings)
+		group.PUT("/notification-templates/{id}/sms-bindings/{provider}", notificationAdminHandler.UpsertSMSTemplateBinding)
+		group.DELETE("/notification-templates/{id}/sms-bindings/{provider}", notificationAdminHandler.DeleteSMSTemplateBinding)
+		group.POST("/notification-templates/{id}/test", notificationAdminHandler.TestTemplate)
 		group.GET("/notification-deliveries", notificationAdminHandler.Deliveries)
 		group.GET("/notification-deliveries/{id}", notificationAdminHandler.Delivery)
 		group.POST("/notification-deliveries/{id}/retry", notificationAdminHandler.RetryDelivery)
@@ -397,9 +410,6 @@ func configSecretSealer(cfg config.Config) (*settingsrepo.AESGCMSealer, error) {
 	var err error
 	if cfg.ConfigMasterKeyBase64 != "" {
 		key, err = base64.StdEncoding.DecodeString(cfg.ConfigMasterKeyBase64)
-	} else {
-		key = make([]byte, 32)
-		_, err = rand.Read(key)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("configure config secret sealer: %w", err)

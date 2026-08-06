@@ -10,13 +10,22 @@ import (
 )
 
 var (
-	ErrForbidden       = errors.New("notification operation forbidden")
-	ErrInvalid         = errors.New("notification operation invalid")
-	ErrNotFound        = errors.New("notification resource not found")
-	ErrConflict        = errors.New("notification lifecycle conflict")
-	ErrRecipientEmpty  = errors.New("notification recipient set is empty")
-	ErrRetryNotAllowed = errors.New("notification delivery cannot be retried")
+	ErrForbidden           = errors.New("notification operation forbidden")
+	ErrInvalid             = errors.New("notification operation invalid")
+	ErrNotFound            = errors.New("notification resource not found")
+	ErrConflict            = errors.New("notification lifecycle conflict")
+	ErrRecipientEmpty      = errors.New("notification recipient set is empty")
+	ErrRetryNotAllowed     = errors.New("notification delivery cannot be retried")
+	ErrDeliveryUnavailable = errors.New("notification delivery adapter unavailable")
 )
+
+const DeliveryJobKind = "appkernia-notification-delivery"
+
+type DeliveryJobArgs struct {
+	DeliveryID uuid.UUID `json:"delivery_id"`
+}
+
+func (DeliveryJobArgs) Kind() string { return DeliveryJobKind }
 
 type Principal struct {
 	TenantID  uuid.UUID
@@ -92,14 +101,17 @@ type RecipientStats struct {
 
 type Template struct {
 	ID              uuid.UUID       `json:"id"`
+	TenantID        *uuid.UUID      `json:"tenant_id,omitempty"`
 	Code            string          `json:"code"`
 	Name            string          `json:"name"`
 	Channel         string          `json:"channel"`
 	Locale          *string         `json:"locale,omitempty"`
 	SubjectTemplate *string         `json:"subject_template,omitempty"`
 	BodyTemplate    string          `json:"body_template"`
+	BodyFormat      string          `json:"body_format"`
 	VariablesSchema json.RawMessage `json:"variables_schema"`
 	Status          string          `json:"status"`
+	IsLocked        bool            `json:"is_locked"`
 	CreatedAt       time.Time       `json:"created_at"`
 	UpdatedAt       time.Time       `json:"updated_at"`
 }
@@ -111,6 +123,7 @@ type TemplateInput struct {
 	Locale          *string         `json:"locale,omitempty"`
 	SubjectTemplate *string         `json:"subject_template,omitempty"`
 	BodyTemplate    string          `json:"body_template"`
+	BodyFormat      string          `json:"body_format"`
 	VariablesSchema json.RawMessage `json:"variables_schema"`
 	Status          string          `json:"status"`
 }
@@ -123,23 +136,69 @@ type TemplatePage struct {
 }
 
 type Delivery struct {
-	ID            uuid.UUID  `json:"id"`
-	MessageID     *uuid.UUID `json:"message_id,omitempty"`
-	UserID        *uuid.UUID `json:"user_id,omitempty"`
-	TemplateID    *uuid.UUID `json:"template_id,omitempty"`
-	Channel       string     `json:"channel"`
-	TargetHint    string     `json:"target_hint"`
-	Provider      string     `json:"provider"`
-	Status        string     `json:"status"`
-	AttemptCount  int32      `json:"attempt_count"`
-	MaxAttempts   int32      `json:"max_attempts"`
-	ScheduledAt   time.Time  `json:"scheduled_at"`
-	NextAttemptAt *time.Time `json:"next_attempt_at,omitempty"`
-	SentAt        *time.Time `json:"sent_at,omitempty"`
-	ErrorCode     string     `json:"error_code,omitempty"`
-	ErrorSummary  string     `json:"error_summary,omitempty"`
-	CreatedAt     time.Time  `json:"created_at"`
-	UpdatedAt     time.Time  `json:"updated_at"`
+	ID                uuid.UUID  `json:"id"`
+	MessageID         *uuid.UUID `json:"message_id,omitempty"`
+	UserID            *uuid.UUID `json:"user_id,omitempty"`
+	TemplateID        *uuid.UUID `json:"template_id,omitempty"`
+	Channel           string     `json:"channel"`
+	TargetHint        string     `json:"target_hint"`
+	Provider          string     `json:"provider"`
+	ProviderMessageID string     `json:"provider_message_id,omitempty"`
+	Status            string     `json:"status"`
+	AttemptCount      int32      `json:"attempt_count"`
+	MaxAttempts       int32      `json:"max_attempts"`
+	ScheduledAt       time.Time  `json:"scheduled_at"`
+	NextAttemptAt     *time.Time `json:"next_attempt_at,omitempty"`
+	SentAt            *time.Time `json:"sent_at,omitempty"`
+	ErrorCode         string     `json:"error_code,omitempty"`
+	ErrorSummary      string     `json:"error_summary,omitempty"`
+	Retryable         bool       `json:"retryable"`
+	RetryRisk         string     `json:"retry_risk"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+}
+
+type SMSTemplateBinding struct {
+	ID                 uuid.UUID       `json:"id"`
+	TemplateID         uuid.UUID       `json:"template_id"`
+	Provider           string          `json:"provider"`
+	ExternalTemplateID string          `json:"external_template_id"`
+	SignName           string          `json:"sign_name,omitempty"`
+	ParameterOrder     json.RawMessage `json:"parameter_order"`
+	Status             string          `json:"status"`
+	Version            int32           `json:"version"`
+	CreatedAt          time.Time       `json:"created_at"`
+	UpdatedAt          time.Time       `json:"updated_at"`
+}
+
+type SMSTemplateBindingInput struct {
+	ExternalTemplateID string          `json:"external_template_id"`
+	SignName           string          `json:"sign_name"`
+	ParameterOrder     json.RawMessage `json:"parameter_order"`
+	Status             string          `json:"status"`
+	Version            int32           `json:"version"`
+}
+
+type TemplateTestInput struct {
+	Target          string            `json:"target"`
+	Provider        string            `json:"provider"`
+	Variables       map[string]string `json:"variables"`
+	ConfirmBillable bool              `json:"confirm_billable"`
+}
+
+type CreateDelivery struct {
+	TemplateID        uuid.UUID
+	Channel           string
+	Provider          string
+	TargetCiphertext  []byte
+	TargetHash        []byte
+	TargetHint        string
+	TargetKeyVersion  int32
+	PayloadCiphertext []byte
+	PayloadKeyVersion int32
+	RenderedSubject   string
+	RenderedBody      string
+	DedupeKey         string
 }
 
 type DeliveryPage struct {
@@ -159,9 +218,18 @@ type Repository interface {
 	CancelMessage(context.Context, Principal, uuid.UUID, bool) (Message, error)
 	RecipientStats(context.Context, uuid.UUID, uuid.UUID, bool) (RecipientStats, error)
 	ListTemplates(context.Context, uuid.UUID, PageFilter) (TemplatePage, error)
+	GetTemplate(context.Context, uuid.UUID, uuid.UUID) (Template, error)
 	CreateTemplate(context.Context, Principal, TemplateInput) (Template, error)
 	UpdateTemplate(context.Context, Principal, uuid.UUID, TemplateInput) (Template, error)
 	ListDeliveries(context.Context, uuid.UUID, PageFilter) (DeliveryPage, error)
 	GetDelivery(context.Context, uuid.UUID, uuid.UUID) (Delivery, error)
-	RetryDelivery(context.Context, Principal, uuid.UUID) (Delivery, error)
+	RetryDelivery(context.Context, Principal, uuid.UUID, bool) (Delivery, error)
+	ListSMSTemplateBindings(context.Context, uuid.UUID, uuid.UUID) ([]SMSTemplateBinding, error)
+	UpsertSMSTemplateBinding(context.Context, Principal, uuid.UUID, string, SMSTemplateBindingInput) (SMSTemplateBinding, error)
+	DeleteSMSTemplateBinding(context.Context, Principal, uuid.UUID, string) error
+	CreateTestDelivery(context.Context, Principal, CreateDelivery) (Delivery, error)
+}
+
+type TargetSealer interface {
+	Seal([]byte, string) ([]byte, int32, error)
 }

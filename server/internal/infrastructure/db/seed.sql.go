@@ -12,6 +12,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const deleteModulesOutsideCoreCatalog = `-- name: DeleteModulesOutsideCoreCatalog :execrows
+DELETE FROM sys.modules
+WHERE code::text <> ALL($1::text[])
+`
+
+func (q *Queries) DeleteModulesOutsideCoreCatalog(ctx context.Context, codes []string) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteModulesOutsideCoreCatalog, codes)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const grantAllActivePermissionsToRole = `-- name: GrantAllActivePermissionsToRole :execrows
 INSERT INTO iam.role_permissions (tenant_id, role_id, permission_id, granted_by)
 SELECT $1, $2, permission.id, $3
@@ -114,6 +127,199 @@ func (q *Queries) SyncSystemAdminPermissions(ctx context.Context) (int64, error)
 	return result.RowsAffected(), nil
 }
 
+const upsertCoreDictionaryItem = `-- name: UpsertCoreDictionaryItem :exec
+INSERT INTO sys.dict_items (
+    dict_type_id, tenant_id, item_value, label, locale, sort_order,
+    is_default, extra, status
+)
+VALUES (
+    $1, NULL, $2, $3,
+    $4, $5, $6,
+    $7, $8
+)
+ON CONFLICT (dict_type_id, item_value, COALESCE(locale, ''))
+    WHERE tenant_id IS NULL
+DO UPDATE SET
+    label = EXCLUDED.label,
+    sort_order = EXCLUDED.sort_order,
+    is_default = EXCLUDED.is_default,
+    extra = EXCLUDED.extra,
+    status = EXCLUDED.status,
+    updated_at = now()
+`
+
+type UpsertCoreDictionaryItemParams struct {
+	DictTypeID uuid.UUID `json:"dict_type_id"`
+	ItemValue  string    `json:"item_value"`
+	Label      string    `json:"label"`
+	Locale     *string   `json:"locale"`
+	SortOrder  int32     `json:"sort_order"`
+	IsDefault  bool      `json:"is_default"`
+	Extra      []byte    `json:"extra"`
+	Status     string    `json:"status"`
+}
+
+func (q *Queries) UpsertCoreDictionaryItem(ctx context.Context, arg UpsertCoreDictionaryItemParams) error {
+	_, err := q.db.Exec(ctx, upsertCoreDictionaryItem,
+		arg.DictTypeID,
+		arg.ItemValue,
+		arg.Label,
+		arg.Locale,
+		arg.SortOrder,
+		arg.IsDefault,
+		arg.Extra,
+		arg.Status,
+	)
+	return err
+}
+
+const upsertCoreDictionaryType = `-- name: UpsertCoreDictionaryType :one
+INSERT INTO sys.dict_types (
+    code, name, name_key, description, description_key,
+    is_system, visibility, extension_policy, status
+)
+VALUES (
+    $1, $2, $3,
+    $4, $5, true,
+    $6, $7, $8
+)
+ON CONFLICT (code) WHERE tenant_id IS NULL
+DO UPDATE SET
+    name = EXCLUDED.name,
+    name_key = EXCLUDED.name_key,
+    description = EXCLUDED.description,
+    description_key = EXCLUDED.description_key,
+    is_system = true,
+    visibility = EXCLUDED.visibility,
+    extension_policy = EXCLUDED.extension_policy,
+    status = EXCLUDED.status,
+    updated_at = now()
+RETURNING id
+`
+
+type UpsertCoreDictionaryTypeParams struct {
+	Code            string  `json:"code"`
+	Name            string  `json:"name"`
+	NameKey         *string `json:"name_key"`
+	Description     *string `json:"description"`
+	DescriptionKey  *string `json:"description_key"`
+	Visibility      string  `json:"visibility"`
+	ExtensionPolicy string  `json:"extension_policy"`
+	Status          string  `json:"status"`
+}
+
+func (q *Queries) UpsertCoreDictionaryType(ctx context.Context, arg UpsertCoreDictionaryTypeParams) (uuid.UUID, error) {
+	row := q.db.QueryRow(ctx, upsertCoreDictionaryType,
+		arg.Code,
+		arg.Name,
+		arg.NameKey,
+		arg.Description,
+		arg.DescriptionKey,
+		arg.Visibility,
+		arg.ExtensionPolicy,
+		arg.Status,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
+const upsertCoreModule = `-- name: UpsertCoreModule :exec
+INSERT INTO sys.modules (
+    code, name, name_key, version, description, description_key,
+    capabilities, status
+)
+VALUES (
+    $1, $2, $3,
+    $4, $5,
+    $6, $7,
+    $8
+)
+ON CONFLICT (code) DO UPDATE SET
+    name = EXCLUDED.name,
+    name_key = EXCLUDED.name_key,
+    version = EXCLUDED.version,
+    description = EXCLUDED.description,
+    description_key = EXCLUDED.description_key,
+    capabilities = EXCLUDED.capabilities,
+    status = EXCLUDED.status,
+    updated_at = now()
+`
+
+type UpsertCoreModuleParams struct {
+	Code           string  `json:"code"`
+	Name           string  `json:"name"`
+	NameKey        string  `json:"name_key"`
+	Version        string  `json:"version"`
+	Description    *string `json:"description"`
+	DescriptionKey string  `json:"description_key"`
+	Capabilities   []byte  `json:"capabilities"`
+	Status         string  `json:"status"`
+}
+
+func (q *Queries) UpsertCoreModule(ctx context.Context, arg UpsertCoreModuleParams) error {
+	_, err := q.db.Exec(ctx, upsertCoreModule,
+		arg.Code,
+		arg.Name,
+		arg.NameKey,
+		arg.Version,
+		arg.Description,
+		arg.DescriptionKey,
+		arg.Capabilities,
+		arg.Status,
+	)
+	return err
+}
+
+const upsertCoreNotificationTemplate = `-- name: UpsertCoreNotificationTemplate :exec
+INSERT INTO notify.templates (
+    code, name, channel, locale, subject_template, body_template,
+    body_format, variables_schema, status
+)
+VALUES (
+    $1, $2, $3, $4,
+    $5, $6, $7,
+    $8, $9
+)
+ON CONFLICT (code, channel, COALESCE(locale, ''))
+    WHERE tenant_id IS NULL
+DO UPDATE SET
+    name = EXCLUDED.name,
+    subject_template = EXCLUDED.subject_template,
+    body_template = EXCLUDED.body_template,
+    body_format = EXCLUDED.body_format,
+    variables_schema = EXCLUDED.variables_schema,
+    status = EXCLUDED.status,
+    updated_at = now()
+`
+
+type UpsertCoreNotificationTemplateParams struct {
+	Code            string  `json:"code"`
+	Name            string  `json:"name"`
+	Channel         string  `json:"channel"`
+	Locale          *string `json:"locale"`
+	SubjectTemplate *string `json:"subject_template"`
+	BodyTemplate    string  `json:"body_template"`
+	BodyFormat      string  `json:"body_format"`
+	VariablesSchema []byte  `json:"variables_schema"`
+	Status          string  `json:"status"`
+}
+
+func (q *Queries) UpsertCoreNotificationTemplate(ctx context.Context, arg UpsertCoreNotificationTemplateParams) error {
+	_, err := q.db.Exec(ctx, upsertCoreNotificationTemplate,
+		arg.Code,
+		arg.Name,
+		arg.Channel,
+		arg.Locale,
+		arg.SubjectTemplate,
+		arg.BodyTemplate,
+		arg.BodyFormat,
+		arg.VariablesSchema,
+		arg.Status,
+	)
+	return err
+}
+
 const upsertCorePermission = `-- name: UpsertCorePermission :one
 INSERT INTO iam.permissions (
     code, name, module_code, resource_name, action_name, permission_kind, status
@@ -167,16 +373,16 @@ VALUES (
     $10
 )
 ON CONFLICT (code) DO UPDATE SET
-    parent_code = EXCLUDED.parent_code,
-    level = EXCLUDED.level,
-    name = EXCLUDED.name,
-    full_name = EXCLUDED.full_name,
-    postal_code = COALESCE(EXCLUDED.postal_code, sys.regions.postal_code),
-    longitude = COALESCE(EXCLUDED.longitude, sys.regions.longitude),
-    latitude = COALESCE(EXCLUDED.latitude, sys.regions.latitude),
-    status = EXCLUDED.status,
-    metadata = sys.regions.metadata || EXCLUDED.metadata,
-    updated_at = now()
+    parent_code = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.parent_code ELSE EXCLUDED.parent_code END,
+    level = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.level ELSE EXCLUDED.level END,
+    name = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.name ELSE EXCLUDED.name END,
+    full_name = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.full_name ELSE EXCLUDED.full_name END,
+    postal_code = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.postal_code ELSE COALESCE(EXCLUDED.postal_code, sys.regions.postal_code) END,
+    longitude = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.longitude ELSE COALESCE(EXCLUDED.longitude, sys.regions.longitude) END,
+    latitude = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.latitude ELSE COALESCE(EXCLUDED.latitude, sys.regions.latitude) END,
+    status = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.status ELSE EXCLUDED.status END,
+    metadata = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.metadata ELSE sys.regions.metadata || EXCLUDED.metadata END,
+    updated_at = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.updated_at ELSE now() END
 `
 
 type UpsertCoreRegionParams struct {
@@ -252,6 +458,7 @@ DO UPDATE SET
     validation_schema = EXCLUDED.validation_schema,
     description = EXCLUDED.description,
     sort_order = EXCLUDED.sort_order,
+    status = EXCLUDED.status,
     updated_at = now()
 RETURNING id
 `

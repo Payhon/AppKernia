@@ -19,7 +19,7 @@ type Postgres struct{ pool *pgxpool.Pool }
 func NewPostgres(pool *pgxpool.Pool) *Postgres { return &Postgres{pool: pool} }
 
 var registeredComponentKeys = map[string]struct{}{
-	"dashboard": {}, "system.settings.configs": {}, "system.settings.dictionaries": {}, "system.settings.regions": {}, "system.settings.modules": {},
+	"dashboard": {}, "system.settings.configs": {}, "system.settings.dictionaries": {}, "system.settings.regions": {},
 	"system.users.departments": {}, "system.users.accounts": {}, "system.users.positions": {}, "system.users.tenants": {},
 	"system.access.roles": {}, "system.access.permissions": {}, "system.access.menus": {}, "system.storage.files": {},
 	"system.notifications.notices": {}, "system.notifications.messages": {}, "system.notifications.templates": {}, "system.notifications.deliveries": {},

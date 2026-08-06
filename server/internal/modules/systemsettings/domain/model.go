@@ -73,16 +73,20 @@ type ConfigInput struct {
 }
 
 type DictType struct {
-	ID          uuid.UUID  `json:"id"`
-	TenantID    *uuid.UUID `json:"tenant_id"`
-	Code        string     `json:"code"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	Status      string     `json:"status"`
-	IsSystem    bool       `json:"is_system"`
-	IsLocked    bool       `json:"is_locked"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID              uuid.UUID  `json:"id"`
+	TenantID        *uuid.UUID `json:"tenant_id"`
+	Code            string     `json:"code"`
+	Name            string     `json:"name"`
+	NameKey         string     `json:"name_key,omitempty"`
+	Description     string     `json:"description"`
+	DescriptionKey  string     `json:"description_key,omitempty"`
+	Status          string     `json:"status"`
+	IsSystem        bool       `json:"is_system"`
+	IsLocked        bool       `json:"is_locked"`
+	Visibility      string     `json:"visibility"`
+	ExtensionPolicy string     `json:"extension_policy"`
+	CreatedAt       time.Time  `json:"created_at"`
+	UpdatedAt       time.Time  `json:"updated_at"`
 }
 
 type DictTypePage struct {
@@ -96,6 +100,7 @@ type DictTypeInput struct{ Code, Name, Description, Status string }
 type DictItem struct {
 	ID         uuid.UUID       `json:"id"`
 	DictTypeID uuid.UUID       `json:"dict_type_id"`
+	TenantID   *uuid.UUID      `json:"tenant_id,omitempty"`
 	ItemValue  string          `json:"item_value"`
 	Label      string          `json:"label"`
 	Locale     *string         `json:"locale"`
@@ -108,6 +113,22 @@ type DictItem struct {
 	IsLocked   bool            `json:"is_locked"`
 	CreatedAt  time.Time       `json:"created_at"`
 	UpdatedAt  time.Time       `json:"updated_at"`
+}
+
+type DictionaryOption struct {
+	Value     string          `json:"value"`
+	Label     string          `json:"label"`
+	Color     string          `json:"color,omitempty"`
+	CSSClass  string          `json:"css_class,omitempty"`
+	IsDefault bool            `json:"is_default"`
+	Extra     json.RawMessage `json:"extra"`
+}
+
+type ResolvedDictionary struct {
+	Code            string             `json:"code"`
+	Locale          string             `json:"locale"`
+	ExtensionPolicy string             `json:"extension_policy"`
+	Items           []DictionaryOption `json:"items"`
 }
 
 type DictItemFilter struct {
@@ -148,26 +169,27 @@ type Region struct {
 	Latitude    *float64  `json:"latitude"`
 	Status      string    `json:"status"`
 	HasChildren bool      `json:"has_children"`
+	Version     int32     `json:"version"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-type ModuleFilter struct{ Query, Status string }
-type Module struct {
-	ID           uuid.UUID       `json:"id"`
-	Code         string          `json:"code"`
-	Name         string          `json:"name"`
-	Version      string          `json:"version"`
-	Description  string          `json:"description"`
-	Capabilities json.RawMessage `json:"capabilities"`
-	Status       string          `json:"status"`
-	InstalledAt  time.Time       `json:"installed_at"`
-	UpdatedAt    time.Time       `json:"updated_at"`
+type RegionCreateInput struct {
+	Code, ParentCode, Name, FullName, PostalCode, Status string
+	Longitude, Latitude                                  *float64
+}
+
+type RegionUpdateInput struct {
+	Name, FullName, PostalCode, Status string
+	Longitude, Latitude                *float64
+	Version                            int32
 }
 
 type Repository interface {
 	ListPublicConfigs(context.Context) (map[string]json.RawMessage, error)
 	ListRegions(context.Context, RegionFilter) ([]Region, error)
-	ListModules(context.Context, ModuleFilter) ([]Module, error)
+	CreateRegion(context.Context, Principal, RegionCreateInput) (Region, error)
+	UpdateRegion(context.Context, Principal, string, RegionUpdateInput) (Region, error)
+	DeleteRegion(context.Context, Principal, string) error
 	ListConfigs(context.Context, uuid.UUID, PageFilter) (ConfigPage, error)
 	CreateConfig(context.Context, Principal, ConfigInput, []byte, int32) (ConfigItem, error)
 	UpdateConfig(context.Context, Principal, uuid.UUID, ConfigInput) (ConfigItem, error)
@@ -179,6 +201,7 @@ type Repository interface {
 	CreateDictItem(context.Context, Principal, uuid.UUID, DictItemInput) (DictItem, error)
 	UpdateDictItem(context.Context, Principal, uuid.UUID, DictItemInput) (DictItem, error)
 	DeleteDictItem(context.Context, Principal, uuid.UUID) error
+	ResolveDictionary(context.Context, *uuid.UUID, string, string, bool) (ResolvedDictionary, error)
 }
 
 type SecretSealer interface {

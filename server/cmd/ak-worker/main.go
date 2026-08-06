@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"os"
@@ -10,6 +11,9 @@ import (
 	"time"
 
 	jobworker "github.com/appkernia/appkernia/server/internal/modules/jobadmin/worker"
+	notificationworker "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/worker"
+	settingsrepo "github.com/appkernia/appkernia/server/internal/modules/systemsettings/repository"
+	"github.com/appkernia/appkernia/server/internal/platform/buildinfo"
 	"github.com/appkernia/appkernia/server/internal/platform/config"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -24,6 +28,7 @@ func main() {
 }
 
 func run() error {
+	fmt.Printf("ak-worker version=%s commit=%s\n", buildinfo.Version, buildinfo.Commit)
 	if err := jobworker.ValidateRegistry(); err != nil {
 		return err
 	}
@@ -40,8 +45,17 @@ func run() error {
 	defer pool.Close()
 	workers := river.NewWorkers()
 	river.AddWorker(workers, jobworker.NewRunWorker(pool))
+	masterKey, err := base64.StdEncoding.DecodeString(cfg.ConfigMasterKeyBase64)
+	if err != nil {
+		return fmt.Errorf("decode configuration master key: %w", err)
+	}
+	sealer, err := settingsrepo.NewAESGCMSealer(masterKey, cfg.ConfigMasterKeyVersion)
+	if err != nil {
+		return fmt.Errorf("create configuration secret sealer: %w", err)
+	}
+	river.AddWorker(workers, notificationworker.NewDeliveryWorker(pool, sealer, cfg.Environment))
 	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
-		Queues:          map[string]river.QueueConfig{"default": {MaxWorkers: 4}},
+		Queues:          map[string]river.QueueConfig{"default": {MaxWorkers: 4}, "notifications": {MaxWorkers: 8}},
 		Workers:         workers,
 		JobTimeout:      24 * time.Hour,
 		SoftStopTimeout: cfg.ShutdownTimeout,

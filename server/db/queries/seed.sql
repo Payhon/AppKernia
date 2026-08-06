@@ -13,6 +13,31 @@ ON CONFLICT (code) DO UPDATE SET
     updated_at = now()
 RETURNING id;
 
+-- name: UpsertCoreModule :exec
+INSERT INTO sys.modules (
+    code, name, name_key, version, description, description_key,
+    capabilities, status
+)
+VALUES (
+    sqlc.arg('code'), sqlc.arg('name'), sqlc.arg('name_key'),
+    sqlc.arg('version'), sqlc.arg('description'),
+    sqlc.arg('description_key'), sqlc.arg('capabilities'),
+    sqlc.arg('status')
+)
+ON CONFLICT (code) DO UPDATE SET
+    name = EXCLUDED.name,
+    name_key = EXCLUDED.name_key,
+    version = EXCLUDED.version,
+    description = EXCLUDED.description,
+    description_key = EXCLUDED.description_key,
+    capabilities = EXCLUDED.capabilities,
+    status = EXCLUDED.status,
+    updated_at = now();
+
+-- name: DeleteModulesOutsideCoreCatalog :execrows
+DELETE FROM sys.modules
+WHERE code::text <> ALL(sqlc.arg('codes')::text[]);
+
 -- name: UpsertSystemAdminRole :one
 INSERT INTO iam.roles (
     tenant_id, code, name, description, role_type, data_scope,
@@ -97,6 +122,7 @@ DO UPDATE SET
     validation_schema = EXCLUDED.validation_schema,
     description = EXCLUDED.description,
     sort_order = EXCLUDED.sort_order,
+    status = EXCLUDED.status,
     updated_at = now()
 RETURNING id;
 
@@ -112,13 +138,77 @@ VALUES (
     sqlc.arg('metadata')
 )
 ON CONFLICT (code) DO UPDATE SET
-    parent_code = EXCLUDED.parent_code,
-    level = EXCLUDED.level,
+    parent_code = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.parent_code ELSE EXCLUDED.parent_code END,
+    level = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.level ELSE EXCLUDED.level END,
+    name = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.name ELSE EXCLUDED.name END,
+    full_name = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.full_name ELSE EXCLUDED.full_name END,
+    postal_code = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.postal_code ELSE COALESCE(EXCLUDED.postal_code, sys.regions.postal_code) END,
+    longitude = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.longitude ELSE COALESCE(EXCLUDED.longitude, sys.regions.longitude) END,
+    latitude = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.latitude ELSE COALESCE(EXCLUDED.latitude, sys.regions.latitude) END,
+    status = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.status ELSE EXCLUDED.status END,
+    metadata = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.metadata ELSE sys.regions.metadata || EXCLUDED.metadata END,
+    updated_at = CASE WHEN sys.regions.is_manually_managed THEN sys.regions.updated_at ELSE now() END;
+
+-- name: UpsertCoreDictionaryType :one
+INSERT INTO sys.dict_types (
+    code, name, name_key, description, description_key,
+    is_system, visibility, extension_policy, status
+)
+VALUES (
+    sqlc.arg('code'), sqlc.arg('name'), sqlc.arg('name_key'),
+    sqlc.arg('description'), sqlc.arg('description_key'), true,
+    sqlc.arg('visibility'), sqlc.arg('extension_policy'), sqlc.arg('status')
+)
+ON CONFLICT (code) WHERE tenant_id IS NULL
+DO UPDATE SET
     name = EXCLUDED.name,
-    full_name = EXCLUDED.full_name,
-    postal_code = COALESCE(EXCLUDED.postal_code, sys.regions.postal_code),
-    longitude = COALESCE(EXCLUDED.longitude, sys.regions.longitude),
-    latitude = COALESCE(EXCLUDED.latitude, sys.regions.latitude),
+    name_key = EXCLUDED.name_key,
+    description = EXCLUDED.description,
+    description_key = EXCLUDED.description_key,
+    is_system = true,
+    visibility = EXCLUDED.visibility,
+    extension_policy = EXCLUDED.extension_policy,
     status = EXCLUDED.status,
-    metadata = sys.regions.metadata || EXCLUDED.metadata,
+    updated_at = now()
+RETURNING id;
+
+-- name: UpsertCoreDictionaryItem :exec
+INSERT INTO sys.dict_items (
+    dict_type_id, tenant_id, item_value, label, locale, sort_order,
+    is_default, extra, status
+)
+VALUES (
+    sqlc.arg('dict_type_id'), NULL, sqlc.arg('item_value'), sqlc.arg('label'),
+    sqlc.arg('locale'), sqlc.arg('sort_order'), sqlc.arg('is_default'),
+    sqlc.arg('extra'), sqlc.arg('status')
+)
+ON CONFLICT (dict_type_id, item_value, COALESCE(locale, ''))
+    WHERE tenant_id IS NULL
+DO UPDATE SET
+    label = EXCLUDED.label,
+    sort_order = EXCLUDED.sort_order,
+    is_default = EXCLUDED.is_default,
+    extra = EXCLUDED.extra,
+    status = EXCLUDED.status,
+    updated_at = now();
+
+-- name: UpsertCoreNotificationTemplate :exec
+INSERT INTO notify.templates (
+    code, name, channel, locale, subject_template, body_template,
+    body_format, variables_schema, status
+)
+VALUES (
+    sqlc.arg('code'), sqlc.arg('name'), sqlc.arg('channel'), sqlc.arg('locale'),
+    sqlc.narg('subject_template'), sqlc.arg('body_template'), sqlc.arg('body_format'),
+    sqlc.arg('variables_schema'), sqlc.arg('status')
+)
+ON CONFLICT (code, channel, COALESCE(locale, ''))
+    WHERE tenant_id IS NULL
+DO UPDATE SET
+    name = EXCLUDED.name,
+    subject_template = EXCLUDED.subject_template,
+    body_template = EXCLUDED.body_template,
+    body_format = EXCLUDED.body_format,
+    variables_schema = EXCLUDED.variables_schema,
+    status = EXCLUDED.status,
     updated_at = now();

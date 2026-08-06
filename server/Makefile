@@ -3,6 +3,10 @@ SHELL := /bin/bash
 
 GO := GOTOOLCHAIN=go1.26.5 go
 BIN_DIR := bin
+APP_VERSION ?= dev
+GIT_COMMIT ?= unknown
+BUILD_TIME ?= unknown
+BUILD_LDFLAGS := -X github.com/appkernia/appkernia/server/internal/platform/buildinfo.Version=$(APP_VERSION) -X github.com/appkernia/appkernia/server/internal/platform/buildinfo.Commit=$(GIT_COMMIT) -X github.com/appkernia/appkernia/server/internal/platform/buildinfo.BuildTime=$(BUILD_TIME)
 ENV_FILE ?= ../.env
 LOAD_ENV = set -a; if [ -f "$(ENV_FILE)" ]; then . "$(ENV_FILE)"; fi; set +a;
 
@@ -37,7 +41,8 @@ test-race:
 
 test-integration:
 	@test -n "$(AK_TEST_DATABASE_URL)" || (echo "AK_TEST_DATABASE_URL is required"; exit 2)
-	$(GO) test -tags=integration ./internal/modules/iam/application ./internal/modules/iam/repository ./internal/modules/jobadmin/repository
+	$(GO) test -tags=integration ./internal/seed
+	$(GO) test -tags=integration ./internal/modules/opsadmin/repository ./internal/modules/iam/application ./internal/modules/iam/repository ./internal/modules/jobadmin/repository ./internal/modules/systemsettings/repository ./internal/modules/notificationadmin/repository ./internal/modules/storage/repository
 
 fmt-fix:
 	GOTOOLCHAIN=go1.26.5 gofmt -w .
@@ -46,15 +51,15 @@ build: build-api build-worker build-cli
 
 build-api:
 	@mkdir -p "$(BIN_DIR)"
-	$(GO) build -trimpath -o "$(BIN_DIR)/ak-api" ./cmd/ak-api
+	$(GO) build -trimpath -ldflags "$(BUILD_LDFLAGS)" -o "$(BIN_DIR)/ak-api" ./cmd/ak-api
 
 build-worker:
 	@mkdir -p "$(BIN_DIR)"
-	$(GO) build -trimpath -o "$(BIN_DIR)/ak-worker" ./cmd/ak-worker
+	$(GO) build -trimpath -ldflags "$(BUILD_LDFLAGS)" -o "$(BIN_DIR)/ak-worker" ./cmd/ak-worker
 
 build-cli:
 	@mkdir -p "$(BIN_DIR)"
-	$(GO) build -trimpath -o "$(BIN_DIR)/ak-cli" ./cmd/ak-cli
+	$(GO) build -trimpath -ldflags "$(BUILD_LDFLAGS)" -o "$(BIN_DIR)/ak-cli" ./cmd/ak-cli
 
 clean:
 	rm -rf "$(BIN_DIR)" coverage.out

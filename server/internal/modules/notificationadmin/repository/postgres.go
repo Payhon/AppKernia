@@ -13,11 +13,21 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
 )
 
-type Postgres struct{ pool *pgxpool.Pool }
+type Postgres struct {
+	pool  *pgxpool.Pool
+	river *river.Client[pgx.Tx]
+}
 
-func NewPostgres(pool *pgxpool.Pool) *Postgres { return &Postgres{pool: pool} }
+func NewPostgres(pool *pgxpool.Pool, clients ...*river.Client[pgx.Tx]) *Postgres {
+	repository := &Postgres{pool: pool}
+	if len(clients) > 0 {
+		repository.river = clients[0]
+	}
+	return repository
+}
 
 type scanner interface{ Scan(...any) error }
 
@@ -285,11 +295,19 @@ func (r *Postgres) RecipientStats(ctx context.Context, tenantID, id uuid.UUID, n
 	return out, err
 }
 
-const templateColumns = `id,code::text,name,channel,locale,subject_template,body_template,variables_schema,status,created_at,updated_at`
+const templateColumns = `id,tenant_id,code::text,name,channel,locale,subject_template,body_template,body_format,variables_schema,status,(tenant_id IS NULL),created_at,updated_at`
 
 func scanTemplate(row scanner) (notify.Template, error) {
 	var out notify.Template
-	err := row.Scan(&out.ID, &out.Code, &out.Name, &out.Channel, &out.Locale, &out.SubjectTemplate, &out.BodyTemplate, &out.VariablesSchema, &out.Status, &out.CreatedAt, &out.UpdatedAt)
+	err := row.Scan(&out.ID, &out.TenantID, &out.Code, &out.Name, &out.Channel, &out.Locale, &out.SubjectTemplate, &out.BodyTemplate, &out.BodyFormat, &out.VariablesSchema, &out.Status, &out.IsLocked, &out.CreatedAt, &out.UpdatedAt)
+	return out, err
+}
+
+func (r *Postgres) GetTemplate(ctx context.Context, tenantID, id uuid.UUID) (notify.Template, error) {
+	out, err := scanTemplate(r.pool.QueryRow(ctx, fmt.Sprintf("SELECT %s FROM notify.templates WHERE id=$1 AND (tenant_id=$2 OR tenant_id IS NULL) ORDER BY tenant_id NULLS LAST LIMIT 1", templateColumns), id, tenantID))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return notify.Template{}, notify.ErrNotFound
+	}
 	return out, err
 }
 
@@ -342,8 +360,8 @@ func (r *Postgres) CreateTemplate(ctx context.Context, p notify.Principal, in no
 		return notify.Template{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	out, err := scanTemplate(tx.QueryRow(ctx, fmt.Sprintf(`INSERT INTO notify.templates(tenant_id,code,name,channel,locale,subject_template,body_template,variables_schema,status)
-		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING %s`, templateColumns), p.TenantID, in.Code, in.Name, in.Channel, in.Locale, in.SubjectTemplate, in.BodyTemplate, in.VariablesSchema, in.Status))
+	out, err := scanTemplate(tx.QueryRow(ctx, fmt.Sprintf(`INSERT INTO notify.templates(tenant_id,code,name,channel,locale,subject_template,body_template,body_format,variables_schema,status)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING %s`, templateColumns), p.TenantID, in.Code, in.Name, in.Channel, in.Locale, in.SubjectTemplate, in.BodyTemplate, in.BodyFormat, in.VariablesSchema, in.Status))
 	if err != nil {
 		if isUnique(err) {
 			return notify.Template{}, notify.ErrConflict
@@ -362,8 +380,8 @@ func (r *Postgres) UpdateTemplate(ctx context.Context, p notify.Principal, id uu
 		return notify.Template{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	out, err := scanTemplate(tx.QueryRow(ctx, fmt.Sprintf(`UPDATE notify.templates SET code=$1,name=$2,channel=$3,locale=$4,subject_template=$5,body_template=$6,variables_schema=$7,status=$8
-		WHERE tenant_id=$9 AND id=$10 RETURNING %s`, templateColumns), in.Code, in.Name, in.Channel, in.Locale, in.SubjectTemplate, in.BodyTemplate, in.VariablesSchema, in.Status, p.TenantID, id))
+	out, err := scanTemplate(tx.QueryRow(ctx, fmt.Sprintf(`UPDATE notify.templates SET code=$1,name=$2,channel=$3,locale=$4,subject_template=$5,body_template=$6,body_format=$7,variables_schema=$8,status=$9
+		WHERE tenant_id=$10 AND id=$11 RETURNING %s`, templateColumns), in.Code, in.Name, in.Channel, in.Locale, in.SubjectTemplate, in.BodyTemplate, in.BodyFormat, in.VariablesSchema, in.Status, p.TenantID, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return notify.Template{}, notify.ErrNotFound
 	}
@@ -379,15 +397,18 @@ func (r *Postgres) UpdateTemplate(ctx context.Context, p notify.Principal, id uu
 	return out, tx.Commit(ctx)
 }
 
-const deliveryColumns = `id,message_id,user_id,template_id,channel,COALESCE(target_hint,''),COALESCE(provider,''),status,attempt_count,max_attempts,scheduled_at,next_attempt_at,sent_at,COALESCE(last_error,''),created_at,updated_at`
+const deliveryColumns = `id,message_id,user_id,template_id,channel,COALESCE(target_hint,''),COALESCE(provider,''),COALESCE(provider_message_id,''),status,attempt_count,max_attempts,scheduled_at,next_attempt_at,sent_at,COALESCE(last_error,''),retryable,retry_risk,created_at,updated_at`
 
 func scanDelivery(row scanner) (notify.Delivery, error) {
 	var out notify.Delivery
 	var lastError string
-	err := row.Scan(&out.ID, &out.MessageID, &out.UserID, &out.TemplateID, &out.Channel, &out.TargetHint, &out.Provider, &out.Status, &out.AttemptCount, &out.MaxAttempts, &out.ScheduledAt, &out.NextAttemptAt, &out.SentAt, &lastError, &out.CreatedAt, &out.UpdatedAt)
+	err := row.Scan(&out.ID, &out.MessageID, &out.UserID, &out.TemplateID, &out.Channel, &out.TargetHint, &out.Provider, &out.ProviderMessageID, &out.Status, &out.AttemptCount, &out.MaxAttempts, &out.ScheduledAt, &out.NextAttemptAt, &out.SentAt, &lastError, &out.Retryable, &out.RetryRisk, &out.CreatedAt, &out.UpdatedAt)
 	if err == nil && lastError != "" {
 		out.ErrorCode = "PROVIDER_DELIVERY_FAILED"
 		out.ErrorSummary = safeSummary(lastError)
+	}
+	if err == nil {
+		out.Retryable = out.Retryable && out.Status == "failed" && out.AttemptCount < out.MaxAttempts
 	}
 	return out, err
 }
@@ -438,14 +459,15 @@ func (r *Postgres) GetDelivery(ctx context.Context, tenantID, id uuid.UUID) (not
 	return out, err
 }
 
-func (r *Postgres) RetryDelivery(ctx context.Context, p notify.Principal, id uuid.UUID) (notify.Delivery, error) {
+func (r *Postgres) RetryDelivery(ctx context.Context, p notify.Principal, id uuid.UUID, acknowledgeDuplicateRisk bool) (notify.Delivery, error) {
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		return notify.Delivery{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	out, err := scanDelivery(tx.QueryRow(ctx, fmt.Sprintf(`UPDATE notify.deliveries SET status='pending',next_attempt_at=now(),last_error=NULL
-		WHERE tenant_id=$1 AND id=$2 AND status='failed' AND attempt_count<max_attempts RETURNING %s`, deliveryColumns), p.TenantID, id))
+	out, err := scanDelivery(tx.QueryRow(ctx, fmt.Sprintf(`UPDATE notify.deliveries SET status='pending',next_attempt_at=now(),last_error=NULL,retryable=false,retry_risk='none'
+		WHERE tenant_id=$1 AND id=$2 AND status='failed' AND attempt_count<max_attempts
+		AND (retryable OR $3::boolean) AND (retry_risk='none' OR $3::boolean) RETURNING %s`, deliveryColumns), p.TenantID, id, acknowledgeDuplicateRisk))
 	if errors.Is(err, pgx.ErrNoRows) {
 		if _, getErr := r.GetDelivery(ctx, p.TenantID, id); getErr != nil {
 			return notify.Delivery{}, getErr
@@ -455,7 +477,112 @@ func (r *Postgres) RetryDelivery(ctx context.Context, p notify.Principal, id uui
 	if err != nil {
 		return notify.Delivery{}, err
 	}
-	if err = insertAudit(ctx, tx, p, "notify.delivery.retry", "notify.delivery", id, "POST", map[string]any{"status": "pending", "attempt_count": out.AttemptCount}); err != nil {
+	if r.river == nil {
+		return notify.Delivery{}, notify.ErrDeliveryUnavailable
+	}
+	if _, err = r.river.InsertTx(ctx, tx, notify.DeliveryJobArgs{DeliveryID: id}, &river.InsertOpts{Queue: "notifications", MaxAttempts: int(out.MaxAttempts), UniqueOpts: river.UniqueOpts{ByArgs: true}}); err != nil {
+		return notify.Delivery{}, err
+	}
+	if err = insertAudit(ctx, tx, p, "notify.delivery.retry", "notify.delivery", id, "POST", map[string]any{"status": "pending", "attempt_count": out.AttemptCount, "duplicate_risk_acknowledged": acknowledgeDuplicateRisk}); err != nil {
+		return notify.Delivery{}, err
+	}
+	return out, tx.Commit(ctx)
+}
+
+const bindingColumns = `id,template_id,provider,external_template_id,COALESCE(sign_name,''),parameter_order,status,version,created_at,updated_at`
+
+func scanBinding(row scanner) (notify.SMSTemplateBinding, error) {
+	var out notify.SMSTemplateBinding
+	err := row.Scan(&out.ID, &out.TemplateID, &out.Provider, &out.ExternalTemplateID, &out.SignName, &out.ParameterOrder, &out.Status, &out.Version, &out.CreatedAt, &out.UpdatedAt)
+	return out, err
+}
+
+func (r *Postgres) ListSMSTemplateBindings(ctx context.Context, tenantID, templateID uuid.UUID) ([]notify.SMSTemplateBinding, error) {
+	if _, err := r.GetTemplate(ctx, tenantID, templateID); err != nil {
+		return nil, err
+	}
+	rows, err := r.pool.Query(ctx, fmt.Sprintf("SELECT %s FROM notify.sms_template_bindings WHERE tenant_id=$1 AND template_id=$2 ORDER BY provider", bindingColumns), tenantID, templateID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := make([]notify.SMSTemplateBinding, 0)
+	for rows.Next() {
+		item, scanErr := scanBinding(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		items = append(items, item)
+	}
+	return items, rows.Err()
+}
+
+func (r *Postgres) UpsertSMSTemplateBinding(ctx context.Context, p notify.Principal, templateID uuid.UUID, provider string, in notify.SMSTemplateBindingInput) (notify.SMSTemplateBinding, error) {
+	template, err := r.GetTemplate(ctx, p.TenantID, templateID)
+	if err != nil {
+		return notify.SMSTemplateBinding{}, err
+	}
+	if template.Channel != "sms" {
+		return notify.SMSTemplateBinding{}, notify.ErrInvalid
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return notify.SMSTemplateBinding{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	out, err := scanBinding(tx.QueryRow(ctx, fmt.Sprintf(`INSERT INTO notify.sms_template_bindings(tenant_id,template_id,provider,external_template_id,sign_name,parameter_order,status,version)
+		VALUES($1,$2,$3,$4,NULLIF($5,''),$6,$7,$8)
+		ON CONFLICT(tenant_id,template_id,provider) DO UPDATE SET external_template_id=EXCLUDED.external_template_id,sign_name=EXCLUDED.sign_name,parameter_order=EXCLUDED.parameter_order,status=EXCLUDED.status,version=notify.sms_template_bindings.version+1
+		RETURNING %s`, bindingColumns), p.TenantID, templateID, provider, in.ExternalTemplateID, in.SignName, in.ParameterOrder, in.Status, max(1, in.Version)))
+	if err != nil {
+		return notify.SMSTemplateBinding{}, err
+	}
+	if err = insertAudit(ctx, tx, p, "notify.template.binding.update", "notify.template", templateID, "PUT", map[string]any{"provider": provider, "status": out.Status, "version": out.Version}); err != nil {
+		return notify.SMSTemplateBinding{}, err
+	}
+	return out, tx.Commit(ctx)
+}
+
+func (r *Postgres) DeleteSMSTemplateBinding(ctx context.Context, p notify.Principal, templateID uuid.UUID, provider string) error {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	result, err := tx.Exec(ctx, `DELETE FROM notify.sms_template_bindings WHERE tenant_id=$1 AND template_id=$2 AND provider=$3`, p.TenantID, templateID, provider)
+	if err != nil {
+		return err
+	}
+	if result.RowsAffected() == 0 {
+		return notify.ErrNotFound
+	}
+	if err = insertAudit(ctx, tx, p, "notify.template.binding.delete", "notify.template", templateID, "DELETE", map[string]any{"provider": provider}); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func (r *Postgres) CreateTestDelivery(ctx context.Context, p notify.Principal, in notify.CreateDelivery) (notify.Delivery, error) {
+	if r.river == nil {
+		return notify.Delivery{}, notify.ErrDeliveryUnavailable
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return notify.Delivery{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	out, err := scanDelivery(tx.QueryRow(ctx, fmt.Sprintf(`INSERT INTO notify.deliveries(
+		tenant_id,template_id,channel,target_ciphertext,target_hash,target_hint,target_key_version,provider,rendered_subject,rendered_body,dedupe_key,payload_ciphertext,payload_key_version,status,max_attempts)
+		VALUES($1,$2,$3,$4,$5,$6,$7,$8,NULLIF($9,''),$10,$11,$12,$13,'pending',5)
+		ON CONFLICT(tenant_id,channel,dedupe_key) WHERE dedupe_key IS NOT NULL DO UPDATE SET updated_at=notify.deliveries.updated_at
+		RETURNING %s`, deliveryColumns), p.TenantID, in.TemplateID, in.Channel, in.TargetCiphertext, in.TargetHash, in.TargetHint, in.TargetKeyVersion, in.Provider, in.RenderedSubject, in.RenderedBody, in.DedupeKey, in.PayloadCiphertext, in.PayloadKeyVersion))
+	if err != nil {
+		return notify.Delivery{}, err
+	}
+	if _, err = r.river.InsertTx(ctx, tx, notify.DeliveryJobArgs{DeliveryID: out.ID}, &river.InsertOpts{Queue: "notifications", MaxAttempts: int(out.MaxAttempts), UniqueOpts: river.UniqueOpts{ByArgs: true}}); err != nil {
+		return notify.Delivery{}, err
+	}
+	if err = insertAudit(ctx, tx, p, "notify.template.test", "notify.template", in.TemplateID, "POST", map[string]any{"delivery_id": out.ID, "channel": in.Channel, "provider": in.Provider, "target_hint": in.TargetHint}); err != nil {
 		return notify.Delivery{}, err
 	}
 	return out, tx.Commit(ctx)
