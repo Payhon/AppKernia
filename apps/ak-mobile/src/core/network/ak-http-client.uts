@@ -123,8 +123,7 @@ export class AkHttpClient implements AkHttpPort {
 
   private headerString(headers: UTSJSONObject | null, key: string): string | null {
     if (headers == null) return null
-      const value: any | null = headers[key]
-    return typeof value == 'string' ? value : null
+    return headers.getString(key)
   }
 
   private errorFromStatus(statusCode: number, requestId: string | null): AkError {

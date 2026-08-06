@@ -28,7 +28,7 @@ let coverTasks: Array<HttpCancellation> = []
 
 export default {
   data() { return { state: 'loading', unreadCount: 0, displayName: '', featured: [] as Array<ArticleSummary>, coverPaths: new Map<string, string>(), pending: 0, failed: false, quickActions: [{ key: 'home.action.articles', route: 'articles.list', icon: 'bookmark' }, { key: 'home.action.messages', route: 'notifications.list', icon: 'bell' }, { key: 'home.action.security', route: 'profile.security', icon: 'security' }, { key: 'home.action.settings', route: 'settings.language', icon: 'settings' }] as Array<QuickAction> } },
-  computed: { t() { return akI18n.t }, nameParams() { return new Map<string, any>([['name', this.displayName]]) }, stateTitle() { return this.state == 'offline' ? akI18n.t('state.offline.title', null) : akI18n.t('state.error.title', null) } },
+  computed: { t() { return akI18n.t }, nameParams() { return new Map<string, string>([['name', this.displayName]]) }, stateTitle() { return this.state == 'offline' ? akI18n.t('state.offline.title', null) : akI18n.t('state.error.title', null) } },
   onLoad() { this.reload() },
   onUnload() { this.cancelRequests() },
   methods: {
@@ -43,7 +43,7 @@ export default {
       featuredTask = articles.list(query, page => { this.featured = page.items as Array<ArticleSummary>; this.loadCovers(page.items); this.complete(false) }, error => this.complete(true, error))
     },
     complete(failed: boolean, error: AkError | null = null) { this.pending -= 1; if (failed) { this.failed = true; if (error != null && error.kind == 'network_unavailable') this.state = 'offline' }; if (this.pending == 0) { if (this.featured.length > 0) this.state = 'content'; else if (this.failed) this.state = this.state == 'offline' ? 'offline' : 'error'; else this.state = 'empty' } },
-    readingParams(minutes: number) { return new Map<string, any>([['count', minutes]]) },
+    readingParams(minutes: number) { return new Map<string, string>([['count', minutes.toString()]]) },
     coverPath(id: string): string { const path = this.coverPaths.get(id); return path != null ? path : '' },
     loadCovers(items: Array<ArticleSummary>) { const loader = articleRuntime.getAssetLoader(); if (loader == null) return; items.forEach(article => { if (article.coverUrl != null) coverTasks.push(loader.load(article.coverUrl, localPath => { this.coverPaths.set(article.id, localPath) }, () => {})) }) },
     go(key: string) { akNavigator.navigate(key, authenticatedNavigationContext()) },

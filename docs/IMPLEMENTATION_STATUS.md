@@ -332,3 +332,12 @@
 - 已引入 DCloud 官方 Codex rules（commit `9ec6ebb2ba57c3634a7be454f2d7c21a02635759`）及 `@dcloudio/uni-app-x-mcp@0.0.5` 的项目级 MCP 配置；仓库根规则仍为更高优先级。本 task 已通过 direct-stdio 的 initialize、tools/list 与 call 验证 MCP 成功，结果保存在 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-mobile-framework/mcp-easycom-scan.json`。本机原生 `codex mcp list` 因 vendor binary 损坏不能执行，且项目级 server 仍需从仓库根重启/重新打开 Codex 才会载入原生工具列表；该限制不影响已保存的 direct-stdio 验证。
 - Mobile `ui-ux-pro-max` 产物已保存，但 Home/Profile/Article List/Detail 的 Android 360×800、iOS 390×844、Harmony 430×932 真机截图及动态字体、reduced motion、英文扩展审查仍待补齐，不能标记移动端视觉验收完成。
 - 平台边界：前一轮唯一临时项目 `ak-mobile-framework-ios-rootqa` 曾以 HBuilderX 5.06 完成 iOS compile-only（20 页与 `ak-secure-storage`，`UTS编译完毕`、`ready in 39282ms`、CLI exit 0）。第 3 次最终隔离证据项目 `ak-mobile-framework-ios-final-evidence` 使用 HBuilderX 5.06 CLI exit 0：20 页与 `ak-secure-storage`、UTS 完成、`ready in 30446ms`、正常“已停止运行”；清理前逐行严格搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality` 均为空。仅标准基座/需 custom base/iOS 13+ 为预期提示；未执行模拟器安装/启动、签名或 Keychain 回读，项目已关闭/清理且无进程。Android 最终唯一项目 `ak-mobile-framework-android-final-clean-1785906028` 已完成 20 页至 Android class、UTS、`ready in 19314ms` 与正常停止；Terra 修复原 4 条 identity-equality warning，复编译额外发现并修复 profile edit 1 条，共 5 处 `Any?/Boolean` 与 `Int` 长度的 UTS 值比较。静态 7 项、严格错误/警告/Identity 搜索均为 0；launch 数值 exit 因外层误用 `PIPESTATUS` 未采集，project close 成功，且仅为 compile-only（非 APK/安装/真机），临时项目已清理且无进程。Harmony 最终最新源码在唯一项目 `ak-mobile-framework-harmony-final.ECScJj` 以 HBuilderX 5.06 CLI 可信 exit 0 实测：20 页、UTS、`ready in 15236ms`、工程生成/依赖/运行包制作成功，恰 1 个 `entry-default-unsigned.hap`。清理前严格逐行搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality`、`currentColor` 均零匹配（`rg` exit 1）。仅包名/签名/未签名为预期 warning；未安装/未真机/未执行 Asset Store 回读，项目已 close，临时项目和日志已清理且无进程。生产发布、三端真机、真实 Push/OAuth/商店升级和三端网络/弱网验收均仍未验证。
+
+## 2026-08-06 GitHub Actions CI 修复
+
+### 状态：修复完成并发布前验证通过
+
+- `admin` job 原先在 pnpm 尚未安装时由 `actions/setup-node@v5` 初始化 pnpm cache，导致 `Unable to locate executable file: pnpm`；现改为先由 `pnpm/action-setup@v4` 安装锁定的 pnpm 11.18.0。
+- `mobile-blueprint` job 原先缺少 `rg`。显式安装 `ripgrep` 后又暴露最新 Mobile 源码的 9 处禁用 `any`：现将 i18n 参数统一为 `Map<string, string>`，数值在边界转字符串，并使用 `UTSJSONObject.getString` 读取 Catalog/Header。
+- 最新 `origin/main` 隔离工作树中，Mobile static check、全蓝图/i18n 校验、workflow YAML/actionlint、Admin 全量 check 均退出 0；Admin 为 16 个测试文件、64 项测试并完成 production build/bundle/blueprint 校验。
+- 本机 Admin 检查使用 Node 26.5.0，因仓库要求 Node 24 产生 engine warning；CI 仍固定 Node 24.18.1。此次类型收紧后的 Android/iOS/Harmony compile 与真机未执行，不将静态 CI 修复标记为平台验收。

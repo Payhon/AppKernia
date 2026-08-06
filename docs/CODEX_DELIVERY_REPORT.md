@@ -873,3 +873,27 @@
 - Harmony：最终源码在唯一项目 `ak-mobile-framework-harmony-final.ECScJj` 上以 HBuilderX 5.06 CLI 可信 exit 0 回归；20 页、UTS、`ready in 15236ms`，工程生成、依赖安装和运行包制作成功，恰 1 个 `entry-default-unsigned.hap`。清理前严格搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality`、`currentColor` 均零匹配（`rg` exit 1）。secure-storage 修复为 interface 显式 class、三端 availability new 实例与 Harmony TextDecoder options 显式类型，Asset Store 仍保留。包名/签名/未签名为预期 warning；没有安装、Asset Store 回读或真机 smoke。项目已 close，临时项目/日志已清理，无进程。主题 20/20 覆盖已移除 `currentColor`，并为三种 button variant 的 loading 使用显式 token。
 - Backend 临时 PostgreSQL 18 实测、Admin mock E2E 和本表静态检查都不是生产部署/生产数据验收。真实 Go API/PostgreSQL 浏览器联调、第三方 OAuth/Push、应用商店升级、弱网、三端真机与生产发布仍 blocked/未验证。
 - 本代理没有改动 `apps/ak-mobile` 活跃源码；当前工作树原有的其他未提交实现均予以保留。提交/推送状态由主代理在最终范围和回归结论确定后单独记录。
+
+## 2026-08-06 GitHub Actions CI 失败修复
+
+### 交付内容
+
+- 真实检查 [CI run 31014624161](https://github.com/Payhon/AppKernia/actions/runs/31014624161)：`admin` 在 setup-node 的 pnpm cache 阶段找不到 pnpm；`mobile-blueprint` 在项目检查阶段找不到 `rg`。
+- Admin job 先执行 `pnpm/action-setup@v4`（11.18.0），再执行 `actions/setup-node@v5`；Mobile job 在项目检查前通过 apt 安装 `ripgrep`。
+- 补齐 `rg` 后，Mobile 扫描进一步发现 9 处禁用 `any`。i18n 插值参数收紧为字符串 Map，数值由调用方显式转字符串；Catalog 与响应 Header 通过 `UTSJSONObject.getString` 读取，不使用无边界动态类型。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `gh run view 31014624161 --log-failed` | 0 | 确认 admin 与 mobile-blueprint 原始失败日志；同 run 的 backend、blueprint 已成功 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile Blueprint、i18n、VDOM、禁用模式扫描及三平台构建脚本目标检查通过 |
+| `make check-blueprints` | 0 | Backend、Admin、Mobile 与统一 i18n 静态契约全部通过 |
+| `pnpm install --frozen-lockfile && pnpm --filter @appkernia/admin check` | 0 | lint、strict typecheck、16 files / 64 tests、production build、bundle budget、Admin Blueprint 均通过 |
+| Ruby YAML parse / `actionlint v1.7.7` / `git diff --check` | 0 / 0 / 0 | Workflow 语法、job 定义、Shell 和补丁格式通过 |
+
+### 验证边界
+
+- 本机 Node 为 26.5.0，Admin 检查产生 Node 24 engine warning；GitHub workflow 固定 Node 24.18.1，pnpm 固定 11.18.0。
+- 这次只修复 CI 环境和被检查器暴露的 Mobile 类型边界；没有 API、数据库、权限或可见 UI 变更。
+- Android/iOS/Harmony 的 compile、安装、模拟器和真机均未在本轮重新执行，不能用静态 CI 结果替代平台验收。

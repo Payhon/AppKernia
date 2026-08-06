@@ -40,7 +40,7 @@ export default {
       if (this.state == 'forbidden') return akI18n.t('state.forbidden.title', null)
       return akI18n.t('state.error.title', null)
     },
-    readingParams() { return new Map<string, any>([['count', this.readingMinutes]]) },
+    readingParams() { return new Map<string, string>([['count', this.readingMinutes.toString()]]) },
   },
   onLoad(options: UTSJSONObject) {
     const rawSlug: string | null = options.getString('slug')

@@ -10,15 +10,15 @@ const enUS: CatalogValues = catalogFromJson(enUSJson as UTSJSONObject)
 function catalogFromJson(source: UTSJSONObject): CatalogValues {
   const catalog: CatalogValues = new Map<string, string>()
   source.toMap().forEach((entry) => {
-    const value: any | null = entry.value
-    if (typeof value == 'string') catalog.set(entry.key, value)
+    const value: string | null = source.getString(entry.key)
+    if (value != null) catalog.set(entry.key, value)
   })
   return catalog
 }
 
 export class AkI18n {
   private locale: AkLocale = 'zh-CN'
-  readonly t: (key: string, params: Map<string, any> | null) => string = (key, params) => this.translate(key, params)
+  readonly t: (key: string, params: Map<string, string> | null) => string = (key, params) => this.translate(key, params)
 
   getLocale(): AkLocale {
     return this.locale
@@ -28,13 +28,13 @@ export class AkI18n {
     this.locale = locale
   }
 
-  private translate(key: string, params: Map<string, any> | null): string {
+  private translate(key: string, params: Map<string, string> | null): string {
     const catalog: CatalogValues = this.locale == 'en-US' ? enUS : zhCN
     const stored: string | null = catalog.get(key)
     let value: string = stored != null ? stored : key
     if (params != null) {
-      params.forEach((parameterValue: any, parameterKey: string) => {
-        value = value.replace('{' + parameterKey + '}', typeof parameterValue == 'number' ? (parameterValue as number).toString() : parameterValue as string)
+      params.forEach((parameterValue: string, parameterKey: string) => {
+        value = value.replace('{' + parameterKey + '}', parameterValue)
       })
     }
     return value

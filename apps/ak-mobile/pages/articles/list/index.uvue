@@ -153,7 +153,7 @@ export default {
         this.mutatingId = ''
       }, () => { this.mutatingId = '' })
     },
-    readingParams(count: number) { return new Map<string, any>([['count', count]]) },
+    readingParams(count: number) { return new Map<string, string>([['count', count.toString()]]) },
   },
 }
 </script>
