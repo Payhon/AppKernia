@@ -338,6 +338,19 @@ export function AdminConfigsPage() {
     () => (search.mode === "form" ? (query.data?.items ?? []) : []),
     [query.data?.items, search.mode],
   );
+  const visibleDirectItems = useMemo(() => {
+    const valuesByKey = new Map(
+      directItems.map((item) => [item.config_key, draftFor(item, directValues)]),
+    );
+    return directItems.filter((item) => {
+      const condition = (item.validation_schema as Record<string, unknown>)[
+        "x-visible-when"
+      ];
+      if (!condition || typeof condition !== "object") return true;
+      const rule = condition as { equals?: unknown; key?: unknown };
+      return typeof rule.key === "string" && valuesByKey.get(rule.key) === rule.equals;
+    });
+  }, [directItems, directValues]);
   const directDirtyIds = useMemo(
     () =>
       directItems
@@ -847,7 +860,7 @@ export function AdminConfigsPage() {
                 ) : (
                   <Form layout="vertical" requiredMark={false}>
                     <div className="ak-config-direct-grid">
-                      {directItems.map((item) => (
+                      {visibleDirectItems.map((item) => (
                         <AkConfigValueField
                           disabled={
                             item.is_locked ||

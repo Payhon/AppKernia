@@ -1,0 +1,64 @@
+{
+  "zh-CN-dictionaries-1440": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "zh-CN-dictionaries-1440.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-notification-drivers/screenshots/zh-CN-dictionaries-1440.png",
+  "cloud_config_count": 14,
+  "storage_dictionary_select": {
+    "resolved_labels": [
+      "本地存储",
+      "通用 S3",
+      "MinIO",
+      "腾讯云 COS",
+      "阿里云 OSS",
+      "七牛云 Kodo"
+    ],
+    "rendered_virtual_window": [
+      "local",
+      "s3"
+    ]
+  },
+  "en-US-sms-binding-1440": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "en-US-sms-binding-1440.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-notification-drivers/screenshots/en-US-sms-binding-1440.png",
+  "en-US-sms-test-risk-1440": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "en-US-sms-test-risk-1440.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-notification-drivers/screenshots/en-US-sms-test-risk-1440.png",
+  "email_test_delivery": {
+    "id": "019fd012-abc5-7a6f-b2c4-355f01c32476",
+    "status": 202
+  },
+  "zh-CN-templates-375": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "zh-CN-templates-375.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-notification-drivers/screenshots/zh-CN-templates-375.png",
+  "encrypted_delivery_persistence": {
+    "status": "failed",
+    "retry_risk": "manual_review",
+    "plaintext_absent": true
+  },
+  "notification_audits": 2,
+  "console_errors": []
+}

@@ -1,0 +1,81 @@
+{
+  "zh-CN-dictionary-appearance-presets-1440": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "zh-CN-dictionary-appearance-presets-1440.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-appearance-selects/screenshots/zh-CN-dictionary-appearance-presets-1440.png",
+  "zh-CN-dictionary-appearance-custom-1440": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "zh-CN-dictionary-appearance-custom-1440.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-appearance-selects/screenshots/zh-CN-dictionary-appearance-custom-1440.png",
+  "zh-CN-dictionaries-category-edit-1440": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "zh-CN-dictionaries-category-edit-1440.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-category-editing/screenshots/zh-CN-dictionaries-category-edit-1440.png",
+  "en-US-dictionaries-category-edit-1440": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "en-US-dictionaries-category-edit-1440.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-category-editing/screenshots/en-US-dictionaries-category-edit-1440.png",
+  "en-US-dictionary-appearance-custom-1440": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 1440,
+      "scroll": 1440
+    }
+  },
+  "en-US-dictionary-appearance-custom-1440.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-appearance-selects/screenshots/en-US-dictionary-appearance-custom-1440.png",
+  "en-US-dictionaries-category-edit-375": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "en-US-dictionaries-category-edit-375.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-category-editing/screenshots/en-US-dictionaries-category-edit-375.png",
+  "en-US-dictionary-appearance-custom-375": {
+    "violations": [],
+    "critical_or_serious": 0,
+    "viewport": {
+      "client": 375,
+      "scroll": 375
+    }
+  },
+  "en-US-dictionary-appearance-custom-375.screenshot": "apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-appearance-selects/screenshots/en-US-dictionary-appearance-custom-375.png",
+  "override_api": {
+    "create_status": 201,
+    "update_status": 200
+  },
+  "appearance_api": {
+    "preset_create": {
+      "color": "#087a68",
+      "css_class": "ak-dictionary-style-success"
+    },
+    "custom_update": {
+      "color": "#123456",
+      "css_class": "tenant-accent"
+    }
+  },
+  "console_errors": [],
+  "http_errors": []
+}

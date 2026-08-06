@@ -1200,7 +1200,36 @@ export type Region = {
     latitude: number | null;
     status: 'active' | 'disabled';
     has_children: boolean;
+    version: number;
     updated_at: string;
+};
+
+export type AdminRegionCreateRequest = {
+    code: string;
+    parent_code: string;
+    name: string;
+    full_name: string;
+    postal_code: string;
+    longitude: number | null;
+    latitude: number | null;
+    status: 'active' | 'disabled';
+};
+
+export type AdminRegionUpdateRequest = {
+    name: string;
+    full_name: string;
+    postal_code: string;
+    longitude: number | null;
+    latitude: number | null;
+    status: 'active' | 'disabled';
+    version: number;
+};
+
+export type AdminRegionResponse = {
+    code: 'OK';
+    message: string;
+    data: Region;
+    request_id: string;
 };
 
 export type RegionListResponse = {
@@ -1208,29 +1237,6 @@ export type RegionListResponse = {
     message: string;
     data: {
         items: Array<Region>;
-    };
-    request_id: string;
-};
-
-export type AdminModule = {
-    id: string;
-    code: string;
-    name: string;
-    version: string;
-    description: string;
-    capabilities: {
-        [key: string]: unknown;
-    };
-    status: 'enabled' | 'disabled';
-    installed_at: string;
-    updated_at: string;
-};
-
-export type AdminModuleListResponse = {
-    code: 'OK';
-    message: string;
-    data: {
-        items: Array<AdminModule>;
     };
     request_id: string;
 };
@@ -1254,13 +1260,13 @@ export type AdminFileUploadSession = {
     expected_size: number;
     part_size: number;
     status: 'initiated' | 'uploading';
-    provider: 'local' | 's3' | 'minio';
+    provider: string;
     expires_at: string;
     uploaded_parts: Array<AdminFilePart>;
 };
 
 export type AdminFileUploadPolicy = {
-    provider: 'local' | 's3' | 'minio';
+    provider: string;
     max_image_bytes: number;
     max_file_bytes: number;
     image_media_types: Array<string>;
@@ -1274,7 +1280,7 @@ export type AdminFile = {
     media_type: string;
     extension: string;
     size_bytes: number;
-    provider: 'local' | 's3' | 'minio';
+    provider: string;
     status: 'pending' | 'ready' | 'quarantined';
     scan_status: 'pending' | 'clean' | 'infected' | 'failed' | 'skipped';
     usage_count: number;
@@ -1456,12 +1462,14 @@ export type AdminNotificationTemplateChannel = 'in_app' | 'email' | 'sms' | 'pus
 
 export type AdminNotificationTemplate = {
     id: string;
+    tenant_id: string | null;
     code: string;
     name: string;
     channel: AdminNotificationTemplateChannel;
     locale: 'zh-CN' | 'en-US' | null;
     subject_template: string | null;
     body_template: string;
+    body_format: 'plain' | 'html';
     /**
      * JSON Schema object declaring every double-brace template variable.
      */
@@ -1469,6 +1477,7 @@ export type AdminNotificationTemplate = {
         [key: string]: unknown;
     };
     status: 'active' | 'disabled';
+    is_locked: boolean;
     created_at: string;
     updated_at: string;
 };
@@ -1480,6 +1489,7 @@ export type AdminNotificationTemplateRequest = {
     locale: 'zh-CN' | 'en-US' | null;
     subject_template: string | null;
     body_template: string;
+    body_format: 'plain' | 'html';
     variables_schema: {
         [key: string]: unknown;
     };
@@ -1507,6 +1517,60 @@ export type AdminNotificationTemplateListResponse = {
     request_id: string;
 };
 
+export type AdminSmsTemplateBinding = {
+    id: string;
+    template_id: string;
+    provider: 'tencent' | 'aliyun';
+    external_template_id: string;
+    sign_name: string;
+    parameter_order: Array<string>;
+    status: 'active' | 'disabled';
+    version: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AdminSmsTemplateBindingRequest = {
+    external_template_id: string;
+    sign_name: string;
+    parameter_order: Array<string>;
+    status: 'active' | 'disabled';
+    version: number;
+};
+
+export type AdminSmsTemplateBindingResponse = {
+    code: 'OK';
+    message: string;
+    data: AdminSmsTemplateBinding;
+    request_id: string;
+};
+
+export type AdminSmsTemplateBindingListResponse = {
+    code: 'OK';
+    message: string;
+    data: Array<AdminSmsTemplateBinding>;
+    request_id: string;
+};
+
+export type AdminNotificationTemplateTestRequest = {
+    target: string;
+    provider: 'smtp' | 'tencent' | 'aliyun';
+    variables: {
+        [key: string]: string;
+    };
+    /**
+     * Must be true for SMS because a real provider request can incur charges.
+     */
+    confirm_billable: boolean;
+};
+
+export type AdminNotificationRetryRequest = {
+    /**
+     * Required when retry_risk is duplicate_possible or manual_review.
+     */
+    acknowledge_duplicate_risk?: boolean;
+};
+
 export type AdminNotificationDelivery = {
     id: string;
     message_id?: string | null;
@@ -1518,6 +1582,10 @@ export type AdminNotificationDelivery = {
      */
     target_hint: string;
     provider: string;
+    /**
+     * Safe provider receipt identifier when available.
+     */
+    provider_message_id?: string;
     status: 'pending' | 'processing' | 'sent' | 'failed' | 'cancelled';
     attempt_count: number;
     max_attempts: number;
@@ -1532,6 +1600,11 @@ export type AdminNotificationDelivery = {
      * Bounded control-character-free recovery summary.
      */
     error_summary: string;
+    /**
+     * True only for explicit transient provider rejection below the attempt limit.
+     */
+    retryable: boolean;
+    retry_risk: 'none' | 'duplicate_possible' | 'manual_review';
     created_at: string;
     updated_at: string;
 };
@@ -1787,7 +1860,11 @@ export type AdminDictionaryType = {
     tenant_id: string | null;
     code: string;
     name: string;
+    name_key: string;
     description: string;
+    description_key: string;
+    visibility: 'internal' | 'public';
+    extension_policy: 'fixed' | 'open' | 'registered' | 's3_compatible';
     status: 'active' | 'disabled';
     is_system: boolean;
     is_locked: boolean;
@@ -1826,6 +1903,7 @@ export type AdminDictionaryTypeListResponse = {
 export type AdminDictionaryItem = {
     id: string;
     dict_type_id: string;
+    tenant_id: string | null;
     item_value: string;
     label: string;
     locale: 'zh-CN' | 'en-US' | null;
@@ -1875,6 +1953,31 @@ export type AdminDictionaryItemListResponse = {
     code: string;
     message: string;
     data: AdminDictionaryItemPage;
+    request_id: string;
+};
+
+export type DictionaryOption = {
+    value: string;
+    label: string;
+    color?: string;
+    css_class?: string;
+    is_default: boolean;
+    extra: {
+        [key: string]: unknown;
+    };
+};
+
+export type ResolvedDictionary = {
+    code: string;
+    locale: SupportedLocale;
+    extension_policy: 'fixed' | 'open' | 'registered' | 's3_compatible';
+    items: Array<DictionaryOption>;
+};
+
+export type ResolvedDictionaryResponse = {
+    code: 'OK';
+    message: string;
+    data: ResolvedDictionary;
     request_id: string;
 };
 
@@ -2157,7 +2260,12 @@ export type AdminOpsHealthResponse = {
 
 export type AdminOpsModule = {
     code: string;
+    name_key: string;
+    description_key: string;
     version: string;
+    capabilities: {
+        [key: string]: boolean;
+    };
     status: 'enabled' | 'disabled';
 };
 
@@ -2505,6 +2613,36 @@ export type AdminLoginResponses = {
 };
 
 export type AdminLoginResponse = AdminLoginResponses[keyof AdminLoginResponses];
+
+export type GetPublicDictionaryData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path: {
+        code: string;
+    };
+    query?: never;
+    url: '/api/v1/public/dictionaries/{code}';
+};
+
+export type GetPublicDictionaryErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetPublicDictionaryError = GetPublicDictionaryErrors[keyof GetPublicDictionaryErrors];
+
+export type GetPublicDictionaryResponses = {
+    /**
+     * Public consumption fields only.
+     */
+    200: ResolvedDictionaryResponse;
+};
+
+export type GetPublicDictionaryResponse = GetPublicDictionaryResponses[keyof GetPublicDictionaryResponses];
 
 export type CreateAdminLoginCaptchaData = {
     body: AdminLoginCaptchaRequest;
@@ -5787,20 +5925,17 @@ export type ListAdminRegionsResponses = {
 
 export type ListAdminRegionsResponse = ListAdminRegionsResponses[keyof ListAdminRegionsResponses];
 
-export type ListAdminModulesData = {
-    body?: never;
+export type CreateAdminRegionData = {
+    body: AdminRegionCreateRequest;
     headers?: {
         'Accept-Language'?: string;
     };
     path?: never;
-    query?: {
-        q?: string;
-        status?: 'enabled' | 'disabled';
-    };
-    url: '/admin-api/v1/modules';
+    query?: never;
+    url: '/admin-api/v1/regions';
 };
 
-export type ListAdminModulesErrors = {
+export type CreateAdminRegionErrors = {
     /**
      * Authentication is missing, expired or invalid.
      */
@@ -5810,21 +5945,113 @@ export type ListAdminModulesErrors = {
      */
     403: ErrorResponse;
     /**
+     * Region code already exists.
+     */
+    409: ErrorResponse;
+    /**
      * Request validation failed.
      */
     422: ErrorResponse;
 };
 
-export type ListAdminModulesError = ListAdminModulesErrors[keyof ListAdminModulesErrors];
+export type CreateAdminRegionError = CreateAdminRegionErrors[keyof CreateAdminRegionErrors];
 
-export type ListAdminModulesResponses = {
+export type CreateAdminRegionResponses = {
     /**
-     * Compile-time module catalog.
+     * Region child created with a server-derived level.
      */
-    200: AdminModuleListResponse;
+    201: AdminRegionResponse;
 };
 
-export type ListAdminModulesResponse = ListAdminModulesResponses[keyof ListAdminModulesResponses];
+export type CreateAdminRegionResponse = CreateAdminRegionResponses[keyof CreateAdminRegionResponses];
+
+export type DeleteAdminRegionData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path: {
+        code: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/regions/{code}';
+};
+
+export type DeleteAdminRegionErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Region still has non-deleted children.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminRegionError = DeleteAdminRegionErrors[keyof DeleteAdminRegionErrors];
+
+export type DeleteAdminRegionResponses = {
+    /**
+     * Leaf region soft-deleted.
+     */
+    200: AdminBooleanResponse;
+};
+
+export type DeleteAdminRegionResponse = DeleteAdminRegionResponses[keyof DeleteAdminRegionResponses];
+
+export type UpdateAdminRegionData = {
+    body: AdminRegionUpdateRequest;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path: {
+        code: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/regions/{code}';
+};
+
+export type UpdateAdminRegionErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Optimistic-lock version conflict.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateAdminRegionError = UpdateAdminRegionErrors[keyof UpdateAdminRegionErrors];
+
+export type UpdateAdminRegionResponses = {
+    /**
+     * Region updated and marked as manually managed.
+     */
+    200: AdminRegionResponse;
+};
+
+export type UpdateAdminRegionResponse = UpdateAdminRegionResponses[keyof UpdateAdminRegionResponses];
 
 export type GetAdminFileUploadPolicyData = {
     body?: never;
@@ -6026,7 +6253,7 @@ export type ListAdminFilesData = {
         status?: 'pending' | 'ready' | 'quarantined';
         scan_status?: 'pending' | 'clean' | 'infected' | 'failed' | 'skipped';
         media_type?: string;
-        provider?: 'local' | 's3' | 'minio';
+        provider?: string;
         page?: number;
         page_size?: number;
     };
@@ -6762,6 +6989,128 @@ export type UpdateAdminNotificationTemplateResponses = {
 
 export type UpdateAdminNotificationTemplateResponse = UpdateAdminNotificationTemplateResponses[keyof UpdateAdminNotificationTemplateResponses];
 
+export type ListAdminSmsTemplateBindingsData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/notification-templates/{id}/sms-bindings';
+};
+
+export type ListAdminSmsTemplateBindingsErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type ListAdminSmsTemplateBindingsError = ListAdminSmsTemplateBindingsErrors[keyof ListAdminSmsTemplateBindingsErrors];
+
+export type ListAdminSmsTemplateBindingsResponses = {
+    /**
+     * Provider bindings without credentials.
+     */
+    200: AdminSmsTemplateBindingListResponse;
+};
+
+export type ListAdminSmsTemplateBindingsResponse = ListAdminSmsTemplateBindingsResponses[keyof ListAdminSmsTemplateBindingsResponses];
+
+export type DeleteAdminSmsTemplateBindingData = {
+    body?: never;
+    path: {
+        id: string;
+        provider: 'tencent' | 'aliyun';
+    };
+    query?: never;
+    url: '/admin-api/v1/notification-templates/{id}/sms-bindings/{provider}';
+};
+
+export type DeleteAdminSmsTemplateBindingErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type DeleteAdminSmsTemplateBindingError = DeleteAdminSmsTemplateBindingErrors[keyof DeleteAdminSmsTemplateBindingErrors];
+
+export type DeleteAdminSmsTemplateBindingResponses = {
+    /**
+     * Binding deleted.
+     */
+    200: AdminBooleanResponse;
+};
+
+export type DeleteAdminSmsTemplateBindingResponse = DeleteAdminSmsTemplateBindingResponses[keyof DeleteAdminSmsTemplateBindingResponses];
+
+export type UpsertAdminSmsTemplateBindingData = {
+    body: AdminSmsTemplateBindingRequest;
+    path: {
+        id: string;
+        provider: 'tencent' | 'aliyun';
+    };
+    query?: never;
+    url: '/admin-api/v1/notification-templates/{id}/sms-bindings/{provider}';
+};
+
+export type UpsertAdminSmsTemplateBindingErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpsertAdminSmsTemplateBindingError = UpsertAdminSmsTemplateBindingErrors[keyof UpsertAdminSmsTemplateBindingErrors];
+
+export type UpsertAdminSmsTemplateBindingResponses = {
+    /**
+     * Binding saved and audited.
+     */
+    200: AdminSmsTemplateBindingResponse;
+};
+
+export type UpsertAdminSmsTemplateBindingResponse = UpsertAdminSmsTemplateBindingResponses[keyof UpsertAdminSmsTemplateBindingResponses];
+
+export type TestAdminNotificationTemplateData = {
+    body: AdminNotificationTemplateTestRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/notification-templates/{id}/test';
+};
+
+export type TestAdminNotificationTemplateErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type TestAdminNotificationTemplateError = TestAdminNotificationTemplateErrors[keyof TestAdminNotificationTemplateErrors];
+
+export type TestAdminNotificationTemplateResponses = {
+    /**
+     * Encrypted delivery and River job created atomically.
+     */
+    202: AdminNotificationDeliveryResponse;
+};
+
+export type TestAdminNotificationTemplateResponse = TestAdminNotificationTemplateResponses[keyof TestAdminNotificationTemplateResponses];
+
 export type ListAdminNotificationDeliveriesData = {
     body?: never;
     headers?: {
@@ -6828,7 +7177,7 @@ export type GetAdminNotificationDeliveryResponses = {
 export type GetAdminNotificationDeliveryResponse = GetAdminNotificationDeliveryResponses[keyof GetAdminNotificationDeliveryResponses];
 
 export type RetryAdminNotificationDeliveryData = {
-    body?: never;
+    body?: AdminNotificationRetryRequest;
     path: {
         id: string;
     };
@@ -7372,6 +7721,44 @@ export type CreateAdminDictionaryTypeResponses = {
 };
 
 export type CreateAdminDictionaryTypeResponse = CreateAdminDictionaryTypeResponses[keyof CreateAdminDictionaryTypeResponses];
+
+export type GetAdminDictionaryData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path: {
+        code: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/dictionaries/{code}';
+};
+
+export type GetAdminDictionaryErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminDictionaryError = GetAdminDictionaryErrors[keyof GetAdminDictionaryErrors];
+
+export type GetAdminDictionaryResponses = {
+    /**
+     * Merged consumption fields without internal overlay structure.
+     */
+    200: ResolvedDictionaryResponse;
+};
+
+export type GetAdminDictionaryResponse = GetAdminDictionaryResponses[keyof GetAdminDictionaryResponses];
 
 export type UpdateAdminDictionaryTypeData = {
     body: AdminDictionaryTypeWriteRequest;

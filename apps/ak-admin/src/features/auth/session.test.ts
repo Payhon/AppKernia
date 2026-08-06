@@ -563,4 +563,44 @@ describe('AuthSession', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
+
+  it('sends region create, update, and delete writes with immutable hierarchy DTOs', async () => {
+    const tokens = new MemoryTokenStore()
+    tokens.update({ accessToken: 'access', csrfToken: 'csrf-value-that-is-long-enough' })
+    const createInput = {
+      code: '990100', parent_code: '990000', name: 'Test City', full_name: 'Test Province / Test City',
+      postal_code: '', longitude: null, latitude: null, status: 'active' as const,
+    }
+    const fetchMock = vi.fn<typeof fetch>((input, init) => {
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer access')
+      if (input === '/admin-api/v1/regions' && init?.method === 'POST') {
+        expect(init.body).toBe(JSON.stringify(createInput))
+        return Promise.resolve(Response.json({
+          code: 'OK', message: 'OK', request_id: 'test',
+          data: { ...createInput, level: 1, has_children: false, version: 1, updated_at: '2026-08-05T00:00:00Z' },
+        }, { status: 201 }))
+      }
+      if (input === '/admin-api/v1/regions/990100' && init?.method === 'PATCH') {
+        const update = { name: 'Updated City', full_name: 'Test Province / Updated City', postal_code: '', longitude: null, latitude: null, status: 'active', version: 1 }
+        expect(init.body).toBe(JSON.stringify(update))
+        return Promise.resolve(Response.json({
+          code: 'OK', message: 'OK', request_id: 'test',
+          data: { ...createInput, ...update, parent_code: '990000', level: 1, has_children: false, version: 2, updated_at: '2026-08-05T00:01:00Z' },
+        }))
+      }
+      expect(input).toBe('/admin-api/v1/regions/990100')
+      expect(init?.method).toBe('DELETE')
+      return Promise.resolve(Response.json({ code: 'OK', message: 'OK', request_id: 'test', data: { deleted: true } }))
+    })
+    const session = new AuthSession({ baseUrl: '/admin-api/v1', tokens, clearTenantCache: vi.fn(), fetch: fetchMock })
+
+    const created = await session.createAdminRegion(createInput)
+    const updated = await session.updateAdminRegion('990100', { name: 'Updated City', full_name: 'Test Province / Updated City', postal_code: '', longitude: null, latitude: null, status: 'active', version: 1 })
+    const deleted = await session.deleteAdminRegion('990100')
+
+    expect(created.version).toBe(1)
+    expect(updated.version).toBe(2)
+    expect(deleted["deleted"]).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
 })

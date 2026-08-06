@@ -80,21 +80,6 @@
       "active_menu_code": "system.settings.regions"
     },
     {
-      "component_key": "system.settings.modules",
-      "path": "/system/settings/modules",
-      "file": "src/routes/_app/system/settings/modules.tsx",
-      "layout": "app",
-      "auth": "required",
-      "phase": "P2",
-      "kind": "page",
-      "permissions": [
-        "sys.module.read"
-      ],
-      "title_key": "routes.system.settings.modules.title",
-      "menu_code": "system.settings.modules",
-      "active_menu_code": "system.settings.modules"
-    },
-    {
       "component_key": "system.users.departments",
       "path": "/system/users/departments",
       "file": "src/routes/_app/system/users/departments.tsx",

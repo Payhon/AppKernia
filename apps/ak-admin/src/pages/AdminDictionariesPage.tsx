@@ -2,13 +2,16 @@ import {
   Alert,
   Button,
   Card,
+  Collapse,
   Drawer,
+  Empty,
   Form,
   Grid,
   Input,
   InputNumber,
   List,
   Modal,
+  Pagination,
   Select,
   Space,
   Switch,
@@ -28,6 +31,7 @@ import type {
   AdminDictionaryType,
   AdminDictionaryTypeWriteRequest,
 } from "../generated/api/types.gen";
+import { AkCreatableSelect } from "../components/AkCreatableSelect";
 import { useAuthStore } from "../features/auth/store";
 import {
   useAdminDictionaryItems,
@@ -35,6 +39,16 @@ import {
   useAdminDictionaryTypes,
 } from "../features/settings/hooks";
 import { ApiError } from "../shared/api/error";
+import {
+  findTenantOverride,
+  groupDictionaryTypes,
+} from "./dictionaryPresentation";
+import {
+  DICTIONARY_COLOR_PRESETS,
+  DICTIONARY_STYLE_PRESETS,
+  isPreviewableDictionaryColor,
+  previewableDictionaryStyleClass,
+} from "./dictionaryAppearance";
 
 interface DictionarySearch {
   q: string;
@@ -129,9 +143,9 @@ function readSearch(): DictionarySearch {
     item_status:
       itemStatus === "active" || itemStatus === "disabled" ? itemStatus : "",
     page: positive(p.get("page"), 1),
-    page_size: [10, 20, 50].includes(positive(p.get("page_size"), 20))
-      ? positive(p.get("page_size"), 20)
-      : 20,
+    page_size: [20, 50, 100].includes(positive(p.get("page_size"), 100))
+      ? positive(p.get("page_size"), 100)
+      : 100,
     item_page: positive(p.get("item_page"), 1),
     item_page_size: [10, 20, 50, 100].includes(
       positive(p.get("item_page_size"), 20),
@@ -146,7 +160,8 @@ function persistSearch(search: DictionarySearch) {
     if (
       value !== "" &&
       !(["page", "item_page"].includes(key) && value === 1) &&
-      !(["page_size", "item_page_size"].includes(key) && value === 20)
+      !(key === "page_size" && value === 100) &&
+      !(key === "item_page_size" && value === 20)
     )
       p.set(key, String(value));
   history.replaceState(
@@ -159,6 +174,60 @@ function persistSearch(search: DictionarySearch) {
 export function AdminDictionariesPage() {
   const { t } = useTranslation();
   const screens = Grid.useBreakpoint();
+  const colorOptions = DICTIONARY_COLOR_PRESETS.map((preset) => {
+    const name = t(`settings.dictionaries.appearance.colors.${preset.key}`);
+    return {
+      value: preset.value,
+      searchText: `${name} ${preset.value}`,
+      label: (
+        <span className="ak-dictionary-option">
+          <span
+            aria-hidden="true"
+            className="ak-dictionary-swatch"
+            style={{ backgroundColor: preset.value }}
+          />
+          <span className="ak-dictionary-option-copy">
+            <strong>{name}</strong>
+            <code>{preset.value}</code>
+          </span>
+        </span>
+      ),
+      selectedLabel: (
+        <span className="ak-dictionary-selected-option">
+          <span
+            aria-hidden="true"
+            className="ak-dictionary-swatch"
+            style={{ backgroundColor: preset.value }}
+          />
+          <span>{name}</span>
+        </span>
+      ),
+    };
+  });
+  const styleOptions = DICTIONARY_STYLE_PRESETS.map((preset) => {
+    const name = t(`settings.dictionaries.appearance.styles.${preset.key}`);
+    return {
+      value: preset.value,
+      searchText: `${name} ${preset.value}`,
+      label: (
+        <span className="ak-dictionary-option">
+          <span className={`ak-dictionary-style-preview ${preset.value}`}>
+            {t("settings.dictionaries.appearance.preview")}
+          </span>
+          <span className="ak-dictionary-option-copy">
+            <strong>{name}</strong>
+            <code>{preset.value}</code>
+          </span>
+        </span>
+      ),
+      selectedLabel: (
+        <span className="ak-dictionary-selected-option">
+          <span className={`ak-dictionary-style-dot ${preset.value}`} aria-hidden="true" />
+          <span>{name}</span>
+        </span>
+      ),
+    };
+  });
   const permissions = new Set(
     useAuthStore((state) => state.context?.permissions ?? []),
   );
@@ -179,8 +248,22 @@ export function AdminDictionariesPage() {
     page: search.page,
     page_size: search.page_size,
   });
+  const categoryLabels: Record<string, string> = {
+    custom: t("settings.dictionaries.categories.custom"),
+    notification: t("settings.dictionaries.categories.notification"),
+    sms: t("settings.dictionaries.categories.sms"),
+    storage: t("settings.dictionaries.categories.storage"),
+  };
+  const groupedTypes = groupDictionaryTypes(
+    types.data?.items ?? [],
+    (code) => categoryLabels[code] ?? code,
+  );
   const selectedType =
     types.data?.items.find((item) => item.id === search.type_id) ?? null;
+  const canExtendSelected =
+    selectedType?.extension_policy === "open" ||
+    selectedType?.extension_policy === "registered" ||
+    selectedType?.extension_policy === "s3_compatible";
   const items = useAdminDictionaryItems(search.type_id, {
     q: search.item_q,
     locale: search.locale,
@@ -189,6 +272,18 @@ export function AdminDictionariesPage() {
     page: search.item_page,
     page_size: search.item_page_size,
   });
+  const creatingOverride = Boolean(itemEditor?.is_locked);
+  const builtinOverrideSource = itemEditor
+    ? itemEditor.is_locked
+      ? itemEditor
+      : items.data?.items.find(
+          (candidate) =>
+            candidate.is_locked &&
+            candidate.item_value === itemEditor.item_value &&
+            candidate.locale === itemEditor.locale,
+        )
+    : undefined;
+  const isOverrideEditor = Boolean(builtinOverrideSource);
   const mutations = useAdminDictionaryMutations();
   const typeForm = useForm<TypeValues>({ defaultValues: typeDefaults });
   const itemForm = useForm<ItemValues>({ defaultValues: itemDefaults });
@@ -200,6 +295,12 @@ export function AdminDictionariesPage() {
     if (!search.type_id && first)
       setSearch((current) => ({ ...current, type_id: first.id }));
   }, [search.type_id, types.data]);
+  useEffect(() => {
+    if (types.isPending || !types.data) return;
+    const lastPage = Math.max(1, Math.ceil(types.data.total / search.page_size));
+    if (search.page > lastPage)
+      setSearch((current) => ({ ...current, page: lastPage, type_id: "" }));
+  }, [search.page, search.page_size, types.data, types.isPending]);
   useEffect(() => {
     const scrollable =
       tableRegion.current?.querySelector<HTMLElement>(".ant-table-content");
@@ -259,18 +360,20 @@ export function AdminDictionariesPage() {
     setFeedback(null);
   };
   const openItemEdit = (item: AdminDictionaryItem) => {
+    const editable =
+      findTenantOverride(item, items.data?.items ?? []) ?? item;
     itemForm.reset({
-      item_value: item.item_value,
-      label: item.label,
-      locale: item.locale ?? "",
-      color: item.color,
-      css_class: item.css_class,
-      sort_order: item.sort_order,
-      is_default: item.is_default,
-      extra: JSON.stringify(item.extra, null, 2),
-      status: item.status,
+      item_value: editable.item_value,
+      label: editable.label,
+      locale: editable.locale ?? "",
+      color: editable.color,
+      css_class: editable.css_class,
+      sort_order: editable.sort_order,
+      is_default: editable.is_default,
+      extra: JSON.stringify(editable.extra, null, 2),
+      status: editable.status,
     });
-    setItemEditor(item);
+    setItemEditor(editable);
     setFeedback(null);
   };
   const submitItem = itemForm.handleSubmit(async (raw) => {
@@ -286,13 +389,22 @@ export function AdminDictionariesPage() {
       return;
     }
     let extra: Record<string, unknown>;
-    try {
-      extra = JSON.parse(parsed.data.extra || "{}") as Record<string, unknown>;
-    } catch {
-      itemForm.setError("extra", {
-        message: t("settings.dictionaries.validation.extra"),
-      });
-      return;
+    if (isOverrideEditor && builtinOverrideSource) {
+      extra = builtinOverrideSource.extra;
+    } else if (selectedType?.extension_policy === "s3_compatible") {
+      extra = {
+        adapter: "s3_compatible",
+        provider: parsed.data.item_value.trim(),
+      };
+    } else {
+      try {
+        extra = JSON.parse(parsed.data.extra || "{}") as Record<string, unknown>;
+      } catch {
+        itemForm.setError("extra", {
+          message: t("settings.dictionaries.validation.extra"),
+        });
+        return;
+      }
     }
     const input: AdminDictionaryItemWriteRequest = {
       item_value: parsed.data.item_value.trim(),
@@ -306,7 +418,7 @@ export function AdminDictionariesPage() {
       status: parsed.data.status,
     };
     try {
-      if (itemEditor)
+      if (itemEditor && !creatingOverride)
         await mutations.updateItem.mutateAsync({ id: itemEditor.id, input });
       else
         await mutations.createItem.mutateAsync({
@@ -315,7 +427,9 @@ export function AdminDictionariesPage() {
         });
       setItemEditor(undefined);
       setFeedback({
-        key: itemEditor
+        key: creatingOverride
+          ? "settings.dictionaries.feedback.override_created"
+          : itemEditor
           ? "settings.dictionaries.feedback.item_updated"
           : "settings.dictionaries.feedback.item_created",
         error: false,
@@ -349,17 +463,38 @@ export function AdminDictionariesPage() {
   const columns: TableColumnsType<AdminDictionaryItem> = [
     {
       title: t("settings.dictionaries.fields.label"),
-      key: "label",
+      dataIndex: "label",
+      ...(screens.md ? { fixed: "left" as const } : {}),
+      width: 220,
       render: (_, item) => (
-        <div>
+        <Space wrap>
           <strong>{item.label}</strong>
-          <div className="ak-settings-code">{item.item_value}</div>
-        </div>
+          <Tag>
+            {t(
+              item.tenant_id
+                ? "settings.dictionaries.badges.tenant_override"
+                : "settings.dictionaries.badges.builtin",
+            )}
+          </Tag>
+          {item.status === "disabled" ? (
+            <Tag className="ak-status-warning">
+              {t("settings.dictionaries.badges.unavailable")}
+            </Tag>
+          ) : null}
+        </Space>
       ),
+    },
+    {
+      title: t("settings.dictionaries.fields.item_value"),
+      dataIndex: "item_value",
+      ...(screens.md ? { fixed: "left" as const } : {}),
+      width: 140,
+      render: (value: string) => <code className="ak-settings-code">{value}</code>,
     },
     {
       title: t("settings.dictionaries.fields.locale"),
       dataIndex: "locale",
+      width: 110,
       render: (value: AdminDictionaryItem["locale"]) => (
         <Tag>
           {t(
@@ -374,28 +509,47 @@ export function AdminDictionariesPage() {
       title: t("settings.dictionaries.fields.appearance"),
       key: "appearance",
       responsive: ["lg"],
-      render: (_, item) => (
-        <Space>
-          {item.color ? (
-            <span
-              className="ak-dictionary-swatch"
-              style={{ backgroundColor: item.color }}
-              aria-hidden="true"
-            />
-          ) : null}
-          <span>{item.color || item.css_class || "—"}</span>
-        </Space>
-      ),
+      width: 220,
+      render: (_, item) => {
+        const styleClass = previewableDictionaryStyleClass(item.css_class);
+        if (!item.color && !item.css_class) return "—";
+        return (
+          <div className="ak-dictionary-appearance-cell">
+            {item.color ? (
+              <span className="ak-dictionary-appearance-value">
+                {isPreviewableDictionaryColor(item.color) ? (
+                  <span
+                    className="ak-dictionary-swatch"
+                    style={{ backgroundColor: item.color }}
+                    aria-hidden="true"
+                  />
+                ) : null}
+                <code>{item.color}</code>
+              </span>
+            ) : null}
+            {item.css_class ? (
+              <span className="ak-dictionary-appearance-value">
+                {styleClass ? (
+                  <span className={`ak-dictionary-style-dot ${styleClass}`} aria-hidden="true" />
+                ) : null}
+                <code>{item.css_class}</code>
+              </span>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       title: t("settings.dictionaries.fields.sort_order"),
       dataIndex: "sort_order",
       responsive: ["md"],
+      width: 90,
     },
     {
       title: t("settings.dictionaries.fields.status"),
       dataIndex: "status",
       responsive: ["md"],
+      width: 90,
       render: (value: "active" | "disabled") => (
         <Tag
           className={
@@ -407,15 +561,18 @@ export function AdminDictionariesPage() {
       ),
     },
     {
-      title: t("common.actions.edit"),
+      title: t("settings.dictionaries.fields.actions"),
       key: "actions",
-      width: screens.md ? 150 : 100,
-      render: (_, item) =>
-        item.is_locked ? (
-          "—"
-        ) : (
+      ...(screens.md ? { fixed: "right" as const } : {}),
+      width: screens.md ? 130 : 100,
+      render: (_, item) => {
+        const canEdit = item.is_locked
+          ? canExtendSelected && permissions.has("sys.dictionary.create")
+          : permissions.has("sys.dictionary.update");
+        return canEdit ||
+          (!item.is_locked && permissions.has("sys.dictionary.delete")) ? (
           <Space>
-            {permissions.has("sys.dictionary.update") ? (
+            {canEdit ? (
               <Button
                 type="link"
                 onClick={() => {
@@ -425,7 +582,7 @@ export function AdminDictionariesPage() {
                 {t("common.actions.edit")}
               </Button>
             ) : null}
-            {permissions.has("sys.dictionary.delete") ? (
+            {!item.is_locked && permissions.has("sys.dictionary.delete") ? (
               <Button
                 danger
                 type="link"
@@ -437,7 +594,10 @@ export function AdminDictionariesPage() {
               </Button>
             ) : null}
           </Space>
-        ),
+        ) : (
+          "—"
+        );
+      },
     },
   ];
   return (
@@ -504,67 +664,118 @@ export function AdminDictionariesPage() {
               type="error"
               title={t("settings.dictionaries.load_error")}
             />
+          ) : types.isPending ? (
+            <List loading dataSource={[]} />
+          ) : groupedTypes.length === 0 ? (
+            <Empty description={t("settings.dictionaries.empty_types")} />
           ) : (
-            <List
-              loading={types.isPending}
-              dataSource={types.data?.items ?? []}
-              locale={{ emptyText: t("settings.dictionaries.empty_types") }}
-              pagination={{
-                current: search.page,
-                pageSize: search.page_size,
-                total: types.data?.total ?? 0,
-                size: "small",
-                hideOnSinglePage: true,
-                onChange: (page) => {
-                  patchSearch({ page, type_id: "" });
-                },
-              }}
-              renderItem={(type) => (
-                <List.Item
-                  className={
-                    type.id === search.type_id
-                      ? "ak-dictionary-type-selected"
-                      : ""
-                  }
-                  {...(!type.is_locked &&
-                  permissions.has("sys.dictionary.update")
-                    ? {
-                        actions: [
-                          <Button
-                            key="edit"
-                            type="link"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openTypeEdit(type);
+            <>
+              <Collapse
+                className="ak-dictionary-categories"
+                defaultActiveKey={groupedTypes.map((category) => category.code)}
+                items={groupedTypes.map((category) => ({
+                  key: category.code,
+                  label: (
+                    <span className="ak-dictionary-category-heading">
+                      <span>
+                        <strong>{category.label}</strong>
+                        <code>{category.code}</code>
+                      </span>
+                      <Tag>
+                        {t("settings.dictionaries.category_count", {
+                          count: category.types.length,
+                        })}
+                      </Tag>
+                    </span>
+                  ),
+                  children: (
+                    <List
+                      dataSource={category.types}
+                      renderItem={(type) => (
+                        <List.Item
+                          className={
+                            type.id === search.type_id
+                              ? "ak-dictionary-type-selected"
+                              : ""
+                          }
+                          {...(!type.is_locked &&
+                          permissions.has("sys.dictionary.update")
+                            ? {
+                                actions: [
+                                  <Button
+                                    key="edit"
+                                    type="link"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      openTypeEdit(type);
+                                    }}
+                                  >
+                                    {t("common.actions.edit")}
+                                  </Button>,
+                                ],
+                              }
+                            : {})}
+                        >
+                          <button
+                            className="ak-dictionary-type-button"
+                            type="button"
+                            aria-pressed={type.id === search.type_id}
+                            onClick={() => {
+                              patchSearch({
+                                type_id: type.id,
+                                item_page: 1,
+                              });
                             }}
                           >
-                            {t("common.actions.edit")}
-                          </Button>,
-                        ],
-                      }
-                    : {})}
-                >
-                  <button
-                    className="ak-dictionary-type-button"
-                    type="button"
-                    aria-pressed={type.id === search.type_id}
-                    onClick={() => {
-                      patchSearch({ type_id: type.id, item_page: 1 });
-                    }}
-                  >
-                    <span className="ak-dictionary-type-title">
-                      <Space>
-                        <span>{type.name}</span>
-                        {type.is_locked ? (
-                          <Tag>{t("settings.common.system_locked")}</Tag>
-                        ) : null}
-                      </Space>
-                    </span>
-                    <span className="ak-settings-code">{type.code}</span>
-                  </button>
-                </List.Item>
-              )}
-            />
+                            <span className="ak-dictionary-type-title">
+                              <Space wrap size={[4, 4]}>
+                                <span>{type.name}</span>
+                                {type.is_locked ? (
+                                  <Tag>
+                                    {t("settings.dictionaries.badges.builtin")}
+                                  </Tag>
+                                ) : null}
+                                <Tag>
+                                  {t(
+                                    `settings.dictionaries.policy.${type.extension_policy}`,
+                                  )}
+                                </Tag>
+                                {type.visibility === "public" ? (
+                                  <Tag color="cyan">
+                                    {t("settings.dictionaries.badges.public")}
+                                  </Tag>
+                                ) : null}
+                                {type.status === "disabled" ? (
+                                  <Tag className="ak-status-warning">
+                                    {t(
+                                      "settings.dictionaries.badges.unavailable",
+                                    )}
+                                  </Tag>
+                                ) : null}
+                              </Space>
+                            </span>
+                            <span className="ak-settings-code">
+                              {type.code}
+                            </span>
+                          </button>
+                        </List.Item>
+                      )}
+                    />
+                  ),
+                }))}
+              />
+              <Pagination
+                className="ak-dictionary-type-pagination"
+                current={search.page}
+                pageSize={search.page_size}
+                total={types.data.total}
+                size="small"
+                hideOnSinglePage
+                onChange={(page) => {
+                  patchSearch({ page, type_id: "" });
+                }}
+              />
+            </>
           )}
         </Card>
         <Card
@@ -572,7 +783,7 @@ export function AdminDictionariesPage() {
           title={selectedType?.name ?? t("settings.dictionaries.select_type")}
           extra={
             selectedType &&
-            !selectedType.is_locked &&
+            canExtendSelected &&
             permissions.has("sys.dictionary.create") ? (
               <Button onClick={openItemCreate}>
                 {t("settings.dictionaries.actions.create_item")}
@@ -586,13 +797,22 @@ export function AdminDictionariesPage() {
             </Typography.Paragraph>
           ) : (
             <>
-              {selectedType.is_locked ? (
+              {selectedType.is_locked && !canExtendSelected ? (
                 <Alert
                   className="ak-settings-lock-alert"
                   showIcon
                   type="info"
                   title={t("settings.dictionaries.locked.title")}
                   description={t("settings.dictionaries.locked.description")}
+                />
+              ) : null}
+              {canExtendSelected ? (
+                <Alert
+                  className="ak-settings-lock-alert"
+                  showIcon
+                  type="info"
+                  title={t("settings.dictionaries.extensible.title")}
+                  description={t("settings.dictionaries.extensible.description")}
                 />
               ) : null}
               <div
@@ -662,7 +882,7 @@ export function AdminDictionariesPage() {
                       },
                     }}
                     rowKey="id"
-                    scroll={{ x: screens.md ? 760 : 480 }}
+                    scroll={{ x: screens.md ? 900 : 680 }}
                   />
                 </div>
               )}
@@ -762,7 +982,9 @@ export function AdminDictionariesPage() {
         }}
         size="large"
         title={t(
-          itemEditor
+          isOverrideEditor
+            ? "settings.dictionaries.editor.override_item"
+            : itemEditor
             ? "settings.dictionaries.editor.edit_item"
             : "settings.dictionaries.editor.create_item",
         )}
@@ -772,8 +994,17 @@ export function AdminDictionariesPage() {
           onFinish={() => void submitItem()}
           requiredMark={false}
         >
+          {isOverrideEditor ? (
+            <Alert
+              className="ak-settings-lock-alert"
+              showIcon
+              type="info"
+              title={t("settings.dictionaries.override.title")}
+              description={t("settings.dictionaries.override.description")}
+            />
+          ) : null}
           <div className="ak-settings-form-grid">
-            {(["item_value", "label", "color", "css_class"] as const).map(
+            {(["item_value", "label"] as const).map(
               (name) => (
                 <Controller
                   key={name}
@@ -791,6 +1022,7 @@ export function AdminDictionariesPage() {
                     >
                       <Input
                         {...field}
+                        disabled={isOverrideEditor && name === "item_value"}
                         aria-label={t(`settings.dictionaries.fields.${name}`)}
                       />
                     </Form.Item>
@@ -800,11 +1032,62 @@ export function AdminDictionariesPage() {
             )}
             <Controller
               control={itemForm.control}
+              name="color"
+              render={({ field, fieldState }) => (
+                <Form.Item
+                  label={t("settings.dictionaries.fields.color")}
+                  help={
+                    fieldState.error?.message ??
+                    t("settings.dictionaries.appearance.color_hint")
+                  }
+                  {...(fieldState.error
+                    ? { validateStatus: "error" as const }
+                    : {})}
+                >
+                  <AkCreatableSelect
+                    aria-label={t("settings.dictionaries.fields.color")}
+                    defaultLabel={t("settings.dictionaries.appearance.default")}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    options={colorOptions}
+                    value={field.value}
+                  />
+                </Form.Item>
+              )}
+            />
+            <Controller
+              control={itemForm.control}
+              name="css_class"
+              render={({ field, fieldState }) => (
+                <Form.Item
+                  label={t("settings.dictionaries.fields.css_class")}
+                  help={
+                    fieldState.error?.message ??
+                    t("settings.dictionaries.appearance.css_class_hint")
+                  }
+                  {...(fieldState.error
+                    ? { validateStatus: "error" as const }
+                    : {})}
+                >
+                  <AkCreatableSelect
+                    aria-label={t("settings.dictionaries.fields.css_class")}
+                    defaultLabel={t("settings.dictionaries.appearance.default")}
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    options={styleOptions}
+                    value={field.value}
+                  />
+                </Form.Item>
+              )}
+            />
+            <Controller
+              control={itemForm.control}
               name="locale"
               render={({ field }) => (
                 <Form.Item label={t("settings.dictionaries.fields.locale")}>
                   <Select
                     {...field}
+                    disabled={isOverrideEditor}
                     aria-label={t("settings.dictionaries.fields.locale")}
                     options={["", "zh-CN", "en-US"].map((value) => ({
                       value,
@@ -861,27 +1144,36 @@ export function AdminDictionariesPage() {
               )}
             />
           </div>
-          <Controller
-            control={itemForm.control}
-            name="extra"
-            render={({ field, fieldState }) => (
-              <Form.Item
-                label={t("settings.dictionaries.fields.extra")}
-                {...(fieldState.error
-                  ? {
-                      help: fieldState.error.message,
-                      validateStatus: "error" as const,
-                    }
-                  : {})}
-              >
-                <Input.TextArea
-                  {...field}
-                  aria-label={t("settings.dictionaries.fields.extra")}
-                  autoSize={{ minRows: 4, maxRows: 10 }}
-                />
-              </Form.Item>
-            )}
-          />
+          {selectedType?.extension_policy === "s3_compatible" ? (
+            <Alert
+              showIcon
+              type="info"
+              title={t("settings.dictionaries.s3.title")}
+              description={t("settings.dictionaries.s3.description")}
+            />
+          ) : isOverrideEditor ? null : (
+            <Controller
+              control={itemForm.control}
+              name="extra"
+              render={({ field, fieldState }) => (
+                <Form.Item
+                  label={t("settings.dictionaries.fields.extra")}
+                  {...(fieldState.error
+                    ? {
+                        help: fieldState.error.message,
+                        validateStatus: "error" as const,
+                      }
+                    : {})}
+                >
+                  <Input.TextArea
+                    {...field}
+                    aria-label={t("settings.dictionaries.fields.extra")}
+                    autoSize={{ minRows: 4, maxRows: 10 }}
+                  />
+                </Form.Item>
+              )}
+            />
+          )}
           <div className="ak-drawer-actions">
             <Button
               onClick={() => {

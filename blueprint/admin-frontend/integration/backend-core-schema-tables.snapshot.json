@@ -34,6 +34,7 @@
     "notify.messages",
     "notify.push_devices",
     "notify.recipients",
+    "notify.sms_template_bindings",
     "notify.templates",
     "org.positions",
     "org.units",

@@ -86,13 +86,17 @@ import type {
   AdminConfigResponse,
   AdminConfigWriteRequestWritable,
   AdminConfigSecretRequestWritable,
+  AdminRegionCreateRequest,
+  AdminRegionUpdateRequest,
+  AdminRegionResponse,
+  AdminBooleanResponse,
   AdminDictionaryTypeListResponse,
   AdminDictionaryTypeResponse,
   AdminDictionaryTypeWriteRequest,
   AdminDictionaryItemListResponse,
   AdminDictionaryItemResponse,
   AdminDictionaryItemWriteRequest,
-  AdminModuleListResponse,
+  ResolvedDictionaryResponse,
   AdminFile,
   AdminFileListResponse,
   AdminFileResponse,
@@ -112,6 +116,11 @@ import type {
   AdminNotificationTemplateListResponse,
   AdminNotificationTemplateResponse,
   AdminNotificationTemplateRequest,
+  AdminNotificationTemplateTestRequest,
+  AdminSmsTemplateBindingListResponse,
+  AdminSmsTemplateBindingRequest,
+  AdminSmsTemplateBindingResponse,
+  AdminNotificationRetryRequest,
   AdminNotificationDeliveryListResponse,
   AdminNotificationDeliveryResponse,
   AdminJobHandlerListResponse,
@@ -273,10 +282,6 @@ export interface AdminRegionFilters {
   level?: number;
   status?: string;
   limit?: number;
-}
-export interface AdminModuleFilters {
-  q?: string;
-  status?: string;
 }
 export interface AdminFileFilters {
   q?: string;
@@ -1102,12 +1107,29 @@ export class AuthSession {
     );
   }
 
-  async adminModules(
-    filters: AdminModuleFilters,
-  ): Promise<AdminModuleListResponse["data"]> {
-    return this.#settingsList<AdminModuleListResponse>(
-      "/modules",
-      filters,
+  async createAdminRegion(
+    input: AdminRegionCreateRequest,
+  ): Promise<AdminRegionResponse["data"]> {
+    return this.#accessWrite<AdminRegionResponse>("/regions", "POST", input).then(
+      (body) => body.data,
+    );
+  }
+
+  async updateAdminRegion(
+    code: string,
+    input: AdminRegionUpdateRequest,
+  ): Promise<AdminRegionResponse["data"]> {
+    return this.#accessWrite<AdminRegionResponse>(
+      `/regions/${encodeURIComponent(code)}`,
+      "PATCH",
+      input,
+    ).then((body) => body.data);
+  }
+
+  async deleteAdminRegion(code: string): Promise<AdminBooleanResponse["data"]> {
+    return this.#accessWrite<AdminBooleanResponse>(
+      `/regions/${encodeURIComponent(code)}`,
+      "DELETE",
     ).then((body) => body.data);
   }
 
@@ -1285,6 +1307,14 @@ export class AuthSession {
       "/dict-types",
       filters,
     ).then((body) => body.data);
+  }
+
+  async adminDictionary(code: string): Promise<ResolvedDictionaryResponse["data"]> {
+    const response = await this.request(
+      `${this.#baseUrl}/dictionaries/${encodeURIComponent(code)}`,
+    );
+    if (!response.ok) throw await toApiError(response);
+    return ((await response.json()) as ResolvedDictionaryResponse).data;
   }
 
   async createAdminDictionaryType(
@@ -1465,6 +1495,49 @@ export class AuthSession {
     ).then((body) => body.data);
   }
 
+  async adminSmsTemplateBindings(
+    id: string,
+  ): Promise<AdminSmsTemplateBindingListResponse["data"]> {
+    const response = await this.request(
+      `${this.#baseUrl}/notification-templates/${encodeURIComponent(id)}/sms-bindings`,
+    );
+    if (!response.ok) throw await toApiError(response);
+    return ((await response.json()) as AdminSmsTemplateBindingListResponse).data;
+  }
+
+  async upsertAdminSmsTemplateBinding(
+    id: string,
+    provider: "aliyun" | "tencent",
+    input: AdminSmsTemplateBindingRequest,
+  ): Promise<AdminSmsTemplateBindingResponse["data"]> {
+    return this.#accessWrite<AdminSmsTemplateBindingResponse>(
+      `/notification-templates/${encodeURIComponent(id)}/sms-bindings/${provider}`,
+      "PUT",
+      input,
+    ).then((body) => body.data);
+  }
+
+  async deleteAdminSmsTemplateBinding(
+    id: string,
+    provider: "aliyun" | "tencent",
+  ): Promise<void> {
+    await this.#accessWrite(
+      `/notification-templates/${encodeURIComponent(id)}/sms-bindings/${provider}`,
+      "DELETE",
+    );
+  }
+
+  async testAdminNotificationTemplate(
+    id: string,
+    input: AdminNotificationTemplateTestRequest,
+  ): Promise<AdminNotificationDeliveryResponse["data"]> {
+    return this.#accessWrite<AdminNotificationDeliveryResponse>(
+      `/notification-templates/${encodeURIComponent(id)}/test`,
+      "POST",
+      input,
+    ).then((body) => body.data);
+  }
+
   async adminNotificationDeliveries(
     filters: AdminNotificationDeliveryFilters,
   ): Promise<AdminNotificationDeliveryListResponse["data"]> {
@@ -1486,10 +1559,12 @@ export class AuthSession {
 
   async retryAdminNotificationDelivery(
     id: string,
+    input: AdminNotificationRetryRequest = {},
   ): Promise<AdminNotificationDeliveryResponse["data"]> {
     return this.#accessWrite<AdminNotificationDeliveryResponse>(
       `/notification-deliveries/${encodeURIComponent(id)}/retry`,
       "POST",
+      input,
     ).then((body) => body.data);
   }
 

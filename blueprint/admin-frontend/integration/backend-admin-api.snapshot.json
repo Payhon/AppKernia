@@ -297,6 +297,10 @@
     },
     {
       "method": "GET",
+      "path": "/admin-api/v1/dictionaries/{code}"
+    },
+    {
+      "method": "GET",
       "path": "/admin-api/v1/dict-types"
     },
     {
@@ -410,6 +414,22 @@
     {
       "method": "PATCH",
       "path": "/admin-api/v1/notification-templates/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/notification-templates/{id}/sms-bindings"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/notification-templates/{id}/sms-bindings/{provider}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/notification-templates/{id}/sms-bindings/{provider}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/notification-templates/{id}/test"
     },
     {
       "method": "GET",
@@ -552,8 +572,16 @@
       "path": "/admin-api/v1/regions"
     },
     {
-      "method": "GET",
-      "path": "/admin-api/v1/modules"
+      "method": "POST",
+      "path": "/admin-api/v1/regions"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/regions/{code}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/regions/{code}"
     },
     {
       "method": "GET",

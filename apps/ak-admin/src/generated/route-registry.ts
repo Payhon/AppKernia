@@ -49,18 +49,6 @@ export const generatedRouteRegistry = [
     "activeMenuCode": "system.settings.regions"
   },
   {
-    "componentKey": "system.settings.modules",
-    "path": "/system/settings/modules",
-    "auth": "required",
-    "layout": "app",
-    "titleKey": "routes.system.settings.modules.title",
-    "permissions": [
-      "sys.module.read"
-    ],
-    "featureFlag": null,
-    "activeMenuCode": "system.settings.modules"
-  },
-  {
     "componentKey": "system.users.departments",
     "path": "/system/users/departments",
     "auth": "required",

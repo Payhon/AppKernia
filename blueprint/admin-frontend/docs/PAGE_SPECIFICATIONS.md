@@ -41,7 +41,7 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 **筛选**：module_code, config_group, config_key, value_type, status, is_public, is_secret
 
-**主要动作**：选择配置分类, 新建配置, 编辑当前值, 轮换 Secret, 使用当前云存储策略测试上传
+**主要动作**：选择配置分类, 新建配置, 编辑当前值, 轮换 Secret, 使用字典选择存储/短信驱动, 使用当前云存储策略测试上传
 
 **UX 规范**：左侧分类 + 配置表；目录元数据只读，当前值可编辑；Secret 永不回显明文，使用保持不变/替换/轮换语义；分类选择写入 URL。
 
@@ -64,6 +64,7 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - Loading、Empty、Error、403 和数据刷新状态完整。
 - 敏感字段只使用服务端脱敏值，不在前端“还原” Hash/密文。
 - 初始目录包含基本、邮件、短信、登录注册、提现、云存储、地理位置、支付和微信；目录元数据不能通过客户端篡改。
+- `storage.driver` 与 `sms.provider` 必须读取 `x-appkernia-dictionary` 对应消费接口，不得在页面维护第二份选项数组；供应商字段按当前选择条件展示。
 - 云存储测试上传遵循服务端策略，不展示 Secret、Bucket 或对象键。
 
 ## `system.settings.dictionaries` — 字典管理
@@ -77,12 +78,13 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 **筛选**：类型 code/name/status, 条目 label/value/locale/status
 
-**主要动作**：新建类型, 编辑类型, 新建条目, 排序, 删除
+**主要动作**：新建类型, 编辑类型, 新建条目, 租户覆盖, 排序, 删除
 
-**UX 规范**：双栏主从布局；系统字典锁定和 locale 回退状态可见。
+**UX 规范**：双栏主从布局并在移动端堆叠；内置、租户覆盖、扩展策略、代码能力和不可用状态必须有非颜色单一表达；S3-compatible 扩展使用结构化元数据表单。
 
 **API**
 
+- `GET /admin-api/v1/dictionaries/{code}`
 - `GET /admin-api/v1/dict-types`
 - `POST /admin-api/v1/dict-types`
 - `PATCH /admin-api/v1/dict-types/{id}`
@@ -109,45 +111,23 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 **筛选**：code, name, level, parent_code, status
 
-**主要动作**：无全局主动作
+**主要动作**：在省级/市级行新增下级、编辑地区、删除叶子节点
 
-**UX 规范**：树表懒加载；默认只读，版本化导入由 CLI 完成。
+**UX 规范**：树表懒加载；动作按 `create/update/delete` 权限显示；新增与编辑使用抽屉表单，删除必须确认且禁止级联。
 
 **API**
 
 - `GET /admin-api/v1/regions`
+- `POST /admin-api/v1/regions`
+- `PATCH /admin-api/v1/regions/{code}`
+- `DELETE /admin-api/v1/regions/{code}`
 
 **页面验收**
 
 - 刷新后筛选、分页和排序从 URL Search Params 恢复。
 - View Permission 在路由层阻断；Action Permission 控制动作展示。
 - Loading、Empty、Error、403 和数据刷新状态完整。
-- 敏感字段只使用服务端脱敏值，不在前端“还原” Hash/密文。
-
-## `system.settings.modules` — 模块信息
-
-| 项目 | 定义 |
-|---|---|
-| 阶段 | P2 |
-| View Permission | `sys.module.read` |
-| Schema | `sys.modules` |
-| 后端状态 | `existing` |
-
-**筛选**：code, name, status
-
-**主要动作**：无全局主动作
-
-**UX 规范**：展示编译期模块、版本、能力和状态；不提供在线上传、安装或执行二进制。
-
-**API**
-
-- `GET /admin-api/v1/modules`
-
-**页面验收**
-
-- 刷新后筛选、分页和排序从 URL Search Params 恢复。
-- View Permission 在路由层阻断；Action Permission 控制动作展示。
-- Loading、Empty、Error、403 和数据刷新状态完整。
+- 编码、父级、层级不可编辑；只有 level 0/1 可新增下级，只有叶子节点可删除。
 - 敏感字段只使用服务端脱敏值，不在前端“还原” Hash/密文。
 
 ## `system.users.departments` — 部门
@@ -475,20 +455,24 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 |---|---|
 | 阶段 | P2 |
 | View Permission | `notify.template.read` |
-| Schema | `notify.templates` |
+| Schema | `notify.templates`, `notify.sms_template_bindings`, `notify.deliveries` |
 | 后端状态 | `existing` |
 
 **筛选**：code/name, channel, locale, status
 
-**主要动作**：新建模板, 编辑, 变量校验, 预览
+**主要动作**：新建模板, 编辑, 变量校验, 预览, SMS 供应商绑定, 真实测试发送
 
-**UX 规范**：模板元数据 + 编辑/预览；variables_schema 生成样例输入。
+**UX 规范**：模板元数据 + 编辑/预览；channel 对应用途来自字典；variables_schema 生成样例输入；短信测试明确呈现计费与重复发送风险。
 
 **API**
 
 - `GET /admin-api/v1/notification-templates`
 - `POST /admin-api/v1/notification-templates`
 - `PATCH /admin-api/v1/notification-templates/{id}`
+- `GET /admin-api/v1/notification-templates/{id}/sms-bindings`
+- `PUT /admin-api/v1/notification-templates/{id}/sms-bindings/{provider}`
+- `DELETE /admin-api/v1/notification-templates/{id}/sms-bindings/{provider}`
+- `POST /admin-api/v1/notification-templates/{id}/test`
 
 **页面验收**
 
@@ -768,9 +752,9 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 **筛选**：无
 
-**主要动作**：刷新, 复制诊断摘要, 打开指标/日志平台
+**主要动作**：刷新, 复制诊断摘要
 
-**UX 规范**：展示 API、PostgreSQL、Redis、对象存储、Worker/队列健康和版本；不暴露连接串。
+**UX 规范**：这是编译模块的唯一展示入口。展示 API、PostgreSQL、Redis、对象存储、Worker/队列健康和统一构建版本；模块使用双语语义名称、稳定编码、说明和能力标签，不暴露连接串。
 
 **API**
 
@@ -779,7 +763,9 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 **页面验收**
 
-- 刷新后筛选、分页和排序从 URL Search Params 恢复。
+- 提示、状态卡、依赖卡和运行摘要卡在桌面保持 24px、窄屏保持 16px 垂直间距。
+- 三张状态卡等高且在移动端依次堆叠；依赖和模块表格提供可聚焦横向滚动容器，页面本身不产生横向溢出。
+- 模块未知编码安全回退为原始 code；状态同时提供可读文本，不只依赖颜色。
 - View Permission 在路由层阻断；Action Permission 控制动作展示。
 - Loading、Empty、Error、403 和数据刷新状态完整。
 - 敏感字段只使用服务端脱敏值，不在前端“还原” Hash/密文。

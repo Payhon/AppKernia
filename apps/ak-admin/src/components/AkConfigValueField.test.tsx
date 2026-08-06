@@ -5,10 +5,21 @@ import axe from "axe-core";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { useTranslation } from "react-i18next";
 
+vi.mock("../features/settings/hooks", () => ({
+  useAdminDictionary: (code: string | null) => ({
+    data: code
+      ? { items: [{ value: "cos", label: "Tencent Cloud COS" }] }
+      : undefined,
+    isError: false,
+    isPending: false,
+  }),
+}));
+
 import type { AdminConfigItem } from "../generated/api/types.gen";
 import { LocaleProvider } from "../shared/i18n";
 import {
   AkConfigValueField,
+  type AkConfigDraftValue,
   configDraftValue,
   parseConfigDraftValue,
   validateConfigDraftValue,
@@ -44,7 +55,7 @@ function item(
   };
 }
 
-function FieldHarness({ config }: { config: AdminConfigItem }) {
+function FieldHarness({ config, onChange = () => undefined }: { config: AdminConfigItem; onChange?: (value: AkConfigDraftValue) => void }) {
   const { t } = useTranslation();
   return (
     <AkConfigValueField
@@ -53,7 +64,7 @@ function FieldHarness({ config }: { config: AdminConfigItem }) {
       label="Test setting"
       t={t}
       value={configDraftValue(config)}
-      onChange={() => undefined}
+      onChange={onChange}
     />
   );
 }
@@ -119,5 +130,28 @@ describe("AkConfigValueField", () => {
       "settings.configs.form.validation.minimum",
     );
     expect(validateConfigDraftValue(number, 6, translate)).toBeUndefined();
+  });
+
+  it("renders dictionary-backed options instead of a hard-coded schema enum", async () => {
+    const onChange = vi.fn();
+    render(
+      <LocaleProvider>
+        <FieldHarness
+          config={item("string", "", {
+            "x-appkernia-dictionary": "storage.driver",
+          })}
+          onChange={onChange}
+        />
+      </LocaleProvider>,
+    );
+    fireEvent.mouseDown(screen.getByRole("combobox"));
+    const options = await screen.findAllByText("Tencent Cloud COS");
+    const option = options.at(-1);
+    if (!option) throw new Error("dictionary option was not rendered");
+    fireEvent.click(option);
+    expect(onChange).toHaveBeenCalledWith(
+      "cos",
+      expect.objectContaining({ value: "cos" }),
+    );
   });
 });

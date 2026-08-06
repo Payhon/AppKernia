@@ -7,6 +7,7 @@ import { AkFileUploader } from "../components/AkFileUploader";
 import type { AdminFile } from "../generated/api/types.gen";
 import { useAuthStore, authSession } from "../features/auth/store";
 import { useAdminFileMutations, useAdminFiles, useAdminFileUsages } from "../features/files/hooks";
+import { useAdminDictionary } from "../features/settings/hooks";
 
 interface Filters { q: string; status: string; scan_status: string; media_type: string; provider: string; page: number; page_size: number }
 const readFilters = (): Filters => {
@@ -29,6 +30,11 @@ export function AdminFilesPage() {
   const [filters, setState] = useState(readFilters);
   const setFilters = (next: Filters) => { setState(next); saveFilters(next); };
   const files = useAdminFiles(filters);
+  const storageDrivers = useAdminDictionary("storage.driver");
+  const storageDriverLabels = useMemo(
+    () => new Map((storageDrivers.data?.items ?? []).map((item) => [item.value, item.label])),
+    [storageDrivers.data?.items],
+  );
   const mutations = useAdminFileMutations();
   const [detail, setDetail] = useState<AdminFile | null>(null);
   const usages = useAdminFileUsages(detail?.id ?? null);
@@ -60,7 +66,7 @@ export function AdminFilesPage() {
 
   const columns: TableColumnsType<AdminFile> = [
     { title: t("system.files.columns.file"), key: "file", render: (_, file) => <div><strong>{file.original_name}</strong><div className="ak-table-secondary">{file.media_type}</div></div> },
-    { title: t("system.files.columns.provider"), dataIndex: "provider", render: (value: AdminFile["provider"]) => <Tag>{t(`system.files.provider.${value}`)}</Tag>, responsive: ["md"] },
+    { title: t("system.files.columns.provider"), dataIndex: "provider", render: (value: AdminFile["provider"]) => <Tag>{storageDriverLabels.get(value) ?? value}</Tag>, responsive: ["md"] },
     { title: t("system.files.columns.size"), dataIndex: "size_bytes", render: (value: number) => sizeLabel(value), responsive: ["sm"] },
     { title: t("system.files.columns.status"), dataIndex: "status", render: (value: AdminFile["status"]) => <Tag className={value === "ready" ? "ak-status-success" : value === "quarantined" ? "ak-status-error" : "ak-status-warning"}>{t(`system.files.status.${value}`)}</Tag> },
     { title: t("system.files.columns.scan"), dataIndex: "scan_status", render: (value: AdminFile["scan_status"]) => <Tag className={["clean", "skipped"].includes(value) ? "ak-status-success" : value === "infected" ? "ak-status-error" : "ak-status-warning"}>{t(`system.files.scan.${value}`)}</Tag> },
@@ -78,7 +84,7 @@ export function AdminFilesPage() {
         <Input.Search allowClear aria-label={t("system.files.filters.query")} value={filters.q} onChange={(event) => { setFilters({ ...filters, q: event.target.value, page: 1 }); }} />
         <Select allowClear aria-label={t("system.files.filters.status")} placeholder={t("system.files.filters.status")} value={filters.status || undefined} onChange={(value) => { setFilters({ ...filters, status: value ?? "", page: 1 }); }} options={["pending", "ready", "quarantined"].map((value) => ({ value, label: t(`system.files.status.${value}`) }))} />
         <Select allowClear aria-label={t("system.files.filters.scan")} placeholder={t("system.files.filters.scan")} value={filters.scan_status || undefined} onChange={(value) => { setFilters({ ...filters, scan_status: value ?? "", page: 1 }); }} options={["pending", "clean", "infected", "failed", "skipped"].map((value) => ({ value, label: t(`system.files.scan.${value}`) }))} />
-        <Select allowClear aria-label={t("system.files.filters.provider")} placeholder={t("system.files.filters.provider")} value={filters.provider || undefined} onChange={(value) => { setFilters({ ...filters, provider: value ?? "", page: 1 }); }} options={["local", "s3", "minio"].map((value) => ({ value, label: t(`system.files.provider.${value}`) }))} />
+        <Select allowClear aria-label={t("system.files.filters.provider")} disabled={storageDrivers.isPending || storageDrivers.isError} loading={storageDrivers.isPending} placeholder={t("system.files.filters.provider")} value={filters.provider || undefined} onChange={(value) => { setFilters({ ...filters, provider: value ?? "", page: 1 }); }} options={(storageDrivers.data?.items ?? []).map((item) => ({ value: item.value, label: item.label }))} />
         <Input aria-label={t("system.files.filters.media")} placeholder={t("system.files.filters.media")} value={filters.media_type} onChange={(event) => { setFilters({ ...filters, media_type: event.target.value, page: 1 }); }} />
       </div>
       {files.isError ? <Alert type="error" showIcon title={t("system.files.load_error")} action={<Button onClick={() => void files.refetch()}>{t("common.actions.retry")}</Button>} /> : null}
@@ -86,7 +92,7 @@ export function AdminFilesPage() {
     </Card>
     <Drawer destroyOnHidden open={Boolean(detail)} onClose={() => { setDetail(null); }} size="large" title={t("system.files.detail.title")}>
       <Alert showIcon type="info" title={t("system.files.detail.scan_gate")} />
-      {detail ? <Descriptions column={1} bordered items={[{ key: "name", label: t("system.files.columns.file"), children: detail.original_name }, { key: "provider", label: t("system.files.columns.provider"), children: t(`system.files.provider.${detail.provider}`) }, { key: "type", label: t("system.files.filters.media"), children: detail.media_type }, { key: "size", label: t("system.files.columns.size"), children: sizeLabel(detail.size_bytes) }, { key: "status", label: t("system.files.columns.status"), children: t(`system.files.status.${detail.status}`) }, { key: "scan", label: t("system.files.columns.scan"), children: t(`system.files.scan.${detail.scan_status}`) }]} /> : null}
+      {detail ? <Descriptions column={1} bordered items={[{ key: "name", label: t("system.files.columns.file"), children: detail.original_name }, { key: "provider", label: t("system.files.columns.provider"), children: storageDriverLabels.get(detail.provider) ?? detail.provider }, { key: "type", label: t("system.files.filters.media"), children: detail.media_type }, { key: "size", label: t("system.files.columns.size"), children: sizeLabel(detail.size_bytes) }, { key: "status", label: t("system.files.columns.status"), children: t(`system.files.status.${detail.status}`) }, { key: "scan", label: t("system.files.columns.scan"), children: t(`system.files.scan.${detail.scan_status}`) }]} /> : null}
       <Typography.Title level={2}>{t("system.files.detail.usages")}</Typography.Title>
       <Table columns={[{ title: t("system.files.detail.usages"), key: "usage", render: (_, usage) => <span>{usage.module_code} / {usage.entity_type} / {usage.field_name}</span> }]} dataSource={usages.data?.items ?? []} loading={usages.isPending} locale={{ emptyText: t("system.files.detail.no_usages") }} pagination={false} rowKey="id" />
     </Drawer>
