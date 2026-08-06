@@ -3,7 +3,10 @@ package application
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	stdhtml "html"
+	"net/mail"
 	"net/url"
 	"regexp"
 	"slices"
@@ -12,6 +15,7 @@ import (
 
 	iamdomain "github.com/appkernia/appkernia/server/internal/modules/iam/domain"
 	notify "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/domain"
+	settings "github.com/appkernia/appkernia/server/internal/modules/systemsettings/domain"
 	"github.com/google/uuid"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
@@ -22,13 +26,33 @@ type Authenticator interface {
 }
 
 type Service struct {
-	auth  Authenticator
-	repo  notify.Repository
-	clock func() time.Time
+	auth         Authenticator
+	repo         notify.Repository
+	dictionaries interface {
+		ResolveDictionary(context.Context, *uuid.UUID, string, string, bool) (settings.ResolvedDictionary, error)
+	}
+	sealer notify.TargetSealer
+	clock  func() time.Time
 }
 
-func NewService(auth Authenticator, repo notify.Repository) *Service {
-	return &Service{auth: auth, repo: repo, clock: time.Now}
+type Option func(*Service)
+
+func WithDictionaryResolver(resolver interface {
+	ResolveDictionary(context.Context, *uuid.UUID, string, string, bool) (settings.ResolvedDictionary, error)
+}) Option {
+	return func(service *Service) { service.dictionaries = resolver }
+}
+
+func WithTargetSealer(sealer notify.TargetSealer) Option {
+	return func(service *Service) { service.sealer = sealer }
+}
+
+func NewService(auth Authenticator, repo notify.Repository, options ...Option) *Service {
+	service := &Service{auth: auth, repo: repo, clock: time.Now}
+	for _, option := range options {
+		option(service)
+	}
+	return service
 }
 
 func (s *Service) authorize(ctx context.Context, token, permission string) (iamdomain.AuthenticatedContext, error) {
@@ -227,9 +251,12 @@ var templateCode = regexp.MustCompile(`^[a-z][a-z0-9_.-]{1,95}$`)
 var placeholder = regexp.MustCompile(`\{\{\s*([a-zA-Z][a-zA-Z0-9_.-]*)\s*\}\}`)
 
 func normalizeTemplate(in notify.TemplateInput) (notify.TemplateInput, error) {
-	in.Code, in.Name, in.Channel, in.BodyTemplate, in.Status = strings.TrimSpace(in.Code), strings.TrimSpace(in.Name), strings.TrimSpace(in.Channel), strings.TrimSpace(in.BodyTemplate), strings.TrimSpace(in.Status)
+	in.Code, in.Name, in.Channel, in.BodyTemplate, in.BodyFormat, in.Status = strings.TrimSpace(in.Code), strings.TrimSpace(in.Name), strings.TrimSpace(in.Channel), strings.TrimSpace(in.BodyTemplate), strings.TrimSpace(in.BodyFormat), strings.TrimSpace(in.Status)
 	if in.Status == "" {
 		in.Status = "active"
+	}
+	if in.BodyFormat == "" {
+		in.BodyFormat = "plain"
 	}
 	if in.Locale != nil {
 		locale := strings.TrimSpace(*in.Locale)
@@ -239,8 +266,14 @@ func normalizeTemplate(in notify.TemplateInput) (notify.TemplateInput, error) {
 		subject := strings.TrimSpace(*in.SubjectTemplate)
 		in.SubjectTemplate = &subject
 	}
-	if !templateCode.MatchString(in.Code) || len([]rune(in.Name)) < 1 || len([]rune(in.Name)) > 160 || len([]rune(in.BodyTemplate)) < 1 || len([]rune(in.BodyTemplate)) > 100_000 || !oneOf(in.Channel, "in_app", "email", "sms", "push", "webhook") || !oneOf(in.Status, "active", "disabled") || in.Locale != nil && !oneOf(*in.Locale, "zh-CN", "en-US") || in.SubjectTemplate != nil && len([]rune(*in.SubjectTemplate)) > 500 {
+	if !templateCode.MatchString(in.Code) || len([]rune(in.Name)) < 1 || len([]rune(in.Name)) > 160 || len([]rune(in.BodyTemplate)) < 1 || len([]rune(in.BodyTemplate)) > 100_000 || !oneOf(in.Channel, "in_app", "email", "sms", "push", "webhook") || !oneOf(in.BodyFormat, "plain", "html") || in.BodyFormat == "html" && in.Channel != "email" || !oneOf(in.Status, "active", "disabled") || in.Locale != nil && !oneOf(*in.Locale, "zh-CN", "en-US") || in.SubjectTemplate != nil && len([]rune(*in.SubjectTemplate)) > 500 {
 		return in, notify.ErrInvalid
+	}
+	if in.BodyFormat == "html" {
+		in.BodyTemplate = SanitizeHTML(in.BodyTemplate)
+		if strings.TrimSpace(stripHTML(in.BodyTemplate)) == "" {
+			return in, notify.ErrInvalid
+		}
 	}
 	if len(in.VariablesSchema) == 0 {
 		in.VariablesSchema = json.RawMessage(`{"type":"object","properties":{}}`)
@@ -270,6 +303,30 @@ func normalizeTemplate(in notify.TemplateInput) (notify.TemplateInput, error) {
 	return in, nil
 }
 
+func (s *Service) validateTemplateEvent(ctx context.Context, tenantID uuid.UUID, in notify.TemplateInput) error {
+	if in.Channel != "email" && in.Channel != "sms" || s.dictionaries == nil {
+		return nil
+	}
+	code := "notification." + in.Channel + ".template_event"
+	dictionary, err := s.dictionaries.ResolveDictionary(ctx, &tenantID, code, valueOrDefault(in.Locale, "zh-CN"), false)
+	if err != nil {
+		return notify.ErrInvalid
+	}
+	for _, item := range dictionary.Items {
+		if item.Value == in.Code {
+			return nil
+		}
+	}
+	return notify.ErrInvalid
+}
+
+func valueOrDefault(value *string, fallback string) string {
+	if value == nil || *value == "" {
+		return fallback
+	}
+	return *value
+}
+
 func (s *Service) ListTemplates(ctx context.Context, token string, f notify.PageFilter) (notify.TemplatePage, error) {
 	auth, err := s.authorize(ctx, token, "notify.template.read")
 	if err != nil {
@@ -288,7 +345,7 @@ func (s *Service) CreateTemplate(ctx context.Context, token string, p notify.Pri
 		return notify.Template{}, err
 	}
 	in, err = normalizeTemplate(in)
-	if err != nil || strings.TrimSpace(p.RequestID) == "" {
+	if err != nil || strings.TrimSpace(p.RequestID) == "" || s.validateTemplateEvent(ctx, auth.Tenant.ID, in) != nil {
 		return notify.Template{}, notify.ErrInvalid
 	}
 	return s.repo.CreateTemplate(ctx, principal(auth, p), in)
@@ -300,7 +357,7 @@ func (s *Service) UpdateTemplate(ctx context.Context, token string, p notify.Pri
 		return notify.Template{}, err
 	}
 	in, err = normalizeTemplate(in)
-	if err != nil || id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
+	if err != nil || id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" || s.validateTemplateEvent(ctx, auth.Tenant.ID, in) != nil {
 		return notify.Template{}, notify.ErrInvalid
 	}
 	return s.repo.UpdateTemplate(ctx, principal(auth, p), id, in)
@@ -326,7 +383,7 @@ func (s *Service) GetDelivery(ctx context.Context, token string, id uuid.UUID) (
 	return s.repo.GetDelivery(ctx, auth.Tenant.ID, id)
 }
 
-func (s *Service) RetryDelivery(ctx context.Context, token string, p notify.Principal, id uuid.UUID) (notify.Delivery, error) {
+func (s *Service) RetryDelivery(ctx context.Context, token string, p notify.Principal, id uuid.UUID, acknowledgeDuplicateRisk bool) (notify.Delivery, error) {
 	auth, err := s.authorize(ctx, token, "notify.delivery.retry")
 	if err != nil {
 		return notify.Delivery{}, err
@@ -334,7 +391,189 @@ func (s *Service) RetryDelivery(ctx context.Context, token string, p notify.Prin
 	if id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
 		return notify.Delivery{}, notify.ErrInvalid
 	}
-	return s.repo.RetryDelivery(ctx, principal(auth, p), id)
+	return s.repo.RetryDelivery(ctx, principal(auth, p), id, acknowledgeDuplicateRisk)
+}
+
+func (s *Service) ListSMSTemplateBindings(ctx context.Context, token string, templateID uuid.UUID) ([]notify.SMSTemplateBinding, error) {
+	auth, err := s.authorize(ctx, token, "notify.template.read")
+	if err != nil {
+		return nil, err
+	}
+	if templateID == uuid.Nil {
+		return nil, notify.ErrInvalid
+	}
+	return s.repo.ListSMSTemplateBindings(ctx, auth.Tenant.ID, templateID)
+}
+
+func normalizeBinding(provider string, in notify.SMSTemplateBindingInput) (string, notify.SMSTemplateBindingInput, error) {
+	provider, in.ExternalTemplateID, in.SignName, in.Status = strings.TrimSpace(provider), strings.TrimSpace(in.ExternalTemplateID), strings.TrimSpace(in.SignName), strings.TrimSpace(in.Status)
+	if in.Status == "" {
+		in.Status = "active"
+	}
+	if len(in.ParameterOrder) == 0 {
+		in.ParameterOrder = json.RawMessage(`[]`)
+	}
+	var parameters []string
+	if !oneOf(provider, "aliyun", "tencent") || len(in.ExternalTemplateID) < 1 || len(in.ExternalTemplateID) > 255 || len(in.SignName) > 120 || !oneOf(in.Status, "active", "disabled") || json.Unmarshal(in.ParameterOrder, &parameters) != nil || len(parameters) > 50 {
+		return provider, in, notify.ErrInvalid
+	}
+	seen := map[string]bool{}
+	for _, parameter := range parameters {
+		if !regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_.-]{0,63}$`).MatchString(parameter) || seen[parameter] {
+			return provider, in, notify.ErrInvalid
+		}
+		seen[parameter] = true
+	}
+	return provider, in, nil
+}
+
+func (s *Service) UpsertSMSTemplateBinding(ctx context.Context, token string, p notify.Principal, templateID uuid.UUID, provider string, in notify.SMSTemplateBindingInput) (notify.SMSTemplateBinding, error) {
+	auth, err := s.authorize(ctx, token, "notify.template.update")
+	if err != nil {
+		return notify.SMSTemplateBinding{}, err
+	}
+	provider, in, err = normalizeBinding(provider, in)
+	if err != nil || templateID == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
+		return notify.SMSTemplateBinding{}, notify.ErrInvalid
+	}
+	template, err := s.repo.GetTemplate(ctx, auth.Tenant.ID, templateID)
+	if err != nil || template.Channel != "sms" {
+		return notify.SMSTemplateBinding{}, notify.ErrInvalid
+	}
+	var variableSchema struct {
+		Properties map[string]json.RawMessage `json:"properties"`
+	}
+	var parameterOrder []string
+	if json.Unmarshal(template.VariablesSchema, &variableSchema) != nil || json.Unmarshal(in.ParameterOrder, &parameterOrder) != nil {
+		return notify.SMSTemplateBinding{}, notify.ErrInvalid
+	}
+	for _, parameter := range parameterOrder {
+		if _, declared := variableSchema.Properties[parameter]; !declared {
+			return notify.SMSTemplateBinding{}, notify.ErrInvalid
+		}
+	}
+	return s.repo.UpsertSMSTemplateBinding(ctx, principal(auth, p), templateID, provider, in)
+}
+
+func (s *Service) DeleteSMSTemplateBinding(ctx context.Context, token string, p notify.Principal, templateID uuid.UUID, provider string) error {
+	auth, err := s.authorize(ctx, token, "notify.template.update")
+	if err != nil {
+		return err
+	}
+	if templateID == uuid.Nil || !oneOf(provider, "aliyun", "tencent") || strings.TrimSpace(p.RequestID) == "" {
+		return notify.ErrInvalid
+	}
+	return s.repo.DeleteSMSTemplateBinding(ctx, principal(auth, p), templateID, provider)
+}
+
+func normalizeTarget(channel, target string) (string, string, error) {
+	target = strings.TrimSpace(target)
+	if channel == "email" {
+		parsed, err := mail.ParseAddress(target)
+		if err != nil || parsed.Address != target || len(target) > 320 {
+			return "", "", notify.ErrInvalid
+		}
+		parts := strings.SplitN(target, "@", 2)
+		return strings.ToLower(target), string([]rune(parts[0])[:1]) + "***@" + parts[1], nil
+	}
+	if channel == "sms" && regexp.MustCompile(`^\+[1-9][0-9]{7,14}$`).MatchString(target) {
+		runes := []rune(target)
+		return target, string(runes[:min(4, len(runes))]) + "***" + string(runes[max(0, len(runes)-4):]), nil
+	}
+	return "", "", notify.ErrInvalid
+}
+
+func renderTemplate(template notify.Template, variables map[string]string) (string, string, error) {
+	var schema struct {
+		Properties map[string]json.RawMessage `json:"properties"`
+		Required   []string                   `json:"required"`
+	}
+	if json.Unmarshal(template.VariablesSchema, &schema) != nil {
+		return "", "", notify.ErrInvalid
+	}
+	for variable := range variables {
+		if _, declared := schema.Properties[variable]; !declared {
+			return "", "", notify.ErrInvalid
+		}
+	}
+	for _, required := range schema.Required {
+		if strings.TrimSpace(variables[required]) == "" {
+			return "", "", notify.ErrInvalid
+		}
+	}
+	replace := func(input string, escape bool) (string, error) {
+		missing := false
+		result := placeholder.ReplaceAllStringFunc(input, func(match string) string {
+			parts := placeholder.FindStringSubmatch(match)
+			value, ok := variables[parts[1]]
+			if !ok {
+				missing = true
+				return ""
+			}
+			if escape {
+				return stdhtml.EscapeString(value)
+			}
+			return value
+		})
+		if missing {
+			return "", notify.ErrInvalid
+		}
+		return result, nil
+	}
+	body, err := replace(template.BodyTemplate, template.BodyFormat == "html")
+	if err != nil {
+		return "", "", err
+	}
+	subject := ""
+	if template.SubjectTemplate != nil {
+		subject, err = replace(*template.SubjectTemplate, false)
+	}
+	return subject, body, err
+}
+
+func (s *Service) TestTemplate(ctx context.Context, token string, p notify.Principal, templateID uuid.UUID, in notify.TemplateTestInput) (notify.Delivery, error) {
+	auth, err := s.authorize(ctx, token, "notify.template.test")
+	if err != nil {
+		return notify.Delivery{}, err
+	}
+	if s.sealer == nil || templateID == uuid.Nil || strings.TrimSpace(p.RequestID) == "" || len(in.Variables) > 100 {
+		return notify.Delivery{}, notify.ErrDeliveryUnavailable
+	}
+	template, err := s.repo.GetTemplate(ctx, auth.Tenant.ID, templateID)
+	if err != nil || template.Status != "active" || !oneOf(template.Channel, "email", "sms") {
+		return notify.Delivery{}, notify.ErrInvalid
+	}
+	provider := "smtp"
+	if template.Channel == "sms" {
+		provider = strings.TrimSpace(in.Provider)
+		if !in.ConfirmBillable || !oneOf(provider, "aliyun", "tencent") {
+			return notify.Delivery{}, notify.ErrInvalid
+		}
+	}
+	target, hint, err := normalizeTarget(template.Channel, in.Target)
+	if err != nil {
+		return notify.Delivery{}, err
+	}
+	subject, body, err := renderTemplate(template, in.Variables)
+	if err != nil {
+		return notify.Delivery{}, err
+	}
+	payload, _ := json.Marshal(in.Variables)
+	targetCiphertext, targetVersion, err := s.sealer.Seal([]byte(target), auth.Tenant.ID.String())
+	if err != nil {
+		return notify.Delivery{}, notify.ErrDeliveryUnavailable
+	}
+	payloadCiphertext, payloadVersion, err := s.sealer.Seal(payload, auth.Tenant.ID.String()+":notification-payload")
+	if err != nil {
+		return notify.Delivery{}, notify.ErrDeliveryUnavailable
+	}
+	hash := sha256.Sum256([]byte(target))
+	return s.repo.CreateTestDelivery(ctx, principal(auth, p), notify.CreateDelivery{
+		TemplateID: template.ID, Channel: template.Channel, Provider: provider,
+		TargetCiphertext: targetCiphertext, TargetHash: hash[:], TargetHint: hint, TargetKeyVersion: targetVersion,
+		PayloadCiphertext: payloadCiphertext, PayloadKeyVersion: payloadVersion,
+		RenderedSubject: subject, RenderedBody: body, DedupeKey: "test:" + p.RequestID + ":" + template.ID.String(),
+	})
 }
 
 func oneOf(value string, allowed ...string) bool { return slices.Contains(allowed, value) }
@@ -402,6 +641,9 @@ func SanitizeHTML(raw string) string {
 }
 
 func safeURL(value string) bool {
+	if match := placeholder.FindStringIndex(value); match != nil && match[0] == 0 && match[1] == len(value) {
+		return true
+	}
 	parsed, err := url.Parse(value)
 	return err == nil && (parsed.Scheme == "" || parsed.Scheme == "https" || parsed.Scheme == "http" || parsed.Scheme == "mailto")
 }

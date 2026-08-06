@@ -47,19 +47,16 @@
       "view": [
         "sys.region.read"
       ],
-      "actions": {},
+      "actions": {
+        "create": "sys.region.create",
+        "update": "sys.region.update",
+        "delete": "sys.region.delete"
+      },
       "permission_status": {
-        "sys.region.read": "existing"
-      }
-    },
-    {
-      "component_key": "system.settings.modules",
-      "view": [
-        "sys.module.read"
-      ],
-      "actions": {},
-      "permission_status": {
-        "sys.module.read": "existing"
+        "sys.region.read": "existing",
+        "sys.region.create": "existing",
+        "sys.region.update": "existing",
+        "sys.region.delete": "existing"
       }
     },
     {

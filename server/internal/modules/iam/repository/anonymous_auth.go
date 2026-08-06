@@ -8,6 +8,7 @@ import (
 
 	db "github.com/appkernia/appkernia/server/internal/infrastructure/db"
 	"github.com/appkernia/appkernia/server/internal/modules/iam/domain"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -85,6 +86,12 @@ func (repository *Postgres) PreparePasswordReset(
 	if err != nil {
 		return nil, fmt.Errorf("find password reset identity: %w", err)
 	}
+	var tenantID uuid.UUID
+	if err = tx.QueryRow(ctx, `SELECT tenant_id FROM iam.tenant_members WHERE user_id=$1 AND status='active' ORDER BY created_at,tenant_id LIMIT 1`, credential.UserID).Scan(&tenantID); errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("resolve password reset tenant: %w", err)
+	}
 	userID := credential.UserID
 	if _, err = queries.InsertPasswordResetChallenge(ctx, db.InsertPasswordResetChallengeParams{
 		UserID: &userID, TargetHash: input.TargetHash, SecretHash: input.SecretHash,
@@ -97,7 +104,7 @@ func (repository *Postgres) PreparePasswordReset(
 	if err = tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit password reset challenge: %w", err)
 	}
-	return &domain.PasswordResetRecipient{Email: valueOrEmpty(credential.Email), Locale: credential.Locale}, nil
+	return &domain.PasswordResetRecipient{TenantID: tenantID, Email: valueOrEmpty(credential.Email), Locale: credential.Locale}, nil
 }
 
 func (repository *Postgres) GetPasswordResetState(ctx context.Context, tokenHash []byte) (domain.PasswordResetState, error) {

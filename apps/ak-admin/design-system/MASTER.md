@@ -15,12 +15,14 @@
 - Do not use layout-shifting hover transforms. Respect reduced-motion preferences.
 - Do not encode status using color alone. Pair color with text or an icon.
 - Preserve keyboard navigation and a visible focus indicator for scrollable tables, category navigation, dialogs, and upload controls.
+- For a single-value field that supports both presets and custom values, use a searchable creatable select. Include an explicit default option, preserve Enter-to-create keyboard behavior, and show text/value alongside any visual swatch.
 
 ## Responsive layout
 
 - Desktop: category navigation and content use an approximately 280 px / flexible two-column layout.
 - Tablet: category navigation becomes a horizontally scrollable selector or a compact select; content remains single-column.
 - Mobile: stack filters, actions, descriptions, and upload feedback with no horizontal page overflow.
+- Service status follows `pages/service-status.md`: 24/16 px section rhythm, equal-height summary cards, semantic module identity, and focusable contained tables.
 
 ## Delivery checks
 

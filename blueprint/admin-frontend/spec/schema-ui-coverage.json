@@ -263,6 +263,14 @@
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
     },
     {
+      "table": "notify.sms_template_bindings",
+      "coverage": "page_backed",
+      "pages": [
+        "system.notifications.templates"
+      ],
+      "reason": "通知模板页按租户管理已审核的供应商模板绑定。"
+    },
+    {
       "table": "notify.push_devices",
       "coverage": "indirect_aggregate",
       "pages": [
@@ -421,8 +429,7 @@
       "table": "sys.modules",
       "coverage": "page_backed",
       "pages": [
-        "system.monitoring.health",
-        "system.settings.modules"
+        "system.monitoring.health"
       ],
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
     },

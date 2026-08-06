@@ -2,6 +2,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Descriptions,
   Drawer,
   Grid,
@@ -86,18 +87,35 @@ export function AdminNotificationDeliveriesPage() {
     [i18n.language],
   );
   const retry = (delivery: AdminNotificationDelivery) => {
+    let acknowledged = delivery.retry_risk === "none";
     Modal.confirm({
       title: t("notifications.deliveries.retry.title"),
-      content: t("notifications.deliveries.retry.confirm", {
-        target: delivery.target_hint,
-        attempt: delivery.attempt_count + 1,
-        max: delivery.max_attempts,
-      }),
+      content: (
+        <Space orientation="vertical">
+          <span>{t("notifications.deliveries.retry.confirm", {
+            target: delivery.target_hint,
+            attempt: delivery.attempt_count + 1,
+            max: delivery.max_attempts,
+          })}</span>
+          {delivery.retry_risk !== "none" ? (
+            <Alert showIcon type="warning" title={t(`notifications.deliveries.retry.risk.${delivery.retry_risk}`)} />
+          ) : null}
+          {delivery.retry_risk !== "none" ? (
+            <Checkbox onChange={(event) => { acknowledged = event.target.checked; }}>
+              {t("notifications.deliveries.retry.acknowledge_risk")}
+            </Checkbox>
+          ) : null}
+        </Space>
+      ),
       okText: t("notifications.deliveries.retry.action"),
       cancelText: t("common.actions.cancel"),
       onOk: async () => {
+        if (!acknowledged) throw new Error("duplicate risk acknowledgement is required");
         try {
-          await mutations.retry.mutateAsync(delivery.id);
+          await mutations.retry.mutateAsync({
+            id: delivery.id,
+            acknowledge_duplicate_risk: acknowledged,
+          });
           setFeedback({ key: "notifications.deliveries.retry.success" });
         } catch {
           setFeedback({
@@ -343,6 +361,16 @@ export function AdminNotificationDeliveriesPage() {
                   key: "provider",
                   label: t("notifications.deliveries.columns.provider"),
                   children: current.provider || "—",
+                },
+                {
+                  key: "provider_message_id",
+                  label: t("notifications.deliveries.detail.provider_message_id"),
+                  children: current.provider_message_id ?? "—",
+                },
+                {
+                  key: "retry_risk",
+                  label: t("notifications.deliveries.detail.retry_risk"),
+                  children: t(`notifications.deliveries.retry.risk.${current.retry_risk}`),
                 },
                 {
                   key: "attempts",

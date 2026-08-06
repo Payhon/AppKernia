@@ -48,7 +48,7 @@ func (r *Postgres) ListPublicConfigs(ctx context.Context) (map[string]json.RawMe
 }
 
 func (r *Postgres) ListRegions(ctx context.Context, f settings.RegionFilter) ([]settings.Region, error) {
-	where, args := " WHERE 1=1", []any{}
+	where, args := " WHERE r.deleted_at IS NULL", []any{}
 	add := func(fragment string, value any) {
 		args = append(args, value)
 		where += fmt.Sprintf(fragment, len(args))
@@ -56,20 +56,20 @@ func (r *Postgres) ListRegions(ctx context.Context, f settings.RegionFilter) ([]
 	if f.Query != "" {
 		args = append(args, "%"+f.Query+"%")
 		n := len(args)
-		where += fmt.Sprintf(" AND (code ILIKE $%d OR name ILIKE $%d OR coalesce(full_name,'') ILIKE $%d)", n, n, n)
+		where += fmt.Sprintf(" AND (r.code ILIKE $%d OR r.name ILIKE $%d OR coalesce(r.full_name,'') ILIKE $%d)", n, n, n)
 	} else if f.ParentCode != "" {
-		add(" AND parent_code=$%d", f.ParentCode)
+		add(" AND r.parent_code=$%d", f.ParentCode)
 	} else {
-		where += " AND parent_code IS NULL"
+		where += " AND r.parent_code IS NULL"
 	}
 	if f.Level != nil {
-		add(" AND level=$%d", *f.Level)
+		add(" AND r.level=$%d", *f.Level)
 	}
 	if f.Status != "" {
-		add(" AND status=$%d", f.Status)
+		add(" AND r.status=$%d", f.Status)
 	}
 	args = append(args, f.Limit)
-	rows, err := r.pool.Query(ctx, `SELECT r.code,r.parent_code,r.level,r.name,coalesce(r.full_name,''),coalesce(r.postal_code,''),r.longitude::float8,r.latitude::float8,r.status,EXISTS(SELECT 1 FROM sys.regions c WHERE c.parent_code=r.code),r.updated_at FROM sys.regions r`+where+fmt.Sprintf(" ORDER BY r.code LIMIT $%d", len(args)), args...)
+	rows, err := r.pool.Query(ctx, `SELECT r.code,r.parent_code,r.level,r.name,coalesce(r.full_name,''),coalesce(r.postal_code,''),r.longitude::float8,r.latitude::float8,r.status,EXISTS(SELECT 1 FROM sys.regions c WHERE c.parent_code=r.code AND c.deleted_at IS NULL),r.version,r.updated_at FROM sys.regions r`+where+fmt.Sprintf(" ORDER BY r.code LIMIT $%d", len(args)), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func (r *Postgres) ListRegions(ctx context.Context, f settings.RegionFilter) ([]
 	items := []settings.Region{}
 	for rows.Next() {
 		var x settings.Region
-		if err = rows.Scan(&x.Code, &x.ParentCode, &x.Level, &x.Name, &x.FullName, &x.PostalCode, &x.Longitude, &x.Latitude, &x.Status, &x.HasChildren, &x.UpdatedAt); err != nil {
+		if err = rows.Scan(&x.Code, &x.ParentCode, &x.Level, &x.Name, &x.FullName, &x.PostalCode, &x.Longitude, &x.Latitude, &x.Status, &x.HasChildren, &x.Version, &x.UpdatedAt); err != nil {
 			return nil, err
 		}
 		items = append(items, x)
@@ -85,30 +85,117 @@ func (r *Postgres) ListRegions(ctx context.Context, f settings.RegionFilter) ([]
 	return items, rows.Err()
 }
 
-func (r *Postgres) ListModules(ctx context.Context, f settings.ModuleFilter) ([]settings.Module, error) {
-	where, args := " WHERE 1=1", []any{}
-	if f.Query != "" {
-		args = append(args, "%"+f.Query+"%")
-		where += fmt.Sprintf(" AND (code::text ILIKE $%d OR name ILIKE $%d)", len(args), len(args))
+const regionSelect = `SELECT r.code,r.parent_code,r.level,r.name,coalesce(r.full_name,''),coalesce(r.postal_code,''),r.longitude::float8,r.latitude::float8,r.status,EXISTS(SELECT 1 FROM sys.regions c WHERE c.parent_code=r.code AND c.deleted_at IS NULL),r.version,r.updated_at FROM sys.regions r`
+
+func scanRegion(row scanner) (settings.Region, error) {
+	var x settings.Region
+	err := row.Scan(&x.Code, &x.ParentCode, &x.Level, &x.Name, &x.FullName, &x.PostalCode, &x.Longitude, &x.Latitude, &x.Status, &x.HasChildren, &x.Version, &x.UpdatedAt)
+	return x, err
+}
+
+func getRegion(ctx context.Context, q interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+}, code string, lock bool) (settings.Region, error) {
+	sql := regionSelect + ` WHERE r.code=$1 AND r.deleted_at IS NULL`
+	if lock {
+		sql += ` FOR UPDATE OF r`
 	}
-	if f.Status != "" {
-		args = append(args, f.Status)
-		where += fmt.Sprintf(" AND status=$%d", len(args))
+	x, err := scanRegion(q.QueryRow(ctx, sql, code))
+	if errors.Is(err, pgx.ErrNoRows) {
+		return x, settings.ErrNotFound
 	}
-	rows, err := r.pool.Query(ctx, `SELECT id,code::text,name,version,coalesce(description,''),capabilities,status,installed_at,updated_at FROM sys.modules`+where+` ORDER BY code`, args...)
+	return x, err
+}
+
+func (r *Postgres) CreateRegion(ctx context.Context, p settings.Principal, in settings.RegionCreateInput) (settings.Region, error) {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
-		return nil, err
+		return settings.Region{}, err
 	}
-	defer rows.Close()
-	items := []settings.Module{}
-	for rows.Next() {
-		var x settings.Module
-		if err = rows.Scan(&x.ID, &x.Code, &x.Name, &x.Version, &x.Description, &x.Capabilities, &x.Status, &x.InstalledAt, &x.UpdatedAt); err != nil {
-			return nil, err
-		}
-		items = append(items, x)
+	defer func() { _ = tx.Rollback(ctx) }()
+	var code string
+	err = tx.QueryRow(ctx, `INSERT INTO sys.regions(code,parent_code,level,name,full_name,postal_code,longitude,latitude,status,metadata,is_manually_managed) SELECT $1,parent.code,parent.level+1,$3,$4,nullif($5,''),$6,$7,$8,jsonb_build_object('management_origin','admin'),true FROM sys.regions parent WHERE parent.code=$2 AND parent.deleted_at IS NULL AND parent.level IN (0,1) RETURNING code`, in.Code, in.ParentCode, in.Name, in.FullName, in.PostalCode, in.Longitude, in.Latitude, in.Status).Scan(&code)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return settings.Region{}, settings.ErrInvalid
 	}
-	return items, rows.Err()
+	if err != nil {
+		return settings.Region{}, classify(err)
+	}
+	after, err := getRegion(ctx, tx, code, false)
+	if err != nil {
+		return settings.Region{}, err
+	}
+	if err = auditRegion(ctx, tx, p, "sys.region.create", code, "POST", "/admin-api/v1/regions", nil, after); err != nil {
+		return settings.Region{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return settings.Region{}, err
+	}
+	return after, nil
+}
+
+func (r *Postgres) UpdateRegion(ctx context.Context, p settings.Principal, code string, in settings.RegionUpdateInput) (settings.Region, error) {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return settings.Region{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	before, err := getRegion(ctx, tx, code, true)
+	if err != nil {
+		return settings.Region{}, err
+	}
+	if before.Version != in.Version {
+		return settings.Region{}, settings.ErrConflict
+	}
+	tag, err := tx.Exec(ctx, `UPDATE sys.regions SET name=$1,full_name=$2,postal_code=nullif($3,''),longitude=$4,latitude=$5,status=$6,version=version+1,is_manually_managed=true,updated_at=now() WHERE code=$7 AND deleted_at IS NULL AND version=$8`, in.Name, in.FullName, in.PostalCode, in.Longitude, in.Latitude, in.Status, code, in.Version)
+	if err != nil {
+		return settings.Region{}, classify(err)
+	}
+	if tag.RowsAffected() != 1 {
+		return settings.Region{}, settings.ErrConflict
+	}
+	after, err := getRegion(ctx, tx, code, false)
+	if err != nil {
+		return settings.Region{}, err
+	}
+	if err = auditRegion(ctx, tx, p, "sys.region.update", code, "PATCH", "/admin-api/v1/regions/"+code, before, after); err != nil {
+		return settings.Region{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return settings.Region{}, err
+	}
+	return after, nil
+}
+
+func (r *Postgres) DeleteRegion(ctx context.Context, p settings.Principal, code string) error {
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	before, err := getRegion(ctx, tx, code, true)
+	if err != nil {
+		return err
+	}
+	var hasChildren bool
+	if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM sys.regions WHERE parent_code=$1 AND deleted_at IS NULL)`, code).Scan(&hasChildren); err != nil {
+		return err
+	}
+	if hasChildren {
+		return settings.ErrConflict
+	}
+	tag, err := tx.Exec(ctx, `UPDATE sys.regions SET deleted_at=now(),version=version+1,is_manually_managed=true,updated_at=now() WHERE code=$1 AND deleted_at IS NULL`, code)
+	if err != nil {
+		return classify(err)
+	}
+	if tag.RowsAffected() != 1 {
+		return settings.ErrNotFound
+	}
+	after := map[string]any{"code": code, "deleted": true, "version": before.Version + 1}
+	if err = auditRegion(ctx, tx, p, "sys.region.delete", code, "DELETE", "/admin-api/v1/regions/"+code, before, after); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 const configSelect = `SELECT c.id,c.tenant_id,c.module_code,c.config_group,c.config_key::text,c.display_name,c.value_type,c.value_json,c.default_value_json,c.is_secret,(c.secret_ciphertext IS NOT NULL),c.secret_key_version,c.is_public,c.validation_schema,coalesce(c.description,''),c.sort_order,c.status,c.version,(c.tenant_id IS NULL),c.created_at,c.updated_at FROM sys.config_items c`
@@ -316,11 +403,11 @@ func (r *Postgres) RotateSecret(ctx context.Context, p settings.Principal, id uu
 	return after, nil
 }
 
-const typeSelect = `SELECT d.id,d.tenant_id,d.code::text,d.name,coalesce(d.description,''),d.is_system,d.status,(d.tenant_id IS NULL OR d.is_system),d.created_at,d.updated_at FROM sys.dict_types d`
+const typeSelect = `SELECT d.id,d.tenant_id,d.code::text,d.name,coalesce(d.name_key,''),coalesce(d.description,''),coalesce(d.description_key,''),d.is_system,d.status,(d.tenant_id IS NULL OR d.is_system),d.visibility,d.extension_policy,d.created_at,d.updated_at FROM sys.dict_types d`
 
 func scanType(row scanner) (settings.DictType, error) {
 	var x settings.DictType
-	err := row.Scan(&x.ID, &x.TenantID, &x.Code, &x.Name, &x.Description, &x.IsSystem, &x.Status, &x.IsLocked, &x.CreatedAt, &x.UpdatedAt)
+	err := row.Scan(&x.ID, &x.TenantID, &x.Code, &x.Name, &x.NameKey, &x.Description, &x.DescriptionKey, &x.IsSystem, &x.Status, &x.IsLocked, &x.Visibility, &x.ExtensionPolicy, &x.CreatedAt, &x.UpdatedAt)
 	return x, err
 }
 func (r *Postgres) ListDictTypes(ctx context.Context, tenantID uuid.UUID, f settings.PageFilter) (settings.DictTypePage, error) {
@@ -430,11 +517,11 @@ func (r *Postgres) UpdateDictType(ctx context.Context, p settings.Principal, id 
 	return after, nil
 }
 
-const itemSelect = `SELECT i.id,i.dict_type_id,i.item_value,i.label,i.locale,coalesce(i.color,''),coalesce(i.css_class,''),i.sort_order,i.is_default,i.extra,i.status,(d.tenant_id IS NULL OR d.is_system),i.created_at,i.updated_at FROM sys.dict_items i JOIN sys.dict_types d ON d.id=i.dict_type_id`
+const itemSelect = `SELECT i.id,i.dict_type_id,i.tenant_id,i.item_value,i.label,i.locale,coalesce(i.color,''),coalesce(i.css_class,''),i.sort_order,i.is_default,i.extra,i.status,(i.tenant_id IS NULL),i.created_at,i.updated_at FROM sys.dict_items i JOIN sys.dict_types d ON d.id=i.dict_type_id`
 
 func scanItem(row scanner) (settings.DictItem, error) {
 	var x settings.DictItem
-	err := row.Scan(&x.ID, &x.DictTypeID, &x.ItemValue, &x.Label, &x.Locale, &x.Color, &x.CSSClass, &x.SortOrder, &x.IsDefault, &x.Extra, &x.Status, &x.IsLocked, &x.CreatedAt, &x.UpdatedAt)
+	err := row.Scan(&x.ID, &x.DictTypeID, &x.TenantID, &x.ItemValue, &x.Label, &x.Locale, &x.Color, &x.CSSClass, &x.SortOrder, &x.IsDefault, &x.Extra, &x.Status, &x.IsLocked, &x.CreatedAt, &x.UpdatedAt)
 	return x, err
 }
 func (r *Postgres) ListDictItems(ctx context.Context, tenantID, typeID uuid.UUID, f settings.DictItemFilter) (settings.DictItemPage, error) {
@@ -442,8 +529,8 @@ func (r *Postgres) ListDictItems(ctx context.Context, tenantID, typeID uuid.UUID
 	if err != nil {
 		return settings.DictItemPage{}, err
 	}
-	where := ` WHERE i.dict_type_id=$1`
-	args := []any{typeID}
+	where := ` WHERE i.dict_type_id=$1 AND (i.tenant_id IS NULL OR i.tenant_id=$2)`
+	args := []any{typeID, tenantID}
 	if f.Query != "" {
 		args = append(args, "%"+f.Query+"%")
 		n := len(args)
@@ -491,7 +578,7 @@ func (r *Postgres) ListDictItems(ctx context.Context, tenantID, typeID uuid.UUID
 func getItem(ctx context.Context, q interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }, tenantID, id uuid.UUID, lock bool) (settings.DictItem, error) {
-	sql := itemSelect + ` WHERE (d.tenant_id IS NULL OR d.tenant_id=$1) AND i.id=$2`
+	sql := itemSelect + ` WHERE (d.tenant_id IS NULL OR d.tenant_id=$1) AND (i.tenant_id IS NULL OR i.tenant_id=$1) AND i.id=$2`
 	if lock {
 		sql += ` FOR UPDATE OF i,d`
 	}
@@ -506,10 +593,44 @@ func ensureWritableType(ctx context.Context, tx pgx.Tx, tenantID, typeID uuid.UU
 	if err != nil {
 		return typ, err
 	}
-	if typ.IsLocked {
+	if typ.TenantID == nil && typ.ExtensionPolicy == "fixed" {
 		return typ, settings.ErrLocked
 	}
 	return typ, nil
+}
+
+func validateDictionaryExtension(ctx context.Context, tx pgx.Tx, typ settings.DictType, tenantID uuid.UUID, in settings.DictItemInput) error {
+	if typ.TenantID != nil || typ.ExtensionPolicy == "open" {
+		return nil
+	}
+	var registeredExtra json.RawMessage
+	registeredErr := tx.QueryRow(ctx, `SELECT extra FROM sys.dict_items WHERE dict_type_id=$1 AND tenant_id IS NULL AND item_value=$2 ORDER BY locale NULLS FIRST LIMIT 1`, typ.ID, in.ItemValue).Scan(&registeredExtra)
+	if registeredErr != nil && !errors.Is(registeredErr, pgx.ErrNoRows) {
+		return registeredErr
+	}
+	registered := registeredErr == nil
+	switch typ.ExtensionPolicy {
+	case "registered":
+		if !registered || !sameJSON(registeredExtra, in.Extra) {
+			return settings.ErrInvalid
+		}
+	case "s3_compatible":
+		if registered {
+			if !sameJSON(registeredExtra, in.Extra) {
+				return settings.ErrInvalid
+			}
+			return nil
+		}
+		var extra struct {
+			Adapter string `json:"adapter"`
+		}
+		if json.Unmarshal(in.Extra, &extra) != nil || extra.Adapter != "s3_compatible" {
+			return settings.ErrInvalid
+		}
+	default:
+		return settings.ErrLocked
+	}
+	return nil
 }
 func (r *Postgres) CreateDictItem(ctx context.Context, p settings.Principal, typeID uuid.UUID, in settings.DictItemInput) (settings.DictItem, error) {
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
@@ -517,11 +638,15 @@ func (r *Postgres) CreateDictItem(ctx context.Context, p settings.Principal, typ
 		return settings.DictItem{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	if _, err = ensureWritableType(ctx, tx, p.TenantID, typeID); err != nil {
+	typ, err := ensureWritableType(ctx, tx, p.TenantID, typeID)
+	if err != nil {
+		return settings.DictItem{}, err
+	}
+	if err = validateDictionaryExtension(ctx, tx, typ, p.TenantID, in); err != nil {
 		return settings.DictItem{}, err
 	}
 	var id uuid.UUID
-	if err = tx.QueryRow(ctx, `INSERT INTO sys.dict_items(dict_type_id,item_value,label,locale,color,css_class,sort_order,is_default,extra,status) VALUES($1,$2,$3,$4,nullif($5,''),nullif($6,''),$7,$8,$9,$10) RETURNING id`, typeID, in.ItemValue, in.Label, in.Locale, in.Color, in.CSSClass, in.SortOrder, in.IsDefault, []byte(in.Extra), in.Status).Scan(&id); err != nil {
+	if err = tx.QueryRow(ctx, `INSERT INTO sys.dict_items(dict_type_id,tenant_id,item_value,label,locale,color,css_class,sort_order,is_default,extra,status) VALUES($1,$2,$3,$4,$5,nullif($6,''),nullif($7,''),$8,$9,$10,$11) RETURNING id`, typeID, p.TenantID, in.ItemValue, in.Label, in.Locale, in.Color, in.CSSClass, in.SortOrder, in.IsDefault, []byte(in.Extra), in.Status).Scan(&id); err != nil {
 		return settings.DictItem{}, classify(err)
 	}
 	after, err := getItem(ctx, tx, p.TenantID, id, false)
@@ -549,6 +674,10 @@ func (r *Postgres) UpdateDictItem(ctx context.Context, p settings.Principal, id 
 	if before.IsLocked {
 		return settings.DictItem{}, settings.ErrLocked
 	}
+	typ, err := getType(ctx, tx, p.TenantID, before.DictTypeID, false)
+	if err != nil || validateDictionaryExtension(ctx, tx, typ, p.TenantID, in) != nil {
+		return settings.DictItem{}, settings.ErrInvalid
+	}
 	tag, err := tx.Exec(ctx, `UPDATE sys.dict_items SET item_value=$1,label=$2,locale=$3,color=nullif($4,''),css_class=nullif($5,''),sort_order=$6,is_default=$7,extra=$8,status=$9 WHERE id=$10`, in.ItemValue, in.Label, in.Locale, in.Color, in.CSSClass, in.SortOrder, in.IsDefault, []byte(in.Extra), in.Status, id)
 	if err != nil {
 		return settings.DictItem{}, classify(err)
@@ -567,6 +696,63 @@ func (r *Postgres) UpdateDictItem(ctx context.Context, p settings.Principal, id 
 		return settings.DictItem{}, err
 	}
 	return after, nil
+}
+
+func (r *Postgres) ResolveDictionary(ctx context.Context, tenantID *uuid.UUID, code, locale string, publicOnly bool) (settings.ResolvedDictionary, error) {
+	args := []any{code}
+	where := `d.code=$1 AND d.status='active'`
+	if tenantID == nil {
+		where += ` AND d.tenant_id IS NULL`
+	} else {
+		args = append(args, *tenantID)
+		where += ` AND (d.tenant_id IS NULL OR d.tenant_id=$2)`
+	}
+	if publicOnly {
+		where += ` AND d.visibility='public'`
+	}
+	query := `SELECT d.id,d.code::text,d.extension_policy FROM sys.dict_types d WHERE ` + where + ` ORDER BY d.tenant_id NULLS LAST LIMIT 1`
+	var typeID uuid.UUID
+	var out settings.ResolvedDictionary
+	if err := r.pool.QueryRow(ctx, query, args...).Scan(&typeID, &out.Code, &out.ExtensionPolicy); errors.Is(err, pgx.ErrNoRows) {
+		return out, settings.ErrNotFound
+	} else if err != nil {
+		return out, err
+	}
+	out.Locale = locale
+	itemArgs := []any{typeID, locale}
+	tenantFilter := `i.tenant_id IS NULL`
+	tenantRank := `0`
+	if tenantID != nil {
+		itemArgs = append(itemArgs, *tenantID)
+		tenantFilter = `(i.tenant_id IS NULL OR i.tenant_id=$3)`
+		tenantRank = `CASE WHEN i.tenant_id=$3 THEN 0 ELSE 1 END`
+	}
+	rows, err := r.pool.Query(ctx, `
+WITH ranked AS (
+    SELECT i.item_value,i.label,COALESCE(i.color,'') AS color,COALESCE(i.css_class,'') AS css_class,i.is_default,i.extra,i.sort_order,i.status,
+           row_number() OVER (PARTITION BY i.item_value ORDER BY
+             CASE WHEN i.locale=$2 THEN 0 WHEN i.locale IS NULL THEN 1 WHEN i.locale='zh-CN' THEN 2 ELSE 3 END,
+             `+tenantRank+`,i.id) AS rank,
+           min(CASE WHEN i.locale=$2 THEN 0 WHEN i.locale IS NULL THEN 1 WHEN i.locale='zh-CN' THEN 2 ELSE 3 END)
+             OVER (PARTITION BY i.item_value) AS locale_rank
+    FROM sys.dict_items i
+    WHERE i.dict_type_id=$1 AND `+tenantFilter+`
+)
+SELECT item_value,label,color,css_class,is_default,extra FROM ranked
+WHERE rank=1 AND locale_rank<3 AND status='active' ORDER BY sort_order,item_value`, itemArgs...)
+	if err != nil {
+		return out, err
+	}
+	defer rows.Close()
+	out.Items = make([]settings.DictionaryOption, 0)
+	for rows.Next() {
+		var item settings.DictionaryOption
+		if err = rows.Scan(&item.Value, &item.Label, &item.Color, &item.CSSClass, &item.IsDefault, &item.Extra); err != nil {
+			return out, err
+		}
+		out.Items = append(out.Items, item)
+	}
+	return out, rows.Err()
 }
 func (r *Postgres) DeleteDictItem(ctx context.Context, p settings.Principal, id uuid.UUID) error {
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
@@ -595,9 +781,17 @@ func (r *Postgres) DeleteDictItem(ctx context.Context, p settings.Principal, id 
 }
 
 func audit(ctx context.Context, tx pgx.Tx, p settings.Principal, action, resource string, id uuid.UUID, method, path string, before, after any) error {
+	return auditResource(ctx, tx, p, action, resource, id.String(), method, path, before, after)
+}
+
+func auditRegion(ctx context.Context, tx pgx.Tx, p settings.Principal, action, code, method, path string, before, after any) error {
+	return auditResource(ctx, tx, p, action, "sys.region", code, method, path, before, after)
+}
+
+func auditResource(ctx context.Context, tx pgx.Tx, p settings.Principal, action, resource, resourceID, method, path string, before, after any) error {
 	b, _ := json.Marshal(before)
 	a, _ := json.Marshal(after)
-	_, err := tx.Exec(ctx, `INSERT INTO audit.operation_logs(tenant_id,user_id,session_id,request_id,module_code,action_name,permission_code,resource_type,resource_id,http_method,request_path,response_status,client_ip,user_agent,before_data,after_data,succeeded) VALUES($1,$2,nullif($3,'00000000-0000-0000-0000-000000000000'::uuid),nullif($4,''),'sys',$5,$5,$6,$7,$8,$9,200,$10,nullif($11,''),$12,$13,true)`, p.TenantID, p.UserID, p.SessionID, p.RequestID, action, resource, id.String(), method, path, p.IPAddress, p.UserAgent, b, a)
+	_, err := tx.Exec(ctx, `INSERT INTO audit.operation_logs(tenant_id,user_id,session_id,request_id,module_code,action_name,permission_code,resource_type,resource_id,http_method,request_path,response_status,client_ip,user_agent,before_data,after_data,succeeded) VALUES($1,$2,nullif($3,'00000000-0000-0000-0000-000000000000'::uuid),nullif($4,''),'sys',$5,$5,$6,$7,$8,$9,200,$10,nullif($11,''),$12,$13,true)`, p.TenantID, p.UserID, p.SessionID, p.RequestID, action, resource, resourceID, method, path, p.IPAddress, p.UserAgent, b, a)
 	return err
 }
 func classify(err error) error {

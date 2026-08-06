@@ -180,16 +180,6 @@
       "sort": 160
     },
     {
-      "code": "system.modules",
-      "parent": "system",
-      "title": "模块信息",
-      "type": "page",
-      "path": "/system/modules",
-      "component_key": "system.modules",
-      "permission": "sys.module.read",
-      "sort": 170
-    },
-    {
       "code": "audit",
       "title": "审计中心",
       "type": "directory",

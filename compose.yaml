@@ -1,3 +1,11 @@
+x-server-build: &server-build
+  context: .
+  dockerfile: server/Dockerfile
+  args:
+    AK_APP_VERSION: ${AK_APP_VERSION:-dev}
+    AK_GIT_COMMIT: ${AK_GIT_COMMIT:-unknown}
+    AK_BUILD_TIME: ${AK_BUILD_TIME:-unknown}
+
 services:
   postgres:
     image: postgres:18
@@ -15,9 +23,7 @@ services:
     volumes:
       - ak-postgres:/var/lib/postgresql
   migrate:
-    build:
-      context: .
-      dockerfile: server/Dockerfile
+    build: *server-build
     entrypoint: ["/app/bin/ak-cli"]
     command: ["migrate", "up"]
     environment:
@@ -29,9 +35,7 @@ services:
         condition: service_healthy
     restart: "no"
   seed:
-    build:
-      context: .
-      dockerfile: server/Dockerfile
+    build: *server-build
     entrypoint: ["/app/bin/ak-cli"]
     command: ["seed", "core"]
     environment:
@@ -42,9 +46,7 @@ services:
         condition: service_completed_successfully
     restart: "no"
   api:
-    build:
-      context: .
-      dockerfile: server/Dockerfile
+    build: *server-build
     environment:
       AK_ENV: development
       AK_HTTP_ADDR: :8080
@@ -54,7 +56,7 @@ services:
       AK_ADMIN_REGISTRATION_ENABLED: ${AK_ADMIN_REGISTRATION_ENABLED:-false}
       AK_ADMIN_REGISTRATION_TENANT_CODE: ${AK_ADMIN_REGISTRATION_TENANT_CODE:-local}
       AK_PASSWORD_RECOVERY_ENABLED: ${AK_PASSWORD_RECOVERY_ENABLED:-false}
-      AK_PASSWORD_RECOVERY_ADAPTER: local
+      AK_PASSWORD_RECOVERY_ADAPTER: notification
       AK_AVATAR_UPLOAD_ENABLED: ${AK_AVATAR_UPLOAD_ENABLED:-true}
       AK_FILE_STORAGE_ENABLED: ${AK_FILE_STORAGE_ENABLED:-true}
       AK_MULTI_TENANT_ENABLED: ${AK_MULTI_TENANT_ENABLED:-false}
@@ -82,9 +84,7 @@ services:
       retries: 20
     stop_grace_period: 20s
   worker:
-    build:
-      context: .
-      dockerfile: server/Dockerfile
+    build: *server-build
     entrypoint: ["/app/bin/ak-worker"]
     environment:
       AK_ENV: development
@@ -114,9 +114,7 @@ services:
       retries: 20
   bootstrap-admin:
     profiles: ["tools"]
-    build:
-      context: .
-      dockerfile: server/Dockerfile
+    build: *server-build
     entrypoint: ["/app/bin/ak-cli"]
     command:
       - bootstrap-admin

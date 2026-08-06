@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"regexp"
 	"strconv"
 
 	db "github.com/appkernia/appkernia/server/internal/infrastructure/db"
 	"github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	"github.com/appkernia/appkernia/server/internal/modules/iam/domain"
 	"github.com/appkernia/appkernia/server/internal/modules/iam/repository"
+	"github.com/appkernia/appkernia/server/internal/platform/buildinfo"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -36,10 +38,66 @@ type menuCatalog struct {
 	Menus []menuDefinition `json:"menus"`
 }
 
+type moduleCatalog struct {
+	Version int32              `json:"version"`
+	Modules []moduleDefinition `json:"modules"`
+}
+
+type moduleDefinition struct {
+	Code           string          `json:"code"`
+	Name           string          `json:"name"`
+	NameKey        string          `json:"name_key"`
+	Description    string          `json:"description"`
+	DescriptionKey string          `json:"description_key"`
+	Capabilities   json.RawMessage `json:"capabilities"`
+	Status         string          `json:"status"`
+}
+
 type configCatalog struct {
 	Version    int32                      `json:"version"`
 	Categories []configCategoryDefinition `json:"categories"`
 	Items      []configItemDefinition     `json:"items"`
+}
+
+type dictionaryCatalog struct {
+	Version   int32                            `json:"version"`
+	Types     []dictionaryTypeDefinition       `json:"types"`
+	Items     []dictionaryItemDefinition       `json:"items"`
+	Templates []notificationTemplateDefinition `json:"templates"`
+}
+
+type notificationTemplateDefinition struct {
+	Code            string          `json:"code"`
+	Name            string          `json:"name"`
+	Channel         string          `json:"channel"`
+	Locale          string          `json:"locale"`
+	SubjectTemplate *string         `json:"subject_template"`
+	BodyTemplate    string          `json:"body_template"`
+	BodyFormat      string          `json:"body_format"`
+	VariablesSchema json.RawMessage `json:"variables_schema"`
+	Status          string          `json:"status"`
+}
+
+type dictionaryTypeDefinition struct {
+	Code            string `json:"code"`
+	Name            string `json:"name"`
+	NameKey         string `json:"name_key"`
+	Description     string `json:"description"`
+	DescriptionKey  string `json:"description_key"`
+	Visibility      string `json:"visibility"`
+	ExtensionPolicy string `json:"extension_policy"`
+	Status          string `json:"status"`
+}
+
+type dictionaryItemDefinition struct {
+	TypeCode  string          `json:"type_code"`
+	Value     string          `json:"value"`
+	Locale    string          `json:"locale"`
+	Label     string          `json:"label"`
+	SortOrder int32           `json:"sort_order"`
+	IsDefault bool            `json:"is_default"`
+	Extra     json.RawMessage `json:"extra"`
+	Status    string          `json:"status"`
 }
 
 type configCategoryDefinition struct {
@@ -118,6 +176,78 @@ type BootstrapAdminInput struct {
 	ConfigCatalogPath string
 }
 
+func readModuleCatalog(catalogPath string) (moduleCatalog, error) {
+	rawCatalog, err := os.ReadFile(catalogPath)
+	if err != nil {
+		return moduleCatalog{}, fmt.Errorf("read module catalog: %w", err)
+	}
+	var catalog moduleCatalog
+	if err = json.Unmarshal(rawCatalog, &catalog); err != nil {
+		return moduleCatalog{}, fmt.Errorf("decode module catalog: %w", err)
+	}
+	if catalog.Version < 1 || len(catalog.Modules) == 0 {
+		return moduleCatalog{}, fmt.Errorf("module catalog must contain a version and modules")
+	}
+	codePattern := regexp.MustCompile(`^[a-z][a-z0-9._-]{1,63}$`)
+	seen := make(map[string]struct{}, len(catalog.Modules))
+	for _, module := range catalog.Modules {
+		if !codePattern.MatchString(module.Code) || module.Name == "" || module.NameKey == "" ||
+			module.Description == "" || module.DescriptionKey == "" || module.Status != "enabled" {
+			return moduleCatalog{}, fmt.Errorf("module %q is incomplete", module.Code)
+		}
+		if _, exists := seen[module.Code]; exists {
+			return moduleCatalog{}, fmt.Errorf("duplicate module %q", module.Code)
+		}
+		var capabilities map[string]bool
+		if err = json.Unmarshal(module.Capabilities, &capabilities); err != nil || len(capabilities) == 0 {
+			return moduleCatalog{}, fmt.Errorf("module %q capabilities must be a non-empty boolean object", module.Code)
+		}
+		for capability, compiled := range capabilities {
+			if !codePattern.MatchString(capability) || !compiled {
+				return moduleCatalog{}, fmt.Errorf("module %q capability %q must be a compiled stable code", module.Code, capability)
+			}
+		}
+		seen[module.Code] = struct{}{}
+	}
+	return catalog, nil
+}
+
+// CoreModules synchronizes the exact compile-time module registry. Runtime
+// plugin installation is intentionally unsupported, so rows outside the
+// versioned catalog are stale fixtures or data from a different build.
+func CoreModules(ctx context.Context, pool *pgxpool.Pool, catalogPath string) (int, error) {
+	catalog, err := readModuleCatalog(catalogPath)
+	if err != nil {
+		return 0, err
+	}
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return 0, fmt.Errorf("begin module seed transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	queries := db.New(tx)
+	codes := make([]string, 0, len(catalog.Modules))
+	for _, module := range catalog.Modules {
+		description := module.Description
+		if err = queries.UpsertCoreModule(ctx, db.UpsertCoreModuleParams{
+			Code: module.Code, Name: module.Name, NameKey: module.NameKey,
+			Version: buildinfo.Version, Description: &description,
+			DescriptionKey: module.DescriptionKey, Capabilities: module.Capabilities,
+			Status: module.Status,
+		}); err != nil {
+			return 0, fmt.Errorf("upsert module %s: %w", module.Code, err)
+		}
+		codes = append(codes, module.Code)
+	}
+	if _, err = queries.DeleteModulesOutsideCoreCatalog(ctx, codes); err != nil {
+		return 0, fmt.Errorf("remove modules outside core catalog: %w", err)
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return 0, fmt.Errorf("commit module seed: %w", err)
+	}
+	return len(catalog.Modules), nil
+}
+
 func readConfigCatalog(catalogPath string) (configCatalog, error) {
 	rawCatalog, err := os.ReadFile(catalogPath)
 	if err != nil {
@@ -160,6 +290,125 @@ func readConfigCatalog(catalogPath string) (configCatalog, error) {
 		}
 	}
 	return catalog, nil
+}
+
+func readDictionaryCatalog(catalogPath string) (dictionaryCatalog, error) {
+	rawCatalog, err := os.ReadFile(catalogPath)
+	if err != nil {
+		return dictionaryCatalog{}, fmt.Errorf("read dictionary catalog: %w", err)
+	}
+	var catalog dictionaryCatalog
+	if err = json.Unmarshal(rawCatalog, &catalog); err != nil {
+		return dictionaryCatalog{}, fmt.Errorf("decode dictionary catalog: %w", err)
+	}
+	if catalog.Version < 1 || len(catalog.Types) == 0 || len(catalog.Items) == 0 {
+		return dictionaryCatalog{}, fmt.Errorf("dictionary catalog must contain a version, types, and items")
+	}
+	types := make(map[string]struct{}, len(catalog.Types))
+	for _, definition := range catalog.Types {
+		if definition.Code == "" || definition.Name == "" || definition.NameKey == "" || definition.DescriptionKey == "" ||
+			(definition.Visibility != "internal" && definition.Visibility != "public") ||
+			(definition.ExtensionPolicy != "fixed" && definition.ExtensionPolicy != "open" && definition.ExtensionPolicy != "registered" && definition.ExtensionPolicy != "s3_compatible") ||
+			(definition.Status != "active" && definition.Status != "disabled") {
+			return dictionaryCatalog{}, fmt.Errorf("dictionary type %q is incomplete", definition.Code)
+		}
+		if _, exists := types[definition.Code]; exists {
+			return dictionaryCatalog{}, fmt.Errorf("duplicate dictionary type %q", definition.Code)
+		}
+		types[definition.Code] = struct{}{}
+	}
+	items := make(map[string]struct{}, len(catalog.Items))
+	for index := range catalog.Items {
+		item := &catalog.Items[index]
+		if _, exists := types[item.TypeCode]; !exists || item.Value == "" || item.Label == "" || (item.Locale != "zh-CN" && item.Locale != "en-US") {
+			return dictionaryCatalog{}, fmt.Errorf("dictionary item %q/%q is incomplete", item.TypeCode, item.Value)
+		}
+		if item.Status == "" {
+			item.Status = "active"
+		}
+		if len(item.Extra) == 0 {
+			item.Extra = json.RawMessage(`{}`)
+		}
+		if !json.Valid(item.Extra) || (item.Status != "active" && item.Status != "disabled") {
+			return dictionaryCatalog{}, fmt.Errorf("dictionary item %q/%q has invalid metadata", item.TypeCode, item.Value)
+		}
+		key := item.TypeCode + "/" + item.Value + "/" + item.Locale
+		if _, exists := items[key]; exists {
+			return dictionaryCatalog{}, fmt.Errorf("duplicate dictionary item %q", key)
+		}
+		items[key] = struct{}{}
+	}
+	templates := make(map[string]struct{}, len(catalog.Templates))
+	for _, item := range catalog.Templates {
+		key := item.Channel + "/" + item.Code + "/" + item.Locale
+		if item.Code == "" || item.Name == "" || (item.Channel != "email" && item.Channel != "sms") ||
+			(item.Locale != "zh-CN" && item.Locale != "en-US") || item.BodyTemplate == "" ||
+			(item.BodyFormat != "plain" && item.BodyFormat != "html") || !json.Valid(item.VariablesSchema) ||
+			(item.Status != "active" && item.Status != "disabled") {
+			return dictionaryCatalog{}, fmt.Errorf("notification template %q is incomplete", key)
+		}
+		if item.Channel == "sms" && item.BodyFormat != "plain" {
+			return dictionaryCatalog{}, fmt.Errorf("SMS template %q must be plain text", key)
+		}
+		if _, exists := templates[key]; exists {
+			return dictionaryCatalog{}, fmt.Errorf("duplicate notification template %q", key)
+		}
+		templates[key] = struct{}{}
+	}
+	return catalog, nil
+}
+
+// CoreDictionaries idempotently installs locked global dictionary definitions.
+// Tenant overrides are never touched by the core seed.
+func CoreDictionaries(ctx context.Context, pool *pgxpool.Pool, catalogPath string) (int, error) {
+	catalog, err := readDictionaryCatalog(catalogPath)
+	if err != nil {
+		return 0, err
+	}
+	tx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return 0, fmt.Errorf("begin dictionary seed transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	queries := db.New(tx)
+	typeIDs := make(map[string]uuid.UUID, len(catalog.Types))
+	for _, definition := range catalog.Types {
+		description := definition.Description
+		descriptionKey := definition.DescriptionKey
+		id, upsertErr := queries.UpsertCoreDictionaryType(ctx, db.UpsertCoreDictionaryTypeParams{
+			Code: definition.Code, Name: definition.Name, NameKey: &definition.NameKey,
+			Description: &description, DescriptionKey: &descriptionKey,
+			Visibility: definition.Visibility, ExtensionPolicy: definition.ExtensionPolicy, Status: definition.Status,
+		})
+		if upsertErr != nil {
+			return 0, fmt.Errorf("upsert dictionary type %s: %w", definition.Code, upsertErr)
+		}
+		typeIDs[definition.Code] = id
+	}
+	for _, item := range catalog.Items {
+		locale := item.Locale
+		if err = queries.UpsertCoreDictionaryItem(ctx, db.UpsertCoreDictionaryItemParams{
+			DictTypeID: typeIDs[item.TypeCode], ItemValue: item.Value, Label: item.Label,
+			Locale: &locale, SortOrder: item.SortOrder, IsDefault: item.IsDefault,
+			Extra: item.Extra, Status: item.Status,
+		}); err != nil {
+			return 0, fmt.Errorf("upsert dictionary item %s/%s/%s: %w", item.TypeCode, item.Value, item.Locale, err)
+		}
+	}
+	for _, item := range catalog.Templates {
+		locale := item.Locale
+		if err = queries.UpsertCoreNotificationTemplate(ctx, db.UpsertCoreNotificationTemplateParams{
+			Code: item.Code, Name: item.Name, Channel: item.Channel, Locale: &locale,
+			SubjectTemplate: item.SubjectTemplate, BodyTemplate: item.BodyTemplate,
+			BodyFormat: item.BodyFormat, VariablesSchema: item.VariablesSchema, Status: item.Status,
+		}); err != nil {
+			return 0, fmt.Errorf("upsert notification template %s/%s/%s: %w", item.Channel, item.Code, item.Locale, err)
+		}
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return 0, fmt.Errorf("commit dictionary seed: %w", err)
+	}
+	return len(catalog.Types) + len(catalog.Items) + len(catalog.Templates), nil
 }
 
 func readRegionCatalog(catalogPath string) (regionCatalog, error) {

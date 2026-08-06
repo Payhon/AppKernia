@@ -50,7 +50,6 @@ Dashboard
 | `system.settings.configs` | 系统配置 | `/system/settings/configs` | `sys.config.read` | P2 | existing |
 | `system.settings.dictionaries` | 字典管理 | `/system/settings/dictionaries` | `sys.dictionary.read` | P2 | existing |
 | `system.settings.regions` | 地区管理 | `/system/settings/regions` | `sys.region.read` | P2 | existing |
-| `system.settings.modules` | 模块信息 | `/system/settings/modules` | `sys.module.read` | P2 | existing |
 | `system.users.departments` | 部门 | `/system/users/departments` | `org.unit.read` | P1 | existing |
 | `system.users.accounts` | 用户 | `/system/users/accounts` | `iam.user.read` | P1 | existing |
 | `system.users.positions` | 岗位 | `/system/users/positions` | `org.position.read` | P1 | existing |

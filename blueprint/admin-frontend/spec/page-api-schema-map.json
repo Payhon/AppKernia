@@ -53,6 +53,7 @@
         "sys.dict_items"
       ],
       "endpoints": [
+        "GET /admin-api/v1/dictionaries/{code}",
         "GET /admin-api/v1/dict-types",
         "POST /admin-api/v1/dict-types",
         "PATCH /admin-api/v1/dict-types/{id}",
@@ -71,19 +72,10 @@
         "sys.regions"
       ],
       "endpoints": [
-        "GET /admin-api/v1/regions"
-      ],
-      "backend_status": "existing"
-    },
-    {
-      "component_key": "system.settings.modules",
-      "title": "模块信息",
-      "phase": "P2",
-      "schema": [
-        "sys.modules"
-      ],
-      "endpoints": [
-        "GET /admin-api/v1/modules"
+        "GET /admin-api/v1/regions",
+        "POST /admin-api/v1/regions",
+        "PATCH /admin-api/v1/regions/{code}",
+        "DELETE /admin-api/v1/regions/{code}"
       ],
       "backend_status": "existing"
     },
@@ -291,12 +283,18 @@
       "title": "通知模板",
       "phase": "P2",
       "schema": [
-        "notify.templates"
+        "notify.templates",
+        "notify.sms_template_bindings",
+        "notify.deliveries"
       ],
       "endpoints": [
         "GET /admin-api/v1/notification-templates",
         "POST /admin-api/v1/notification-templates",
-        "PATCH /admin-api/v1/notification-templates/{id}"
+        "PATCH /admin-api/v1/notification-templates/{id}",
+        "GET /admin-api/v1/notification-templates/{id}/sms-bindings",
+        "PUT /admin-api/v1/notification-templates/{id}/sms-bindings/{provider}",
+        "DELETE /admin-api/v1/notification-templates/{id}/sms-bindings/{provider}",
+        "POST /admin-api/v1/notification-templates/{id}/test"
       ],
       "backend_status": "existing"
     },

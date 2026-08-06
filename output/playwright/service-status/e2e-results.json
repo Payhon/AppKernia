@@ -1,0 +1,84 @@
+{
+  "zh-CN.375": {
+    "axe_violations": [],
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    },
+    "focusable_scroll_regions": 2
+  },
+  "zh-CN.768": {
+    "axe_violations": [],
+    "dimensions": {
+      "client": 768,
+      "scroll": 768
+    },
+    "focusable_scroll_regions": 2
+  },
+  "zh-CN.1024": {
+    "axe_violations": [],
+    "dimensions": {
+      "client": 1024,
+      "scroll": 1024
+    },
+    "focusable_scroll_regions": 2
+  },
+  "zh-CN.1440": {
+    "axe_violations": [],
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    },
+    "focusable_scroll_regions": 2
+  },
+  "en-US.375": {
+    "axe_violations": [],
+    "dimensions": {
+      "client": 375,
+      "scroll": 375
+    },
+    "focusable_scroll_regions": 2
+  },
+  "en-US.768": {
+    "axe_violations": [],
+    "dimensions": {
+      "client": 768,
+      "scroll": 768
+    },
+    "focusable_scroll_regions": 2
+  },
+  "en-US.1024": {
+    "axe_violations": [],
+    "dimensions": {
+      "client": 1024,
+      "scroll": 1024
+    },
+    "focusable_scroll_regions": 2
+  },
+  "en-US.1440": {
+    "axe_violations": [],
+    "dimensions": {
+      "client": 1440,
+      "scroll": 1440
+    },
+    "focusable_scroll_regions": 2
+  },
+  "runtime_contract": {
+    "module_count": 8,
+    "codes": [
+      "audit",
+      "iam",
+      "jobs",
+      "notify",
+      "ops",
+      "org",
+      "storage",
+      "sys"
+    ],
+    "app_version": "dev",
+    "all_versions_match": true,
+    "old_modules_api_status": 404,
+    "browser_data_source": "mocked-contract"
+  },
+  "unexpected_console_errors": []
+}

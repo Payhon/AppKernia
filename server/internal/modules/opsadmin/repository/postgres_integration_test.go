@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/appkernia/appkernia/server/internal/platform/buildinfo"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -42,5 +43,17 @@ func TestHealthAndRuntimeSummaryAreBoundedAndSecretFree(t *testing.T) {
 	}
 	if summary.Queue.Status != "ready" && summary.Queue.Status != "unknown" {
 		t.Fatalf("queue=%#v", summary.Queue)
+	}
+	wantCodes := []string{"audit", "iam", "jobs", "notify", "ops", "org", "storage", "sys"}
+	if len(summary.Modules) != len(wantCodes) {
+		t.Fatalf("modules=%d want=%d", len(summary.Modules), len(wantCodes))
+	}
+	for index, module := range summary.Modules {
+		if module.Code != wantCodes[index] || module.NameKey == "" || module.DescriptionKey == "" || len(module.Capabilities) == 0 {
+			t.Fatalf("module[%d]=%#v", index, module)
+		}
+		if module.Version != buildinfo.Version {
+			t.Fatalf("module %s version=%q app=%q", module.Code, module.Version, buildinfo.Version)
+		}
 	}
 }

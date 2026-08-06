@@ -3,6 +3,7 @@ import type { TFunction } from "i18next";
 import { useState } from "react";
 
 import type { AdminConfigItem } from "../generated/api/types.gen";
+import { useAdminDictionary } from "../features/settings/hooks";
 import { AkFilePicker } from "./AkFilePicker";
 
 export type AkConfigDraftValue = boolean | number | string | null;
@@ -118,6 +119,11 @@ export function AkConfigValueField({
   const maxLength = rules["maxLength"];
   const format = rules["format"];
   const allowedValues = rules["enum"];
+  const dictionaryCode =
+    typeof rules["x-appkernia-dictionary"] === "string"
+      ? rules["x-appkernia-dictionary"]
+      : null;
+  const dictionary = useAdminDictionary(dictionaryCode);
   const fieldId = `config-value-${item.id}`;
   const enumOptions = Array.isArray(allowedValues)
     ? allowedValues.map((option) => ({
@@ -159,6 +165,22 @@ export function AkConfigValueField({
         onChange={(event) => {
           onChange(event.target.value);
         }}
+      />
+    );
+  } else if (dictionaryCode) {
+    control = (
+      <Select
+        aria-labelledby={`${fieldId}-label`}
+        disabled={disabled || dictionary.isPending || dictionary.isError}
+        id={fieldId}
+        loading={dictionary.isPending}
+        options={(dictionary.data?.items ?? []).map((option) => ({
+          label: option.label,
+          value: option.value,
+        }))}
+        {...(dictionary.isError ? { status: "error" as const } : {})}
+        value={value}
+        onChange={onChange}
       />
     );
   } else if (enumOptions) {

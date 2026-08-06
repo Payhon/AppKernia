@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AdminNotificationMessageRequest,
   AdminNotificationTemplateRequest,
+  AdminNotificationTemplateTestRequest,
+  AdminSmsTemplateBindingRequest,
 } from "../../generated/api/types.gen";
 import {
   type AdminNotificationDeliveryFilters,
@@ -125,7 +127,36 @@ export function useNotificationTemplateMutations() {
       }) => authSession.updateAdminNotificationTemplate(value.id, value.input),
       onSuccess: invalidate,
     }),
+    upsertBinding: useMutation({
+      mutationFn: (value: {
+        id: string;
+        provider: "aliyun" | "tencent";
+        input: AdminSmsTemplateBindingRequest;
+      }) => authSession.upsertAdminSmsTemplateBinding(value.id, value.provider, value.input),
+      onSuccess: invalidate,
+    }),
+    deleteBinding: useMutation({
+      mutationFn: (value: { id: string; provider: "aliyun" | "tencent" }) =>
+        authSession.deleteAdminSmsTemplateBinding(value.id, value.provider),
+      onSuccess: invalidate,
+    }),
+    test: useMutation({
+      mutationFn: (value: { id: string; input: AdminNotificationTemplateTestRequest }) =>
+        authSession.testAdminNotificationTemplate(value.id, value.input),
+    }),
   };
+}
+
+export function useSmsTemplateBindings(id: string | null) {
+  const tenantId = useTenantKey();
+  return useQuery({
+    queryKey: ["tenant", tenantId, "notifications", "templates", id, "sms-bindings"],
+    queryFn: () => {
+      if (!id) throw new Error("template id is required");
+      return authSession.adminSmsTemplateBindings(id);
+    },
+    enabled: Boolean(id),
+  });
 }
 
 export function useNotificationDeliveries(
@@ -156,8 +187,10 @@ export function useNotificationDeliveryMutations() {
   const client = useQueryClient();
   return {
     retry: useMutation({
-      mutationFn: (id: string) =>
-        authSession.retryAdminNotificationDelivery(id),
+      mutationFn: (value: { id: string; acknowledge_duplicate_risk?: boolean }) =>
+        authSession.retryAdminNotificationDelivery(value.id, {
+          acknowledge_duplicate_risk: value.acknowledge_duplicate_risk ?? false,
+        }),
       onSuccess: () =>
         client.invalidateQueries({
           queryKey: ["tenant", tenantId, "notifications", "deliveries"],

@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-08-05T04:44:39.258Z",
+  "generated_at": "2026-08-06T07:11:57.867Z",
   "budgets": {
     "initial_gzip_bytes": 307200,
     "chunk_gzip_bytes": 184320
   },
   "actual": {
-    "initial_gzip_bytes": 208545,
+    "initial_gzip_bytes": 213589,
     "largest_chunks": [
       {
         "file": "assets/DashboardTrendChart-BmUDRLF1.js",
@@ -16,24 +16,24 @@
         "gzip_bytes": 93800
       },
       {
-        "file": "assets/query-client-DTiuIR5a.js",
-        "gzip_bytes": 75215
+        "file": "assets/query-client-cL_ziRiO.js",
+        "gzip_bytes": 80303
       },
       {
-        "file": "assets/AppShell-VoYgthpA.js",
-        "gzip_bytes": 58185
+        "file": "assets/AppShell-DEqkku_h.js",
+        "gzip_bytes": 58719
       },
       {
         "file": "assets/typography-BaONyMga.js",
         "gzip_bytes": 52066
       },
       {
-        "file": "assets/table-BUFp6IK_.js",
-        "gzip_bytes": 38585
+        "file": "assets/table-B5DAedAd.js",
+        "gzip_bytes": 38588
       },
       {
-        "file": "assets/schemas-BjZbA-jF.js",
-        "gzip_bytes": 36376
+        "file": "assets/schemas-BdYFC5CX.js",
+        "gzip_bytes": 36377
       },
       {
         "file": "assets/space-Bg_aHXDY.js",
@@ -44,8 +44,8 @@
         "gzip_bytes": 15628
       },
       {
-        "file": "assets/tree-CnEKSEsO.js",
-        "gzip_bytes": 15332
+        "file": "assets/tree-Cb3qoGP6.js",
+        "gzip_bytes": 15335
       }
     ]
   },
@@ -55,16 +55,16 @@
       "gzip_bytes": 93800
     },
     {
-      "file": "assets/query-client-DTiuIR5a.js",
-      "gzip_bytes": 75215
+      "file": "assets/query-client-cL_ziRiO.js",
+      "gzip_bytes": 80303
     },
     {
       "file": "assets/Match-DqMyU-Vq.js",
       "gzip_bytes": 15628
     },
     {
-      "file": "assets/index-Cl2Qlani.js",
-      "gzip_bytes": 8505
+      "file": "assets/index-D4wTTkdg.js",
+      "gzip_bytes": 8461
     },
     {
       "file": "assets/useStore-B11YKrzp.js",

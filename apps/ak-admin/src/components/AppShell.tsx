@@ -1,4 +1,5 @@
-import { Button, Drawer, Layout, Menu, Select, Typography, message, type MenuProps } from 'antd'
+import { CloseOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
+import { Button, Drawer, Layout, Menu, Select, Tooltip, Typography, message, type MenuProps } from 'antd'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { useEffect, useMemo, useState, type PropsWithChildren } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronLeftIcon, ChevronRightIcon, MenuIcon as HamburgerMenuIcon } from '../app/icons'
 import { ConfiguredMenuIcon } from '../app/menu-icons'
 import { findMenuAncestorKeys, resolveBackendMenus, type ResolvedMenuItem } from '../app/route-registry'
+import { useSidebarStore } from '../app/sidebar-store'
 import { useAuthStore } from '../features/auth/store'
 import { FullscreenToggle } from './FullscreenToggle'
 import { LocaleSwitcher } from './LocaleSwitcher'
@@ -15,14 +17,18 @@ const { Content, Header, Sider } = Layout
 
 export function AppShell({ children }: PropsWithChildren) {
   const { t } = useTranslation()
-  const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarControlsVisible, setSidebarControlsVisible] = useState(false)
   const [switchingTenant, setSwitchingTenant] = useState(false)
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
   const context = useAuthStore((state) => state.context)
   const logout = useAuthStore((state) => state.logout)
   const switchTenant = useAuthStore((state) => state.switchTenant)
+  const sidebarMode = useSidebarStore((state) => state.mode)
+  const setSidebarMode = useSidebarStore((state) => state.setMode)
+  const collapsed = sidebarMode === 'collapsed'
+  const sidebarHidden = sidebarMode === 'hidden'
   const permissions = useMemo(() => new Set(context?.permissions ?? []), [context?.permissions])
   const menuItems = useMemo(() => resolveBackendMenus(
     context?.menus ?? [],
@@ -40,8 +46,15 @@ export function AppShell({ children }: PropsWithChildren) {
   const toggleSidebar = () => {
     if (collapsed) {
       setOpenKeys((current) => Array.from(new Set([...current, ...activeAncestorKeys])))
+      setSidebarMode('expanded')
+      return
     }
-    setCollapsed((value) => !value)
+    setSidebarMode('collapsed')
+  }
+
+  const restoreSidebar = () => {
+    setOpenKeys((current) => Array.from(new Set([...current, ...activeAncestorKeys])))
+    setSidebarMode('expanded')
   }
 
   const toMenuItem = (item: ResolvedMenuItem): NonNullable<MenuProps['items']>[number] => {
@@ -51,6 +64,7 @@ export function AppShell({ children }: PropsWithChildren) {
         icon: <ConfiguredMenuIcon name={item.icon} />,
         key: item.code,
         label: t(item.i18nKey),
+        popupClassName: 'ak-navigation-submenu-popup',
       }
     }
     return {
@@ -60,18 +74,19 @@ export function AppShell({ children }: PropsWithChildren) {
     }
   }
 
-  const navigation = (id: string) => (
+  const navigation = (id: string, isCollapsed = false) => (
     <nav aria-label={t('shell.navigation')} id={id}>
       <Menu
+        {...(isCollapsed ? {} : { openKeys })}
         className="ak-navigation-menu"
         items={menuItems.map(toMenuItem)}
         mode="inline"
         onOpenChange={(keys) => {
-          if (!collapsed) setOpenKeys(keys)
+          if (!isCollapsed) setOpenKeys(keys)
         }}
-        openKeys={openKeys}
         selectedKeys={[pathname]}
         theme="dark"
+        triggerSubMenuAction="hover"
       />
     </nav>
   )
@@ -98,22 +113,57 @@ export function AppShell({ children }: PropsWithChildren) {
   return (
     <Layout className="ak-app-layout">
       <a className="ak-skip-link" href="#main-content">{t('shell.skip_to_content')}</a>
-      <Sider className="ak-desktop-sider" collapsed={collapsed} collapsible trigger={null} width={248}>
-        <div className="ak-shell-brand">
-          <img alt="" aria-hidden="true" className="ak-shell-brand-image" height="36" src="/brand/appkernia-icon-64.png" width="36" />
-          {collapsed ? null : <span>{t('app.name')}</span>}
-        </div>
-        {navigation('ak-primary-navigation')}
-        <Button
-          aria-controls="ak-primary-navigation"
-          aria-expanded={!collapsed}
-          aria-label={t(collapsed ? 'shell.expand_navigation' : 'shell.collapse_navigation')}
-          className="ak-sider-collapse-handle"
-          icon={collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
-          onClick={toggleSidebar}
-          type="text"
-        />
-      </Sider>
+      {sidebarHidden ? (
+        <Tooltip placement="right" title={t('shell.expand_navigation')}>
+          <Button
+            aria-label={t('shell.expand_navigation')}
+            className="ak-sider-hidden-restore"
+            icon={<ChevronRightIcon />}
+            onClick={restoreSidebar}
+            type="text"
+          />
+        </Tooltip>
+      ) : (
+        <Sider
+          className={`ak-desktop-sider${sidebarControlsVisible ? ' ak-desktop-sider-controls-visible' : ''}`}
+          collapsed={collapsed}
+          collapsible
+          onMouseEnter={() => { setSidebarControlsVisible(true) }}
+          onMouseLeave={() => { setSidebarControlsVisible(false) }}
+          trigger={null}
+          width={248}
+        >
+          <div className="ak-shell-brand">
+            <img alt="" aria-hidden="true" className="ak-shell-brand-image" height="36" src="/brand/appkernia-icon-64.png" width="36" />
+            {collapsed ? null : <span>{t('app.name')}</span>}
+          </div>
+          {navigation('ak-primary-navigation', collapsed)}
+          {collapsed ? (
+            <Tooltip placement="right" title={t('shell.hide_navigation')}>
+              <Button
+                aria-label={t('shell.hide_navigation')}
+                className="ak-sider-hide-handle"
+                icon={<CloseOutlined />}
+                onClick={() => { setSidebarMode('hidden') }}
+                onMouseEnter={() => { setSidebarControlsVisible(true) }}
+                onMouseLeave={() => { setSidebarControlsVisible(false) }}
+                type="text"
+              />
+            </Tooltip>
+          ) : null}
+          <Button
+            aria-controls="ak-primary-navigation"
+            aria-expanded={!collapsed}
+            aria-label={t(collapsed ? 'shell.expand_navigation' : 'shell.collapse_navigation')}
+            className="ak-sider-collapse-handle"
+            icon={collapsed ? <ChevronRightIcon /> : <ChevronLeftIcon />}
+            onClick={toggleSidebar}
+            onMouseEnter={() => { setSidebarControlsVisible(true) }}
+            onMouseLeave={() => { setSidebarControlsVisible(false) }}
+            type="text"
+          />
+        </Sider>
+      )}
       <Drawer className="ak-mobile-drawer" closable onClose={() => { setMobileOpen(false) }} open={mobileOpen} placement="left" size={280} title={<span className="ak-drawer-brand"><img alt="" aria-hidden="true" height="32" src="/brand/appkernia-icon-64.png" width="32" />{t('app.name')}</span>}>{navigation('ak-mobile-navigation')}</Drawer>
       <Layout>
         <Header className="ak-shell-header">
@@ -132,6 +182,17 @@ export function AppShell({ children }: PropsWithChildren) {
             ) : <Typography.Text strong>{context?.active_tenant.name}</Typography.Text>}
           </div>
           <div className="ak-shell-actions">
+            {sidebarHidden ? (
+              <Tooltip title={t('shell.expand_navigation')}>
+                <Button
+                  aria-label={t('shell.expand_navigation')}
+                  className="ak-shell-icon-button ak-sidebar-header-restore"
+                  icon={<MenuUnfoldOutlined />}
+                  onClick={restoreSidebar}
+                  type="text"
+                />
+              </Tooltip>
+            ) : null}
             <FullscreenToggle />
             <LocaleSwitcher variant="icon" />
             {context ? <UserMenu onSignOut={signOut} roles={context.roles} user={context.user} /> : null}

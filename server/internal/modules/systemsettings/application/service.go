@@ -101,15 +101,73 @@ func (s *Service) ListPublicRegions(ctx context.Context, f settings.RegionFilter
 	normalized.Status = "active"
 	return s.repo.ListRegions(ctx, normalized)
 }
-func (s *Service) ListModules(ctx context.Context, token string, f settings.ModuleFilter) ([]settings.Module, error) {
-	if _, err := s.authorize(ctx, token, "sys.module.read"); err != nil {
-		return nil, err
+
+func normalizeRegionCreate(in settings.RegionCreateInput) (settings.RegionCreateInput, error) {
+	in.Code, in.ParentCode = strings.TrimSpace(in.Code), strings.TrimSpace(in.ParentCode)
+	in.Name, in.FullName = strings.TrimSpace(in.Name), strings.TrimSpace(in.FullName)
+	in.PostalCode, in.Status = strings.TrimSpace(in.PostalCode), strings.TrimSpace(in.Status)
+	if in.Status == "" {
+		in.Status = "active"
 	}
-	f.Query, f.Status = strings.TrimSpace(f.Query), strings.TrimSpace(f.Status)
-	if len(f.Query) > 160 || !oneOf(f.Status, "", "enabled", "disabled") {
-		return nil, settings.ErrInvalid
+	if !validRegionCode(in.Code) || !validRegionCode(in.ParentCode) || in.Code == in.ParentCode || in.Name == "" || len(in.Name) > 160 || in.FullName == "" || len(in.FullName) > 500 || len(in.PostalCode) > 24 || !oneOf(in.Status, "active", "disabled") || !validCoordinates(in.Longitude, in.Latitude) {
+		return in, settings.ErrInvalid
 	}
-	return s.repo.ListModules(ctx, f)
+	return in, nil
+}
+
+func normalizeRegionUpdate(in settings.RegionUpdateInput) (settings.RegionUpdateInput, error) {
+	in.Name, in.FullName = strings.TrimSpace(in.Name), strings.TrimSpace(in.FullName)
+	in.PostalCode, in.Status = strings.TrimSpace(in.PostalCode), strings.TrimSpace(in.Status)
+	if in.Name == "" || len(in.Name) > 160 || in.FullName == "" || len(in.FullName) > 500 || len(in.PostalCode) > 24 || !oneOf(in.Status, "active", "disabled") || in.Version < 1 || !validCoordinates(in.Longitude, in.Latitude) {
+		return in, settings.ErrInvalid
+	}
+	return in, nil
+}
+
+func validCoordinates(longitude, latitude *float64) bool {
+	return (longitude == nil || *longitude >= -180 && *longitude <= 180) && (latitude == nil || *latitude >= -90 && *latitude <= 90)
+}
+
+func validRegionCode(code string) bool {
+	code = strings.TrimSpace(code)
+	return regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$`).MatchString(code)
+}
+
+func (s *Service) CreateRegion(ctx context.Context, token string, p settings.Principal, in settings.RegionCreateInput) (settings.Region, error) {
+	auth, err := s.authorize(ctx, token, "sys.region.create")
+	if err != nil {
+		return settings.Region{}, err
+	}
+	in, err = normalizeRegionCreate(in)
+	if err != nil {
+		return settings.Region{}, err
+	}
+	return s.repo.CreateRegion(ctx, principal(auth, p), in)
+}
+
+func (s *Service) UpdateRegion(ctx context.Context, token string, p settings.Principal, code string, in settings.RegionUpdateInput) (settings.Region, error) {
+	auth, err := s.authorize(ctx, token, "sys.region.update")
+	if err != nil {
+		return settings.Region{}, err
+	}
+	code = strings.TrimSpace(code)
+	in, err = normalizeRegionUpdate(in)
+	if err != nil || !validRegionCode(code) {
+		return settings.Region{}, settings.ErrInvalid
+	}
+	return s.repo.UpdateRegion(ctx, principal(auth, p), code, in)
+}
+
+func (s *Service) DeleteRegion(ctx context.Context, token string, p settings.Principal, code string) error {
+	auth, err := s.authorize(ctx, token, "sys.region.delete")
+	if err != nil {
+		return err
+	}
+	code = strings.TrimSpace(code)
+	if !validRegionCode(code) {
+		return settings.ErrInvalid
+	}
+	return s.repo.DeleteRegion(ctx, principal(auth, p), code)
 }
 
 func normalizeConfig(in settings.ConfigInput, creating bool) (settings.ConfigInput, error) {
@@ -212,6 +270,31 @@ func validateValue(kind string, raw json.RawMessage, schemaRaw json.RawMessage) 
 }
 func mustJSON(value any) []byte { out, _ := json.Marshal(value); return out }
 
+func (s *Service) validateDictionaryConfig(ctx context.Context, tenantID uuid.UUID, in settings.ConfigInput) error {
+	var schema map[string]any
+	if json.Unmarshal(in.ValidationSchema, &schema) != nil {
+		return settings.ErrInvalid
+	}
+	code, _ := schema["x-appkernia-dictionary"].(string)
+	if code == "" || in.IsSecret || len(in.Value) == 0 || string(in.Value) == "null" {
+		return nil
+	}
+	var selected string
+	if json.Unmarshal(in.Value, &selected) != nil || selected == "" {
+		return settings.ErrInvalid
+	}
+	dictionary, err := s.repo.ResolveDictionary(ctx, &tenantID, code, "zh-CN", false)
+	if err != nil {
+		return settings.ErrInvalid
+	}
+	for _, item := range dictionary.Items {
+		if item.Value == selected {
+			return nil
+		}
+	}
+	return settings.ErrInvalid
+}
+
 func (s *Service) CreateConfig(ctx context.Context, token string, p settings.Principal, in settings.ConfigInput) (settings.ConfigItem, error) {
 	auth, err := s.authorize(ctx, token, "sys.config.create")
 	if err != nil {
@@ -219,6 +302,9 @@ func (s *Service) CreateConfig(ctx context.Context, token string, p settings.Pri
 	}
 	in, err = normalizeConfig(in, true)
 	if err != nil {
+		return settings.ConfigItem{}, err
+	}
+	if err = s.validateDictionaryConfig(ctx, auth.Tenant.ID, in); err != nil {
 		return settings.ConfigItem{}, err
 	}
 	var sealed []byte
@@ -246,6 +332,9 @@ func (s *Service) UpdateConfig(ctx context.Context, token string, p settings.Pri
 	}
 	in, err = normalizeConfig(in, false)
 	if err != nil {
+		return settings.ConfigItem{}, err
+	}
+	if err = s.validateDictionaryConfig(ctx, auth.Tenant.ID, in); err != nil {
 		return settings.ConfigItem{}, err
 	}
 	return s.repo.UpdateConfig(ctx, principal(auth, p), id, in)
@@ -277,6 +366,34 @@ func (s *Service) ListDictTypes(ctx context.Context, token string, f settings.Pa
 		return settings.DictTypePage{}, err
 	}
 	return s.repo.ListDictTypes(ctx, auth.Tenant.ID, f)
+}
+
+func canonicalDictionaryLocale(locale string) string {
+	locale = strings.TrimSpace(locale)
+	if locale == "en-US" {
+		return locale
+	}
+	return "zh-CN"
+}
+
+func (s *Service) ResolveAdminDictionary(ctx context.Context, token, code, locale string) (settings.ResolvedDictionary, error) {
+	auth, err := s.auth.Authenticate(ctx, token, "ak-admin")
+	if err != nil {
+		return settings.ResolvedDictionary{}, err
+	}
+	code = strings.TrimSpace(code)
+	if !regexp.MustCompile(`^[a-z][a-z0-9._-]{1,159}$`).MatchString(code) {
+		return settings.ResolvedDictionary{}, settings.ErrInvalid
+	}
+	return s.repo.ResolveDictionary(ctx, &auth.Tenant.ID, code, canonicalDictionaryLocale(locale), false)
+}
+
+func (s *Service) ResolvePublicDictionary(ctx context.Context, code, locale string) (settings.ResolvedDictionary, error) {
+	code = strings.TrimSpace(code)
+	if !regexp.MustCompile(`^[a-z][a-z0-9._-]{1,159}$`).MatchString(code) {
+		return settings.ResolvedDictionary{}, settings.ErrInvalid
+	}
+	return s.repo.ResolveDictionary(ctx, nil, code, canonicalDictionaryLocale(locale), true)
 }
 func normalizeType(in settings.DictTypeInput) (settings.DictTypeInput, error) {
 	in.Code, in.Name, in.Description, in.Status = strings.TrimSpace(in.Code), strings.TrimSpace(in.Name), strings.TrimSpace(in.Description), strings.TrimSpace(in.Status)

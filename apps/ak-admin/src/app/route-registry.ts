@@ -15,7 +15,6 @@ const implementedComponentKeys = new Set([
   "system.settings.configs",
   "system.settings.dictionaries",
   "system.settings.regions",
-  "system.settings.modules",
   "system.storage.files",
   "system.notifications.notices",
   "system.notifications.messages",
@@ -178,7 +177,6 @@ export function isSafeInternalRedirect(
   | "/system/settings/configs"
   | "/system/settings/dictionaries"
   | "/system/settings/regions"
-  | "/system/settings/modules"
   | "/system/storage/files"
   | "/system/users/accounts"
   | "/system/users/departments"
@@ -208,7 +206,6 @@ export function isSafeInternalRedirect(
     value === "/system/settings/configs" ||
     value === "/system/settings/dictionaries" ||
     value === "/system/settings/regions" ||
-    value === "/system/settings/modules" ||
     value === "/system/storage/files" ||
     value === "/system/users/accounts" ||
     value === "/system/users/departments" ||
@@ -221,8 +218,8 @@ export function isSafeInternalRedirect(
     value === "/system/security/login-logs" ||
     value === "/system/security/events" ||
     value === "/system/monitoring/sessions" ||
-	value === "/system/monitoring/health" ||
-	value === "/system/security/block-rules" ||
+    value === "/system/monitoring/health" ||
+    value === "/system/security/block-rules" ||
     value === "/system/notifications/notices" ||
     value === "/system/notifications/messages" ||
     value === "/system/notifications/templates" ||

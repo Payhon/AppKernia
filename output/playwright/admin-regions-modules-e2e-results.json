@@ -1,19 +1,29 @@
 {
-  "regions.en-US.1440": {
+  "regions-manage.en-US.1440": {
+    "scope": "main",
     "violations": []
   },
-  "lazy_child_status": 200,
-  "modules.en-US.1440": {
+  "parent_delete_guard": true,
+  "city_created": true,
+  "county_created": true,
+  "regions-edit-drawer.en-US.1440": {
+    "scope": "main",
     "violations": []
   },
-  "regions.zh-CN.1440": {
+  "county_updated": true,
+  "leaf_deletes": 2,
+  "regions-manage.zh-CN.1440": {
+    "scope": "main",
     "violations": []
   },
-  "regions.zh-CN.375": {
+  "regions-manage.zh-CN.375": {
+    "scope": "main",
     "violations": []
   },
-  "modules.zh-CN.375": {
+  "regions-read-only.en-US.1440": {
+    "scope": "main",
     "violations": []
   },
+  "read_only_actions_hidden": true,
   "unexpected_console_errors": []
 }

@@ -6,14 +6,14 @@
   "errors.common.timeout": "The request timed out. Try again.",
   "errors.common.unauthorized": "Your session has expired. Sign in again.",
   "errors.common.unknown": "An unknown error occurred. Try again later.",
+  "errors.iam.user.last_admin": "The last administrator of this tenant cannot be disabled.",
+  "errors.iam.user.org_invalid": "A selected department or position is missing, disabled, or belongs to another tenant.",
+  "errors.iam.user.role_invalid": "A selected role is missing, disabled, or belongs to another tenant.",
   "errors.org.position.code_conflict": "The position code is already in use.",
   "errors.org.position.not_found": "The position was not found.",
   "errors.org.position.occupied": "The position still has assigned members and cannot be deleted.",
   "errors.org.unit.code_conflict": "The department code is already in use.",
   "errors.org.unit.cycle": "A department cannot be moved beneath itself or one of its descendants.",
   "errors.org.unit.not_found": "The department was not found.",
-  "errors.org.unit.occupied": "The department still has children or members and cannot be deleted.",
-  "errors.iam.user.last_admin": "The last administrator of this tenant cannot be disabled.",
-  "errors.iam.user.org_invalid": "A selected department or position is missing, disabled, or belongs to another tenant.",
-  "errors.iam.user.role_invalid": "A selected role is missing, disabled, or belongs to another tenant."
+  "errors.org.unit.occupied": "The department still has children or members and cannot be deleted."
 }

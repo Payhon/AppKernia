@@ -102,8 +102,9 @@ type PreparePasswordReset struct {
 }
 
 type PasswordResetRecipient struct {
-	Email  string
-	Locale string
+	TenantID uuid.UUID
+	Email    string
+	Locale   string
 }
 
 type PasswordResetState struct {

@@ -35,7 +35,7 @@
 | Outbox/Webhook | P2 |  | ✓ | ✓ | `outbox_events`、`webhook_*` |
 | API Client | P2 | Machine | ✓ |  | `api_clients*` |
 | 审计与安全事件 | P0/P1 | 我的登录记录可选 | ✓ | 归档 | `audit.*` |
-| 地区数据 | P2 | ✓ | ✓/只读 | 导入 | `sys.regions` |
+| 地区数据 | P2 | ✓ | ✓/管理 | 导入 | `sys.regions` |
 | MFA/OAuth | P3 | ✓ | ✓ |  | `mfa_*`、`oauth_accounts` |
 | 代码生成 CLI | P3 |  |  | CLI | — |
 | Billing | P3/可选 | ✓ | ✓ | 回调/对账 | `billing.*` |
@@ -490,6 +490,7 @@ GET /api/v1/public/dictionaries/{code}
 **Admin API**
 
 ```text
+GET   /admin-api/v1/dictionaries/{code}
 GET   /admin-api/v1/dict-types
 POST  /admin-api/v1/dict-types
 PATCH /admin-api/v1/dict-types/{id}
@@ -511,8 +512,11 @@ sys.dictionary.delete
 **验收**
 
 - 同一字典 value 在同一 locale 中唯一，`NULL locale` 也唯一。
-- 系统字典不能被普通租户删除。
-- 客户端按 locale 回退到默认项。
+- 系统类型与系统项不可被租户修改或删除；租户项按 value 覆盖全局项。
+- 消费解析顺序为请求 locale、neutral、`zh-CN`，同级优先租户项；禁用覆盖项会隐藏同 value 的全局项。
+- `fixed/open/registered/s3_compatible` 扩展策略由后端强制执行；驱动字典只绑定编译期能力，不加载动态代码。
+- 核心种子只包含 `storage.driver`、`sms.provider` 与 SMS/Email 模板用途，并提供 `zh-CN`、`en-US` 标签。
+- 公开接口只能读取 `visibility=public` 的字典，Admin 消费接口不暴露租户覆盖内部结构。
 
 ### 8.2 配置
 
@@ -646,6 +650,10 @@ notify.notice.cancel
 GET /admin-api/v1/notification-templates
 POST /admin-api/v1/notification-templates
 PATCH /admin-api/v1/notification-templates/{id}
+GET /admin-api/v1/notification-templates/{id}/sms-bindings
+PUT /admin-api/v1/notification-templates/{id}/sms-bindings/{provider}
+DELETE /admin-api/v1/notification-templates/{id}/sms-bindings/{provider}
+POST /admin-api/v1/notification-templates/{id}/test
 GET /admin-api/v1/notification-deliveries
 POST /admin-api/v1/notification-deliveries/{id}/retry
 ```
@@ -656,6 +664,7 @@ POST /admin-api/v1/notification-deliveries/{id}/retry
 notify.template.read
 notify.template.create
 notify.template.update
+notify.template.test
 notify.delivery.read
 notify.delivery.retry
 ```
@@ -663,7 +672,11 @@ notify.delivery.retry
 **验收**
 
 - 模板变量按 Schema 校验。
-- Provider 错误分类为可重试/永久失败。
+- HTML 保存时净化，渲染只允许声明变量并执行 HTML 转义；短信外部模板 ID 按租户和供应商绑定。
+- Delivery 与 River Job 在同一事务创建，以 `dedupe_key` 去重；投递目标与变量载荷使用信封加密。
+- 腾讯云与阿里云短信使用编译期官方 SDK Adapter；SMTP 支持 STARTTLS/implicit TLS、context 与超时。
+- Provider 错误分类为可重试/永久失败/结果不确定；不确定短信不自动重放，人工重试必须确认重复扣费风险。
+- 找回密码按注册租户解析 `email/password_reset` 模板后异步入队，匿名响应继续保持账号枚举防护。
 - 不在日志中记录完整短信验证码、邮件重置链接或 Push Token。
 
 ---
@@ -767,29 +780,38 @@ sys.api_client.assign_permission
 
 ---
 
-## 13. P2 地区与模块信息
+## 13. P2 地区与编译模块目录
 
 **API**
 
 ```text
 GET /api/v1/regions
 GET /admin-api/v1/regions
-GET /admin-api/v1/modules
+POST /admin-api/v1/regions
+PATCH /admin-api/v1/regions/{code}
+DELETE /admin-api/v1/regions/{code}
+GET /admin-api/v1/ops/runtime-summary
 ```
 
 **权限码**
 
 ```text
 sys.region.read
-sys.module.read
+sys.region.create
+sys.region.update
+sys.region.delete
+ops.health.read
 ```
 
 **验收**
 
 - `blueprint/backend/spec/core-regions.json` 固定记录来源提交、许可证和层级映射；当前 HotGo 快照含 3,663 条地区编码，规范化为 34/357/3,272 条 0/1/2 级记录。
-- `ak-cli seed core` 按父级优先顺序幂等 upsert，稳定 code 不随名称改变；缺失经纬度保留为 `NULL`，不伪造邮编或坐标。
+- `ak-cli seed core` 按父级优先顺序幂等 upsert，稳定 code 不随名称改变；缺失经纬度保留为 `NULL`，不伪造邮编或坐标，且不覆盖后台标记为手工维护或软删除的记录。
+- Admin 可在 level 0/1 节点下新增直接下级，编辑非结构字段，并软删除无下级的叶子节点；所有写入使用精确权限、乐观锁和操作审计。
 - 地区目录是带来源版本的初始化快照，不宣称等同于最新官方行政区划；升级必须重新生成目录、审查 diff 并重跑完整性测试。
-- `sys.modules` 只显示编译期模块和版本，不支持上传/安装二进制。
+- `blueprint/backend/spec/core-modules.json` 固定登记 8 个领域模块；初始化按稳定 code 幂等 upsert，并清理目录外测试残留。
+- `sys.modules` 只由服务状态运行摘要读取，不提供独立管理 API 或页面，也不支持上传、安装或执行二进制插件。
+- API、CLI、Worker、种子和运行摘要共用构建注入版本；本地未注入时明确为 `dev`。
 
 ---
 

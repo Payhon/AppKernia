@@ -15,8 +15,11 @@ import (
 	iamrepo "github.com/appkernia/appkernia/server/internal/modules/iam/repository"
 	notify "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/domain"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
 )
 
 func TestNotificationLifecycleTemplatesAndDeliveryRetryAreTenantScopedAndAudited(t *testing.T) {
@@ -47,7 +50,12 @@ func TestNotificationLifecycleTemplatesAndDeliveryRetryAreTenantScopedAndAudited
 	if err != nil {
 		t.Fatal(err)
 	}
-	repo := NewPostgres(pool)
+	riverClient, err := river.NewClient(riverpgxv5.New(pool), &river.Config{SkipUnknownJobCheck: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var _ *river.Client[pgx.Tx] = riverClient
+	repo := NewPostgres(pool, riverClient)
 	principal := notify.Principal{TenantID: tenant.ID, UserID: user.ID, SessionID: session.ID, RequestID: "notify-integration", IPAddress: "127.0.0.1", UserAgent: "integration"}
 	message, err := repo.CreateMessage(ctx, principal, false, notify.MessageInput{MessageType: "system", Title: "Maintenance", Body: "A safe message", BodyFormat: "plain", AudienceScope: "selected", AudienceUserIDs: []uuid.UUID{secondID}})
 	if err != nil {
@@ -70,7 +78,7 @@ func TestNotificationLifecycleTemplatesAndDeliveryRetryAreTenantScopedAndAudited
 	}
 	locale := "en-US"
 	subject := "Hello {{name}}"
-	template, err := repo.CreateTemplate(ctx, principal, notify.TemplateInput{Code: "account.welcome", Name: "Welcome", Channel: "email", Locale: &locale, SubjectTemplate: &subject, BodyTemplate: "Welcome {{name}}", VariablesSchema: []byte(`{"type":"object","properties":{"name":{"type":"string"}}}`), Status: "active"})
+	template, err := repo.CreateTemplate(ctx, principal, notify.TemplateInput{Code: "account.welcome", Name: "Welcome", Channel: "email", Locale: &locale, SubjectTemplate: &subject, BodyTemplate: "Welcome {{name}}", BodyFormat: "plain", VariablesSchema: []byte(`{"type":"object","properties":{"name":{"type":"string"}}}`), Status: "active"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,19 +88,19 @@ func TestNotificationLifecycleTemplatesAndDeliveryRetryAreTenantScopedAndAudited
 	}
 	targetHash := sha256.Sum256([]byte("recipient@example.test"))
 	var deliveryID uuid.UUID
-	if err = pool.QueryRow(ctx, `INSERT INTO notify.deliveries(tenant_id,message_id,user_id,template_id,channel,target_ciphertext,target_hash,target_hint,target_key_version,provider,status,attempt_count,max_attempts,last_error)
-		VALUES($1,$2,$3,$4,'email',$5,$6,'r***@example.test',1,'local-mock','failed',1,3,$7) RETURNING id`, tenant.ID, message.ID, secondID, template.ID, []byte("encrypted"), targetHash[:], "temporary provider failure\nretryable").Scan(&deliveryID); err != nil {
+	if err = pool.QueryRow(ctx, `INSERT INTO notify.deliveries(tenant_id,message_id,user_id,template_id,channel,target_ciphertext,target_hash,target_hint,target_key_version,provider,status,attempt_count,max_attempts,last_error,retryable)
+		VALUES($1,$2,$3,$4,'email',$5,$6,'r***@example.test',1,'local-mock','failed',1,3,$7,true) RETURNING id`, tenant.ID, message.ID, secondID, template.ID, []byte("encrypted"), targetHash[:], "temporary provider failure\nretryable").Scan(&deliveryID); err != nil {
 		t.Fatal(err)
 	}
 	delivery, err := repo.GetDelivery(ctx, tenant.ID, deliveryID)
 	if err != nil || delivery.ErrorCode != "PROVIDER_DELIVERY_FAILED" || delivery.ErrorSummary != "temporary provider failure retryable" || delivery.TargetHint != "r***@example.test" {
 		t.Fatalf("delivery=%#v err=%v", delivery, err)
 	}
-	retried, err := repo.RetryDelivery(ctx, principal, deliveryID)
+	retried, err := repo.RetryDelivery(ctx, principal, deliveryID, false)
 	if err != nil || retried.Status != "pending" || retried.ErrorSummary != "" {
 		t.Fatalf("retried=%#v err=%v", retried, err)
 	}
-	if _, err = repo.RetryDelivery(ctx, principal, deliveryID); !errors.Is(err, notify.ErrRetryNotAllowed) {
+	if _, err = repo.RetryDelivery(ctx, principal, deliveryID, false); !errors.Is(err, notify.ErrRetryNotAllowed) {
 		t.Fatalf("second retry error=%v", err)
 	}
 	var audits int

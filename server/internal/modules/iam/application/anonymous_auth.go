@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/appkernia/appkernia/server/internal/modules/iam/domain"
+	"github.com/google/uuid"
 )
 
 const (
@@ -41,9 +42,10 @@ func WithAnonymousAuth(config AnonymousAuthConfig, notifier PasswordResetNotifie
 }
 
 type PasswordResetNotification struct {
-	Email  string
-	Locale string
-	Token  string
+	TenantID uuid.UUID
+	Email    string
+	Locale   string
+	Token    string
 }
 
 type PasswordResetNotifier interface {
@@ -127,7 +129,7 @@ func (service *AuthService) ForgotPassword(ctx context.Context, input ForgotPass
 	}
 	if recipient != nil {
 		_ = service.resetNotifier.SendPasswordReset(ctx, PasswordResetNotification{
-			Email: recipient.Email, Locale: recipient.Locale, Token: plainToken,
+			TenantID: recipient.TenantID, Email: recipient.Email, Locale: recipient.Locale, Token: plainToken,
 		})
 	}
 	return passwordResetCooldown, nil

@@ -7,6 +7,67 @@ import (
 	"testing"
 )
 
+func TestReadModuleCatalogAcceptsExactRepositoryCatalog(t *testing.T) {
+	catalogPath := filepath.Join("..", "..", "..", "blueprint", "backend", "spec", "core-modules.json")
+	catalog, err := readModuleCatalog(catalogPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"iam", "org", "sys", "storage", "notify", "jobs", "audit", "ops"}
+	if len(catalog.Modules) != len(want) {
+		t.Fatalf("modules=%d want=%d", len(catalog.Modules), len(want))
+	}
+	for index, code := range want {
+		if catalog.Modules[index].Code != code {
+			t.Fatalf("module[%d]=%q want=%q", index, catalog.Modules[index].Code, code)
+		}
+	}
+}
+
+func TestReadModuleCatalogRejectsDuplicateAndUncompiledCapability(t *testing.T) {
+	cases := []struct {
+		name    string
+		modules []moduleDefinition
+	}{
+		{
+			name: "duplicate code",
+			modules: []moduleDefinition{
+				validTestModule("iam", json.RawMessage(`{"users":true}`)),
+				validTestModule("iam", json.RawMessage(`{"roles":true}`)),
+			},
+		},
+		{
+			name: "capability is not compiled",
+			modules: []moduleDefinition{
+				validTestModule("ops", json.RawMessage(`{"runtime_summary":true,"plugin_upload":false}`)),
+			},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "invalid-modules.json")
+			raw, err := json.Marshal(moduleCatalog{Version: 1, Modules: tc.modules})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err = os.WriteFile(path, raw, 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if _, err = readModuleCatalog(path); err == nil {
+				t.Fatal("invalid module catalog must be rejected")
+			}
+		})
+	}
+}
+
+func validTestModule(code string, capabilities json.RawMessage) moduleDefinition {
+	return moduleDefinition{
+		Code: code, Name: code, NameKey: "ops.modules." + code + ".name",
+		Description: code + " module", DescriptionKey: "ops.modules." + code + ".description",
+		Capabilities: capabilities, Status: "enabled",
+	}
+}
+
 func TestReadConfigCatalogRejectsSecretPlaintextAndAcceptsRepositoryCatalog(t *testing.T) {
 	catalogPath := filepath.Join("..", "..", "..", "blueprint", "backend", "spec", "core-configs.json")
 	catalog, err := readConfigCatalog(catalogPath)

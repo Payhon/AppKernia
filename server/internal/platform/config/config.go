@@ -15,6 +15,7 @@ const (
 	defaultShutdown                     = 15 * time.Second
 	developmentDatabaseDSN              = "postgres://appkernia:appkernia-dev-only@localhost:55432/appkernia?sslmode=disable"
 	developmentLoginProtectionKeyBase64 = "YXBwa2VybmlhLWRldi1sb2dpbi1rZXktMzJieXRlcyE="
+	developmentConfigMasterKeyBase64    = "YXBwa2VybmlhLWRldi1jb25maWcta2V5LTMyYnl0ZSE="
 )
 
 type Config struct {
@@ -114,6 +115,9 @@ func Load() (Config, error) {
 	if cfg.LoginProtectionKeyBase64 == "" && cfg.Environment == "development" {
 		cfg.LoginProtectionKeyBase64 = developmentLoginProtectionKeyBase64
 	}
+	if cfg.ConfigMasterKeyBase64 == "" && cfg.Environment == "development" {
+		cfg.ConfigMasterKeyBase64 = developmentConfigMasterKeyBase64
+	}
 	if cfg.AdminRegistrationTenantCode == "" {
 		cfg.AdminRegistrationTenantCode = "local"
 	}
@@ -160,7 +164,7 @@ func Load() (Config, error) {
 	if cfg.PasswordRecoveryAdapter == "local" && cfg.Environment != "development" {
 		return Config{}, errors.New("AK_PASSWORD_RECOVERY_ADAPTER=local is allowed only in development")
 	}
-	if cfg.PasswordRecoveryAdapter != "" && cfg.PasswordRecoveryAdapter != "local" {
+	if cfg.PasswordRecoveryAdapter != "" && cfg.PasswordRecoveryAdapter != "local" && cfg.PasswordRecoveryAdapter != "notification" {
 		return Config{}, fmt.Errorf("AK_PASSWORD_RECOVERY_ADAPTER %q is not configured in this build", cfg.PasswordRecoveryAdapter)
 	}
 	if (cfg.AvatarUploadEnabled || cfg.FileStorageEnabled) && cfg.ObjectStorageAdapter == "" {

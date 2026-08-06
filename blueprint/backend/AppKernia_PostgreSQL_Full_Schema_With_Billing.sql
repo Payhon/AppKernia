@@ -575,8 +575,10 @@ CREATE TABLE sys.modules (
     id                  uuid PRIMARY KEY DEFAULT uuidv7(),
     code                public.citext NOT NULL,
     name                varchar(160) NOT NULL,
+    name_key            varchar(255) NOT NULL DEFAULT '',
     version             varchar(64) NOT NULL,
     description         varchar(1000),
+    description_key     varchar(255) NOT NULL DEFAULT '',
     capabilities        jsonb NOT NULL DEFAULT '{}'::jsonb,
     config_schema       jsonb NOT NULL DEFAULT '{}'::jsonb,
     status              varchar(20) NOT NULL DEFAULT 'enabled',
@@ -736,11 +738,16 @@ CREATE TABLE sys.regions (
     latitude            numeric(10, 7),
     status              varchar(20) NOT NULL DEFAULT 'active',
     metadata            jsonb NOT NULL DEFAULT '{}'::jsonb,
+    version             integer NOT NULL DEFAULT 1,
+    is_manually_managed boolean NOT NULL DEFAULT false,
     updated_at          timestamptz NOT NULL DEFAULT now(),
+    deleted_at          timestamptz,
     CONSTRAINT ck_regions_level CHECK (level BETWEEN 0 AND 10),
-    CONSTRAINT ck_regions_status CHECK (status IN ('active', 'disabled'))
+    CONSTRAINT ck_regions_status CHECK (status IN ('active', 'disabled')),
+    CONSTRAINT ck_regions_version CHECK (version > 0)
 );
 CREATE INDEX idx_regions_parent ON sys.regions (parent_code, code);
+CREATE INDEX idx_regions_active_parent ON sys.regions (parent_code, code) WHERE deleted_at IS NULL;
 CREATE INDEX idx_regions_name_trgm ON sys.regions USING gin (name gin_trgm_ops);
 
 CREATE TABLE sys.api_clients (

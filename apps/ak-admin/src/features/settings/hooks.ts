@@ -1,17 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 
 import type {
   AdminConfigSecretRequestWritable,
   AdminConfigWriteRequestWritable,
   AdminDictionaryItemWriteRequest,
   AdminDictionaryTypeWriteRequest,
+  AdminRegionCreateRequest,
+  AdminRegionUpdateRequest,
 } from "../../generated/api/types.gen";
 import { authSession } from "../auth/store";
 import type {
   AdminConfigFilters,
   AdminDictionaryItemFilters,
   AdminDictionaryTypeFilters,
-  AdminModuleFilters,
   AdminRegionFilters,
 } from "../auth/session";
 import { useTenantKey } from "../tenants/hooks";
@@ -51,13 +53,32 @@ export function useAdminRegions(filters: AdminRegionFilters) {
   });
 }
 
-export function useAdminModules(filters: AdminModuleFilters) {
+export function useAdminRegionMutations() {
+  const client = useQueryClient();
   const tenantId = useTenantKey();
-  return useQuery({
-    queryKey: ["tenant", tenantId, "settings", "modules", filters],
-    queryFn: () => authSession.adminModules(filters),
-    placeholderData: (value) => value,
-  });
+  const root = ["tenant", tenantId, "settings", "regions"] as const;
+  const invalidate = () => client.invalidateQueries({ queryKey: root });
+  return {
+    create: useMutation({
+      mutationFn: (input: AdminRegionCreateRequest) =>
+        authSession.createAdminRegion(input),
+      onSuccess: invalidate,
+    }),
+    update: useMutation({
+      mutationFn: ({
+        code,
+        input,
+      }: {
+        code: string;
+        input: AdminRegionUpdateRequest;
+      }) => authSession.updateAdminRegion(code, input),
+      onSuccess: invalidate,
+    }),
+    remove: useMutation({
+      mutationFn: (code: string) => authSession.deleteAdminRegion(code),
+      onSuccess: invalidate,
+    }),
+  };
 }
 
 export function useAdminConfigMutations() {
@@ -136,6 +157,20 @@ export function useAdminDictionaryTypes(filters: AdminDictionaryTypeFilters) {
     ],
     queryFn: () => authSession.adminDictionaryTypes(filters),
     placeholderData: (value) => value,
+  });
+}
+
+export function useAdminDictionary(code: string | null | undefined) {
+  const tenantId = useTenantKey();
+  const { i18n } = useTranslation();
+  return useQuery({
+    queryKey: ["tenant", tenantId, "settings", "dictionary", code, i18n.resolvedLanguage],
+    queryFn: () => {
+      if (!code) throw new Error("dictionary code is required");
+      return authSession.adminDictionary(code);
+    },
+    enabled: Boolean(code),
+    staleTime: 60_000,
   });
 }
 

@@ -36,3 +36,26 @@ func TestPolicyValueParsingIsBoundedAndDeduplicated(t *testing.T) {
 		t.Fatalf("types = %#v", types)
 	}
 }
+
+func TestVendorS3ProfilesRequireExpectedEndpointAndRegion(t *testing.T) {
+	valid := []struct{ provider, endpoint, region string }{
+		{"cos", "cos.ap-guangzhou.myqcloud.com", "ap-guangzhou"},
+		{"oss", "oss-cn-hangzhou.aliyuncs.com", "cn-hangzhou"},
+		{"qiniu", "s3-cn-east-1.qiniucs.com", "cn-east-1"},
+	}
+	for _, test := range valid {
+		if err := validateProviderProfile(test.provider, test.endpoint, test.region); err != nil {
+			t.Fatalf("valid %s profile rejected: %v", test.provider, err)
+		}
+	}
+	invalid := []struct{ provider, endpoint, region string }{
+		{"cos", "cos.ap-shanghai.myqcloud.com", "ap-guangzhou"},
+		{"oss", "example.com", "cn-hangzhou"},
+		{"qiniu", "s3-cn-east-1.qiniucs.com", ""},
+	}
+	for _, test := range invalid {
+		if err := validateProviderProfile(test.provider, test.endpoint, test.region); err == nil {
+			t.Fatalf("invalid %s profile accepted: %#v", test.provider, test)
+		}
+	}
+}

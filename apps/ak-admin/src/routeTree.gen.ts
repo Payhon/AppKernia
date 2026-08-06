@@ -45,7 +45,6 @@ import { Route as SystemSecurityLoginLogsRouteImport } from './routes/system.sec
 import { Route as SystemSecurityOperationLogsRouteImport } from './routes/system.security.operation-logs'
 import { Route as SystemSettingsConfigsRouteImport } from './routes/system.settings.configs'
 import { Route as SystemSettingsDictionariesRouteImport } from './routes/system.settings.dictionaries'
-import { Route as SystemSettingsModulesRouteImport } from './routes/system.settings.modules'
 import { Route as SystemSettingsRegionsRouteImport } from './routes/system.settings.regions'
 import { Route as SystemStorageFilesRouteImport } from './routes/system.storage.files'
 import { Route as SystemUsersAccountsRouteImport } from './routes/system.users.accounts'
@@ -263,11 +262,6 @@ const SystemSettingsDictionariesRoute =
     path: '/system/settings/dictionaries',
     getParentRoute: () => rootRouteImport,
   } as any)
-const SystemSettingsModulesRoute = SystemSettingsModulesRouteImport.update({
-  id: '/system/settings/modules',
-  path: '/system/settings/modules',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SystemSettingsRegionsRoute = SystemSettingsRegionsRouteImport.update({
   id: '/system/settings/regions',
   path: '/system/settings/regions',
@@ -446,7 +440,6 @@ export interface FileRoutesByFullPath {
   '/system/security/operation-logs': typeof SystemSecurityOperationLogsRoute
   '/system/settings/configs': typeof SystemSettingsConfigsRoute
   '/system/settings/dictionaries': typeof SystemSettingsDictionariesRoute
-  '/system/settings/modules': typeof SystemSettingsModulesRoute
   '/system/settings/regions': typeof SystemSettingsRegionsRoute
   '/system/storage/files': typeof SystemStorageFilesRouteWithChildren
   '/system/users/accounts': typeof SystemUsersAccountsRouteWithChildren
@@ -504,7 +497,6 @@ export interface FileRoutesByTo {
   '/system/security/operation-logs': typeof SystemSecurityOperationLogsRoute
   '/system/settings/configs': typeof SystemSettingsConfigsRoute
   '/system/settings/dictionaries': typeof SystemSettingsDictionariesRoute
-  '/system/settings/modules': typeof SystemSettingsModulesRoute
   '/system/settings/regions': typeof SystemSettingsRegionsRoute
   '/system/users/departments': typeof SystemUsersDepartmentsRoute
   '/system/users/positions': typeof SystemUsersPositionsRoute
@@ -566,7 +558,6 @@ export interface FileRoutesById {
   '/system/security/operation-logs': typeof SystemSecurityOperationLogsRoute
   '/system/settings/configs': typeof SystemSettingsConfigsRoute
   '/system/settings/dictionaries': typeof SystemSettingsDictionariesRoute
-  '/system/settings/modules': typeof SystemSettingsModulesRoute
   '/system/settings/regions': typeof SystemSettingsRegionsRoute
   '/system/storage/files': typeof SystemStorageFilesRouteWithChildren
   '/system/users/accounts': typeof SystemUsersAccountsRouteWithChildren
@@ -632,7 +623,6 @@ export interface FileRouteTypes {
     | '/system/security/operation-logs'
     | '/system/settings/configs'
     | '/system/settings/dictionaries'
-    | '/system/settings/modules'
     | '/system/settings/regions'
     | '/system/storage/files'
     | '/system/users/accounts'
@@ -690,7 +680,6 @@ export interface FileRouteTypes {
     | '/system/security/operation-logs'
     | '/system/settings/configs'
     | '/system/settings/dictionaries'
-    | '/system/settings/modules'
     | '/system/settings/regions'
     | '/system/users/departments'
     | '/system/users/positions'
@@ -751,7 +740,6 @@ export interface FileRouteTypes {
     | '/system/security/operation-logs'
     | '/system/settings/configs'
     | '/system/settings/dictionaries'
-    | '/system/settings/modules'
     | '/system/settings/regions'
     | '/system/storage/files'
     | '/system/users/accounts'
@@ -816,7 +804,6 @@ export interface RootRouteChildren {
   SystemSecurityOperationLogsRoute: typeof SystemSecurityOperationLogsRoute
   SystemSettingsConfigsRoute: typeof SystemSettingsConfigsRoute
   SystemSettingsDictionariesRoute: typeof SystemSettingsDictionariesRoute
-  SystemSettingsModulesRoute: typeof SystemSettingsModulesRoute
   SystemSettingsRegionsRoute: typeof SystemSettingsRegionsRoute
   SystemStorageFilesRoute: typeof SystemStorageFilesRouteWithChildren
   SystemUsersAccountsRoute: typeof SystemUsersAccountsRouteWithChildren
@@ -1077,13 +1064,6 @@ declare module '@tanstack/react-router' {
       path: '/system/settings/dictionaries'
       fullPath: '/system/settings/dictionaries'
       preLoaderRoute: typeof SystemSettingsDictionariesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/system/settings/modules': {
-      id: '/system/settings/modules'
-      path: '/system/settings/modules'
-      fullPath: '/system/settings/modules'
-      preLoaderRoute: typeof SystemSettingsModulesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/system/settings/regions': {
@@ -1455,7 +1435,6 @@ const rootRouteChildren: RootRouteChildren = {
   SystemSecurityOperationLogsRoute: SystemSecurityOperationLogsRoute,
   SystemSettingsConfigsRoute: SystemSettingsConfigsRoute,
   SystemSettingsDictionariesRoute: SystemSettingsDictionariesRoute,
-  SystemSettingsModulesRoute: SystemSettingsModulesRoute,
   SystemSettingsRegionsRoute: SystemSettingsRegionsRoute,
   SystemStorageFilesRoute: SystemStorageFilesRouteWithChildren,
   SystemUsersAccountsRoute: SystemUsersAccountsRouteWithChildren,

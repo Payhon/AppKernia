@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/appkernia/appkernia/server/internal/platform/buildinfo"
 	"github.com/appkernia/appkernia/server/internal/platform/config"
 	"github.com/appkernia/appkernia/server/internal/platform/migration"
 	"github.com/appkernia/appkernia/server/internal/seed"
@@ -167,6 +168,10 @@ func seedCorePermissions(args []string) error {
 	if err != nil {
 		return err
 	}
+	moduleCount, err := seed.CoreModules(context.Background(), pool, "../blueprint/backend/spec/core-modules.json")
+	if err != nil {
+		return err
+	}
 	configCount, err := seed.CoreConfigs(context.Background(), pool, "../blueprint/backend/spec/core-configs.json")
 	if err != nil {
 		return err
@@ -175,7 +180,11 @@ func seedCorePermissions(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("seeded core permissions=%d menus=%d tenant_configs=%d regions=%d\n", permissionCount, menuCount, configCount, regionCount)
+	dictionaryCount, err := seed.CoreDictionaries(context.Background(), pool, "../blueprint/backend/spec/core-dictionaries.json")
+	if err != nil {
+		return err
+	}
+	fmt.Printf("seeded core permissions=%d menus=%d modules=%d tenant_configs=%d regions=%d dictionaries=%d build_version=%s\n", permissionCount, menuCount, moduleCount, configCount, regionCount, dictionaryCount, buildinfo.Version)
 	return nil
 }
 

@@ -333,6 +333,99 @@
 - Mobile `ui-ux-pro-max` 产物已保存，但 Home/Profile/Article List/Detail 的 Android 360×800、iOS 390×844、Harmony 430×932 真机截图及动态字体、reduced motion、英文扩展审查仍待补齐，不能标记移动端视觉验收完成。
 - 平台边界：前一轮唯一临时项目 `ak-mobile-framework-ios-rootqa` 曾以 HBuilderX 5.06 完成 iOS compile-only（20 页与 `ak-secure-storage`，`UTS编译完毕`、`ready in 39282ms`、CLI exit 0）。第 3 次最终隔离证据项目 `ak-mobile-framework-ios-final-evidence` 使用 HBuilderX 5.06 CLI exit 0：20 页与 `ak-secure-storage`、UTS 完成、`ready in 30446ms`、正常“已停止运行”；清理前逐行严格搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality` 均为空。仅标准基座/需 custom base/iOS 13+ 为预期提示；未执行模拟器安装/启动、签名或 Keychain 回读，项目已关闭/清理且无进程。Android 最终唯一项目 `ak-mobile-framework-android-final-clean-1785906028` 已完成 20 页至 Android class、UTS、`ready in 19314ms` 与正常停止；Terra 修复原 4 条 identity-equality warning，复编译额外发现并修复 profile edit 1 条，共 5 处 `Any?/Boolean` 与 `Int` 长度的 UTS 值比较。静态 7 项、严格错误/警告/Identity 搜索均为 0；launch 数值 exit 因外层误用 `PIPESTATUS` 未采集，project close 成功，且仅为 compile-only（非 APK/安装/真机），临时项目已清理且无进程。Harmony 最终最新源码在唯一项目 `ak-mobile-framework-harmony-final.ECScJj` 以 HBuilderX 5.06 CLI 可信 exit 0 实测：20 页、UTS、`ready in 15236ms`、工程生成/依赖/运行包制作成功，恰 1 个 `entry-default-unsigned.hap`。清理前严格逐行搜索 `ERROR`、`Error:`、`错误`、`编译失败`、`Identity equality`、`currentColor` 均零匹配（`rg` exit 1）。仅包名/签名/未签名为预期 warning；未安装/未真机/未执行 Asset Store 回读，项目已 close，临时项目和日志已清理且无进程。生产发布、三端真机、真实 Push/OAuth/商店升级和三端网络/弱网验收均仍未验证。
 
+## 2026-08-05 Mobile 四页面 ImageGen 视觉概念（历史设计阶段，后续已实现）
+
+### 状态：视觉稿完成；对应页面已由后续 Mobile Framework 交付实现
+
+- 使用仓库内 `ui-ux-pro-max` 真实执行 design-system、Mobile UX 与 Vue stack 查询，新增 `apps/ak-mobile/design-system/MASTER.md` 及 Home、Profile、Articles 页面 override。
+- 使用内置 ImageGen 生成并保存 4 张统一风格的浅色高保真界面：Home、Profile、Article List、Article Detail；成品均为 853×1844 PNG。
+- Home/Profile 严格保留 Mobile 蓝图的 `首页 / 消息 / 我的` 三 Tab；文章列表和详情按堆栈页面处理，保留返回导航，不新增第四个 Tab。
+- 该设计阶段尚无 Article 路由/API/权限，因此当时只交付视觉概念；后续 Mobile Framework 交付已补齐 Route Registry、OpenAPI、语言包与 UVue 实现。
+- request、Skill 输出、决策、最终提示词、review checklist 和截图保存在 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-imagegen-four-surfaces/`。
+- Mobile Blueprint validator、统一 i18n validator 和 `git diff --check` 均退出 0。Android/iOS/Harmony 构建、模拟器、真机、动态字号、英文运行时和交互可访问性均未执行，不标记通过。
+
+## 2026-08-05 字典驱动化与通知发送完善
+
+### 状态：完成（本机 Docker/PostgreSQL/MinIO/Chromium；外部云凭据联调未验证）
+
+- 仅将 `storage.driver`、`sms.provider`、`notification.sms.template_event`、`notification.email.template_event` 纳入动态字典；状态机、安全、协议、权限、语言等稳定枚举继续使用代码/数据库约束。
+- 迁移 000011、核心字典/模板幂等种子、Admin/Public 消费接口、锁定/扩展策略、租户覆盖和 locale 回退已落地；最终数据库为 migration 11 clean，核心 4 类型、40 全局项、22 全局模板。
+- 存储编译期能力包含 local、S3、MinIO、腾讯 COS、阿里 OSS、七牛 Kodo 及租户受控 S3-compatible；本机 MinIO 真实完成自定义驱动 Put/Open/Delete。
+- 腾讯/阿里短信官方 SDK、供应商隔离 Secret、SMS 模板绑定、HTML/Plain 模板安全渲染、go-mail SMTP、加密 Delivery、River Worker、去重/重试风险和找回密码异步投递已完成。
+- Admin 配置/字典/文件/通知模板/投递消费同一字典源并完成双语与风险 UX；最终 Chromium 4 个状态均无 serious/critical axe、无横向溢出、无控制台错误，Email test 为 202 且数据库无目标明文。
+- Backend 77 个顶层单元测试、全仓 28 个顶层 PostgreSQL/MinIO integration tests、Admin 14 files / 58 tests 全量 check、Backend/Admin/Mobile/i18n/UI Skill validators 和 `git diff --check` 均退出 0。
+- Root `AGENTS.md` 已增加枚举/字典决策规则。Mobile 无现成 OpenAPI→UTS Client 生成管线，本轮同步公开 OpenAPI/蓝图但未伪造 Client；腾讯/阿里/七牛、真实 SMS 与 SMTP 因无隔离凭据均保持未验证。
+
+## 2026-08-05 字典管理分类与行编辑优化
+
+- 左侧字典类型由平铺列表升级为 HotGo 启发的两级分类导航：按字典代码首段命名空间自动归类，分类可折叠并显示稳定 namespace 与数量；一次加载 100 个类型，过期页码会自动回到有效页，避免常规分页切碎分类。
+- 右侧表格将“显示标签”和“字典键值”拆为独立列；桌面固定标签/键值与操作列，移动端保持表格内部横向滚动，页面本身无横向溢出。
+- 所有可写行均有编辑入口：租户项执行正常 PATCH；可扩展内置项通过 POST 创建租户覆盖，已有覆盖再次编辑仍锁定键值、语言与内置能力元数据。内置行不显示删除，租户覆盖可删除并回退全局项。
+- 后端扩展校验允许内置 `local` 等已注册值在完全保留元数据时创建租户覆盖；未知 registered 能力继续拒绝，自定义存储仍只接受 `adapter=s3_compatible`。System Settings integration fixture 已增加字典类型清理，避免测试数据残留到开发字典页。
+- Admin 新增 2 个分类/覆盖路由单测；真实 Docker Chromium 验证 zh-CN/en-US 1440 与 en-US 375，覆盖 POST=201、PATCH=200，3 个状态 axe critical/serious=0、页面无溢出、console/HTTP 错误均为 0。
+- 本轮未 commit、未 push，并原样保留用户已有 `apps/ak-mobile/artifacts/` 与 `apps/ak-mobile/design-system/`。
+
+## 2026-08-05 字典项颜色与样式类可创建选择器
+
+### 状态：完成（本机 Docker Chromium + PostgreSQL）
+
+- 字典项编辑抽屉的颜色与样式类已从普通文本框升级为复用的单值可创建选择器：空值明确显示默认态，可搜索并选择内置预设，也可输入任意值后按 Enter 创建。
+- 颜色提供品牌蓝、成功绿、警告橙、危险红、紫色、青色、中性灰 7 个双语预设；样式类提供主要、成功、警告、危险、信息、中性 6 个双语语义预设。下拉项同时显示效果、名称与实际存储值，不仅依赖颜色表达。
+- 管理端只对编译期预设样式应用实时预览；自定义 CSS 类名仅作为代码文本显示，不直接挂载到管理页 DOM。表格外观列会同时展示颜色与样式类，不再二选一隐藏。
+- 新增 `AkCreatableSelect`、外观预设/安全预览 helper 及 5 项定向测试；双语事实源、生成语言包、Master/page design-system override 与 `ui-ux-pro-max` request/output/decisions/checklist 已同步。
+- 真实写链路验证预设 `#087a68 / ak-dictionary-style-success` 通过 POST 201 保存，自定义 `#123456 / tenant-accent` 通过 PATCH 200 保存；全部 7 个截图状态 axe 0 violations、无页面横向溢出、无 console/HTTP error。
+- Admin 全量 17 个测试文件、65 项测试、ESLint、TypeScript strict、4,166 modules production build、bundle budget 和 Admin 蓝图通过；Mobile/i18n/UI Skill、E2E py_compile 与 `git diff --check` 通过。
+- 本机 4174 Admin 已使用最终镜像重建且 healthy；临时 E2E 用户、租户和覆盖项均已清理（计数 0）。未部署生产，Firefox/Safari 与移动真机未执行；本轮未 commit、未 push。
+
+## 2026-08-05 Admin 折叠侧栏逐级浮层与折叠控件优化
+
+### 状态：完成（本机 Docker Chromium）
+
+- 修复折叠侧栏仍把展开态 `openKeys` 作为受控值传入 Ant Design Menu 的根因：桌面折叠态交回 Menu 原生 hover/focus 管理，展开桌面与移动 Drawer 继续保留受控祖先展开。
+- 二、三级浮层只随对应父级逐级出现，鼠标离开完整层级后全部隐藏；每个目录使用统一 popup class，不修改权限、Feature Flag、路由或菜单数据契约。
+- 浮层改为 86% ink 半透明背景、14px backdrop blur、轻边框与双层阴影；连接父级的一侧为直角，外侧使用 10px 圆角，减弱多个独立圆角矩形的割裂感。
+- 折叠控件固定于可见视口垂直中点，尺寸 22×40px、无横向 padding；展开时左边缘为 248px，折叠时为 80px，均精确贴合侧栏右边线并增加轻阴影。
+- `ui-ux-pro-max` request/output/decisions/checklist、App Shell override、双语截图与结构化 Playwright 证据均已保存。
+- 最终 Chromium 在 zh-CN/en-US 下均验证弹层数量 `0 → 1 → 2 → 0`，axe serious/critical=0、页面无横向溢出、控制台错误=0；17 files / 65 tests、lint、strict typecheck、production build、bundle budget 与 Admin/Mobile/i18n/UI Skill 校验均通过。
+- 4174 Admin 已用最终源码重建且 healthy；专用 E2E 账号密码哈希/锁定状态已原样恢复、临时会话已退出、临时 4173 容器和凭据文件已删除。未部署生产，Firefox/Safari 未执行；本轮未 commit、未 push。
+
+## 2026-08-05 地区管理可编辑化
+
+### 状态：完成（本机 PostgreSQL 18 + Go API + Chrome）
+
+- 新增 `sys.region.create/update/delete` 并继续以动作权限授权；`super-admin` 经核心权限同步获得全部地区权限，无写权限用户只显示只读树表且不渲染操作列。
+- Migration `000012` 为 `sys.regions` 增加乐观锁版本、手工维护标记和软删除时间。管理/公开查询及 `has_children` 均排除软删除；种子 upsert 保留手工新增、修改和删除。
+- 新增地区 POST/PATCH/DELETE 管理接口：仅 level 0/1 可新增直接下级，层级由服务端推导；编码、父级、层级不可编辑；更新校验版本；删除仅允许叶子节点且不级联。
+- 三类写操作在同一事务内写入 `audit.operation_logs`，记录动作权限、地区编码及前后数据；OpenAPI、sqlc、生成 Client、权限/页面/API/Schema 契约、双语事实源与蓝图说明已同步。
+- Admin 保留懒加载树表，增加权限化“新增下级 / 编辑 / 删除”、RHF + Zod 抽屉、锁定关系字段、明确删除确认、父节点拦截反馈与精确分支/搜索缓存刷新。
+- 隔离库真实执行 migration `up/down/up`、System Settings PostgreSQL integration、系统管理员省→市→区县 CRUD、父节点删除拒绝、叶子软删除、只读权限、`zh-CN/en-US`、1440/375 与地区主内容 axe；5 个截图状态均 0 violation、无横向溢出、无控制台错误。
+- 全页 axe 额外发现既有深色侧栏英文链接对比度不足，本轮地区内容审计限定为 `main` 并在交付报告保留风险；未部署生产，Firefox/Safari 与真实移动设备未执行。本轮未 commit、未 push。
+
+## 2026-08-05 Admin 侧栏三态控制与路由持久化
+
+### 状态：完成（本机 Docker Chromium）
+
+- 侧栏状态统一为 `expanded / collapsed / hidden`，仅由边缘控件修改并持久化为非敏感本地 UI 偏好；折叠态点击级联菜单叶子进入新页面后仍保持 80px，不再由路由导航自动展开。
+- 中间展开/折叠控件缩至 18×40px，精确贴合 80/248px 侧栏边界并保持视口垂直居中；hover/focus 完成白底深色图标到深底白色图标的反色，边框与阴影不会消失。
+- 折叠态新增独立 18×28px SVG 关闭控件。完全隐藏后保留最左侧 48% 透明恢复条，并在 Header 右侧操作组最左端提供第二个恢复入口；任一入口都直接恢复 248px 完整展开态。
+- 桌面控件在小于 1024px 时隐藏，375px 下移动 Drawer 仍可正常打开/关闭；折叠级联继续按 `0 → 1 → 2 → 0` 逐层展示。
+- `ui-ux-pro-max` 请求、检索结果、决策、检查清单、双语/移动截图与结构化 Playwright 证据已保存；zh-CN/en-US axe serious/critical=0、控制台错误=0、无页面水平溢出。
+- 侧栏定向 ESLint、TypeScript strict、5 项 store 测试、production build、bundle budget、Admin/Mobile/i18n/UI Skill 校验及 `git diff --check` 通过。全量 lint/test 被工作区其他在途改动阻塞：服务状态页 3 个 lint 错误；菜单数已改为 34、旧 icon 测试仍硬编码 35（其余 74/75 通过）。本轮未 commit、未 push。
+
+## 2026-08-05 服务状态收敛与真实模块初始化
+
+### 状态：完成（本机 Docker Chromium + PostgreSQL 18）
+
+- 已移除“系统设置 → 模块信息”的菜单、路由、页面、查询 Hook、会话客户端方法、`GET /admin-api/v1/modules` OpenAPI/Handler/Application/Repository 链路及 `sys.module.read` 权限；旧页面 URL 走现有 404，旧 API 实测返回 404。
+- 新增版本化核心模块目录，初始化按稳定编码精确 upsert `iam/org/sys/storage/notify/jobs/audit/ops`，并删除目录外记录。Migration `000013` 已真实执行 `up → down → up`，最终数据库恰好 8 条、未知模块 0、旧权限 0、旧菜单 disabled 且权限绑定清空。
+- API、CLI、Worker、种子与运行摘要统一使用 `buildinfo` 版本；Makefile/Docker 注入版本、提交和构建时间，本地未注入明确为 `dev`。运行摘要模块返回语义名称/说明键、能力、状态及统一版本。
+- 服务状态页成为唯一模块入口：桌面区块间距 24px、窄屏 16px，三张状态卡等高并在移动端堆叠；模块展示为双语语义名称、稳定编码、说明和双语能力标签，两张表均有可聚焦横向滚动区域且状态不只依赖颜色。
+- `ui-ux-pro-max` request/output/decisions/checklist、Service Status 设计 override、8 张双语多视口截图与结构化 E2E 证据已保存。
+- Backend `make check`、全仓 `go test -race ./...`、隔离库 integration、Admin `npm run check`（20 files / 75 tests）、Admin/Mobile/i18n 蓝图校验、`govulncheck`、Docker build/E2E 和 `git diff --check` 均退出 0。
+- 最终 Chromium 覆盖 `zh-CN/en-US × 375/768/1024/1440`：8 组 axe violations 均为 0，页面无横向溢出、每组 2 个可聚焦滚动区、控制台错误 0，运行摘要 8 个模块版本均为 `dev`。
+- 浏览器视觉验收使用契约等价的 mock auth/data；真实后端数据由 PostgreSQL 查询和隔离库 integration 独立验证。原因是本机 API 对新 bootstrap 账号仍返回 `IAM.AUTH.INVALID_CREDENTIALS`，未把该环境登录问题伪装为真实登录闭环。
+- `staticcheck ./...` 与 `golangci-lint run` 仍被工作区既有 notification/storage 文件的 ST1005 错误文案大小写告警阻塞；本轮未修改这些无关在途代码。未部署生产，Firefox/Safari 和真实移动设备未执行；未 commit、未 push。
+
 ## 2026-08-06 GitHub Actions CI 修复
 
 ### 状态：修复完成并发布前验证通过

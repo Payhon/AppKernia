@@ -620,6 +620,11 @@ type NotifyDelivery struct {
 	Metadata          []byte             `json:"metadata"`
 	CreatedAt         pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	DedupeKey         *string            `json:"dedupe_key"`
+	PayloadCiphertext []byte             `json:"payload_ciphertext"`
+	PayloadKeyVersion *int32             `json:"payload_key_version"`
+	Retryable         bool               `json:"retryable"`
+	RetryRisk         string             `json:"retry_risk"`
 }
 
 type NotifyMessage struct {
@@ -667,6 +672,20 @@ type NotifyRecipient struct {
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
+type NotifySmsTemplateBinding struct {
+	ID                 uuid.UUID          `json:"id"`
+	TenantID           uuid.UUID          `json:"tenant_id"`
+	TemplateID         uuid.UUID          `json:"template_id"`
+	Provider           string             `json:"provider"`
+	ExternalTemplateID string             `json:"external_template_id"`
+	SignName           *string            `json:"sign_name"`
+	ParameterOrder     []byte             `json:"parameter_order"`
+	Status             string             `json:"status"`
+	Version            int32              `json:"version"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+}
+
 type NotifyTemplate struct {
 	ID              uuid.UUID          `json:"id"`
 	TenantID        *uuid.UUID         `json:"tenant_id"`
@@ -680,6 +699,7 @@ type NotifyTemplate struct {
 	Status          string             `json:"status"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	BodyFormat      string             `json:"body_format"`
 }
 
 type OrgPosition struct {
@@ -870,18 +890,23 @@ type SysDictItem struct {
 	Status     string             `json:"status"`
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	TenantID   *uuid.UUID         `json:"tenant_id"`
 }
 
 type SysDictType struct {
-	ID          uuid.UUID          `json:"id"`
-	TenantID    *uuid.UUID         `json:"tenant_id"`
-	Code        string             `json:"code"`
-	Name        string             `json:"name"`
-	Description *string            `json:"description"`
-	IsSystem    bool               `json:"is_system"`
-	Status      string             `json:"status"`
-	CreatedAt   pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	ID              uuid.UUID          `json:"id"`
+	TenantID        *uuid.UUID         `json:"tenant_id"`
+	Code            string             `json:"code"`
+	Name            string             `json:"name"`
+	Description     *string            `json:"description"`
+	IsSystem        bool               `json:"is_system"`
+	Status          string             `json:"status"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	NameKey         *string            `json:"name_key"`
+	DescriptionKey  *string            `json:"description_key"`
+	Visibility      string             `json:"visibility"`
+	ExtensionPolicy string             `json:"extension_policy"`
 }
 
 type SysIdempotencyKey struct {
@@ -944,30 +969,35 @@ type SysMobileRelease struct {
 
 // Compile-time module registry. AK does not load or uninstall arbitrary Go code at runtime.
 type SysModule struct {
-	ID           uuid.UUID          `json:"id"`
-	Code         string             `json:"code"`
-	Name         string             `json:"name"`
-	Version      string             `json:"version"`
-	Description  *string            `json:"description"`
-	Capabilities []byte             `json:"capabilities"`
-	ConfigSchema []byte             `json:"config_schema"`
-	Status       string             `json:"status"`
-	InstalledAt  pgtype.Timestamptz `json:"installed_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	ID             uuid.UUID          `json:"id"`
+	Code           string             `json:"code"`
+	Name           string             `json:"name"`
+	Version        string             `json:"version"`
+	Description    *string            `json:"description"`
+	Capabilities   []byte             `json:"capabilities"`
+	ConfigSchema   []byte             `json:"config_schema"`
+	Status         string             `json:"status"`
+	InstalledAt    pgtype.Timestamptz `json:"installed_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	NameKey        string             `json:"name_key"`
+	DescriptionKey string             `json:"description_key"`
 }
 
 type SysRegion struct {
-	Code       string             `json:"code"`
-	ParentCode *string            `json:"parent_code"`
-	Level      int16              `json:"level"`
-	Name       string             `json:"name"`
-	FullName   *string            `json:"full_name"`
-	PostalCode *string            `json:"postal_code"`
-	Longitude  pgtype.Numeric     `json:"longitude"`
-	Latitude   pgtype.Numeric     `json:"latitude"`
-	Status     string             `json:"status"`
-	Metadata   []byte             `json:"metadata"`
-	UpdatedAt  pgtype.Timestamptz `json:"updated_at"`
+	Code              string             `json:"code"`
+	ParentCode        *string            `json:"parent_code"`
+	Level             int16              `json:"level"`
+	Name              string             `json:"name"`
+	FullName          *string            `json:"full_name"`
+	PostalCode        *string            `json:"postal_code"`
+	Longitude         pgtype.Numeric     `json:"longitude"`
+	Latitude          pgtype.Numeric     `json:"latitude"`
+	Status            string             `json:"status"`
+	Metadata          []byte             `json:"metadata"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+	Version           int32              `json:"version"`
+	IsManuallyManaged bool               `json:"is_manually_managed"`
+	DeletedAt         pgtype.Timestamptz `json:"deleted_at"`
 }
 
 type SysRoleMenu struct {

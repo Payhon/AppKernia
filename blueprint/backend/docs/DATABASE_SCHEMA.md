@@ -161,13 +161,13 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 
 | 表 | 租户范围 | 主要职责 | 关键约束 |
 |---|---|---|---|
-| `sys.modules` | 全局 | 编译期模块登记和能力元数据 | code 唯一；不是运行时二进制插件表 |
+| `sys.modules` | 全局 | 8 个领域模块的编译期登记、双语语义键、统一构建版本和能力元数据 | code 唯一；种子精确同步并清理目录外记录；不是运行时二进制插件表 |
 | `sys.menus` | 全局/租户 | React 管理端目录、页面和外链导航 | global/tenant code 部分唯一；页面字段 Check |
 | `sys.role_menus` | 租户 | 角色可见菜单 | 同租户角色复合外键 |
 | `sys.config_items` | 全局/租户 | 类型化动态配置与秘密密文 | global/tenant key 部分唯一；秘密不能公开 |
 | `sys.dict_types` | 全局/租户 | 字典类型 | global/tenant code 部分唯一 |
 | `sys.dict_items` | 字典 | 本地化字典项 | `(type,value,coalesce(locale,''))` 唯一 |
-| `sys.regions` | 全局 | 国家/省市区等静态地区编码 | code 主键；父编码自引用 |
+| `sys.regions` | 全局 | 国家/省市区等地区编码 | code 主键；父编码自引用；手工维护记录受版本锁和软删除保护，种子同步不得覆盖 |
 | `sys.api_clients` | 租户 | 机器客户端身份 | client_id 全局唯一；CIDR Allowlist |
 | `sys.api_client_secrets` | Client | 可轮换客户端密钥 | 只存 32 字节哈希 |
 | `sys.api_client_permissions` | 租户 | API Client 权限 | 同租户 Client 复合外键 |

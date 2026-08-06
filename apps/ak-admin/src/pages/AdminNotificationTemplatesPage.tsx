@@ -2,6 +2,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Drawer,
   Form,
   Input,
@@ -17,6 +18,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import type {
+  AdminSmsTemplateBindingRequest,
   AdminNotificationTemplate,
   AdminNotificationTemplateRequest,
 } from "../generated/api/types.gen";
@@ -24,7 +26,9 @@ import { useAuthStore } from "../features/auth/store";
 import {
   useNotificationTemplates,
   useNotificationTemplateMutations,
+  useSmsTemplateBindings,
 } from "../features/notifications/hooks";
+import { useAdminDictionary } from "../features/settings/hooks";
 
 interface Filters {
   q: string;
@@ -41,6 +45,7 @@ interface Values {
   locale: "zh-CN" | "en-US" | "global";
   subject_template: string;
   body_template: string;
+  body_format: "plain" | "html";
   variables_schema: string;
   status: "active" | "disabled";
 }
@@ -51,6 +56,7 @@ const schema = z.object({
   locale: z.enum(["zh-CN", "en-US", "global"]),
   subject_template: z.string().max(500),
   body_template: z.string().trim().min(1).max(100_000),
+  body_format: z.enum(["plain", "html"]),
   variables_schema: z.string().refine((raw) => {
     try {
       const value: unknown = JSON.parse(raw);
@@ -70,9 +76,13 @@ const empty: Values = {
   locale: "zh-CN",
   subject_template: "",
   body_template: "",
+  body_format: "plain",
   variables_schema: '{\n  "type": "object",\n  "properties": {}\n}',
   status: "active",
 };
+type SmsProvider = "tencent" | "aliyun";
+const isSmsProvider = (value: string): value is SmsProvider =>
+  value === "tencent" || value === "aliyun";
 const fromTemplate = (value: AdminNotificationTemplate): Values => ({
   code: value.code,
   name: value.name,
@@ -80,6 +90,7 @@ const fromTemplate = (value: AdminNotificationTemplate): Values => ({
   locale: value.locale ?? "global",
   subject_template: value.subject_template ?? "",
   body_template: value.body_template,
+  body_format: value.body_format,
   variables_schema: JSON.stringify(value.variables_schema, null, 2),
   status: value.status,
 });
@@ -90,6 +101,7 @@ const toRequest = (value: Values): AdminNotificationTemplateRequest => ({
   locale: value.locale === "global" ? null : value.locale,
   subject_template: value.subject_template.trim() || null,
   body_template: value.body_template.trim(),
+  body_format: value.body_format,
   variables_schema: JSON.parse(value.variables_schema) as Record<
     string,
     unknown
@@ -144,6 +156,30 @@ export function AdminNotificationTemplatesPage() {
     error?: boolean;
   } | null>(null);
   const form = useForm<Values>({ defaultValues: empty });
+  const channel = form.watch("channel");
+  const smsEvents = useAdminDictionary("notification.sms.template_event");
+  const emailEvents = useAdminDictionary("notification.email.template_event");
+  const smsProviders = useAdminDictionary("sms.provider");
+  const smsProviderOptions = (smsProviders.data?.items ?? [])
+    .filter((item) => isSmsProvider(item.value))
+    .map((item) => ({ value: item.value as SmsProvider, label: item.label }));
+  const defaultSmsProvider = smsProviderOptions[0]?.value ?? "tencent";
+  const [bindingTarget, setBindingTarget] = useState<AdminNotificationTemplate | null>(null);
+  const bindings = useSmsTemplateBindings(bindingTarget?.id ?? null);
+  const bindingForm = useForm<{
+    provider: SmsProvider;
+    external_template_id: string;
+    sign_name: string;
+    parameter_order: string;
+    status: "active" | "disabled";
+  }>({ defaultValues: { provider: "tencent", external_template_id: "", sign_name: "", parameter_order: "", status: "active" } });
+  const [testTarget, setTestTarget] = useState<AdminNotificationTemplate | null>(null);
+  const testForm = useForm<{
+    target: string;
+    provider: "smtp" | "tencent" | "aliyun";
+    variables: string;
+    confirm_billable: boolean;
+  }>({ defaultValues: { target: "", provider: "smtp", variables: "{}", confirm_billable: false } });
   const open = (value: AdminNotificationTemplate | "new") => {
     setEditing(value);
     form.reset(value === "new" ? empty : fromTemplate(value));
@@ -174,6 +210,42 @@ export function AdminNotificationTemplatesPage() {
       setFeedback({ key: "notifications.feedback.save_error", error: true });
     }
   });
+  const submitBinding = bindingForm.handleSubmit(async (values) => {
+    if (!bindingTarget) return;
+    const input: AdminSmsTemplateBindingRequest = {
+      external_template_id: values.external_template_id.trim(),
+      sign_name: values.sign_name.trim(),
+      parameter_order: values.parameter_order.split(",").map((value) => value.trim()).filter(Boolean),
+      status: values.status,
+      version: 1,
+    };
+    try {
+      await mutations.upsertBinding.mutateAsync({ id: bindingTarget.id, provider: values.provider, input });
+      setFeedback({ key: "notifications.templates.bindings.saved" });
+      void bindings.refetch();
+    } catch {
+      setFeedback({ key: "notifications.feedback.save_error", error: true });
+    }
+  });
+  const submitTest = testForm.handleSubmit(async (values) => {
+    if (!testTarget) return;
+    try {
+      const variables = JSON.parse(values.variables) as Record<string, string>;
+      await mutations.test.mutateAsync({
+        id: testTarget.id,
+        input: {
+          target: values.target.trim(),
+          provider: testTarget.channel === "email" ? "smtp" : values.provider,
+          variables,
+          confirm_billable: testTarget.channel === "sms" ? values.confirm_billable : false,
+        },
+      });
+      setTestTarget(null);
+      setFeedback({ key: "notifications.templates.test.queued" });
+    } catch {
+      setFeedback({ key: "notifications.templates.test.error", error: true });
+    }
+  });
   const columns: TableColumnsType<AdminNotificationTemplate> = [
     {
       title: t("notifications.templates.columns.name"),
@@ -181,7 +253,9 @@ export function AdminNotificationTemplatesPage() {
       render: (_, x) => (
         <div>
           <strong>{x.name}</strong>
-          <div className="ak-table-secondary">{x.code}</div>
+          <div className="ak-table-secondary">
+            {x.code} {x.is_locked ? <Tag>{t("settings.common.system_locked")}</Tag> : null}
+          </div>
         </div>
       ),
     },
@@ -207,17 +281,25 @@ export function AdminNotificationTemplatesPage() {
     {
       title: t("notifications.columns.actions"),
       key: "actions",
-      render: (_, x) =>
-        permissions.has("notify.template.update") ? (
-          <Button
-            size="small"
-            onClick={() => {
-              open(x);
-            }}
-          >
-            {t("common.actions.edit")}
-          </Button>
-        ) : null,
+      render: (_, x) => (
+        <Space wrap>
+          {permissions.has("notify.template.update") && !x.is_locked ? (
+            <Button size="small" onClick={() => { open(x); }}>{t("common.actions.edit")}</Button>
+          ) : null}
+          {x.channel === "sms" && permissions.has("notify.template.update") ? (
+            <Button size="small" onClick={() => {
+              setBindingTarget(x);
+              bindingForm.reset({ provider: defaultSmsProvider, external_template_id: "", sign_name: "", parameter_order: "", status: "active" });
+            }}>{t("notifications.templates.bindings.action")}</Button>
+          ) : null}
+          {(x.channel === "sms" || x.channel === "email") && permissions.has("notify.template.test") ? (
+            <Button size="small" danger={x.channel === "sms"} onClick={() => {
+              setTestTarget(x);
+              testForm.reset({ target: "", provider: x.channel === "email" ? "smtp" : defaultSmsProvider, variables: JSON.stringify(Object.fromEntries(Object.keys((x.variables_schema["properties"] as Record<string, unknown> | undefined) ?? {}).map((key) => [key, ""])), null, 2), confirm_billable: false });
+            }}>{t("notifications.templates.test.action")}</Button>
+          ) : null}
+        </Space>
+      ),
     },
   ];
   return (
@@ -362,7 +444,18 @@ export function AdminNotificationTemplatesPage() {
             <Controller
               control={form.control}
               name="code"
-              render={({ field }) => <Input {...field} id="notification-template-code" />}
+              render={({ field }) =>
+                channel === "email" || channel === "sms" ? (
+                  <Select
+                    {...field}
+                    id="notification-template-code"
+                    loading={channel === "email" ? emailEvents.isPending : smsEvents.isPending}
+                    options={(channel === "email" ? emailEvents.data?.items : smsEvents.data?.items)?.map((item) => ({ value: item.value, label: item.label })) ?? []}
+                  />
+                ) : (
+                  <Input {...field} id="notification-template-code" />
+                )
+              }
             />
           </Form.Item>
           <Form.Item htmlFor="notification-template-name" label={t("notifications.templates.editor.name")}>
@@ -382,6 +475,11 @@ export function AdminNotificationTemplatesPage() {
                     {...field}
                     id="notification-template-channel"
                     style={{ width: 180 }}
+                    onChange={(value) => {
+                      field.onChange(value);
+                      if (value === "sms") form.setValue("body_format", "plain");
+                      if (value === "email" || value === "sms") form.setValue("code", "");
+                    }}
                     options={["in_app", "email", "sms", "push", "webhook"].map(
                       (v) => ({
                         value: v,
@@ -423,6 +521,21 @@ export function AdminNotificationTemplatesPage() {
                       value: v,
                       label: t(`notifications.template_status.${v}`),
                     }))}
+                  />
+                )}
+              />
+            </Form.Item>
+            <Form.Item htmlFor="notification-template-body-format" label={t("notifications.templates.editor.body_format")}>
+              <Controller
+                control={form.control}
+                name="body_format"
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    disabled={channel === "sms"}
+                    id="notification-template-body-format"
+                    style={{ width: 180 }}
+                    options={["plain", "html"].map((value) => ({ value, label: t(`notifications.format.${value}`) }))}
                   />
                 )}
               />
@@ -473,6 +586,51 @@ export function AdminNotificationTemplatesPage() {
               )}
             />
           </Form.Item>
+        </Form>
+      </Drawer>
+      <Drawer
+        destroyOnHidden
+        open={bindingTarget !== null}
+        onClose={() => { setBindingTarget(null); }}
+        title={t("notifications.templates.bindings.title")}
+        extra={<Button type="primary" loading={mutations.upsertBinding.isPending} onClick={() => void submitBinding()}>{t("common.actions.save")}</Button>}
+      >
+        <Alert showIcon type="info" title={t("notifications.templates.bindings.reviewed_title")} description={t("notifications.templates.bindings.reviewed_description")} />
+        <Form layout="vertical" onFinish={() => void submitBinding()}>
+          <Controller control={bindingForm.control} name="provider" render={({ field }) => (
+            <Form.Item htmlFor="notification-sms-binding-provider" label={t("notifications.templates.bindings.provider")}>
+              <Select {...field} id="notification-sms-binding-provider" disabled={smsProviders.isPending || smsProviders.isError} loading={smsProviders.isPending} options={smsProviderOptions} onChange={(provider: SmsProvider) => {
+                field.onChange(provider);
+                const existing = bindings.data?.find((item) => item.provider === provider);
+                bindingForm.reset({ provider, external_template_id: existing?.external_template_id ?? "", sign_name: existing?.sign_name ?? "", parameter_order: existing?.parameter_order.join(", ") ?? "", status: existing?.status ?? "active" });
+              }} />
+            </Form.Item>
+          )} />
+          <Controller control={bindingForm.control} name="external_template_id" render={({ field }) => <Form.Item htmlFor="notification-sms-binding-template-id" label={t("notifications.templates.bindings.template_id")} required><Input {...field} id="notification-sms-binding-template-id" /></Form.Item>} />
+          <Controller control={bindingForm.control} name="sign_name" render={({ field }) => <Form.Item htmlFor="notification-sms-binding-sign" label={t("notifications.templates.bindings.sign_name")}><Input {...field} id="notification-sms-binding-sign" /></Form.Item>} />
+          <Controller control={bindingForm.control} name="parameter_order" render={({ field }) => <Form.Item htmlFor="notification-sms-binding-order" label={t("notifications.templates.bindings.parameter_order")} help={t("notifications.templates.bindings.parameter_order_hint")}><Input {...field} id="notification-sms-binding-order" placeholder="code, expires_minutes" /></Form.Item>} />
+          <Controller control={bindingForm.control} name="status" render={({ field }) => <Form.Item htmlFor="notification-sms-binding-status" label={t("notifications.columns.status")}><Select {...field} id="notification-sms-binding-status" options={["active", "disabled"].map((value) => ({ value, label: t(`notifications.template_status.${value}`) }))} /></Form.Item>} />
+          {bindings.data?.some((item) => item.provider === bindingForm.watch("provider")) ? (
+            <Button danger loading={mutations.deleteBinding.isPending} onClick={() => {
+              if (!bindingTarget) return;
+              void mutations.deleteBinding.mutateAsync({ id: bindingTarget.id, provider: bindingForm.getValues("provider") }).then(() => bindings.refetch());
+            }}>{t("common.actions.delete")}</Button>
+          ) : null}
+        </Form>
+      </Drawer>
+      <Drawer
+        destroyOnHidden
+        open={testTarget !== null}
+        onClose={() => { setTestTarget(null); }}
+        title={t("notifications.templates.test.title")}
+        extra={<Button danger={testTarget?.channel === "sms"} type="primary" loading={mutations.test.isPending} onClick={() => void submitTest()}>{t("notifications.templates.test.send")}</Button>}
+      >
+        {testTarget?.channel === "sms" ? <Alert showIcon type="warning" title={t("notifications.templates.test.billable_title")} description={t("notifications.templates.test.billable_description")} /> : null}
+        <Form layout="vertical" onFinish={() => void submitTest()}>
+          {testTarget?.channel === "sms" ? <Controller control={testForm.control} name="provider" render={({ field }) => <Form.Item htmlFor="notification-template-test-provider" label={t("notifications.templates.bindings.provider")}><Select {...field} id="notification-template-test-provider" disabled={smsProviders.isPending || smsProviders.isError} loading={smsProviders.isPending} options={smsProviderOptions} /></Form.Item>} /> : null}
+          <Controller control={testForm.control} name="target" render={({ field }) => <Form.Item htmlFor="notification-template-test-target" label={t("notifications.templates.test.target")} required><Input {...field} id="notification-template-test-target" type={testTarget?.channel === "email" ? "email" : "tel"} /></Form.Item>} />
+          <Controller control={testForm.control} name="variables" render={({ field }) => <Form.Item htmlFor="notification-template-test-variables" label={t("notifications.templates.test.variables")}><Input.TextArea {...field} id="notification-template-test-variables" className="ak-code-input" rows={10} /></Form.Item>} />
+          {testTarget?.channel === "sms" ? <Controller control={testForm.control} name="confirm_billable" render={({ field }) => <Form.Item><Checkbox id="notification-template-test-confirm" checked={field.value} onChange={(event) => { field.onChange(event.target.checked); }}>{t("notifications.templates.test.confirm_billable")}</Checkbox></Form.Item>} /> : null}
         </Form>
       </Drawer>
     </div>

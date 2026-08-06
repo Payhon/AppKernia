@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { AdminFile } from "../generated/api/types.gen";
 import { useAdminFileUploadPolicy } from "../features/files/hooks";
+import { useAdminDictionary } from "../features/settings/hooks";
 import { authSession } from "../features/auth/store";
 
 type UploadState = "idle" | "uploading" | "paused" | "error" | "completed" | "cancelled";
@@ -19,6 +20,8 @@ function sizeLabel(bytes: number) {
 export function AkFileUploader({ onUploaded, compact = false }: AkFileUploaderProps) {
   const { t } = useTranslation();
   const policy = useAdminFileUploadPolicy();
+  const storageDrivers = useAdminDictionary("storage.driver");
+  const providerLabel = storageDrivers.data?.items.find((item) => item.value === policy.data?.provider)?.label ?? policy.data?.provider;
   const [task, setTask] = useState<UploadTask | null>(null);
   const [feedback, setFeedback] = useState<{ key: string; error?: boolean } | null>(null);
   const controller = useRef<AbortController | null>(null);
@@ -81,7 +84,7 @@ export function AkFileUploader({ onUploaded, compact = false }: AkFileUploaderPr
       <Space wrap>
         <input ref={input} className="ak-sr-only" type="file" accept={policy.data?.file_media_types.join(",")} aria-label={t("system.files.actions.choose")} onChange={(event) => { choose(event.target.files?.[0]); event.currentTarget.value = ""; }} />
         <Button type="primary" loading={policy.isPending} disabled={!policy.data?.configuration_safe} onClick={() => input.current?.click()}>{t("system.files.actions.upload")}</Button>
-        {policy.data ? <Typography.Text type="secondary">{t("system.files.upload.policy", { provider: t(`system.files.provider.${policy.data.provider}`), size: sizeLabel(policy.data.max_file_bytes) })}</Typography.Text> : null}
+        {policy.data ? <Typography.Text type="secondary">{t("system.files.upload.policy", { provider: providerLabel, size: sizeLabel(policy.data.max_file_bytes) })}</Typography.Text> : null}
       </Space>
       {policy.isError ? <Alert showIcon type="error" title={t("system.files.upload.policy_error")} action={<Button onClick={() => void policy.refetch()}>{t("common.actions.retry")}</Button>} /> : null}
       {task ? <Card size="small" className="ak-file-upload-card" title={t("system.files.upload.title")}>

@@ -874,6 +874,274 @@
 - Backend 临时 PostgreSQL 18 实测、Admin mock E2E 和本表静态检查都不是生产部署/生产数据验收。真实 Go API/PostgreSQL 浏览器联调、第三方 OAuth/Push、应用商店升级、弱网、三端真机与生产发布仍 blocked/未验证。
 - 本代理没有改动 `apps/ak-mobile` 活跃源码；当前工作树原有的其他未提交实现均予以保留。提交/推送状态由主代理在最终范围和回归结论确定后单独记录。
 
+## 2026-08-05 Mobile 四页面 ImageGen 视觉概念（历史设计阶段，后续已实现）
+
+### 交付内容
+
+- 新增 Mobile Master 设计系统与 Home、Profile、Articles override，采用 Minimal Swiss、浅灰页面、白色卡片、克制蓝色、系统字体、44px 触控目标与安全区规则。
+- 使用内置 ImageGen 分别生成 Home、Profile、Article List、Article Detail；后续页面以上一张成品作为严格视觉参考，保持色彩、图标、圆角、排版和几何插图一致。
+- 文章页面按堆栈视觉概念设计且不修改既有三 Tab；该设计阶段尚无 Article route/API/permission，后续 Mobile Framework 交付已补齐相关实现与契约。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `python3 --version` | 0 | Python 3.9.6 |
+| `ui-ux-pro-max` design-system 查询 | 0 | Minimalism & Swiss Style；蓝色 CTA、浅灰背景、清晰层级与无搜索/导航反模式建议 |
+| `ui-ux-pro-max` Mobile UX 查询 | 0 | 12 项结果；44px 触控目标、8px 间距、可预测返回与手势冲突约束 |
+| `ui-ux-pro-max` Vue stack 查询 | 0 | 3 项列表/渲染建议；本轮未把 raster 概念冒充 UVue 实现 |
+| 内置 ImageGen 4 次生成 | succeeded | 4 张独立 PNG 均生成并复制到 workspace；每张 853×1844 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 35 routes、3 tabs、26 baseline APIs、28 API delta、9 permission delta、33 components、26 tasks、3 platforms；0 error/warning |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN` / `en-US`、默认与最终回退 `zh-CN` 通过 |
+| `git diff --check` | 0 | 文本补丁格式通过 |
+
+### 截图索引与验证边界
+
+- [Home 视觉稿](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-imagegen-four-surfaces/screenshots/home-853x1844-light.png)
+- [Profile 视觉稿](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-imagegen-four-surfaces/screenshots/profile-853x1844-light.png)
+- [Article List 视觉稿](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-imagegen-four-surfaces/screenshots/articles-list-853x1844-light.png)
+- [Article Detail 视觉稿](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-imagegen-four-surfaces/screenshots/article-detail-853x1844-light.png)
+- 该设计阶段只完成 raster 视觉审查和静态蓝图/i18n 校验；UVue、API、Route Registry、语言包与业务实现由后续 Mobile Framework 交付完成。
+- Android/iOS/Harmony 构建、模拟器/真机、双语运行时、动态字号、交互状态与可访问性自动化未执行。本轮未 commit、未 push。
+
+## 2026-08-05 字典驱动化、云存储与通知发送完善
+
+### 交付内容
+
+- 字典由独立 CRUD 升级为统一选项源：增加 visibility、`fixed/open/registered/s3_compatible` 扩展策略、内置锁定、租户覆盖、locale 回退、public/internal 隔离和消费接口；配置 Schema 使用 `x-appkernia-dictionary` 做前后端双重校验。
+- `core-dictionaries.json` 接入 `ak-cli seed core`：4 个核心类型、40 个全局双语项、22 个全局 SMS/Email 模板可幂等初始化；稳定协议枚举继续保留在代码和数据库约束中。
+- 云存储保留 `local/s3/minio`，新增 `cos/oss/qiniu` S3-compatible profile；OSS/COS/Qiniu 强制虚拟主机寻址，自定义驱动仅允许 `adapter=s3_compatible`。文件列表、上传策略、配置表单与 OpenAPI Client 均改为消费 `storage.driver`，不再维护固定 provider 数组。
+- 短信配置按腾讯云/阿里云隔离密钥和供应商字段；Adapter 使用腾讯云 SMS v20210111、阿里云 Dysmsapi 20170525 官方 Go SDK。Secret 继续 AES-GCM 加密且不回显。
+- 通知模板增加 `body_format`、HTML 净化、声明变量渲染与转义、SMS 外部模板绑定；真实测试投递使用目标/载荷密文、事务内 River 入队、`dedupe_key` 和保守重试分类。短信未知结果不自动重放，人工重试必须确认重复扣费风险。
+- SMTP 改用 `wneessen/go-mail`，支持 context、STARTTLS/implicit TLS 和超时；生产拒绝明文与跳过证书校验。找回密码已接入注册租户的 `email/password_reset` 异步投递，同时保持匿名账号枚举防护。
+- Admin 字典、配置、文件、通知模板与投递页完成字典 Select、供应商条件字段、结构化 S3 元数据、SMS 绑定、真实测试抽屉和风险提示；根 `AGENTS.md` 已加入枚举与字典决策强制规则。
+- Migration/OpenAPI、Admin Client、权限/页面/API/Schema 快照、Backend/Admin 蓝图和双语事实源均已同步。Mobile 当前仓库没有 OpenAPI→UTS Client 生成实现，本轮只同步 Mobile 可消费的公开 OpenAPI 并通过 Mobile 蓝图校验，未伪造生成产物。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| migration `up → seed×2 → down → up → seed` | 0 | PostgreSQL 18 最终 `version=11, dirty=false`；核心 4 类型、40 全局双语项、22 全局 Email/SMS 模板 |
+| `make check` | 0 | gofmt、Go vet 与 Backend 77 个顶层单元/契约测试通过 |
+| `AK_TEST_DATABASE_URL=... AK_TEST_S3_ENDPOINT=127.0.0.1:9000 make test-integration` | 0 | IAM、Job、System Settings、Notification、Storage 定向 6 个包通过 |
+| `AK_TEST_DATABASE_URL=... AK_TEST_S3_ENDPOINT=127.0.0.1:9000 go test -tags=integration ./...` | 0 | 全仓 28 个顶层 integration tests 通过；含字典并发/覆盖、加密 River 入队、找回密码和真实 MinIO 自定义 S3 Put/Open/Delete |
+| `npm run check` | 0 | 14 files / 58 tests、ESLint、TypeScript strict、4,163 modules build、bundle budget、158 APIs/54 tables/33 pages Admin validator 全通过 |
+| Backend / Mobile / i18n / UI Skill validators | 0 | 11 migrations/61 tables；Mobile 0 error/warning；双语 key/占位符一致；Skill 可用 |
+| 最终 Docker build + force recreate | 0 | API、Worker、Admin、Migrate、Seed、Bootstrap 工具镜像成功；API/Admin/PostgreSQL healthy，Worker running |
+| `e2e_dictionary_notification_drivers.py` | 0 | Docker Chromium + 真实 API/PostgreSQL；4 个截图状态均 0 serious/critical、无溢出、控制台错误 0；Email test 返回 202，目标明文不存在于 ciphertext，审计日志 2 条 |
+| `python3 -m py_compile ...` + `git diff --check` | 0 | E2E 脚本语法与文本补丁格式通过 |
+
+### 截图索引与验证边界
+
+- [中文字典桌面 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-notification-drivers/screenshots/zh-CN-dictionaries-1440.png)
+- [英文短信绑定桌面 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-notification-drivers/screenshots/en-US-sms-binding-1440.png)
+- [英文短信测试风险桌面 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-notification-drivers/screenshots/en-US-sms-test-risk-1440.png)
+- [中文通知模板移动 375](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-notification-drivers/screenshots/zh-CN-templates-375.png)
+- [结构化 Playwright 证据](../output/playwright/dictionary-notification-drivers-e2e-results.json)
+- 本机 MinIO 是真实 S3-compatible 网络集成，不代表腾讯 COS、阿里 OSS、七牛 Kodo 的生产凭据联调。未提供隔离云/SMS/SMTP 凭据，因此这些外部 smoke test 均为未验证，不以 Mock 或本机 MinIO 替代。
+- 未部署生产；Firefox/Safari、Android/iOS/Harmony、真机和真实 SMTP 未执行。本轮未 commit、未 push；已删除本任务失败调试截图并精确清理临时 E2E 用户/租户（最终计数 0）。
+
+## 2026-08-05 字典管理分类导航与行编辑优化
+
+### 交付内容
+
+- 对照 HotGo 的 `pid` 字典类型树后，AppKernia 采用不污染消费模型的前端分类：从稳定字典代码首段自动形成 namespace 分类，左侧以可折叠“分类 → 字典类型”展示，并保留选中态、锁定/扩展策略和 URL 状态。
+- 类型导航默认一次加载 100 条并纠正过期页码；右侧将显示标签和字典键值拆列，桌面固定标签/键值和操作列，移动端使用容器内横向滚动。
+- 可扩展内置行现在显示“编辑”，保存时创建当前租户覆盖；已有覆盖再次编辑仍识别为覆盖模式，键值、语言和编译期能力元数据不可改。内置行不显示删除，租户覆盖继续支持编辑/删除。
+- Repository 对 `registered` 与已注册 `s3_compatible` 值要求覆盖元数据与全局项语义一致；新增 S3 值仍强制 `adapter=s3_compatible`。集成测试夹具增加精确字典清理，并清除了本机 23 条符合测试 UUID/hex 规则的历史残留字典类型。
+- 重新执行 `ui-ux-pro-max` 并保存 request/output/decisions/checklist、页面 override、双语截图和结构化 Playwright 结果。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `npm run lint` + `npm run typecheck` + 定向 Vitest | 0 | ESLint、TypeScript strict 通过；新增 `dictionaryPresentation.test.ts` 2/2 通过 |
+| `npm run check`（Admin） | 0 | 生成 Client/i18n/routes、ESLint、TypeScript strict、15 files / 60 tests、4,164 modules build、bundle budget 与 Admin 蓝图校验全部通过 |
+| `go test ./internal/modules/systemsettings/repository ./internal/modules/systemsettings/application` | 0 | System Settings 单元测试通过 |
+| `make check`（Backend） | 0 | go vet 与全仓 Go 单元/契约测试通过 |
+| `AK_TEST_DATABASE_URL=... go test -tags=integration ./internal/modules/systemsettings/repository -count=1 -v` | 0 | 4 个具名测试通过；覆盖内置元数据覆盖、未知 registered 拒绝、自定义 S3 约束，并确认测试字典残留计数 0 |
+| `docker compose build admin` + `docker compose up -d --no-deps admin` | 0 | Admin production image 构建并启动 |
+| `e2e_dictionary_category_editing.py` | 0 | 真实 API/PostgreSQL：租户覆盖 POST=201、再次编辑 PATCH=200；zh-CN/en-US 1440 与 en-US 375 均 0 serious/critical axe、0 页面溢出、0 console/HTTP error |
+
+### 截图索引与验证边界
+
+- [中文分类与编辑桌面 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-category-editing/screenshots/zh-CN-dictionaries-category-edit-1440.png)
+- [英文分类与编辑桌面 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-category-editing/screenshots/en-US-dictionaries-category-edit-1440.png)
+- [英文分类与编辑移动 375](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-category-editing/screenshots/en-US-dictionaries-category-edit-375.png)
+- [结构化 Playwright 证据](../output/playwright/dictionary-category-editing-e2e-results.json)
+- 本轮验证 Docker Chromium 与 PostgreSQL 18；Firefox/Safari、生产部署及移动真机未执行。本轮未 commit、未 push。
+
+## 2026-08-05 字典项颜色与样式类可创建选择器
+
+### 交付内容
+
+- 新增公共 `AkCreatableSelect`，用受控单值 tags Select 同时承载“默认（不指定）”、搜索预设、选择预设与键盘 Enter 创建自定义值；与 React Hook Form 的 `color/css_class` 字符串保持兼容，内部默认标识不会提交 API。
+- 颜色下拉提供 7 个语义预设，样式类下拉提供 6 个编译期预设；选项包含色块/样式预览、双语名称和原始值，字段下方明确说明自由创建方法。
+- 仅允许编译期样式预设在管理端 DOM 进行效果预览；自定义类名不会注入管理页面 class。自定义颜色仅对安全十六进制值显示色块，原始字符串仍完整保存和显示。
+- 外观表格列可同时显示颜色与样式类；选择器弹层挂回字段父容器，消除了 Ant Design 默认 portal 引起的 axe `region` moderate 问题。
+- `ui-ux-pro-max` 全流程、Master/page override、双语蓝图事实源/生成 Catalog、组件/helper 单测与真实 Playwright 写链路均已保存。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `ui-ux-pro-max` design-system + UX + React 查询 | 0 | 采用受控组合框、键盘创建、显式标签、文字+效果双重表达和可见焦点建议；产物保存到 `dictionary-appearance-selects/` |
+| 定向 Vitest + typecheck + lint | 0 | 新增组件与 helper 共 5 项测试通过；自由输入 Enter、预设选择、默认态、axe 与受控预览 allowlist 均覆盖 |
+| `npm run check`（最终源码） | 0 | Client/i18n/routes 生成、ESLint、TypeScript strict、17 files / 65 tests、4,166 modules build、208,539 B initial gzip、bundle budget 与 Admin 蓝图全部通过 |
+| Docker Admin build/recreate | 0 | 4174 最终 production image 启动并 healthy |
+| `e2e_dictionary_category_editing.py`（扩展外观用例） | 0 | 预设 POST=201、自定义 PATCH=200；7 个截图状态 axe 0 violations、页面无溢出、console/HTTP error 为 0 |
+| Mobile blueprint / i18n / UI Skill / E2E py_compile / `git diff --check` | 0 | Mobile 0 error/warning、双语键/占位符一致、Skill 可用、脚本语法和文本补丁格式通过 |
+| PostgreSQL 精确清理复核 | 0 | 临时 E2E 用户 0、测试标签覆盖项 0 |
+
+### 截图索引与验证边界
+
+- [中文预设下拉桌面 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-appearance-selects/screenshots/zh-CN-dictionary-appearance-presets-1440.png)
+- [中文自定义值桌面 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-appearance-selects/screenshots/zh-CN-dictionary-appearance-custom-1440.png)
+- [英文自定义值桌面 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-appearance-selects/screenshots/en-US-dictionary-appearance-custom-1440.png)
+- [英文自定义值移动 375](../apps/ak-admin/artifacts/ui-ux-pro-max/dictionary-appearance-selects/screenshots/en-US-dictionary-appearance-custom-375.png)
+- [结构化 Playwright 证据](../output/playwright/dictionary-appearance-selects-e2e-results.json)
+- 本轮真实浏览器边界为本机 Docker Admin/Go API/PostgreSQL + Chromium；未部署生产，Firefox/Safari、Android/iOS/Harmony 与真实移动设备未执行。本轮未 commit、未 push，并原样保留用户已有 Mobile 未跟踪目录。
+
+## 2026-08-05 Admin 折叠侧栏 BUG 修复与样式优化
+
+### 交付内容
+
+- 桌面折叠态不再传入受控 `openKeys`，Ant Design Menu 恢复原生 hover/focus 展开与关闭；展开桌面保留当前路径祖先，移动 Drawer 保持 click 驱动的受控树，不受桌面折叠状态影响。
+- 所有目录浮层使用 `ak-navigation-submenu-popup`：86% 深色透明表面、14px blur、轻 hairline 与两层阴影；贴近父级的一侧取消圆角，外侧保留 10px 圆角。
+- 折叠控件由侧栏绝对定位改为视口固定定位：22×40px、图标 16px、无横向 padding；在 900px 高视口中 `top=430 / bottom=470 / centerY=450`，展开/折叠时分别贴合 `x=248 / x=80` 侧栏边界。
+- 更新 App Shell design-system override，保存 `ui-ux-pro-max` 请求、真实检索输出、决策、review checklist、双语截图和可重复 E2E 脚本。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `ui-ux-pro-max` design-system + UX + style + React 查询 | 0 | 采用渐进披露、原生键盘语义、半透明 blur、轻边框与层叠阴影；拒绝营销结构、外部字体和高噪声液态效果 |
+| `npm run typecheck` / `npm run lint` / `npm test` | 0 | TypeScript strict 与 ESLint 通过；17 个测试文件、65 项测试通过；JSDOM 仅输出已知 pseudo-element/Canvas 不支持提示 |
+| `npm run build` / `npm run validate:bundle` | 0 | Vite production build 4,166 modules；initial gzip 209,222 B、最大 chunk 165,429 B，均在预算内 |
+| Docker Admin build + force recreate | 0 | 当前源码镜像构建成功，4174 Admin healthy |
+| 系统 Python 直接运行 E2E | 1 | 当前 Python 缺少 `playwright`；未冒充通过，切换为隔离 `uv run --with playwright` |
+| E2E harness 中间运行 | 1 | 依次修正测试脚本的 regex、`wait_for_function` 参数、账户语言持久化和 localhost CSRF origin；产品代码无需回退 |
+| 最终 `e2e_sidebar_flyouts.py` | 0 | zh-CN/en-US 均得到 popup `0 → 1 → 2 → 0`；两层计算样式符合透明度/圆角/blur，控制位置在 80/248px 边界且垂直中心精确为 450px |
+| axe / overflow / console | 0 | serious/critical=0、页面无水平溢出、控制台错误=0 |
+| Admin/Mobile/i18n/UI Skill validators | 0 | 35 menus/48 routes/161 APIs/54 tables/33 pages；Mobile 0 error/warning；双语契约与 Skill 可用性通过 |
+| E2E 测试账号与临时服务清理 | 0 | 原始密码哈希、失败次数和锁定状态恢复并比对成功；登出会话，删除临时凭据文件并停止临时 4173 Admin |
+| `git diff --check` | 0 | 最终文本补丁格式通过 |
+
+### 截图索引与验证边界
+
+- [中文折叠三级浮层 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/sidebar-collapsed-flyout/screenshots/zh-CN-collapsed-third-level-1440.png)
+- [英文折叠三级浮层 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/sidebar-collapsed-flyout/screenshots/en-US-collapsed-third-level-1440.png)
+- [结构化浏览器证据](../output/playwright/sidebar-collapsed-flyout.evidence.json)
+- 本轮真实浏览器范围为本机 Docker Admin/API/PostgreSQL + Chromium 139，UI 页面使用 Dashboard 的同一 `AppShell` 验证；本次没有后端、OpenAPI、数据库、权限或 i18n 文案变更。
+- Firefox/Safari、生产部署、Android/iOS/Harmony 与真实移动设备未执行。本轮未 commit、未 push，并保留工作区全部既有字典、地区、通知、Mobile 和 Backend 未提交改动。
+
+## 2026-08-05 地区管理可编辑化追加
+
+### 交付内容
+
+- Backend 新增 `sys.region.create/update/delete`、`POST /admin-api/v1/regions`、`PATCH/DELETE /admin-api/v1/regions/{code}`，并在 Serializable 事务内完成层级推导、乐观锁、叶子校验、软删除和 `sys.region` 操作审计。
+- `000014_region_management` 增加 `version/is_manually_managed/deleted_at` 与活动父级索引；所有地区读取和 `has_children` 排除软删除。核心目录 upsert 对手工记录保持现值，因此不会覆盖编辑或恢复已删除节点。
+- Admin 使用动作权限而非角色名控制操作；省/市可新增直接下级，编辑抽屉锁定编码/父级/层级，删除无级联入口。写入后更新当前分支 `has_children` 并失效相关搜索查询。
+- OpenAPI、sqlc/生成 Client、权限种子、页面权限矩阵、页面 API 映射、Schema 快照、Backend/Admin 蓝图、设计系统 override 和 `zh-CN/en-US` 均已同步。
+- 浏览器验收期间发现删除说明误用了 `{{name}}`；已按项目单花括号插值契约修为 `{name}` 并真实复核显示地区名。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `make sqlc-generate`（server） | 0 | `UpsertCoreRegion` 生成代码与查询同步 |
+| 隔离 PostgreSQL 18 migration `up → down → up` | 0 | `000012` 可往返，最终 migration 12 clean |
+| `AK_TEST_DATABASE_URL=... go test -tags=integration ./internal/modules/systemsettings/repository` | 0 | 大分支 `has_children`、创建/更新/版本冲突、深层拒绝、父节点拒删、叶子软删除、种子保留手工状态及 4 条审计全部通过 |
+| `make check`（server） | 0 | gofmt、go vet、全仓 Go 单元/契约测试通过 |
+| 地区范围 ESLint + 定向 Vitest | 0 | 地区页面、settings hooks、auth session 相关文件 lint 通过；2 files / 27 tests 通过 |
+| Admin `npm run typecheck` / `npm run build` / bundle budget | 0 | TypeScript strict、4,163 modules production build通过；initial gzip 210,109 B、最大 chunk 165,429 B 均在预算内 |
+| Admin 全量 `npm run lint` / `npm test -- --run` | 1 / 1 | 被工作树其他在途改动阻塞：`AdminServiceHealthPage.tsx` 3 个 lint；已删除模块菜单后旧 `menu-icons.test.tsx` 仍期望 35、实际 34。地区定向测试不受影响；未越权修改这些文件 |
+| Backend/Admin/Mobile/i18n validators | 0 | 当前合并工作树为 13 migrations、111 permissions、160 APIs、54 tables、32 pages；地区 3 项写权限和 3 个写接口均包含在内，双语 key/占位符一致 |
+| `e2e_regions_modules.py`（一次性 venv + 本机 Chrome） | 0 | 父节点删除拦截；省下新增市、市下新增区县、编辑、两次叶子删除；只读动作隐藏；中英文 1440、中文 375；地区 `main` 五状态 axe=0、无页面溢出、console error=0 |
+| 公开 API 查询软删除 E2E 编码 | 0 | `items=[]`，删除节点不再公开返回 |
+
+### 截图索引与验证边界
+
+- [英文可管理桌面 1440](../output/playwright/admin-regions-manage.en-US.1440.png)
+- [英文编辑抽屉桌面 1440](../output/playwright/admin-regions-edit-drawer.en-US.1440.png)
+- [中文可管理桌面 1440](../output/playwright/admin-regions-manage.zh-CN.1440.png)
+- [中文窄屏 375](../output/playwright/admin-regions-manage.zh-CN.375.png)
+- [英文只读桌面 1440](../output/playwright/admin-regions-read-only.en-US.1440.png)
+- [结构化 E2E 证据](../output/playwright/admin-regions-modules-e2e-results.json)
+- 地区页 `<main>` 在五个截图状态均为 axe 0 violation。全页审计单独暴露既有深色侧栏 `System Settings / System Configuration / Dictionaries` 英文文字对比度约 2.34–2.57:1，本轮未扩展修改全局导航样式，风险保留。
+- 本轮只验证本机 PostgreSQL 18、Go API、Vite Admin 和 Chrome；未部署生产，Firefox/Safari、Android/iOS/Harmony 与真实移动设备未执行。临时数据库、API/Vite 进程和一次性 Python venv在交付前清理；未 commit、未 push。
+
+## 2026-08-05 Admin 侧栏三态控制与持久化
+
+### 交付内容
+
+- 新增 Zustand 侧栏偏好 store，以 `expanded / collapsed / hidden` 作为唯一状态源；叶子路由只关闭移动 Drawer，不再修改桌面侧栏模式。
+- 中间控件缩为 18×40px，并增加稳定层叠层级、紧邻侧栏边界的 hover 命中区、反色背景/图标、可见边框和阴影；折叠态上方新增 18×28px CloseOutlined 完全隐藏控件。
+- 完全隐藏态同时提供左侧 48% 透明边缘恢复条和 Header 操作组首位恢复按钮；两者都直接恢复 248px 展开态，恢复后同时消失。
+- 双语事实源、生成 Catalog、Master/App Shell override、`ui-ux-pro-max` request/output/decisions/checklist、可复现 E2E 与截图全部同步。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `ui-ux-pro-max` design-system + UX + web + React 查询 | 0 | 采用单一持久状态、渐进披露、图标 accessible name、可见 hover/focus 与无布局位移动画 |
+| 侧栏定向 ESLint + Vitest | 0 | `AppShell`/store 相关 ESLint 通过；`sidebar-store.test.ts` 5/5 通过 |
+| `npm run typecheck` / `npm run build` / `npm run validate:bundle` | 0 | TypeScript strict、4,163 modules production build通过；initial gzip 210,115 B，预算通过 |
+| Admin 全量 `npm run lint` | 1 | 工作区另一项 `AdminServiceHealthPage.tsx` 的布尔比较与 2 个废弃属性错误；未越权修改 |
+| Admin 全量 `npm run test` | 1 | 20 files 中 19 通过、75 项中 74 通过；唯一失败为菜单已改 34 项但旧测试仍硬编码 35 |
+| Docker Admin build + force recreate | 0 | 4174 production image 使用最终侧栏源码重建并 healthy |
+| `e2e_sidebar_flyouts.py` | 0 | 路由后保持 80px；18px 控件居中/反色；隐藏 48%→100%；Header/边缘双恢复；中英文 1440 与移动 Drawer 375 均通过 |
+| axe / overflow / console | 0 | serious/critical=0、页面无水平溢出、控制台错误=0 |
+| Admin/Mobile/i18n/UI Skill validators + py_compile + `git diff --check` | 0 | 34 menus/47 routes/111 permissions/160 APIs/32 pages；Mobile 0 error/warning；双语契约、脚本语法与补丁格式通过 |
+| E2E 测试账号恢复 | 0 | 密码哈希、失败次数与锁定状态退出时恢复并比对一致，测试会话完成登出 |
+
+### 截图索引与验证边界
+
+- [中文折叠三级浮层 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/sidebar-three-state-controls/screenshots/zh-CN-collapsed-third-level-1440.png)
+- [中文完全隐藏 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/sidebar-three-state-controls/screenshots/zh-CN-hidden-1440.png)
+- [英文完全隐藏 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/sidebar-three-state-controls/screenshots/en-US-hidden-1440.png)
+- [英文隐藏态移动 Drawer 375](../apps/ak-admin/artifacts/ui-ux-pro-max/sidebar-three-state-controls/screenshots/en-US-hidden-mobile-drawer-375.png)
+- [结构化浏览器证据](../output/playwright/sidebar-three-state-controls.evidence.json)
+- 本轮真实范围为本机 Docker Admin/API/PostgreSQL + Chromium；未部署生产，Firefox/Safari、Android/iOS/Harmony 与真实移动设备未执行。本轮未 commit、未 push，并保留工作区全部其他在途改动。
+
+## 2026-08-05 服务状态收敛与真实模块初始化
+
+### 交付内容
+
+- 独立模块管理功能已从菜单、路由、页面、Admin Client、Backend API、OpenAPI、权限种子、契约快照和双语资源中彻底移除；保留 `sys.modules` 仅供运行摘要读取。
+- 核心目录固定为 8 个真实领域模块，包含稳定编码、双语名称/说明键、编译期能力和状态；种子在 Serializable 事务内幂等 upsert 并清除目录外测试记录。
+- 新增共享 `buildinfo`，API/CLI/Worker/种子/运行摘要使用同一构建版本，Makefile 和 Docker 支持 ldflags 注入，本地回退 `dev`。
+- 服务状态页补齐语义模块信息、双语能力标签、未知编码回退、等高状态卡、24/16px 响应式垂直节奏、16px 运行摘要内部间距、移动堆叠和键盘可聚焦表格滚动。
+- 更新 Service Status 设计系统 override，并保存真实 `ui-ux-pro-max` 请求、输出、决策、检查清单、截图索引及可复现 Playwright 脚本。
+
+### 真实命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `make migration-up && make seed-core && make seed-core` | 0 | Migration 13 clean；两次初始化均为 modules=8、build_version=dev |
+| `make migration-down && make migration-up && make seed-core` | 0 | `000013` 可往返；最终 migration 13 clean、8 模块恢复正确 |
+| PostgreSQL 精确复核 | 0 | module_count=8、unknown_count=0、version_count=1/version=dev、`sys.module.read`=0；旧菜单 status=disabled 且 permission_id 已清空 |
+| `AK_TEST_DATABASE_URL=... make test-integration` | 0 | Seed、Ops、IAM、Jobs、System Settings、Notification、Storage 隔离库集成测试通过；覆盖幂等、版本更新、精确 8 项和未知 fixture 清理 |
+| `make check` / `go test -race ./...`（server） | 0 / 0 | gofmt、go vet、全仓 Go 测试和 Race 测试通过 |
+| `govulncheck ./...` | 0 | 当前调用链受已知漏洞影响数为 0 |
+| `staticcheck ./...` / `golangci-lint run` | 1 / 1 | 仅报告工作区既有 notification/storage ST1005 错误文案大小写；未扩大范围修改无关在途代码 |
+| `npm run check`（Admin） | 0 | Client/i18n/routes 生成、ESLint、TypeScript strict、20 files / 75 tests、4,163 modules production build、bundle budget 和 Admin 蓝图通过 |
+| Admin/Mobile/i18n 蓝图校验 | 0 | 34 menus、47 routes、111 permissions、160 APIs、32 pages；Mobile 0 error/warning；双语 key/占位符一致 |
+| Backend 独立 `validate_blueprint_specs.py` | 未执行 | 仓库不存在该脚本；Backend 由 `make check`、integration、OpenAPI Client 生成和现有契约校验覆盖 |
+| Docker `admin` 最终重建 | 0 | Admin/API/migrate/seed 使用最终源码构建并启动，API healthy |
+| `e2e_service_status.py` | 0 | `zh-CN/en-US × 375/768/1024/1440` 共 8 组；axe=0、页面无水平溢出、每组 2 个可聚焦滚动区、console error=0；旧 modules API=404 |
+| `git diff --check` | 0 | 最终文本补丁格式通过 |
+
+### 截图索引与验证边界
+
+- [中文桌面 1440](../output/playwright/service-status/service-status.zh-CN.1440.png)
+- [中文移动 375](../output/playwright/service-status/service-status.zh-CN.375.png)
+- [英文桌面 1440](../output/playwright/service-status/service-status.en-US.1440.png)
+- [英文移动 375](../output/playwright/service-status/service-status.en-US.375.png)
+- [结构化 E2E 证据](../output/playwright/service-status/e2e-results.json)
+- 浏览器验证使用最终 Docker Admin 和契约等价 mock auth/data；真实 PostgreSQL 模块目录、运行摘要 Repository 与旧 API 404 由独立 DB/integration/API 请求验证。由于本机 API 拒绝新 bootstrap 凭据，未标记为生产登录后 UI 闭环。
+- 未部署生产；Firefox/Safari、Android/iOS/Harmony 与真实移动设备未执行。本轮未 commit、未 push，并保留工作区全部其他在途改动。
+
 ## 2026-08-06 GitHub Actions CI 失败修复
 
 ### 交付内容

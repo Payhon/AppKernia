@@ -22,10 +22,14 @@ This page override extends `design-system/appkernia-admin/MASTER.md` for the aut
 
 - Opening a directory must not navigate or reload the page.
 - Navigating to a leaf selects that leaf and expands its System and functional-group ancestors.
-- Desktop sidebar collapse uses Ant Design's nested popup behavior. The control is not placed in the sidebar footer: hovering the desktop sidebar reveals a white left/right chevron handle at the vertical midpoint of the sidebar/content boundary. The control remains reachable by keyboard, is persistently visible on non-hover pointers, and reverses direction after collapse.
+- Desktop sidebar collapse uses Ant Design's nested popup behavior. In collapsed mode, directory state is not controlled by the expanded sidebar's persisted `openKeys`: the first flyout appears only while its root icon is hovered or focused, and each deeper flyout appears only while its own parent is hovered or focused. Leaving the active hierarchy dismisses every flyout.
+- Desktop navigation has exactly three user-controlled modes: expanded (248 px), collapsed (80 px), and fully hidden (0 px). The mode is stored as a non-sensitive local UI preference and survives route component remounts; leaf navigation, route selection, and ancestor expansion never change it.
+- The primary collapse/expand control is not placed in the sidebar footer: hovering the desktop sidebar reveals an 18 px wide left/right chevron handle fixed at the visible viewport's vertical midpoint and flush with the sidebar/content boundary. Its hover/focus state inverts from a white surface with ink icon to an ink surface with white icon while retaining a visible border and shadow. It remains keyboard reachable, is persistently visible on non-hover pointers, and reverses direction after collapse.
+- Only while collapsed, a separate 18 px wide SVG close control appears 4 px above the primary handle. Activating it fully hides the Sider without changing the current route.
+- While fully hidden, a right-chevron restore tab remains fixed to the far-left viewport edge at 48% opacity and becomes fully opaque on hover/focus. A second restore action appears as the leftmost Header utility. Either action restores the fully expanded 248 px sidebar and both restore actions then disappear.
 - At mobile widths, the same hierarchy is rendered in a drawer and the drawer closes after leaf navigation.
 - Browser history and deep links remain intact.
-- Header utilities are icon-first and ordered as fullscreen, language, account. Each 40 px icon button has a translated accessible name, stable hover treatment, and visible keyboard focus.
+- Header utilities are icon-first and ordered as conditional sidebar restore, fullscreen, language, account. Each 40 px icon button has a translated accessible name, stable hover treatment, and visible keyboard focus.
 - Language opens a compact dropdown with the active locale selected. The login/auth surface retains the explicit text select because it is a standalone preference control rather than a dense application-header utility.
 - Account is represented by a 36 px circular Avatar. Use the authenticated protected avatar Blob when available; otherwise render the uppercase first grapheme of display name/email. The click dropdown separates non-interactive user/role context from Personal Center and Sign Out actions.
 - Fullscreen state follows the browser Fullscreen API and `fullscreenchange`, including Escape-driven exits. The icon and accessible label reverse with state; unsupported browsers expose a disabled control.
@@ -37,6 +41,7 @@ This page override extends `design-system/appkernia-admin/MASTER.md` for the aut
 - 品牌区使用生成的 36px AppKernia 图标和 600 weight wordmark；折叠时仅保留图标并水平居中。
 - Header 使用 sticky 64px、半透明白色、hairline 和背景 blur；内容滚动时仍保持上下文与操作可见。
 - Header utility icons use neutral ink on transparent surfaces and `#F0F0F0` hover/focus fill. Account and language popups use white, 10 px radius, hairline border, and the shared stacked shadow; no marketing gradient is introduced.
+- Collapsed navigation flyouts use an 86% opaque ink surface with 14 px backdrop blur, a subtle light hairline and stacked shadow. The edge touching its parent is square while the outward edge uses a 10 px radius, visually connecting hierarchy levels without merging their hit targets. Text and icons remain at least `rgba(255,255,255,.85)`.
 - Every visible root, functional directory, and page leaf renders a configured icon.
 - Core icon names come from the backend menu seed and resolve only through a compile-time Ant Design Icons allowlist.
 - Unknown or empty custom-menu icon names use `AppstoreOutlined`; they never trigger dynamic imports.
