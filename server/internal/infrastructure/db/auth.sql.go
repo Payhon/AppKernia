@@ -79,20 +79,21 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 
 const createSession = `-- name: CreateSession :one
 INSERT INTO iam.sessions (
-    user_id, tenant_id, device_id, audience, status, access_token_version,
+    user_id, tenant_id, app_id, device_id, audience, status, access_token_version,
     absolute_expires_at, idle_expires_at, ip_address, user_agent
 )
 VALUES (
-    $1, $2, $3, $4,
-    'active', 1, $5, $6,
-    $7, $8
+    $1, $2, $3, $4, $5,
+    'active', 1, $6, $7,
+    $8, $9
 )
-RETURNING id, user_id, tenant_id, device_id, audience, status, access_token_version, mfa_level, ip_address, user_agent, last_seen_at, idle_expires_at, absolute_expires_at, revoked_at, revoke_reason, created_at, updated_at
+RETURNING id, user_id, tenant_id, device_id, audience, status, access_token_version, mfa_level, ip_address, user_agent, last_seen_at, idle_expires_at, absolute_expires_at, revoked_at, revoke_reason, created_at, updated_at, app_id
 `
 
 type CreateSessionParams struct {
 	UserID            uuid.UUID          `json:"user_id"`
 	TenantID          *uuid.UUID         `json:"tenant_id"`
+	AppID             *uuid.UUID         `json:"app_id"`
 	DeviceID          *uuid.UUID         `json:"device_id"`
 	Audience          string             `json:"audience"`
 	AbsoluteExpiresAt pgtype.Timestamptz `json:"absolute_expires_at"`
@@ -105,6 +106,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (I
 	row := q.db.QueryRow(ctx, createSession,
 		arg.UserID,
 		arg.TenantID,
+		arg.AppID,
 		arg.DeviceID,
 		arg.Audience,
 		arg.AbsoluteExpiresAt,
@@ -131,6 +133,7 @@ func (q *Queries) CreateSession(ctx context.Context, arg CreateSessionParams) (I
 		&i.RevokeReason,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.AppID,
 	)
 	return i, err
 }
@@ -295,6 +298,7 @@ SELECT rt.id AS refresh_token_id,
        rt.revoked_at AS refresh_revoked_at,
        s.user_id,
        s.tenant_id,
+       s.app_id,
        s.audience,
        s.status AS session_status,
        s.access_token_version,
@@ -314,6 +318,7 @@ type GetRefreshTokenForUpdateRow struct {
 	RefreshRevokedAt   pgtype.Timestamptz `json:"refresh_revoked_at"`
 	UserID             uuid.UUID          `json:"user_id"`
 	TenantID           *uuid.UUID         `json:"tenant_id"`
+	AppID              *uuid.UUID         `json:"app_id"`
 	Audience           string             `json:"audience"`
 	SessionStatus      string             `json:"session_status"`
 	AccessTokenVersion int32              `json:"access_token_version"`
@@ -332,6 +337,7 @@ func (q *Queries) GetRefreshTokenForUpdate(ctx context.Context, tokenHash []byte
 		&i.RefreshRevokedAt,
 		&i.UserID,
 		&i.TenantID,
+		&i.AppID,
 		&i.Audience,
 		&i.SessionStatus,
 		&i.AccessTokenVersion,
@@ -343,7 +349,7 @@ func (q *Queries) GetRefreshTokenForUpdate(ctx context.Context, tokenHash []byte
 
 const insertFailedLoginEvent = `-- name: InsertFailedLoginEvent :exec
 INSERT INTO audit.login_events (
-    tenant_id, user_id, request_id, auth_method, audience, result, failure_reason, client_ip, user_agent
+    tenant_id, user_id, app_id, request_id, auth_method, audience, result, failure_reason, client_ip, user_agent
 )
 VALUES (
     (
@@ -353,13 +359,14 @@ VALUES (
         ORDER BY tm.created_at, tm.tenant_id
         LIMIT 1
     ),
-    $1, $2, 'password', $3,
-    'failure', 'invalid_credentials', $4, $5
+    $1, $2, $3, 'password', $4,
+    'failure', 'invalid_credentials', $5, $6
 )
 `
 
 type InsertFailedLoginEventParams struct {
 	UserID    *uuid.UUID  `json:"user_id"`
+	AppID     *uuid.UUID  `json:"app_id"`
 	RequestID *string     `json:"request_id"`
 	Audience  string      `json:"audience"`
 	ClientIp  *netip.Addr `json:"client_ip"`
@@ -369,6 +376,7 @@ type InsertFailedLoginEventParams struct {
 func (q *Queries) InsertFailedLoginEvent(ctx context.Context, arg InsertFailedLoginEventParams) error {
 	_, err := q.db.Exec(ctx, insertFailedLoginEvent,
 		arg.UserID,
+		arg.AppID,
 		arg.RequestID,
 		arg.Audience,
 		arg.ClientIp,
@@ -416,15 +424,16 @@ func (q *Queries) InsertLoginCaptchaChallenge(ctx context.Context, arg InsertLog
 
 const insertRefreshReuseSecurityEvent = `-- name: InsertRefreshReuseSecurityEvent :exec
 INSERT INTO audit.security_events (
-    tenant_id, user_id, session_id, event_type, severity, source, client_ip, details
+    tenant_id, user_id, session_id, app_id, event_type, severity, source, client_ip, details
 )
-VALUES ($1, $2, $3, 'iam.refresh_token.reuse', 'high', 'auth', $4, '{"action":"session_revoked"}'::jsonb)
+VALUES ($1, $2, $3, $4, 'iam.refresh_token.reuse', 'high', 'auth', $5, '{"action":"session_revoked"}'::jsonb)
 `
 
 type InsertRefreshReuseSecurityEventParams struct {
 	TenantID  *uuid.UUID  `json:"tenant_id"`
 	UserID    *uuid.UUID  `json:"user_id"`
 	SessionID *uuid.UUID  `json:"session_id"`
+	AppID     *uuid.UUID  `json:"app_id"`
 	ClientIp  *netip.Addr `json:"client_ip"`
 }
 
@@ -433,6 +442,7 @@ func (q *Queries) InsertRefreshReuseSecurityEvent(ctx context.Context, arg Inser
 		arg.TenantID,
 		arg.UserID,
 		arg.SessionID,
+		arg.AppID,
 		arg.ClientIp,
 	)
 	return err
@@ -522,13 +532,13 @@ func (q *Queries) InsertSelfSessionRevokeAudit(ctx context.Context, arg InsertSe
 
 const insertSuccessfulLoginEvent = `-- name: InsertSuccessfulLoginEvent :exec
 INSERT INTO audit.login_events (
-    tenant_id, user_id, session_id, request_id, auth_method, audience, result,
+    tenant_id, user_id, session_id, app_id, request_id, auth_method, audience, result,
     client_ip, user_agent, device_info
 )
 VALUES (
-    $1, $2, $3, $4,
-    $5, $6, 'success', $7, $8,
-    jsonb_build_object('platform', 'web', 'registered', $9::boolean)
+    $1, $2, $3, $4, $5,
+    $6, $7, 'success', $8, $9,
+    jsonb_build_object('platform', 'web', 'registered', $10::boolean)
 )
 `
 
@@ -536,6 +546,7 @@ type InsertSuccessfulLoginEventParams struct {
 	TenantID         *uuid.UUID  `json:"tenant_id"`
 	UserID           *uuid.UUID  `json:"user_id"`
 	SessionID        *uuid.UUID  `json:"session_id"`
+	AppID            *uuid.UUID  `json:"app_id"`
 	RequestID        *string     `json:"request_id"`
 	AuthMethod       string      `json:"auth_method"`
 	Audience         string      `json:"audience"`
@@ -549,6 +560,7 @@ func (q *Queries) InsertSuccessfulLoginEvent(ctx context.Context, arg InsertSucc
 		arg.TenantID,
 		arg.UserID,
 		arg.SessionID,
+		arg.AppID,
 		arg.RequestID,
 		arg.AuthMethod,
 		arg.Audience,

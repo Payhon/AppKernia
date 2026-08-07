@@ -20,9 +20,14 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as OfflineRouteImport } from './routes/offline'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AppApplicationsRouteImport } from './routes/app.applications'
+import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as ProfileBasicRouteImport } from './routes/profile.basic'
 import { Route as ProfileConnectionsRouteImport } from './routes/profile.connections'
 import { Route as ProfileSecurityRouteImport } from './routes/profile.security'
+import { Route as AppContentArticlesRouteImport } from './routes/app.content.articles'
+import { Route as AppContentCategoriesRouteImport } from './routes/app.content.categories'
+import { Route as AppContentPagesRouteImport } from './routes/app.content.pages'
 import { Route as AuthCallbackProviderRouteImport } from './routes/auth.callback.$provider'
 import { Route as SystemAccessMenusRouteImport } from './routes/system.access.menus'
 import { Route as SystemAccessPermissionsRouteImport } from './routes/system.access.permissions'
@@ -126,6 +131,16 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppApplicationsRoute = AppApplicationsRouteImport.update({
+  id: '/app/applications',
+  path: '/app/applications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppUsersRoute = AppUsersRouteImport.update({
+  id: '/app/users',
+  path: '/app/users',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileBasicRoute = ProfileBasicRouteImport.update({
   id: '/profile/basic',
   path: '/profile/basic',
@@ -139,6 +154,21 @@ const ProfileConnectionsRoute = ProfileConnectionsRouteImport.update({
 const ProfileSecurityRoute = ProfileSecurityRouteImport.update({
   id: '/profile/security',
   path: '/profile/security',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppContentArticlesRoute = AppContentArticlesRouteImport.update({
+  id: '/app/content/articles',
+  path: '/app/content/articles',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppContentCategoriesRoute = AppContentCategoriesRouteImport.update({
+  id: '/app/content/categories',
+  path: '/app/content/categories',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppContentPagesRoute = AppContentPagesRouteImport.update({
+  id: '/app/content/pages',
+  path: '/app/content/pages',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthCallbackProviderRoute = AuthCallbackProviderRouteImport.update({
@@ -415,9 +445,14 @@ export interface FileRoutesByFullPath {
   '/offline': typeof OfflineRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/applications': typeof AppApplicationsRoute
+  '/app/users': typeof AppUsersRoute
   '/profile/basic': typeof ProfileBasicRoute
   '/profile/connections': typeof ProfileConnectionsRoute
   '/profile/security': typeof ProfileSecurityRoute
+  '/app/content/articles': typeof AppContentArticlesRoute
+  '/app/content/categories': typeof AppContentCategoriesRoute
+  '/app/content/pages': typeof AppContentPagesRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/system/access/menus': typeof SystemAccessMenusRoute
   '/system/access/permissions': typeof SystemAccessPermissionsRoute
@@ -478,9 +513,14 @@ export interface FileRoutesByTo {
   '/offline': typeof OfflineRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/applications': typeof AppApplicationsRoute
+  '/app/users': typeof AppUsersRoute
   '/profile/basic': typeof ProfileBasicRoute
   '/profile/connections': typeof ProfileConnectionsRoute
   '/profile/security': typeof ProfileSecurityRoute
+  '/app/content/articles': typeof AppContentArticlesRoute
+  '/app/content/categories': typeof AppContentCategoriesRoute
+  '/app/content/pages': typeof AppContentPagesRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/system/access/menus': typeof SystemAccessMenusRoute
   '/system/access/permissions': typeof SystemAccessPermissionsRoute
@@ -533,9 +573,14 @@ export interface FileRoutesById {
   '/offline': typeof OfflineRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/applications': typeof AppApplicationsRoute
+  '/app/users': typeof AppUsersRoute
   '/profile/basic': typeof ProfileBasicRoute
   '/profile/connections': typeof ProfileConnectionsRoute
   '/profile/security': typeof ProfileSecurityRoute
+  '/app/content/articles': typeof AppContentArticlesRoute
+  '/app/content/categories': typeof AppContentCategoriesRoute
+  '/app/content/pages': typeof AppContentPagesRoute
   '/auth/callback/$provider': typeof AuthCallbackProviderRoute
   '/system/access/menus': typeof SystemAccessMenusRoute
   '/system/access/permissions': typeof SystemAccessPermissionsRoute
@@ -598,9 +643,14 @@ export interface FileRouteTypes {
     | '/offline'
     | '/register'
     | '/reset-password'
+    | '/app/applications'
+    | '/app/users'
     | '/profile/basic'
     | '/profile/connections'
     | '/profile/security'
+    | '/app/content/articles'
+    | '/app/content/categories'
+    | '/app/content/pages'
     | '/auth/callback/$provider'
     | '/system/access/menus'
     | '/system/access/permissions'
@@ -661,9 +711,14 @@ export interface FileRouteTypes {
     | '/offline'
     | '/register'
     | '/reset-password'
+    | '/app/applications'
+    | '/app/users'
     | '/profile/basic'
     | '/profile/connections'
     | '/profile/security'
+    | '/app/content/articles'
+    | '/app/content/categories'
+    | '/app/content/pages'
     | '/auth/callback/$provider'
     | '/system/access/menus'
     | '/system/access/permissions'
@@ -715,9 +770,14 @@ export interface FileRouteTypes {
     | '/offline'
     | '/register'
     | '/reset-password'
+    | '/app/applications'
+    | '/app/users'
     | '/profile/basic'
     | '/profile/connections'
     | '/profile/security'
+    | '/app/content/articles'
+    | '/app/content/categories'
+    | '/app/content/pages'
     | '/auth/callback/$provider'
     | '/system/access/menus'
     | '/system/access/permissions'
@@ -779,9 +839,14 @@ export interface RootRouteChildren {
   OfflineRoute: typeof OfflineRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  AppApplicationsRoute: typeof AppApplicationsRoute
+  AppUsersRoute: typeof AppUsersRoute
   ProfileBasicRoute: typeof ProfileBasicRoute
   ProfileConnectionsRoute: typeof ProfileConnectionsRoute
   ProfileSecurityRoute: typeof ProfileSecurityRoute
+  AppContentArticlesRoute: typeof AppContentArticlesRoute
+  AppContentCategoriesRoute: typeof AppContentCategoriesRoute
+  AppContentPagesRoute: typeof AppContentPagesRoute
   AuthCallbackProviderRoute: typeof AuthCallbackProviderRoute
   SystemAccessMenusRoute: typeof SystemAccessMenusRoute
   SystemAccessPermissionsRoute: typeof SystemAccessPermissionsRoute
@@ -891,6 +956,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/app/applications': {
+      id: '/app/applications'
+      path: '/app/applications'
+      fullPath: '/app/applications'
+      preLoaderRoute: typeof AppApplicationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/users': {
+      id: '/app/users'
+      path: '/app/users'
+      fullPath: '/app/users'
+      preLoaderRoute: typeof AppUsersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile/basic': {
       id: '/profile/basic'
       path: '/profile/basic'
@@ -910,6 +989,27 @@ declare module '@tanstack/react-router' {
       path: '/profile/security'
       fullPath: '/profile/security'
       preLoaderRoute: typeof ProfileSecurityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/content/articles': {
+      id: '/app/content/articles'
+      path: '/app/content/articles'
+      fullPath: '/app/content/articles'
+      preLoaderRoute: typeof AppContentArticlesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/content/categories': {
+      id: '/app/content/categories'
+      path: '/app/content/categories'
+      fullPath: '/app/content/categories'
+      preLoaderRoute: typeof AppContentCategoriesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/content/pages': {
+      id: '/app/content/pages'
+      path: '/app/content/pages'
+      fullPath: '/app/content/pages'
+      preLoaderRoute: typeof AppContentPagesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth/callback/$provider': {
@@ -1407,9 +1507,14 @@ const rootRouteChildren: RootRouteChildren = {
   OfflineRoute: OfflineRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  AppApplicationsRoute: AppApplicationsRoute,
+  AppUsersRoute: AppUsersRoute,
   ProfileBasicRoute: ProfileBasicRoute,
   ProfileConnectionsRoute: ProfileConnectionsRoute,
   ProfileSecurityRoute: ProfileSecurityRoute,
+  AppContentArticlesRoute: AppContentArticlesRoute,
+  AppContentCategoriesRoute: AppContentCategoriesRoute,
+  AppContentPagesRoute: AppContentPagesRoute,
   AuthCallbackProviderRoute: AuthCallbackProviderRoute,
   SystemAccessMenusRoute: SystemAccessMenusRoute,
   SystemAccessPermissionsRoute: SystemAccessPermissionsRoute,

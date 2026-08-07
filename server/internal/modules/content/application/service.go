@@ -39,11 +39,24 @@ func (s *Service) authorize(ctx context.Context, token, permission string) (iam.
 	}
 	return a, nil
 }
+
+func contentPermission(appID uuid.UUID, legacyPermission, appAction string) string {
+	if appID != uuid.Nil {
+		return "app.content." + appAction
+	}
+	return legacyPermission
+}
+
+// authorizeContent preserves the legacy system-content permission matrix while
+// enforcing the App matrix for nested /apps/{app_id}/content routes.
+func (s *Service) authorizeContent(ctx context.Context, token string, appID uuid.UUID, legacyPermission, appAction string) (iam.AuthenticatedContext, error) {
+	return s.authorize(ctx, token, contentPermission(appID, legacyPermission, appAction))
+}
 func (s *Service) mobile(ctx context.Context, token string) (iam.AuthenticatedContext, error) {
 	return s.auth.Authenticate(ctx, token, mobileAudience)
 }
-func principal(a iam.AuthenticatedContext, p content.Principal) content.Principal {
-	p.TenantID, p.UserID, p.SessionID = a.Tenant.ID, a.User.ID, a.SessionID
+func principal(a iam.AuthenticatedContext, appID uuid.UUID, p content.Principal) content.Principal {
+	p.TenantID, p.AppID, p.UserID, p.SessionID = a.Tenant.ID, appID, a.User.ID, a.SessionID
 	return p
 }
 
@@ -122,8 +135,8 @@ func validBody(x content.Translation) bool {
 }
 func oneOf(value string, valid ...string) bool { return slices.Contains(valid, value) }
 
-func (s *Service) ListCategories(c context.Context, t string, f content.PageFilter) (content.CategoryPage, error) {
-	a, e := s.authorize(c, t, "content.category.read")
+func (s *Service) ListCategories(c context.Context, t string, appID uuid.UUID, f content.PageFilter) (content.CategoryPage, error) {
+	a, e := s.authorizeContent(c, t, appID, "content.category.read", "read")
 	if e != nil {
 		return content.CategoryPage{}, e
 	}
@@ -131,50 +144,50 @@ func (s *Service) ListCategories(c context.Context, t string, f content.PageFilt
 	if e != nil || !oneOf(f.Status, "", "active", "disabled") || !oneOf(f.Sort, "", "sort_order", "updated_desc", "slug") {
 		return content.CategoryPage{}, content.ErrInvalid
 	}
-	return s.repo.ListCategories(c, a.Tenant.ID, f)
+	return s.repo.ListCategories(c, a.Tenant.ID, appID, f)
 }
-func (s *Service) GetCategory(c context.Context, t string, id uuid.UUID) (content.Category, error) {
-	a, e := s.authorize(c, t, "content.category.read")
+func (s *Service) GetCategory(c context.Context, t string, appID, id uuid.UUID) (content.Category, error) {
+	a, e := s.authorizeContent(c, t, appID, "content.category.read", "read")
 	if e != nil {
 		return content.Category{}, e
 	}
 	if id == uuid.Nil {
 		return content.Category{}, content.ErrInvalid
 	}
-	return s.repo.GetCategory(c, a.Tenant.ID, id)
+	return s.repo.GetCategory(c, a.Tenant.ID, appID, id)
 }
-func (s *Service) CreateCategory(c context.Context, t string, p content.Principal, x content.Category) (content.Category, error) {
-	a, e := s.authorize(c, t, "content.category.create")
+func (s *Service) CreateCategory(c context.Context, t string, appID uuid.UUID, p content.Principal, x content.Category) (content.Category, error) {
+	a, e := s.authorizeContent(c, t, appID, "content.category.create", "create")
 	if e != nil {
 		return content.Category{}, e
 	}
 	if e = validateCategory(x, false); e != nil || strings.TrimSpace(p.RequestID) == "" {
 		return content.Category{}, content.ErrInvalid
 	}
-	return s.repo.CreateCategory(c, principal(a, p), x)
+	return s.repo.CreateCategory(c, principal(a, appID, p), x)
 }
-func (s *Service) UpdateCategory(c context.Context, t string, p content.Principal, x content.Category) (content.Category, error) {
-	a, e := s.authorize(c, t, "content.category.update")
+func (s *Service) UpdateCategory(c context.Context, t string, appID uuid.UUID, p content.Principal, x content.Category) (content.Category, error) {
+	a, e := s.authorizeContent(c, t, appID, "content.category.update", "update")
 	if e != nil {
 		return content.Category{}, e
 	}
 	if e = validateCategory(x, true); e != nil || strings.TrimSpace(p.RequestID) == "" {
 		return content.Category{}, content.ErrInvalid
 	}
-	return s.repo.UpdateCategory(c, principal(a, p), x)
+	return s.repo.UpdateCategory(c, principal(a, appID, p), x)
 }
-func (s *Service) DeleteCategory(c context.Context, t string, p content.Principal, id uuid.UUID, v int32) error {
-	a, e := s.authorize(c, t, "content.category.delete")
+func (s *Service) DeleteCategory(c context.Context, t string, appID uuid.UUID, p content.Principal, id uuid.UUID, v int32) error {
+	a, e := s.authorizeContent(c, t, appID, "content.category.delete", "delete")
 	if e != nil {
 		return e
 	}
 	if id == uuid.Nil || v < 1 || strings.TrimSpace(p.RequestID) == "" {
 		return content.ErrInvalid
 	}
-	return s.repo.DeleteCategory(c, principal(a, p), id, v)
+	return s.repo.DeleteCategory(c, principal(a, appID, p), id, v)
 }
-func (s *Service) ListArticles(c context.Context, t string, f content.PageFilter) (content.ArticlePage, error) {
-	a, e := s.authorize(c, t, "content.article.read")
+func (s *Service) ListArticles(c context.Context, t string, appID uuid.UUID, f content.PageFilter) (content.ArticlePage, error) {
+	a, e := s.authorizeContent(c, t, appID, "content.article.read", "read")
 	if e != nil {
 		return content.ArticlePage{}, e
 	}
@@ -182,61 +195,63 @@ func (s *Service) ListArticles(c context.Context, t string, f content.PageFilter
 	if e != nil || !oneOf(f.Status, "", "draft", "published", "archived") || !oneOf(f.Sort, "", "updated_desc", "published_desc", "sort_order", "slug") {
 		return content.ArticlePage{}, content.ErrInvalid
 	}
-	return s.repo.ListArticles(c, a.Tenant.ID, f)
+	return s.repo.ListArticles(c, a.Tenant.ID, appID, f)
 }
-func (s *Service) GetArticle(c context.Context, t string, id uuid.UUID) (content.Article, error) {
-	a, e := s.authorize(c, t, "content.article.read")
+func (s *Service) GetArticle(c context.Context, t string, appID, id uuid.UUID) (content.Article, error) {
+	a, e := s.authorizeContent(c, t, appID, "content.article.read", "read")
 	if e != nil {
 		return content.Article{}, e
 	}
 	if id == uuid.Nil {
 		return content.Article{}, content.ErrInvalid
 	}
-	return s.repo.GetArticle(c, a.Tenant.ID, id)
+	return s.repo.GetArticle(c, a.Tenant.ID, appID, id)
 }
-func (s *Service) CreateArticle(c context.Context, t string, p content.Principal, x content.Article) (content.Article, error) {
-	a, e := s.authorize(c, t, "content.article.create")
+func (s *Service) CreateArticle(c context.Context, t string, appID uuid.UUID, p content.Principal, x content.Article) (content.Article, error) {
+	a, e := s.authorizeContent(c, t, appID, "content.article.create", "create")
 	if e != nil {
 		return content.Article{}, e
 	}
 	if e = validateArticle(x, false); e != nil || strings.TrimSpace(p.RequestID) == "" {
 		return content.Article{}, content.ErrInvalid
 	}
-	return s.repo.CreateArticle(c, principal(a, p), x)
+	return s.repo.CreateArticle(c, principal(a, appID, p), x)
 }
-func (s *Service) UpdateArticle(c context.Context, t string, p content.Principal, x content.Article) (content.Article, error) {
-	a, e := s.authorize(c, t, "content.article.update")
+func (s *Service) UpdateArticle(c context.Context, t string, appID uuid.UUID, p content.Principal, x content.Article) (content.Article, error) {
+	a, e := s.authorizeContent(c, t, appID, "content.article.update", "update")
 	if e != nil {
 		return content.Article{}, e
 	}
 	if e = validateArticle(x, true); e != nil || strings.TrimSpace(p.RequestID) == "" {
 		return content.Article{}, content.ErrInvalid
 	}
-	return s.repo.UpdateArticle(c, principal(a, p), x)
+	return s.repo.UpdateArticle(c, principal(a, appID, p), x)
 }
-func (s *Service) DeleteArticle(c context.Context, t string, p content.Principal, id uuid.UUID, v int32) error {
-	a, e := s.authorize(c, t, "content.article.delete")
+func (s *Service) DeleteArticle(c context.Context, t string, appID uuid.UUID, p content.Principal, id uuid.UUID, v int32) error {
+	a, e := s.authorizeContent(c, t, appID, "content.article.delete", "delete")
 	if e != nil {
 		return e
 	}
 	if id == uuid.Nil || v < 1 || strings.TrimSpace(p.RequestID) == "" {
 		return content.ErrInvalid
 	}
-	return s.repo.DeleteArticle(c, principal(a, p), id, v)
+	return s.repo.DeleteArticle(c, principal(a, appID, p), id, v)
 }
-func (s *Service) TransitionArticle(c context.Context, t string, p content.Principal, id uuid.UUID, v int32, state string) (content.Article, error) {
+func (s *Service) TransitionArticle(c context.Context, t string, appID uuid.UUID, p content.Principal, id uuid.UUID, v int32, state string) (content.Article, error) {
 	perm := "content.article.publish"
+	appAction := "publish"
 	if state == "archived" {
 		perm = "content.article.archive"
+		appAction = "update"
 	}
-	a, e := s.authorize(c, t, perm)
+	a, e := s.authorizeContent(c, t, appID, perm, appAction)
 	if e != nil {
 		return content.Article{}, e
 	}
 	if id == uuid.Nil || v < 1 || !oneOf(state, "published", "draft", "archived") || strings.TrimSpace(p.RequestID) == "" {
 		return content.Article{}, content.ErrInvalid
 	}
-	return s.repo.TransitionArticle(c, principal(a, p), id, v, state)
+	return s.repo.TransitionArticle(c, principal(a, appID, p), id, v, state)
 }
 func (s *Service) ListPublished(c context.Context, t, locale string, f content.PublicFilter) (content.PublicArticlePage, error) {
 	a, e := s.mobile(c, t)
@@ -250,14 +265,20 @@ func (s *Service) ListPublished(c context.Context, t, locale string, f content.P
 	if f.Limit < 1 || f.Limit > 50 || len([]rune(f.Query)) > 160 || (f.CategorySlug != "" && !slugPattern.MatchString(f.CategorySlug)) {
 		return content.PublicArticlePage{}, content.ErrInvalid
 	}
-	return s.repo.ListPublished(c, a.Tenant.ID, a.User.ID, locale, f)
+	if a.AppID == nil || *a.AppID == uuid.Nil {
+		return content.PublicArticlePage{}, content.ErrForbidden
+	}
+	return s.repo.ListPublished(c, a.Tenant.ID, *a.AppID, a.User.ID, locale, f)
 }
 func (s *Service) ListPublishedCategories(c context.Context, t, locale string) (content.PublicCategoryPage, error) {
 	a, e := s.mobile(c, t)
 	if e != nil {
 		return content.PublicCategoryPage{}, e
 	}
-	return s.repo.ListPublishedCategories(c, a.Tenant.ID, locale)
+	if a.AppID == nil || *a.AppID == uuid.Nil {
+		return content.PublicCategoryPage{}, content.ErrForbidden
+	}
+	return s.repo.ListPublishedCategories(c, a.Tenant.ID, *a.AppID, locale)
 }
 func (s *Service) GetPublished(c context.Context, t, locale, slug string) (content.PublicArticle, error) {
 	a, e := s.mobile(c, t)
@@ -267,7 +288,10 @@ func (s *Service) GetPublished(c context.Context, t, locale, slug string) (conte
 	if !slugPattern.MatchString(slug) {
 		return content.PublicArticle{}, content.ErrInvalid
 	}
-	return s.repo.GetPublished(c, a.Tenant.ID, a.User.ID, locale, slug)
+	if a.AppID == nil || *a.AppID == uuid.Nil {
+		return content.PublicArticle{}, content.ErrForbidden
+	}
+	return s.repo.GetPublished(c, a.Tenant.ID, *a.AppID, a.User.ID, locale, slug)
 }
 func (s *Service) OpenArticleAsset(c context.Context, t string, id uuid.UUID) (content.ArticleAsset, io.ReadCloser, error) {
 	a, e := s.mobile(c, t)
@@ -277,7 +301,10 @@ func (s *Service) OpenArticleAsset(c context.Context, t string, id uuid.UUID) (c
 	if id == uuid.Nil {
 		return content.ArticleAsset{}, nil, content.ErrInvalid
 	}
-	return s.repo.OpenArticleAsset(c, a.Tenant.ID, id)
+	if a.AppID == nil || *a.AppID == uuid.Nil {
+		return content.ArticleAsset{}, nil, content.ErrForbidden
+	}
+	return s.repo.OpenArticleAsset(c, a.Tenant.ID, *a.AppID, id)
 }
 func (s *Service) Bookmark(c context.Context, t string, id uuid.UUID) error {
 	a, e := s.mobile(c, t)
@@ -287,7 +314,10 @@ func (s *Service) Bookmark(c context.Context, t string, id uuid.UUID) error {
 	if id == uuid.Nil {
 		return content.ErrInvalid
 	}
-	return s.repo.Bookmark(c, a.Tenant.ID, a.User.ID, id)
+	if a.AppID == nil || *a.AppID == uuid.Nil {
+		return content.ErrForbidden
+	}
+	return s.repo.Bookmark(c, a.Tenant.ID, *a.AppID, a.User.ID, id)
 }
 func (s *Service) RemoveBookmark(c context.Context, t string, id uuid.UUID) error {
 	a, e := s.mobile(c, t)
@@ -297,5 +327,8 @@ func (s *Service) RemoveBookmark(c context.Context, t string, id uuid.UUID) erro
 	if id == uuid.Nil {
 		return content.ErrInvalid
 	}
-	return s.repo.RemoveBookmark(c, a.Tenant.ID, a.User.ID, id)
+	if a.AppID == nil || *a.AppID == uuid.Nil {
+		return content.ErrForbidden
+	}
+	return s.repo.RemoveBookmark(c, a.Tenant.ID, *a.AppID, a.User.ID, id)
 }

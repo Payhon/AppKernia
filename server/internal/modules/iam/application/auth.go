@@ -78,6 +78,7 @@ type LoginInput struct {
 	Email         string
 	Password      string
 	Audience      string
+	AppID         *uuid.UUID
 	Client        ClientMetadata
 	CaptchaID     *uuid.UUID
 	CaptchaAnswer string
@@ -95,6 +96,7 @@ type SessionTokens struct {
 	RefreshToken          string
 	RefreshTokenExpiresAt time.Time
 	SessionID             uuid.UUID
+	AppID                 *uuid.UUID
 }
 
 type AuthService struct {
@@ -106,6 +108,13 @@ type AuthService struct {
 	anonymous          AnonymousAuthConfig
 	resetNotifier      PasswordResetNotifier
 	loginProtectionKey []byte
+}
+
+func appIDValue(value *uuid.UUID) uuid.UUID {
+	if value == nil {
+		return uuid.Nil
+	}
+	return *value
 }
 
 func NewAuthService(identities domain.Repository, sessions domain.SessionRepository, issuer *TokenIssuer, options ...AuthOption) (*AuthService, error) {
@@ -166,7 +175,7 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 			userID = &value
 		}
 		failureCount, recordErr := service.identities.RecordLoginFailure(ctx, domain.LoginFailure{
-			UserID: userID, Audience: input.Audience, RequestID: input.Client.RequestID,
+			UserID: userID, AppID: input.AppID, Audience: input.Audience, RequestID: input.Client.RequestID,
 			IPAddress: input.Client.IPAddress, UserAgent: input.Client.UserAgent,
 			ScopeHash: scopeHash, FailedAt: now, ExpiresAt: now.Add(loginFailureWindow),
 		})
@@ -178,9 +187,18 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 	if !validAudience(input.Audience) {
 		return SessionTokens{}, ErrAudienceMismatch
 	}
-	tenants, err := service.identities.ListUserTenants(ctx, credential.User.ID)
-	if err != nil || len(tenants) == 0 {
-		return SessionTokens{}, ErrInvalidCredentials
+	var tenant domain.Tenant
+	if input.Audience == "ak-mobile" && input.AppID != nil && *input.AppID != uuid.Nil {
+		tenant, err = service.identities.ResolveActiveMobileAppMembership(ctx, *input.AppID, credential.User.ID)
+		if err != nil {
+			return SessionTokens{}, ErrInvalidCredentials
+		}
+	} else {
+		tenants, tenantErr := service.identities.ListUserTenants(ctx, credential.User.ID)
+		if tenantErr != nil || len(tenants) == 0 {
+			return SessionTokens{}, ErrInvalidCredentials
+		}
+		tenant = tenants[0]
 	}
 	plainRefresh, refreshHash, err := NewOpaqueToken()
 	if err != nil {
@@ -191,7 +209,7 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 	}
 	refreshExpiresAt := now.Add(30 * 24 * time.Hour)
 	session, err := service.sessions.CreateSession(ctx, domain.CreateSession{
-		UserID: credential.User.ID, TenantID: tenants[0].ID, Audience: input.Audience,
+		UserID: credential.User.ID, TenantID: tenant.ID, AppID: input.AppID, Audience: input.Audience,
 		RefreshTokenHash: refreshHash, AbsoluteExpiresAt: refreshExpiresAt,
 		IdleExpiresAt: now.Add(7 * 24 * time.Hour), RefreshExpiresAt: refreshExpiresAt,
 		IPAddress: input.Client.IPAddress, UserAgent: input.Client.UserAgent, DeviceKey: deviceKey,
@@ -200,8 +218,8 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 	if err != nil {
 		return SessionTokens{}, fmt.Errorf("create login session: %w", err)
 	}
-	accessToken, accessExpiresAt, err := service.issuer.Issue(
-		session.UserID, session.TenantID, session.ID, session.Audience, session.AccessTokenVersion,
+	accessToken, accessExpiresAt, err := service.issuer.IssueForApp(
+		session.UserID, session.TenantID, session.ID, session.Audience, session.AccessTokenVersion, appIDValue(session.AppID),
 	)
 	if err != nil {
 		_ = service.sessions.RevokeSession(ctx, session.ID, "access_token_issue_failed")
@@ -209,7 +227,7 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 	}
 	return SessionTokens{
 		AccessToken: accessToken, AccessTokenExpiresAt: accessExpiresAt,
-		RefreshToken: plainRefresh, RefreshTokenExpiresAt: refreshExpiresAt, SessionID: session.ID,
+		RefreshToken: plainRefresh, RefreshTokenExpiresAt: refreshExpiresAt, SessionID: session.ID, AppID: session.AppID,
 	}, nil
 }
 
@@ -229,15 +247,15 @@ func (service *AuthService) Refresh(ctx context.Context, refreshToken, audience 
 		_ = service.sessions.RevokeSession(ctx, session.ID, "audience_mismatch")
 		return SessionTokens{}, ErrAudienceMismatch
 	}
-	accessToken, accessExpiresAt, err := service.issuer.Issue(
-		session.UserID, session.TenantID, session.ID, session.Audience, session.AccessTokenVersion,
+	accessToken, accessExpiresAt, err := service.issuer.IssueForApp(
+		session.UserID, session.TenantID, session.ID, session.Audience, session.AccessTokenVersion, appIDValue(session.AppID),
 	)
 	if err != nil {
 		return SessionTokens{}, err
 	}
 	return SessionTokens{
 		AccessToken: accessToken, AccessTokenExpiresAt: accessExpiresAt,
-		RefreshToken: plainRefresh, RefreshTokenExpiresAt: session.AbsoluteExpiresAt, SessionID: session.ID,
+		RefreshToken: plainRefresh, RefreshTokenExpiresAt: session.AbsoluteExpiresAt, SessionID: session.ID, AppID: session.AppID,
 	}, nil
 }
 
@@ -311,6 +329,7 @@ func (service *AuthService) Authenticate(ctx context.Context, rawAccessToken, au
 	}
 	if err = service.sessions.ValidateSession(ctx, domain.Session{
 		ID: claims.SessionID, UserID: userID, TenantID: claims.TenantID,
+		AppID:    appIDPointer(claims.AppID),
 		Audience: audience, AccessTokenVersion: claims.TokenVersion,
 	}); err != nil {
 		return domain.AuthenticatedContext{}, ErrInvalidAccessToken
@@ -326,7 +345,17 @@ func (service *AuthService) Authenticate(ctx context.Context, rawAccessToken, au
 	if err != nil {
 		return domain.AuthenticatedContext{}, err
 	}
-	return domain.AuthenticatedContext{AuthContext: contextValue, SessionID: claims.SessionID}, nil
+	if audience == "ak-mobile" && claims.AppID == uuid.Nil {
+		return domain.AuthenticatedContext{}, ErrInvalidAccessToken
+	}
+	return domain.AuthenticatedContext{AuthContext: contextValue, SessionID: claims.SessionID, AppID: appIDPointer(claims.AppID)}, nil
+}
+
+func appIDPointer(value uuid.UUID) *uuid.UUID {
+	if value == uuid.Nil {
+		return nil
+	}
+	return &value
 }
 
 func (service *AuthService) UpdateSelfProfile(

@@ -443,3 +443,25 @@
 - 主分支在框架提交之后增加了四页面视觉证据，并对 Home、文章页、i18n 和 HTTP Header 类型边界做了后续收紧；没有使用旧 worktree 覆盖这些更新。
 - 后续类型收紧把阅读时长插值改为 `Map<string, string>`，原框架 verifier 仍检查旧的动态参数写法。本轮同步更新检查片段为 `minutes.toString()`，不改变运行时业务逻辑或可见 UI。
 - Mobile Blueprint、统一 i18n、framework contract、secure-storage contract、refresh policy fake HttpPort 与 `git diff --check` 均退出 0。未重新执行三端 compile、安装或真机验证。
+
+## 2026-08-07 App 管理、移动注册找回与法律单页交付
+
+### 状态：代码与静态/构建门禁完成；数据库迁移和终端运行验收未完成
+
+- 新增 App 管理边界：`app.applications`、App 用户 membership、内容/通知/推送偏好/移动发布策略、会话、登录与安全事件均按 App ID 隔离；Admin 应用、用户、文章、单页内容和发布策略均使用 `/admin-api/v1/apps/{app_id}/...`，Mobile `/api/v1` 由 `X-AppID` 选择活动 App。
+- App 用户管理涵盖列表/详情/创建/编辑、启停、解锁、重置密码和当前 App 会话撤销；写操作使用 `lock_version`，冲突返回稳定 `APP.CONFLICT`。应用、用户、单页列表的 `q/status/page/page_size` 在服务端完成范围校验、tenant/App 过滤、总数统计和 `LIMIT/OFFSET`。
+- 文章、单页和法律同意记录均为 App 范围。用户协议、隐私政策、关于我们和自定义页均有 `zh-CN`/`en-US`、draft/published revisions 与原子发布；单页 DTO 保留 `body_format`，markdown 字符串和 blocks 数组不会被串化丢失。
+- Mobile 登录流程补齐注册、邮件验证码、忘记/重置密码、用户协议和隐私政策入口；OTP/Session/App membership/Refresh App 一致性、`X-AppID` OpenAPI 参数和 mobile profile 作用域均已同步。外部邮件保持 Port/fake/异步 Adapter 边界，未写入真实凭据。
+- 遗留移动版本迁移为每个 App 独立副本，回滚时按默认 App、更新时间、UUID 稳定折叠；遗留 mobile 登录/安全事件回填默认 App，新登录成功/失败和 refresh reuse 事件写入当前 App。
+
+### 设计证据索引
+
+- Admin App 管理：[request](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/request.md)、[skill-output](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/skill-output.md)、[decisions](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/decisions.md)、[review checklist](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/review-checklist.md)、[screenshot index](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/screenshot-index.md)。
+- Mobile 认证/法律页：[request](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-app-management-auth-legal/request.md)、[skill-output](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-app-management-auth-legal/skill-output.md)、[decisions](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-app-management-auth-legal/decisions.md)、[review checklist](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-app-management-auth-legal/review-checklist.md)、[screenshots](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-app-management-auth-legal/screenshots/INDEX.md)。
+
+### 验证边界
+
+- 已通过的静态、类型、单元和构建门禁见交付报告；这些结果不等同于 PostgreSQL 迁移、Admin 真实登录浏览器或移动模拟器/真机验收。
+- Docker daemon 无响应，PostgreSQL 18 migration `up → down → up` 未实际运行；HBuilder X iOS 仅推进到 28 页后卡在 `ak-secure-storage`，没有 UTS 完成、模拟器安装或运行验收。
+- 未捕获 Admin 真实登录浏览器截图。OTP 外部邮件通道没有真实凭据，未发送邮件或完成验证码接收验收。
+- 本记录不覆盖已有主工作区移动白屏报告；该问题仍需在可用 HBuilder iOS 模拟器环境中单独验证。

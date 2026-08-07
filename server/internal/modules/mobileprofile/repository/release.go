@@ -36,18 +36,20 @@ func mapUpdate(row db.UpdateMobileReleaseRow) (domain.Release, error) {
 	return release(row.ReleaseNotes, row.ID, row.Platform, row.CurrentVersion, row.MinimumVersion, row.UpgradeUrl, row.Active, row.LockVersion, row.UpdatedAt.Time)
 }
 
-func (repository *Postgres) ActiveRelease(ctx context.Context, platform string) (domain.Release, error) {
-	row, err := db.New(repository.pool).GetActiveMobileRelease(ctx, platform)
+func (repository *Postgres) ActiveRelease(ctx context.Context, appID uuid.UUID, platform string) (domain.Release, error) {
+	row, err := db.New(repository.pool).GetActiveMobileRelease(ctx, db.GetActiveMobileReleaseParams{AppID: appID, Platform: platform})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Release{}, domain.ErrReleaseNotFound
 	}
 	if err != nil {
 		return domain.Release{}, err
 	}
-	return mapActive(row)
+	out, err := mapActive(row)
+	out.AppID = appID
+	return out, err
 }
-func (repository *Postgres) ListReleases(ctx context.Context) ([]domain.Release, error) {
-	rows, err := db.New(repository.pool).ListMobileReleases(ctx)
+func (repository *Postgres) ListReleases(ctx context.Context, appID uuid.UUID) ([]domain.Release, error) {
+	rows, err := db.New(repository.pool).ListMobileReleases(ctx, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -57,11 +59,12 @@ func (repository *Postgres) ListReleases(ctx context.Context) ([]domain.Release,
 		if mapErr != nil {
 			return nil, mapErr
 		}
+		item.AppID = appID
 		out = append(out, item)
 	}
 	return out, nil
 }
-func (repository *Postgres) CreateRelease(ctx context.Context, input domain.Release, actor uuid.UUID, requestID string) (domain.Release, error) {
+func (repository *Postgres) CreateRelease(ctx context.Context, appID uuid.UUID, input domain.Release, actor uuid.UUID, requestID string) (domain.Release, error) {
 	notes, err := json.Marshal(input.ReleaseNotes)
 	if err != nil {
 		return domain.Release{}, err
@@ -73,11 +76,11 @@ func (repository *Postgres) CreateRelease(ctx context.Context, input domain.Rele
 	defer func() { _ = tx.Rollback(ctx) }()
 	queries := db.New(tx)
 	if input.Active {
-		if err = queries.DeactivateMobileReleasesByPlatform(ctx, db.DeactivateMobileReleasesByPlatformParams{Platform: input.Platform}); err != nil {
+		if err = queries.DeactivateMobileReleasesByPlatform(ctx, db.DeactivateMobileReleasesByPlatformParams{AppID: appID, Platform: input.Platform}); err != nil {
 			return domain.Release{}, err
 		}
 	}
-	row, err := queries.CreateMobileRelease(ctx, db.CreateMobileReleaseParams{Platform: input.Platform, CurrentVersion: input.CurrentVersion, MinimumVersion: input.MinimumVersion, UpgradeUrl: input.UpgradeURL, ReleaseNotes: notes, Active: input.Active})
+	row, err := queries.CreateMobileRelease(ctx, db.CreateMobileReleaseParams{AppID: appID, Platform: input.Platform, CurrentVersion: input.CurrentVersion, MinimumVersion: input.MinimumVersion, UpgradeUrl: input.UpgradeURL, ReleaseNotes: notes, Active: input.Active})
 	if err != nil {
 		return domain.Release{}, err
 	}
@@ -85,6 +88,7 @@ func (repository *Postgres) CreateRelease(ctx context.Context, input domain.Rele
 	if err != nil {
 		return domain.Release{}, err
 	}
+	out.AppID = appID
 	after, _ := json.Marshal(out)
 	if _, err = tx.Exec(ctx, `INSERT INTO audit.operation_logs(user_id,request_id,module_code,action_name,permission_code,resource_type,resource_id,http_method,request_path,after_data,succeeded) VALUES($1,$2,'mobile','release.create','mobile.release.create','sys.mobile_release',$3,'POST','/admin-api/v1/mobile/releases',$4,true)`, actor, requestID, out.ID.String(), after); err != nil {
 		return domain.Release{}, err
@@ -94,7 +98,7 @@ func (repository *Postgres) CreateRelease(ctx context.Context, input domain.Rele
 	}
 	return out, nil
 }
-func (repository *Postgres) UpdateRelease(ctx context.Context, input domain.Release, actor uuid.UUID, requestID string) (domain.Release, error) {
+func (repository *Postgres) UpdateRelease(ctx context.Context, appID uuid.UUID, input domain.Release, actor uuid.UUID, requestID string) (domain.Release, error) {
 	notes, err := json.Marshal(input.ReleaseNotes)
 	if err != nil {
 		return domain.Release{}, err
@@ -105,7 +109,7 @@ func (repository *Postgres) UpdateRelease(ctx context.Context, input domain.Rele
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	queries := db.New(tx)
-	existingRow, err := queries.GetMobileReleaseByID(ctx, input.ID)
+	existingRow, err := queries.GetMobileReleaseByID(ctx, db.GetMobileReleaseByIDParams{AppID: appID, ID: input.ID})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Release{}, domain.ErrReleaseNotFound
 	}
@@ -116,15 +120,16 @@ func (repository *Postgres) UpdateRelease(ctx context.Context, input domain.Rele
 	if err != nil {
 		return domain.Release{}, err
 	}
+	existing.AppID = appID
 	if existing.Platform != input.Platform {
 		return domain.Release{}, domain.ErrReleaseConflict
 	}
 	if input.Active {
-		if err = queries.DeactivateMobileReleasesByPlatform(ctx, db.DeactivateMobileReleasesByPlatformParams{Platform: input.Platform, ExceptID: &input.ID}); err != nil {
+		if err = queries.DeactivateMobileReleasesByPlatform(ctx, db.DeactivateMobileReleasesByPlatformParams{AppID: appID, Platform: input.Platform, ExceptID: &input.ID}); err != nil {
 			return domain.Release{}, err
 		}
 	}
-	row, err := queries.UpdateMobileRelease(ctx, db.UpdateMobileReleaseParams{CurrentVersion: input.CurrentVersion, MinimumVersion: input.MinimumVersion, UpgradeUrl: input.UpgradeURL, ReleaseNotes: notes, Active: input.Active, ID: input.ID, LockVersion: input.LockVersion})
+	row, err := queries.UpdateMobileRelease(ctx, db.UpdateMobileReleaseParams{CurrentVersion: input.CurrentVersion, MinimumVersion: input.MinimumVersion, UpgradeUrl: input.UpgradeURL, ReleaseNotes: notes, Active: input.Active, AppID: appID, ID: input.ID, LockVersion: input.LockVersion})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Release{}, domain.ErrReleaseConflict
 	}
@@ -135,6 +140,7 @@ func (repository *Postgres) UpdateRelease(ctx context.Context, input domain.Rele
 	if err != nil {
 		return domain.Release{}, err
 	}
+	out.AppID = appID
 	after, _ := json.Marshal(out)
 	if _, err = tx.Exec(ctx, `INSERT INTO audit.operation_logs(user_id,request_id,module_code,action_name,permission_code,resource_type,resource_id,http_method,request_path,before_data,after_data,succeeded) VALUES($1,$2,'mobile','release.update','mobile.release.update','sys.mobile_release',$3,'PATCH','/admin-api/v1/mobile/releases/{id}',$4,$5,true)`, actor, requestID, out.ID.String(), mustJSON(existing), after); err != nil {
 		return domain.Release{}, err

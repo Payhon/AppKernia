@@ -150,5 +150,15 @@
   "shell.skip_to_content": "跳到主要内容",
   "shell.switch_tenant": "切换工作区",
   "shell.tenant_switch_error": "工作区切换失败，请重试",
-  "shell.tenant_switch_success": "工作区已切换"
+  "shell.tenant_switch_success": "工作区已切换",
+  "menu.app": "App管理",
+  "menu.app.applications": "应用管理",
+  "menu.app.users": "用户管理",
+  "menu.app.content": "内容管理",
+  "menu.app.content.articles": "文章管理",
+  "menu.app.content.pages": "单页内容",
+  "routes.app.applications.title": "应用管理",
+  "routes.app.users.title": "App 用户管理",
+  "routes.app.content.articles.title": "App 文章管理",
+  "routes.app.content.pages.title": "App 单页内容"
 }

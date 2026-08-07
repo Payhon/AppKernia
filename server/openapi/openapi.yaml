@@ -48,6 +48,7 @@ paths:
       security: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
+        - $ref: "#/components/parameters/AppID"
       responses:
         "200":
           description: Public application configuration. Database-backed settings include only active global records where is_public is true and is_secret is false.
@@ -64,7 +65,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PublicConfigResponse"
+                $ref: "#/components/schemas/AppPublicConfigResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "503":
@@ -73,7 +74,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/public/legal/{document_type}:
+    get:
+      summary: Read a published App legal document with locale fallback
+      operationId: getAppLegalDocument
+      security: []
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {$ref: "#/components/parameters/AppID"}, {name: document_type, in: path, required: true, schema: {type: string, enum: [privacy-policy, terms-of-service]}}]
+      responses: {"200": {description: Published legal document and immutable revision hash., content: {application/json: {schema: {$ref: "#/components/schemas/AppPublicPageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/public/pages/{slug}:
+    get:
+      summary: Read one published App single page
+      operationId: getAppPublicPage
+      security: []
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {$ref: "#/components/parameters/AppID"}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}]
+      responses: {"200": {description: Published App page and immutable revision hash., content: {application/json: {schema: {$ref: "#/components/schemas/AppPublicPageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/me/legal-consents:
+    post:
+      summary: Record acceptance of the currently published App legal revision
+      operationId: acceptAppLegalDocument
+      parameters: [{$ref: "#/components/parameters/AppID"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppLegalConsentRequest"}}}}
+      responses: {"200": {description: Consent was recorded idempotently., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/regions:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: Lazily list active public regions
       operationId: listAppRegions
@@ -85,9 +108,10 @@ paths:
       summary: Read the public mobile application upgrade policy
       operationId: getMobileAppVersion
       security: []
-      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: platform, in: query, required: true, schema: {type: string, enum: [android, ios, harmony]}}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {$ref: "#/components/parameters/AppID"}, {name: platform, in: query, required: true, schema: {type: string, enum: [android, ios, harmony]}}]
       responses: {"200": {description: Localized current version and upgrade policy without administrative fields., content: {application/json: {schema: {$ref: "#/components/schemas/MobileAppVersionResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {description: No active release policy exists for this platform., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
   /api/v1/auth/login/password:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     post:
       summary: Sign in to the mobile application with a password
       operationId: mobilePasswordLogin
@@ -95,7 +119,48 @@ paths:
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: X-AK-Device-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 160}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePasswordLoginRequest"}}}}
       responses: {"200": {description: Bearer access token plus one-time opaque refresh token for secure platform storage., content: {application/json: {schema: {$ref: "#/components/schemas/MobileTokenResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/auth/register:
+    post:
+      summary: Register an App user and start App-configured email verification
+      operationId: registerAppUser
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppRegistrationRequest"}}}}
+      responses: {"202": {description: Generic accepted response; does not reveal whether an account already exists., content: {application/json: {schema: {$ref: "#/components/schemas/AppAcceptedResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/auth/registration/verify-email:
+    post:
+      summary: Verify a registration email OTP for the current App
+      operationId: verifyAppRegistrationEmail
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppEmailOTPRequest"}}}}
+      responses: {"200": {description: Membership activated, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/auth/registration/resend-code:
+    post:
+      summary: Resend a registration OTP subject to the App email cooldown
+      operationId: resendAppRegistrationEmail
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppEmailRequest"}}}}
+      responses: {"202": {description: Generic accepted response with resend cooldown., content: {application/json: {schema: {$ref: "#/components/schemas/AppAcceptedResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/auth/password/forgot:
+    post:
+      summary: Start an App-scoped password-reset email OTP flow
+      operationId: forgotAppPassword
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppEmailRequest"}}}}
+      responses: {"202": {description: Generic accepted response to prevent account enumeration., content: {application/json: {schema: {$ref: "#/components/schemas/AppAcceptedResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/auth/password/reset:
+    post:
+      summary: Reset an App user's password with a one-time email OTP
+      operationId: resetAppPassword
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppPasswordResetRequest"}}}}
+      responses: {"200": {description: Password reset and current App mobile sessions revoked., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/auth/token/refresh:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     post:
       summary: Rotate a mobile refresh token
       operationId: mobileRefreshToken
@@ -103,22 +168,26 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileRefreshRequest"}}}}
       responses: {"200": {description: Refresh token rotated; old token is consumed., content: {application/json: {schema: {$ref: "#/components/schemas/MobileTokenResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/auth/logout:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     post:
       summary: Revoke the current mobile session
       operationId: mobileLogout
       responses: {"200": {description: Session revoked, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/auth/context:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: Get the authenticated mobile identity context
       operationId: mobileAuthContext
       responses: {"200": {description: Authenticated mobile context, content: {application/json: {schema: {$ref: "#/components/schemas/MobileContextResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/auth/password/change:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     post:
       summary: Change the current mobile user's password and revoke other sessions
       operationId: mobileChangePassword
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SelfPasswordChangeRequest"}}}}
       responses: {"200": {description: Password changed, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: Get the current mobile user profile
       operationId: getMobileMe
@@ -129,28 +198,33 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileUpdateRequest"}}}}
       responses: {"200": {description: Updated profile, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/sessions:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: List the current user's mobile sessions
       operationId: listMobileSelfSessions
       responses: {"200": {description: Mobile sessions, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSessionListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/me/sessions/{id}:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     delete:
       summary: Revoke one current-user mobile session
       operationId: revokeMobileSelfSession
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Session revoked, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/devices:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: List the current user's devices
       operationId: listMobileSelfDevices
       responses: {"200": {description: Mobile devices, content: {application/json: {schema: {$ref: "#/components/schemas/MobileDeviceListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/me/devices/{id}:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     delete:
       summary: Remove a current-user device and its sessions
       operationId: removeMobileSelfDevice
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Device removed, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/preferences:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: Get current-user locale and appearance preferences
       operationId: getMobilePreferences
@@ -161,25 +235,31 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesUpdateRequest"}}}}
       responses: {"200": {description: Updated preferences, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/notification-preferences:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get: {summary: Get current-user notification preferences, operationId: getMobileNotificationPreferences, responses: {"200": {description: Current notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
     patch: {summary: Update current-user notification preferences, operationId: updateMobileNotificationPreferences, requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesUpdateRequest"}}}}, responses: {"200": {description: Updated notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}}
   /api/v1/me/notifications/unread-count:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get: {summary: Count unread in-app notifications for the current user, operationId: getMobileUnreadNotificationCount, responses: {"200": {description: Unread count, content: {application/json: {schema: {$ref: "#/components/schemas/MobileUnreadCountResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
   /api/v1/me/notifications:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: List delivered current-user in-app notifications with an opaque cursor
       operationId: listMobileNotifications
       parameters: [{name: cursor, in: query, schema: {type: string}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Delivered notifications visible only to the authenticated tenant member., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPageResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/notifications/{id}/read:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     patch:
       summary: Mark one delivered current-user notification as read
       operationId: markMobileNotificationRead
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Notification read state updated, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/login-events:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get: {summary: List the current user's mobile login events, operationId: listMobileLoginEvents, responses: {"200": {description: Login events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
   /api/v1/me/security-events:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get: {summary: List current-user security events, operationId: listMobileSecurityEvents, responses: {"200": {description: Security events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSecurityEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
   /admin-api/v1/mobile/releases:
     get:
@@ -198,6 +278,349 @@ paths:
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
       responses: {"200": {description: Release policy updated; platform is immutable and must match the stored record., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps:
+    get:
+      summary: List Apps scoped to the authenticated Admin tenant
+      operationId: listAdminApps
+      security: [{adminBearer: []}]
+      parameters: [{name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: Tenant Apps, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+    post:
+      summary: Create a new App and its reserved single-page identities
+      operationId: createAdminApp
+      security: [{adminBearer: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppRequest"}}}}
+      responses: {"201": {description: App created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}:
+    get:
+      summary: Read one App scoped to the authenticated Admin tenant
+      operationId: getAdminApp
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App detail, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update App registration and locale configuration with optimistic locking
+      operationId: updateAdminApp
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppRequest"}}}}
+      responses: {"200": {description: Updated App, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/enable:
+    post:
+      summary: Enable an App using an optimistic-lock request body
+      operationId: enableAdminApp
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppStatusRequest"}}}}
+      responses: {"200": {description: Enabled App, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/disable:
+    post:
+      summary: Disable an App and reject subsequent mobile header resolution
+      operationId: disableAdminApp
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppStatusRequest"}}}}
+      responses: {"200": {description: Disabled App, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/mobile/releases:
+    get:
+      summary: List mobile release policies owned by the selected App
+      operationId: listAdminAppMobileReleases
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App release policies., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    post:
+      summary: Create a mobile release policy for the selected App
+      operationId: createAdminAppMobileRelease
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
+      responses: {"201": {description: App release policy created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/mobile/releases/{id}:
+    patch:
+      summary: Update a mobile release policy owned by the selected App
+      operationId: updateAdminAppMobileRelease
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
+      responses: {"200": {description: Updated App release policy., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/notices:
+    get:
+      summary: List App-scoped announcements
+      operationId: listAdminAppNotices
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [draft, scheduled, published, cancelled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: App notices., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    post:
+      summary: Create an App-scoped announcement draft
+      operationId: createAdminAppNotice
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
+      responses: {"201": {description: App notice created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/notices/{id}:
+    get:
+      summary: Get an App-scoped announcement
+      operationId: getAdminAppNotice
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App notice., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update an App-scoped announcement
+      operationId: updateAdminAppNotice
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
+      responses: {"200": {description: Updated App notice., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/notices/{id}/recipient-preview:
+    post:
+      summary: Preview recipients selected from the App membership set
+      operationId: previewAdminAppNoticeRecipients
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App recipient preview., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientPreviewResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /admin-api/v1/apps/{app_id}/notices/{id}/{action}:
+    post:
+      summary: Publish or cancel an App-scoped announcement
+      operationId: transitionAdminAppNotice
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: action, in: path, required: true, schema: {type: string, enum: [publish, cancel]}}]
+      responses: {"200": {description: Transitioned App notice., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/notices/{id}/recipients:
+    get:
+      summary: Get App-scoped announcement recipient statistics
+      operationId: getAdminAppNoticeRecipients
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App recipient statistics., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientStatsResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /admin-api/v1/apps/{app_id}/messages:
+    get:
+      summary: List App-scoped messages
+      operationId: listAdminAppMessages
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [draft, scheduled, published, cancelled]}}, {name: message_type, in: query, schema: {type: string, enum: [system, private, marketing, security]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: App messages., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    post:
+      summary: Create an App-scoped message draft
+      operationId: createAdminAppMessage
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
+      responses: {"201": {description: App message created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/messages/{id}:
+    get:
+      summary: Get an App-scoped message
+      operationId: getAdminAppMessage
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App message., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update an App-scoped message
+      operationId: updateAdminAppMessage
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
+      responses: {"200": {description: Updated App message., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/messages/{id}/recipient-preview:
+    post:
+      summary: Preview recipients selected from the App membership set
+      operationId: previewAdminAppMessageRecipients
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App recipient preview., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientPreviewResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /admin-api/v1/apps/{app_id}/messages/{id}/{action}:
+    post:
+      summary: Publish or cancel an App-scoped message
+      operationId: transitionAdminAppMessage
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: action, in: path, required: true, schema: {type: string, enum: [publish, cancel]}}]
+      responses: {"200": {description: Transitioned App message., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/messages/{id}/recipients:
+    get:
+      summary: Get App-scoped message recipient statistics
+      operationId: getAdminAppMessageRecipients
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App recipient statistics., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientStatsResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /admin-api/v1/apps/{app_id}/content/categories:
+    get:
+      summary: List categories belonging only to the selected App
+      operationId: listAdminAppContentCategories
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: App category page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    post:
+      summary: Create a category owned by the selected App
+      operationId: createAdminAppContentCategory
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryRequest"}}}}
+      responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/content/categories/{id}:
+    get:
+      summary: Read one category owned by the selected App
+      operationId: getAdminAppContentCategory
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Category., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update an App-owned category with optimistic locking
+      operationId: updateAdminAppContentCategory
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryUpdateRequest"}}}}
+      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+    delete:
+      summary: Delete an unused App-owned category
+      operationId: deleteAdminAppContentCategory
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/content/articles:
+    get:
+      summary: List articles belonging only to the selected App
+      operationId: listAdminAppContentArticles
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: category_id, in: query, schema: {type: string, format: uuid}}, {name: status, in: query, schema: {type: string, enum: [draft, published, archived]}}, {name: featured, in: query, schema: {type: boolean}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: App article page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    post:
+      summary: Create an App-owned draft article
+      operationId: createAdminAppContentArticle
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleRequest"}}}}
+      responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/content/articles/{id}:
+    get:
+      summary: Read one App-owned article
+      operationId: getAdminAppContentArticle
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Article., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update an App-owned article using lock_version
+      operationId: updateAdminAppContentArticle
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleUpdateRequest"}}}}
+      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+    delete:
+      summary: Delete an App-owned draft article
+      operationId: deleteAdminAppContentArticle
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/content/articles/{id}/{transition}:
+    post:
+      summary: Transition an App-owned article using its lifecycle action
+      operationId: transitionAdminAppContentArticle
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: transition, in: path, required: true, schema: {type: string, enum: [publish, unpublish, archive]}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTransitionRequest"}}}}
+      responses: {"200": {description: Transitioned., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/content/pages:
+    get:
+      summary: List App-scoped single pages and their current revisions
+      operationId: listAdminAppPages
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [draft, published, archived]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: Pages belonging only to the selected App., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPageListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    post:
+      summary: Create a custom page or append a versioned revision to a reserved App page
+      operationId: saveAdminAppPage
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPageRequest"}}}}
+      responses: {"200": {description: Versioned page saved; publish atomically updates current_revision_id., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPageResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/content/pages/{slug}:
+    patch:
+      summary: Save an App page draft revision without replacing the current published revision
+      operationId: saveAdminAppPageDraft
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPageRequest"}}}}
+      responses: {"200": {description: Draft revision saved., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPageResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+    delete:
+      summary: Delete a custom App page; reserved legal and about pages are immutable
+      operationId: deleteAdminAppPage
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Custom page deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/content/pages/{slug}/publish:
+    post:
+      summary: Publish the newest draft revision of an App page
+      operationId: publishAdminAppPage
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTransitionRequest"}}}}
+      responses: {"200": {description: Draft published atomically., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPageResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/users:
+    get:
+      summary: List only users explicitly associated with the selected App
+      operationId: listAdminAppUsers
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [pending_verification, active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: App memberships, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    post:
+      summary: Create an App user identity and active App membership
+      operationId: createAdminAppUser
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserCreateRequest"}}}}
+      responses: {"201": {description: App user created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/users/{user_id}:
+    get:
+      summary: Read one explicit App membership
+      operationId: getAdminAppUser
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App user detail, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update permitted profile fields for an App user
+      operationId: updateAdminAppUser
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserUpdateRequest"}}}}
+      responses: {"200": {description: Updated App user, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /admin-api/v1/apps/{app_id}/users/{user_id}/enable:
+    post:
+      summary: Enable an App user membership without changing global IAM identity status
+      operationId: enableAdminAppUser
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserActionRequest"}}}}
+      responses: {"200": {description: App membership enabled, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/users/{user_id}/disable:
+    post:
+      summary: Disable an App membership and revoke only that App's mobile sessions
+      operationId: disableAdminAppUser
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserActionRequest"}}}}
+      responses: {"200": {description: App membership disabled, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/users/{user_id}/unlock:
+    post:
+      summary: Clear an App user's credential lock state
+      operationId: unlockAdminAppUser
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserActionRequest"}}}}
+      responses: {"200": {description: User credential unlocked and membership lock incremented, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/users/{user_id}/reset-password:
+    post:
+      summary: Reset global credentials and revoke only the selected App mobile sessions
+      operationId: resetAdminAppUserPassword
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPasswordResetRequest"}}}}
+      responses: {"200": {description: Password reset and membership lock incremented, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/users/{user_id}/sessions/revoke:
+    post:
+      summary: Revoke active ak-mobile sessions belonging to the selected App only
+      operationId: revokeAdminAppUserSessions
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserActionRequest"}}}}
+      responses: {"200": {description: Current App sessions revoked and membership lock incremented, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
   /admin-api/v1/auth/login:
     post:
       summary: Sign in to the Admin application with a password
@@ -229,6 +652,7 @@ paths:
         "422":
           $ref: "#/components/responses/ValidationFailed"
   /api/v1/public/dictionaries/{code}:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: Resolve an active public dictionary using tenant-neutral locale fallback
       operationId: getPublicDictionary
@@ -1717,6 +2141,7 @@ paths:
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Private binary content., content: {application/octet-stream: {schema: {type: string, format: binary}}}}, "409": {description: Scan gate blocked download., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
   /api/v1/articles:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: List published tenant articles localized by Accept-Language
       operationId: listAppArticles
@@ -1724,6 +2149,7 @@ paths:
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: category, in: query, schema: {type: string, maxLength: 120}}, {name: featured, in: query, schema: {type: boolean}}, {name: cursor, in: query, schema: {type: string, format: uuid}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}]
       responses: {"200": {description: Published articles only., headers: {Content-Language: {schema: {$ref: "#/components/schemas/SupportedLocale"}}}, content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/article-categories:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: List all active tenant article categories localized by Accept-Language
       operationId: listAppArticleCategories
@@ -1731,6 +2157,7 @@ paths:
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses: {"200": {description: Active categories in stable sort order., headers: {Content-Language: {schema: {$ref: "#/components/schemas/SupportedLocale"}}}, content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleCategoryListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/article-assets/{file_id}:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: Read a scan-safe image used by a published tenant article
       operationId: getAppArticleAsset
@@ -1738,6 +2165,7 @@ paths:
       parameters: [{name: file_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Authorized JPEG, PNG, or WebP article cover., headers: {Cache-Control: {schema: {type: string}}, ETag: {schema: {type: string}}}, content: {image/jpeg: {schema: {type: string, format: binary}}, image/png: {schema: {type: string, format: binary}}, image/webp: {schema: {type: string, format: binary}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/articles/{slug}:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: Read a published localized article
       operationId: getAppArticle
@@ -1745,6 +2173,7 @@ paths:
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}]
       responses: {"200": {description: Published article., headers: {Content-Language: {schema: {$ref: "#/components/schemas/SupportedLocale"}}}, content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/article-bookmarks/{article_id}:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     put:
       summary: Bookmark a published tenant article
       operationId: bookmarkAppArticle
@@ -2160,6 +2589,7 @@ paths:
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Deleted, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "409": {description: Conflict, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
   /api/v1/auth/client-token:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
     post:
       summary: Exchange an API Client secret for a short-lived ak-api audience token
       operationId: createApiClientToken
@@ -2359,6 +2789,12 @@ components:
       required: false
       schema:
         type: string
+    AppID:
+      name: X-AppID
+      in: header
+      required: true
+      description: Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+      schema: {type: string, format: uuid}
     CSRFToken:
       name: X-CSRF-Token
       in: header
@@ -2487,6 +2923,22 @@ components:
           properties:
             status: {type: string}
         request_id: {type: string}
+    AppPublicConfigResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties:
+        code: {type: string, const: OK}
+        message: {type: string}
+        data:
+          type: object
+          required: [app_id, name, default_locale, registration_enabled, registration_verification_mode]
+          properties:
+            app_id: {type: string, format: uuid}
+            name: {type: string}
+            default_locale: {$ref: "#/components/schemas/SupportedLocale"}
+            registration_enabled: {type: boolean}
+            registration_verification_mode: {type: string, enum: [none, email_otp]}
+        request_id: {type: string}
     PublicConfigResponse:
       type: object
       required: [code, message, data, request_id]
@@ -2499,17 +2951,201 @@ components:
           properties:
             locale: {$ref: "#/components/schemas/SupportedLocale"}
             default_locale: {$ref: "#/components/schemas/SupportedLocale"}
-            supported_locales:
-              type: array
-              items: {$ref: "#/components/schemas/SupportedLocale"}
-            feature_flags:
-              type: object
-              additionalProperties: {type: boolean}
-            settings:
-              type: object
-              description: Effective public values keyed by module_code.config_group.config_key. Tenant-scoped and secret settings are never included.
-              additionalProperties: true
+            supported_locales: {type: array, items: {$ref: "#/components/schemas/SupportedLocale"}}
+            feature_flags: {type: object, additionalProperties: {type: boolean}}
+            settings: {type: object, additionalProperties: true}
         request_id: {type: string}
+    AppPublicPage:
+      type: object
+      required: [slug, document_type, title, body, body_format, version, content_hash, locale, revision_id]
+      properties:
+        slug: {type: string}
+        document_type: {type: string, enum: [privacy-policy, terms-of-service, about-us, custom]}
+        title: {type: string}
+        body: {oneOf: [{type: string}, {type: array}]}
+        body_format: {type: string, enum: [markdown, blocks]}
+        version: {type: integer, minimum: 1}
+        content_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        locale: {$ref: "#/components/schemas/SupportedLocale"}
+        revision_id: {type: string, format: uuid}
+    AppPublicPageResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AppPublicPage"}, request_id: {type: string}}
+    AppLegalConsentRequest:
+      type: object
+      additionalProperties: false
+      required: [document_type, revision_id, content_hash, locale]
+      properties:
+        document_type: {type: string, enum: [privacy-policy, terms-of-service]}
+        revision_id: {type: string, format: uuid}
+        content_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        locale: {$ref: "#/components/schemas/SupportedLocale"}
+    AppRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [email, display_name, password, locale, accept_terms]
+      properties:
+        email: {type: string, format: email, maxLength: 254}
+        display_name: {type: string, minLength: 2, maxLength: 120}
+        password: {type: string, format: password, minLength: 12, maxLength: 256}
+        locale: {$ref: "#/components/schemas/SupportedLocale"}
+        accept_terms: {type: boolean, const: true}
+    AppEmailRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties: {email: {type: string, format: email, maxLength: 254}}
+    AppEmailOTPRequest:
+      allOf:
+        - $ref: "#/components/schemas/AppEmailRequest"
+        - type: object
+          required: [code]
+          properties: {code: {type: string, pattern: '^[0-9]{6}$'}}
+    AppPasswordResetRequest:
+      allOf:
+        - $ref: "#/components/schemas/AppEmailOTPRequest"
+        - type: object
+          required: [new_password]
+          properties: {new_password: {type: string, format: password, minLength: 12, maxLength: 256}}
+    AppAcceptedResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [accepted], properties: {accepted: {type: boolean}, verification_required: {type: boolean}, retry_after_seconds: {type: integer, minimum: 1}}}, request_id: {type: string}}
+    AdminApp:
+      type: object
+      required: [id, tenant_id, code, name, status, default_locale, registration_enabled, registration_verification_mode, is_default, lock_version, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        tenant_id: {type: string, format: uuid}
+        code: {type: string, pattern: '^[a-z][a-z0-9-]{1,62}$'}
+        name: {type: string, minLength: 1, maxLength: 120}
+        status: {type: string, enum: [active, disabled]}
+        default_locale: {$ref: "#/components/schemas/SupportedLocale"}
+        registration_enabled: {type: boolean}
+        registration_verification_mode: {type: string, enum: [none, email_otp]}
+        is_default: {type: boolean}
+        lock_version: {type: integer, minimum: 1}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    AdminAppRequest:
+      type: object
+      additionalProperties: false
+      required: [name, default_locale, registration_enabled, registration_verification_mode]
+      properties:
+        code: {type: string, pattern: '^[a-z][a-z0-9-]{1,62}$'}
+        name: {type: string, minLength: 1, maxLength: 120}
+        default_locale: {$ref: "#/components/schemas/SupportedLocale"}
+        registration_enabled: {type: boolean}
+        registration_verification_mode: {type: string, enum: [none, email_otp]}
+        lock_version: {type: integer, minimum: 1}
+    AdminAppStatusRequest:
+      type: object
+      additionalProperties: false
+      required: [lock_version]
+      properties: {lock_version: {type: integer, minimum: 1}}
+    AdminAppResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminApp"}, request_id: {type: string}}
+    AdminAppListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminAppListPage"}, request_id: {type: string}}
+    AdminAppListPage:
+      type: object
+      required: [items, total]
+      properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminApp"}}, total: {type: integer, minimum: 0}}
+    AdminAppPage:
+      type: object
+      required: [id, slug, page_type, status, lock_version, updated_at, translations, revisions]
+      properties:
+        id: {type: string, format: uuid}
+        slug: {type: string}
+        page_type: {type: string, enum: [privacy-policy, terms-of-service, about-us, custom]}
+        status: {type: string, enum: [draft, published, archived]}
+        lock_version: {type: integer, minimum: 1}
+        current_revision_id: {type: [string, 'null'], format: uuid}
+        updated_at: {type: string, format: date-time}
+        translations: {type: object, required: [zh-CN, en-US], properties: {zh-CN: {type: object, required: [title, body_format, body], properties: {title: {type: string}, body_format: {type: string, enum: [markdown, blocks]}, body: {oneOf: [{type: string}, {type: array}]}}}, en-US: {type: object, required: [title, body_format, body], properties: {title: {type: string}, body_format: {type: string, enum: [markdown, blocks]}, body: {oneOf: [{type: string}, {type: array}]}}}}}
+        revisions: {type: array, items: {type: object, required: [id, version, status, content_hash, created_at], properties: {id: {type: string, format: uuid}, version: {type: integer, minimum: 1}, status: {type: string, enum: [draft, published, archived]}, content_hash: {type: string}, created_at: {type: string, format: date-time}, created_by: {type: [string, 'null'], format: uuid}}}}
+    AdminAppPageRequest:
+      type: object
+      additionalProperties: false
+      required: [slug, page_type, translations, publish]
+      properties:
+        slug: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}
+        page_type: {type: string, enum: [privacy-policy, terms-of-service, about-us, custom]}
+        lock_version: {type: integer, minimum: 1}
+        publish: {type: boolean}
+        translations:
+          type: object
+          required: [zh-CN, en-US]
+          properties:
+            zh-CN: {$ref: "#/components/schemas/AdminAppPageTranslation"}
+            en-US: {$ref: "#/components/schemas/AdminAppPageTranslation"}
+    AdminAppPageTranslation:
+      type: object
+      required: [title, body_format, body]
+      properties: {title: {type: string, minLength: 1, maxLength: 300}, body_format: {type: string, enum: [markdown, blocks]}, body: {oneOf: [{type: string}, {type: array}]}}
+    AdminAppPageResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminAppPage"}, request_id: {type: string}}
+    AdminAppPageListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminAppPageListPage"}, request_id: {type: string}}
+    AdminAppPageListPage:
+      type: object
+      required: [items, total]
+      properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminAppPage"}}, total: {type: integer, minimum: 0}}
+    AdminAppUser:
+      type: object
+      required: [id, user_id, email, display_name, status, source, created_at, lock_version]
+      properties:
+        id: {type: string, format: uuid}
+        user_id: {type: string, format: uuid}
+        email: {type: string, format: email}
+        display_name: {type: string}
+        status: {type: string, enum: [pending_verification, active, disabled]}
+        source: {type: string, enum: [self_registration, admin_created, legacy]}
+        verified_at: {type: [string, 'null'], format: date-time}
+        created_at: {type: string, format: date-time}
+        last_sign_in_at: {type: [string, 'null'], format: date-time}
+        lock_version: {type: integer, minimum: 1}
+    AdminAppUserResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminAppUser"}, request_id: {type: string}}
+    AdminAppUserListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminAppUserListPage"}, request_id: {type: string}}
+    AdminAppUserListPage:
+      type: object
+      required: [items, total]
+      properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminAppUser"}}, total: {type: integer, minimum: 0}}
+    AdminAppUserCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [email, display_name, locale, password]
+      properties: {email: {type: string, format: email}, display_name: {type: string, minLength: 2, maxLength: 120}, locale: {$ref: "#/components/schemas/SupportedLocale"}, password: {type: string, format: password, minLength: 12, maxLength: 256}}
+    AdminAppUserUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [display_name, lock_version]
+      properties: {display_name: {type: string, minLength: 2, maxLength: 120}, lock_version: {type: integer, minimum: 1}}
+    AdminAppUserActionRequest:
+      type: object
+      additionalProperties: false
+      required: [lock_version]
+      properties: {lock_version: {type: integer, minimum: 1}}
+    AdminAppPasswordResetRequest:
+      type: object
+      additionalProperties: false
+      required: [new_password, lock_version]
+      properties: {new_password: {type: string, format: password, minLength: 12, maxLength: 256}, lock_version: {type: integer, minimum: 1}}
     ErrorResponse:
       type: object
       required: [error, request_id]
@@ -4034,9 +4670,10 @@ components:
     AdminNotificationMessage:
       type: object
       additionalProperties: false
-      required: [id, message_type, title, body, body_format, status, audience_scope, audience_user_ids, created_at, updated_at]
+      required: [id, app_id, message_type, title, body, body_format, status, audience_scope, audience_user_ids, created_at, updated_at]
       properties:
         id: {type: string, format: uuid}
+        app_id: {type: string, format: uuid}
         message_type: {type: string, enum: [system, notice, private, marketing, security]}
         title: {type: string, minLength: 1, maxLength: 300}
         body: {type: string, description: HTML bodies have already passed the server allowlist sanitizer. Plain and Markdown bodies are untrusted text and must not be inserted as raw HTML.}
@@ -4744,8 +5381,8 @@ components:
       properties: {refresh_token: {type: string, minLength: 32, description: Opaque token held only in mobile secure storage.}}
     MobileToken:
       type: object
-      required: [access_token, token_type, expires_in, refresh_token, refresh_token_expires_in, session_id]
-      properties: {access_token: {type: string}, token_type: {type: string, const: Bearer}, expires_in: {type: integer, minimum: 0}, refresh_token: {type: string}, refresh_token_expires_in: {type: integer, minimum: 0}, session_id: {type: string, format: uuid}}
+      required: [access_token, token_type, expires_in, refresh_token, refresh_token_expires_in, session_id, app_id]
+      properties: {access_token: {type: string}, token_type: {type: string, const: Bearer}, expires_in: {type: integer, minimum: 0}, refresh_token: {type: string}, refresh_token_expires_in: {type: integer, minimum: 0}, session_id: {type: string, format: uuid}, app_id: {type: string, format: uuid}}
     MobileTokenResponse:
       type: object
       required: [code, message, data, request_id]
@@ -4855,8 +5492,8 @@ components:
       properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/MobileNotification"}}, next_cursor: {type: [string, 'null']}}}, request_id: {type: string}}
     AdminMobileRelease:
       type: object
-      required: [id, platform, current_version, minimum_version, release_notes, active, lock_version, updated_at]
-      properties: {id: {type: string, format: uuid}, platform: {type: string, enum: [android, ios, harmony]}, current_version: {type: string}, minimum_version: {type: string}, upgrade_url: {type: [string, 'null'], format: uri}, release_notes: {type: object, required: [zh-CN, en-US], properties: {zh-CN: {type: string}, en-US: {type: string}}}, active: {type: boolean}, lock_version: {type: integer, minimum: 1}, updated_at: {type: string, format: date-time}}
+      required: [id, app_id, platform, current_version, minimum_version, release_notes, active, lock_version, updated_at]
+      properties: {id: {type: string, format: uuid}, app_id: {type: string, format: uuid}, platform: {type: string, enum: [android, ios, harmony]}, current_version: {type: string}, minimum_version: {type: string}, upgrade_url: {type: [string, 'null'], format: uri}, release_notes: {type: object, required: [zh-CN, en-US], properties: {zh-CN: {type: string}, en-US: {type: string}}}, active: {type: boolean}, lock_version: {type: integer, minimum: 1}, updated_at: {type: string, format: date-time}}
     AdminMobileReleaseRequest:
       type: object
       required: [platform, current_version, minimum_version, release_notes, active]

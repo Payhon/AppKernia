@@ -37,7 +37,15 @@ const implementedComponentKeys = new Set([
 	"system.security.block-rules",
   "system.security.event-detail",
   "system.monitoring.sessions",
-	"system.monitoring.health",
+  "system.monitoring.health",
+  "system.content.articles",
+  "system.content.categories",
+  "system.mobile.releases",
+  "app.applications",
+  "app.users",
+  "app.content.articles",
+  "app.content.categories",
+  "app.content.pages",
 ]);
 
 export interface ResolvedMenuDirectory {
@@ -62,7 +70,7 @@ export interface ResolvedMenuPage {
 
 export type ResolvedMenuItem = ResolvedMenuDirectory | ResolvedMenuPage;
 
-const navigationRootCodes = new Set(["dashboard", "system"]);
+const navigationRootCodes = new Set(["app", "dashboard", "system"]);
 
 export function findRegisteredRoute(
   componentKey: string,
@@ -171,6 +179,11 @@ export function isSafeInternalRedirect(
   value: string | null,
 ): value is
   | "/dashboard"
+  | "/app/applications"
+  | "/app/users"
+  | "/app/content/articles"
+  | "/app/content/categories"
+  | "/app/content/pages"
   | "/profile/basic"
   | "/profile/security"
   | "/profile/connections"
@@ -200,6 +213,11 @@ export function isSafeInternalRedirect(
   | "/system/integrations/webhooks" {
   return (
     value === "/dashboard" ||
+    value === "/app/applications" ||
+    value === "/app/users" ||
+    value === "/app/content/articles" ||
+    value === "/app/content/categories" ||
+    value === "/app/content/pages" ||
     value === "/profile/basic" ||
     value === "/profile/security" ||
     value === "/profile/connections" ||

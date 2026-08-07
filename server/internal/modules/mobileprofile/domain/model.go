@@ -46,6 +46,7 @@ type SecurityEvent struct {
 
 type PreferenceUpdate struct {
 	UserID                  uuid.UUID
+	AppID                   uuid.UUID
 	TenantID                uuid.UUID
 	SessionID               uuid.UUID
 	RequestID               string
@@ -55,11 +56,11 @@ type PreferenceUpdate struct {
 }
 
 type Repository interface {
-	GetPreferences(context.Context, uuid.UUID) (Preferences, error)
+	GetPreferences(context.Context, uuid.UUID, uuid.UUID) (Preferences, error)
 	UpdatePreferences(context.Context, PreferenceUpdate) (Preferences, error)
-	UnreadCount(context.Context, uuid.UUID, uuid.UUID) (int64, error)
-	LoginEvents(context.Context, uuid.UUID) ([]LoginEvent, error)
-	SecurityEvents(context.Context, uuid.UUID) ([]SecurityEvent, error)
-	Notifications(context.Context, uuid.UUID, uuid.UUID, string, int) (NotificationPage, error)
-	MarkNotificationRead(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, string) error
+	UnreadCount(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (int64, error)
+	LoginEvents(context.Context, uuid.UUID, uuid.UUID) ([]LoginEvent, error)
+	SecurityEvents(context.Context, uuid.UUID, uuid.UUID) ([]SecurityEvent, error)
+	Notifications(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, int) (NotificationPage, error)
+	MarkNotificationRead(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, string) error
 }

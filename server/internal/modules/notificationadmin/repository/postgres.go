@@ -31,12 +31,12 @@ func NewPostgres(pool *pgxpool.Pool, clients ...*river.Client[pgx.Tx]) *Postgres
 
 type scanner interface{ Scan(...any) error }
 
-const messageColumns = `id,message_type,title,body,body_format,status,scheduled_at,published_at,expires_at,metadata,created_at,updated_at`
+const messageColumns = `id,app_id,message_type,title,body,body_format,status,scheduled_at,published_at,expires_at,metadata,created_at,updated_at`
 
 func scanMessage(row scanner) (notify.Message, error) {
 	var out notify.Message
 	var metadata []byte
-	if err := row.Scan(&out.ID, &out.MessageType, &out.Title, &out.Body, &out.BodyFormat, &out.Status, &out.ScheduledAt, &out.PublishedAt, &out.ExpiresAt, &metadata, &out.CreatedAt, &out.UpdatedAt); err != nil {
+	if err := row.Scan(&out.ID, &out.AppID, &out.MessageType, &out.Title, &out.Body, &out.BodyFormat, &out.Status, &out.ScheduledAt, &out.PublishedAt, &out.ExpiresAt, &metadata, &out.CreatedAt, &out.UpdatedAt); err != nil {
 		return notify.Message{}, err
 	}
 	var audience struct {
@@ -59,9 +59,13 @@ func messageMeta(in notify.MessageInput) []byte {
 	return out
 }
 
-func (r *Postgres) ListMessages(ctx context.Context, tenantID uuid.UUID, notice bool, f notify.PageFilter) (notify.MessagePage, error) {
-	args := []any{tenantID, notice}
-	where := []string{"tenant_id=$1", "deleted_at IS NULL", "($2::boolean = (message_type='notice'))"}
+func (r *Postgres) ListMessages(ctx context.Context, tenantID, appID uuid.UUID, notice bool, f notify.PageFilter) (notify.MessagePage, error) {
+	appID, err := r.scopedApp(ctx, tenantID, appID)
+	if err != nil {
+		return notify.MessagePage{}, err
+	}
+	args := []any{tenantID, appID, notice}
+	where := []string{"tenant_id=$1", "app_id=$2", "deleted_at IS NULL", "($3::boolean = (message_type='notice'))"}
 	add := func(clause string, value any) {
 		args = append(args, value)
 		where = append(where, fmt.Sprintf(clause, len(args)))
@@ -97,8 +101,12 @@ func (r *Postgres) ListMessages(ctx context.Context, tenantID uuid.UUID, notice 
 	return notify.MessagePage{Items: items, Page: f.Page, PageSize: f.PageSize, Total: total}, rows.Err()
 }
 
-func (r *Postgres) GetMessage(ctx context.Context, tenantID, id uuid.UUID, notice bool) (notify.Message, error) {
-	out, err := scanMessage(r.pool.QueryRow(ctx, fmt.Sprintf("SELECT %s FROM notify.messages WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL AND ($3::boolean = (message_type='notice'))", messageColumns), tenantID, id, notice))
+func (r *Postgres) GetMessage(ctx context.Context, tenantID, appID, id uuid.UUID, notice bool) (notify.Message, error) {
+	appID, scopeErr := r.scopedApp(ctx, tenantID, appID)
+	if scopeErr != nil {
+		return notify.Message{}, scopeErr
+	}
+	out, err := scanMessage(r.pool.QueryRow(ctx, fmt.Sprintf("SELECT %s FROM notify.messages WHERE tenant_id=$1 AND app_id=$2 AND id=$3 AND deleted_at IS NULL AND ($4::boolean = (message_type='notice'))", messageColumns), tenantID, appID, id, notice))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return notify.Message{}, notify.ErrNotFound
 	}
@@ -106,13 +114,18 @@ func (r *Postgres) GetMessage(ctx context.Context, tenantID, id uuid.UUID, notic
 }
 
 func (r *Postgres) CreateMessage(ctx context.Context, p notify.Principal, notice bool, in notify.MessageInput) (notify.Message, error) {
+	var err error
+	p.AppID, err = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if err != nil {
+		return notify.Message{}, err
+	}
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		return notify.Message{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	out, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf(`INSERT INTO notify.messages(tenant_id,sender_user_id,message_type,title,body,body_format,status,scheduled_at,expires_at,metadata)
-		VALUES($1,$2,$3,$4,$5,$6,'draft',$7,$8,$9) RETURNING %s`, messageColumns), p.TenantID, p.UserID, in.MessageType, in.Title, in.Body, in.BodyFormat, in.ScheduledAt, in.ExpiresAt, messageMeta(in)))
+	out, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf(`INSERT INTO notify.messages(tenant_id,app_id,sender_user_id,message_type,title,body,body_format,status,scheduled_at,expires_at,metadata)
+		VALUES($1,$2,$3,$4,$5,$6,$7,'draft',$8,$9,$10) RETURNING %s`, messageColumns), p.TenantID, p.AppID, p.UserID, in.MessageType, in.Title, in.Body, in.BodyFormat, in.ScheduledAt, in.ExpiresAt, messageMeta(in)))
 	if err != nil {
 		return notify.Message{}, err
 	}
@@ -127,15 +140,20 @@ func (r *Postgres) CreateMessage(ctx context.Context, p notify.Principal, notice
 }
 
 func (r *Postgres) UpdateMessage(ctx context.Context, p notify.Principal, id uuid.UUID, notice bool, in notify.MessageInput) (notify.Message, error) {
+	var err error
+	p.AppID, err = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if err != nil {
+		return notify.Message{}, err
+	}
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		return notify.Message{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	out, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf(`UPDATE notify.messages SET message_type=$1,title=$2,body=$3,body_format=$4,scheduled_at=$5,expires_at=$6,metadata=$7
-		WHERE tenant_id=$8 AND id=$9 AND deleted_at IS NULL AND status IN ('draft','scheduled') AND ($10::boolean=(message_type='notice')) RETURNING %s`, messageColumns), in.MessageType, in.Title, in.Body, in.BodyFormat, in.ScheduledAt, in.ExpiresAt, messageMeta(in), p.TenantID, id, notice))
+		WHERE tenant_id=$8 AND app_id=$9 AND id=$10 AND deleted_at IS NULL AND status IN ('draft','scheduled') AND ($11::boolean=(message_type='notice')) RETURNING %s`, messageColumns), in.MessageType, in.Title, in.Body, in.BodyFormat, in.ScheduledAt, in.ExpiresAt, messageMeta(in), p.TenantID, p.AppID, id, notice))
 	if errors.Is(err, pgx.ErrNoRows) {
-		if _, getErr := r.GetMessage(ctx, p.TenantID, id, notice); getErr != nil {
+		if _, getErr := r.GetMessage(ctx, p.TenantID, p.AppID, id, notice); getErr != nil {
 			return notify.Message{}, getErr
 		}
 		return notify.Message{}, notify.ErrConflict
@@ -155,11 +173,11 @@ func (r *Postgres) UpdateMessage(ctx context.Context, p notify.Principal, id uui
 
 func recipientQuery(message notify.Message, count bool) (string, []any) {
 	args := []any{}
-	where := []string{"tm.tenant_id=$1", "tm.status='active'", "u.status='active'", "u.deleted_at IS NULL"}
-	args = append(args, uuid.Nil) // tenant is replaced by caller
+	where := []string{"tm.tenant_id=$1", "am.app_id=$2", "tm.status='active'", "am.status='active'", "u.status='active'", "u.deleted_at IS NULL"}
+	args = append(args, uuid.Nil, message.AppID) // tenant is replaced by caller
 	if message.AudienceScope == "selected" {
 		args = append(args, message.AudienceUserIDs)
-		where = append(where, "u.id=ANY($2::uuid[])")
+		where = append(where, "u.id=ANY($3::uuid[])")
 	}
 	selectSQL := "count(*)"
 	limit := ""
@@ -167,7 +185,7 @@ func recipientQuery(message notify.Message, count bool) (string, []any) {
 		selectSQL = "u.id,COALESCE(tm.display_name,u.display_name),COALESCE(u.email::text,'')"
 		limit = " ORDER BY COALESCE(tm.display_name,u.display_name),u.id LIMIT 20"
 	}
-	return "SELECT " + selectSQL + " FROM iam.tenant_members tm JOIN iam.users u ON u.id=tm.user_id WHERE " + strings.Join(where, " AND ") + limit, args
+	return "SELECT " + selectSQL + " FROM iam.tenant_members tm JOIN app.user_memberships am ON am.tenant_id=tm.tenant_id AND am.user_id=tm.user_id JOIN iam.users u ON u.id=tm.user_id WHERE " + strings.Join(where, " AND ") + limit, args
 }
 
 func previewWith(ctx context.Context, q interface {
@@ -206,17 +224,27 @@ func previewWith(ctx context.Context, q interface {
 	return notify.RecipientPreview{Count: total, Items: items}, rows.Err()
 }
 
-func (r *Postgres) PreviewRecipients(ctx context.Context, tenantID uuid.UUID, message notify.Message) (notify.RecipientPreview, error) {
+func (r *Postgres) PreviewRecipients(ctx context.Context, tenantID, appID uuid.UUID, message notify.Message) (notify.RecipientPreview, error) {
+	appID, err := r.scopedApp(ctx, tenantID, appID)
+	if err != nil {
+		return notify.RecipientPreview{}, err
+	}
+	message.AppID = appID
 	return previewWith(ctx, r.pool, tenantID, message)
 }
 
 func (r *Postgres) PublishMessage(ctx context.Context, p notify.Principal, id uuid.UUID, notice bool) (notify.Message, notify.RecipientPreview, error) {
+	var err error
+	p.AppID, err = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if err != nil {
+		return notify.Message{}, notify.RecipientPreview{}, err
+	}
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		return notify.Message{}, notify.RecipientPreview{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	message, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf("SELECT %s FROM notify.messages WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL AND ($3::boolean=(message_type='notice')) FOR UPDATE", messageColumns), p.TenantID, id, notice))
+	message, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf("SELECT %s FROM notify.messages WHERE tenant_id=$1 AND app_id=$2 AND id=$3 AND deleted_at IS NULL AND ($4::boolean=(message_type='notice')) FOR UPDATE", messageColumns), p.TenantID, p.AppID, id, notice))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return notify.Message{}, notify.RecipientPreview{}, notify.ErrNotFound
 	}
@@ -230,12 +258,12 @@ func (r *Postgres) PublishMessage(ctx context.Context, p notify.Principal, id uu
 	if err != nil {
 		return notify.Message{}, notify.RecipientPreview{}, err
 	}
-	insert := `INSERT INTO notify.recipients(tenant_id,message_id,user_id)
-		SELECT $1,$2,u.id FROM iam.tenant_members tm JOIN iam.users u ON u.id=tm.user_id
-		WHERE tm.tenant_id=$1 AND tm.status='active' AND u.status='active' AND u.deleted_at IS NULL`
-	args := []any{p.TenantID, id}
+	insert := `INSERT INTO notify.recipients(tenant_id,app_id,message_id,user_id)
+		SELECT $1,$2,$3,u.id FROM iam.tenant_members tm JOIN app.user_memberships am ON am.tenant_id=tm.tenant_id AND am.user_id=tm.user_id JOIN iam.users u ON u.id=tm.user_id
+		WHERE tm.tenant_id=$1 AND am.app_id=$2 AND tm.status='active' AND am.status='active' AND u.status='active' AND u.deleted_at IS NULL`
+	args := []any{p.TenantID, p.AppID, id}
 	if message.AudienceScope == "selected" {
-		insert += " AND u.id=ANY($3::uuid[])"
+		insert += " AND u.id=ANY($4::uuid[])"
 		args = append(args, message.AudienceUserIDs)
 	}
 	insert += " ON CONFLICT DO NOTHING"
@@ -248,7 +276,7 @@ func (r *Postgres) PublishMessage(ctx context.Context, p notify.Principal, id uu
 	if message.ScheduledAt != nil && message.ScheduledAt.After(now) {
 		status, publishedAt = "scheduled", nil
 	}
-	message, err = scanMessage(tx.QueryRow(ctx, fmt.Sprintf("UPDATE notify.messages SET status=$1,published_at=$2 WHERE tenant_id=$3 AND id=$4 RETURNING %s", messageColumns), status, publishedAt, p.TenantID, id))
+	message, err = scanMessage(tx.QueryRow(ctx, fmt.Sprintf("UPDATE notify.messages SET status=$1,published_at=$2 WHERE tenant_id=$3 AND app_id=$4 AND id=$5 RETURNING %s", messageColumns), status, publishedAt, p.TenantID, p.AppID, id))
 	if err != nil {
 		return notify.Message{}, notify.RecipientPreview{}, err
 	}
@@ -263,13 +291,18 @@ func (r *Postgres) PublishMessage(ctx context.Context, p notify.Principal, id uu
 }
 
 func (r *Postgres) CancelMessage(ctx context.Context, p notify.Principal, id uuid.UUID, notice bool) (notify.Message, error) {
+	var err error
+	p.AppID, err = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if err != nil {
+		return notify.Message{}, err
+	}
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		return notify.Message{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	message, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf(`UPDATE notify.messages SET status='cancelled' WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL
-		AND status IN ('draft','scheduled','published') AND ($3::boolean=(message_type='notice')) RETURNING %s`, messageColumns), p.TenantID, id, notice))
+	message, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf(`UPDATE notify.messages SET status='cancelled' WHERE tenant_id=$1 AND app_id=$2 AND id=$3 AND deleted_at IS NULL
+		AND status IN ('draft','scheduled','published') AND ($4::boolean=(message_type='notice')) RETURNING %s`, messageColumns), p.TenantID, p.AppID, id, notice))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return notify.Message{}, notify.ErrConflict
 	}
@@ -286,12 +319,12 @@ func (r *Postgres) CancelMessage(ctx context.Context, p notify.Principal, id uui
 	return message, tx.Commit(ctx)
 }
 
-func (r *Postgres) RecipientStats(ctx context.Context, tenantID, id uuid.UUID, notice bool) (notify.RecipientStats, error) {
-	if _, err := r.GetMessage(ctx, tenantID, id, notice); err != nil {
+func (r *Postgres) RecipientStats(ctx context.Context, tenantID, appID, id uuid.UUID, notice bool) (notify.RecipientStats, error) {
+	if _, err := r.GetMessage(ctx, tenantID, appID, id, notice); err != nil {
 		return notify.RecipientStats{}, err
 	}
 	var out notify.RecipientStats
-	err := r.pool.QueryRow(ctx, `SELECT count(*),count(*) FILTER(WHERE delivery_status='pending'),count(*) FILTER(WHERE delivery_status='delivered'),count(*) FILTER(WHERE delivery_status='failed'),count(*) FILTER(WHERE read_at IS NOT NULL) FROM notify.recipients WHERE tenant_id=$1 AND message_id=$2`, tenantID, id).Scan(&out.Total, &out.Pending, &out.Delivered, &out.Failed, &out.Read)
+	err := r.pool.QueryRow(ctx, `SELECT count(*),count(*) FILTER(WHERE delivery_status='pending'),count(*) FILTER(WHERE delivery_status='delivered'),count(*) FILTER(WHERE delivery_status='failed'),count(*) FILTER(WHERE read_at IS NOT NULL) FROM notify.recipients WHERE tenant_id=$1 AND app_id=$2 AND message_id=$3`, tenantID, appID, id).Scan(&out.Total, &out.Pending, &out.Delivered, &out.Failed, &out.Read)
 	return out, err
 }
 
@@ -397,12 +430,12 @@ func (r *Postgres) UpdateTemplate(ctx context.Context, p notify.Principal, id uu
 	return out, tx.Commit(ctx)
 }
 
-const deliveryColumns = `id,message_id,user_id,template_id,channel,COALESCE(target_hint,''),COALESCE(provider,''),COALESCE(provider_message_id,''),status,attempt_count,max_attempts,scheduled_at,next_attempt_at,sent_at,COALESCE(last_error,''),retryable,retry_risk,created_at,updated_at`
+const deliveryColumns = `id,app_id,message_id,user_id,template_id,channel,COALESCE(target_hint,''),COALESCE(provider,''),COALESCE(provider_message_id,''),status,attempt_count,max_attempts,scheduled_at,next_attempt_at,sent_at,COALESCE(last_error,''),retryable,retry_risk,created_at,updated_at`
 
 func scanDelivery(row scanner) (notify.Delivery, error) {
 	var out notify.Delivery
 	var lastError string
-	err := row.Scan(&out.ID, &out.MessageID, &out.UserID, &out.TemplateID, &out.Channel, &out.TargetHint, &out.Provider, &out.ProviderMessageID, &out.Status, &out.AttemptCount, &out.MaxAttempts, &out.ScheduledAt, &out.NextAttemptAt, &out.SentAt, &lastError, &out.Retryable, &out.RetryRisk, &out.CreatedAt, &out.UpdatedAt)
+	err := row.Scan(&out.ID, &out.AppID, &out.MessageID, &out.UserID, &out.TemplateID, &out.Channel, &out.TargetHint, &out.Provider, &out.ProviderMessageID, &out.Status, &out.AttemptCount, &out.MaxAttempts, &out.ScheduledAt, &out.NextAttemptAt, &out.SentAt, &lastError, &out.Retryable, &out.RetryRisk, &out.CreatedAt, &out.UpdatedAt)
 	if err == nil && lastError != "" {
 		out.ErrorCode = "PROVIDER_DELIVERY_FAILED"
 		out.ErrorSummary = safeSummary(lastError)
@@ -607,6 +640,22 @@ func insertAudit(ctx context.Context, tx pgx.Tx, p notify.Principal, action, res
 		VALUES($1,$2,$3,$4,'notify',$5,$6,$7,$8,$9,$10,$11,$12,$13,true)`,
 		&tenant, &user, &session, p.RequestID, action, &resource, &resourceID, &method, &path, &status, ip, ua, raw)
 	return err
+}
+
+func (r *Postgres) scopedApp(ctx context.Context, tenantID, appID uuid.UUID) (uuid.UUID, error) {
+	if appID == uuid.Nil {
+		err := r.pool.QueryRow(ctx, `SELECT id FROM app.applications WHERE tenant_id=$1 AND is_default AND status='active'`, tenantID).Scan(&appID)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, notify.ErrNotFound
+		}
+		return appID, err
+	}
+	var found uuid.UUID
+	err := r.pool.QueryRow(ctx, `SELECT id FROM app.applications WHERE tenant_id=$1 AND id=$2 AND status='active'`, tenantID, appID).Scan(&found)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, notify.ErrNotFound
+	}
+	return found, err
 }
 
 func emailHint(value string) string {

@@ -3,33 +3,66 @@ import { AkHttpPort, HttpCancellation, HttpRequest } from '../../core/network/ht
 import { akI18n } from '../../core/i18n/ak-i18n.uts'
 
 export type PasswordLoginInput = { readonly email: string; readonly password: string; readonly deviceKey: string }
-export type MobileAuthToken = { readonly accessToken: string; readonly refreshToken: string; readonly sessionId: string }
+export type RegisterInput = { readonly email: string; readonly displayName: string; readonly password: string; readonly acceptTerms: boolean }
+export type VerificationInput = { readonly email: string; readonly code: string }
+export type PasswordResetInput = { readonly email: string; readonly code: string; readonly newPassword: string }
+export type AcceptedResult = { readonly verificationRequired: boolean; readonly retryAfterSeconds: number }
+export type MobileAuthToken = { readonly accessToken: string; readonly refreshToken: string; readonly sessionId: string; readonly appId: string }
 export type MobileAuthContext = { readonly permissions: Array<string>; readonly enabledFlags: Array<string> }
 
 type PasswordLoginWire = { readonly email: string; readonly password: string }
+type RegisterWire = { readonly email: string; readonly display_name: string; readonly password: string; readonly locale: string; readonly accept_terms: boolean }
+type VerificationWire = { readonly email: string; readonly code: string }
+type ForgotWire = { readonly email: string }
+type ResetWire = { readonly email: string; readonly code: string; readonly new_password: string }
 type RefreshWire = { readonly refresh_token: string }
-type TokenWire = { readonly access_token: string; readonly refresh_token: string; readonly session_id: string }
+type TokenWire = { readonly access_token: string; readonly refresh_token: string; readonly session_id: string; readonly app_id: string }
 type BooleanWire = { readonly value: boolean }
 type ContextWire = { readonly permissions: Array<string>; readonly feature_flags: UTSJSONObject }
+type AcceptedWire = { readonly accepted: boolean; readonly verification_required: boolean | null; readonly retry_after_seconds: number | null }
 
 /** Mobile-auth repository. Its paths and field names mirror the mobile OpenAPI. */
 export class HttpAuthRepository {
   private readonly http: AkHttpPort
+  private readonly expectedAppId: string
 
-  constructor(http: AkHttpPort) { this.http = http }
+  constructor(http: AkHttpPort, expectedAppId: string) { this.http = http; this.expectedAppId = expectedAppId }
 
   login(input: PasswordLoginInput, onSuccess: (token: MobileAuthToken) => void, onFailure: (error: AkError) => void): HttpCancellation {
     const headers = new Map<string, string>()
     headers.set('X-AK-Device-Key', input.deviceKey)
     const body: PasswordLoginWire = { email: input.email, password: input.password }
     const request: HttpRequest<PasswordLoginWire> = { method: 'POST', path: '/auth/login/password', query: new Map<string, string>(), headers: headers, retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
-    return this.http.execute<PasswordLoginWire, TokenWire>(request, (response) => onSuccess(this.mapToken(response.data)), onFailure)
+    return this.http.execute<PasswordLoginWire, TokenWire>(request, (response) => this.acceptToken(response.data, onSuccess, onFailure), onFailure)
+  }
+
+  register(input: RegisterInput, onSuccess: (result: AcceptedResult) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: RegisterWire = { email: input.email, display_name: input.displayName, password: input.password, locale: akI18n.getLocale(), accept_terms: input.acceptTerms }
+    const request: HttpRequest<RegisterWire> = { method: 'POST', path: '/auth/register', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<RegisterWire, AcceptedWire>(request, response => onSuccess(this.accepted(response.data)), onFailure)
+  }
+
+  verifyRegistration(input: VerificationInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { return this.challenge('/auth/registration/verify-email', input, onSuccess, onFailure) }
+  resendRegistration(input: { readonly email: string }, onSuccess: (result: AcceptedResult) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: ForgotWire = { email: input.email }
+    const request: HttpRequest<ForgotWire> = { method: 'POST', path: '/auth/registration/resend-code', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<ForgotWire, AcceptedWire>(request, response => onSuccess(this.accepted(response.data)), onFailure)
+  }
+  forgotPassword(email: string, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: ForgotWire = { email: email }
+    const request: HttpRequest<ForgotWire> = { method: 'POST', path: '/auth/password/forgot', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<ForgotWire, UTSJSONObject>(request, () => onSuccess(), onFailure)
+  }
+  resetPassword(input: PasswordResetInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: ResetWire = { email: input.email, code: input.code, new_password: input.newPassword }
+    const request: HttpRequest<ResetWire> = { method: 'POST', path: '/auth/password/reset', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<ResetWire, UTSJSONObject>(request, () => onSuccess(), onFailure)
   }
 
   refresh(refreshToken: string, onSuccess: (token: MobileAuthToken) => void, onFailure: (error: AkError) => void): HttpCancellation {
     const body: RefreshWire = { refresh_token: refreshToken }
     const request: HttpRequest<RefreshWire> = { method: 'POST', path: '/auth/token/refresh', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
-    return this.http.execute<RefreshWire, TokenWire>(request, (response) => onSuccess(this.mapToken(response.data)), onFailure)
+    return this.http.execute<RefreshWire, TokenWire>(request, (response) => this.acceptToken(response.data, onSuccess, onFailure), onFailure)
   }
 
   logout(onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
@@ -46,7 +79,20 @@ export class HttpAuthRepository {
     }, onFailure)
   }
 
-  private mapToken(token: TokenWire): MobileAuthToken {
-    return { accessToken: token.access_token, refreshToken: token.refresh_token, sessionId: token.session_id }
+  private challenge(path: string, input: VerificationInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: VerificationWire = { email: input.email, code: input.code }
+    const request: HttpRequest<VerificationWire> = { method: 'POST', path: path, query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<VerificationWire, UTSJSONObject>(request, () => onSuccess(), onFailure)
+  }
+
+  private acceptToken(token: TokenWire, onSuccess: (token: MobileAuthToken) => void, onFailure: (error: AkError) => void): void {
+    if (token.app_id == null || token.app_id.toLowerCase() != this.expectedAppId) {
+      onFailure(new AkError('unauthorized', 'auth.app_mismatch', 'errors.auth.appMismatch', null))
+      return
+    }
+    onSuccess({ accessToken: token.access_token, refreshToken: token.refresh_token, sessionId: token.session_id, appId: token.app_id })
+  }
+  private accepted(value: AcceptedWire): AcceptedResult {
+    return { verificationRequired: value.verification_required == true, retryAfterSeconds: value.retry_after_seconds != null && value.retry_after_seconds > 0 ? value.retry_after_seconds : 60 }
   }
 }

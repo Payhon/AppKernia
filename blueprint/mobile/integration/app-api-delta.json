@@ -147,6 +147,30 @@
       "phase": "P0"
     },
     {
+      "method": "POST",
+      "path": "/api/v1/auth/registration/verify-email",
+      "purpose": "验证 App 自注册邮箱 OTP，成功后仅激活会员资格，不创建会话。",
+      "phase": "P0"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/registration/resend-code",
+      "purpose": "按服务端 60 秒冷却重发 App 自注册邮箱 OTP。",
+      "phase": "P0"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/pages/{slug}",
+      "purpose": "读取应用范围内已发布的自定义单页内容，使用受限 Markdown 或 blocks 文本渲染。",
+      "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/legal-consents",
+      "purpose": "记录当前移动用户已接受的法律文档 revision、hash 和 locale。",
+      "phase": "P0"
+    },
+    {
       "method": "GET",
       "path": "/api/v1/public/app-version",
       "purpose": "返回三平台最低/推荐版本、商店地址和升级说明；不下发可执行脚本。",

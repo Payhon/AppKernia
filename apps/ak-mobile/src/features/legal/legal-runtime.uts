@@ -1,0 +1,5 @@
+import { AkHttpPort } from '../../core/network/http-port.uts'
+import { HttpLegalRepository } from './legal-repository.uts'
+
+export class LegalRuntime { private repository: HttpLegalRepository | null = null; configure(http: AkHttpPort): void { this.repository = new HttpLegalRepository(http) }; getRepository(): HttpLegalRepository | null { return this.repository } }
+export const legalRuntime = new LegalRuntime()

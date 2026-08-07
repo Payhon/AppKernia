@@ -20,8 +20,8 @@ var (
 )
 
 type Principal struct {
-	TenantID, UserID, SessionID uuid.UUID
-	RequestID, UserAgent        string
+	TenantID, AppID, UserID, SessionID uuid.UUID
+	RequestID, UserAgent               string
 }
 
 type Translation struct {
@@ -125,21 +125,21 @@ type PublicCategoryPage struct {
 }
 
 type Repository interface {
-	ListCategories(context.Context, uuid.UUID, PageFilter) (CategoryPage, error)
-	GetCategory(context.Context, uuid.UUID, uuid.UUID) (Category, error)
+	ListCategories(context.Context, uuid.UUID, uuid.UUID, PageFilter) (CategoryPage, error)
+	GetCategory(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (Category, error)
 	CreateCategory(context.Context, Principal, Category) (Category, error)
 	UpdateCategory(context.Context, Principal, Category) (Category, error)
 	DeleteCategory(context.Context, Principal, uuid.UUID, int32) error
-	ListArticles(context.Context, uuid.UUID, PageFilter) (ArticlePage, error)
-	GetArticle(context.Context, uuid.UUID, uuid.UUID) (Article, error)
+	ListArticles(context.Context, uuid.UUID, uuid.UUID, PageFilter) (ArticlePage, error)
+	GetArticle(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (Article, error)
 	CreateArticle(context.Context, Principal, Article) (Article, error)
 	UpdateArticle(context.Context, Principal, Article) (Article, error)
 	DeleteArticle(context.Context, Principal, uuid.UUID, int32) error
 	TransitionArticle(context.Context, Principal, uuid.UUID, int32, string) (Article, error)
-	ListPublished(context.Context, uuid.UUID, uuid.UUID, string, PublicFilter) (PublicArticlePage, error)
-	ListPublishedCategories(context.Context, uuid.UUID, string) (PublicCategoryPage, error)
-	GetPublished(context.Context, uuid.UUID, uuid.UUID, string, string) (PublicArticle, error)
-	OpenArticleAsset(context.Context, uuid.UUID, uuid.UUID) (ArticleAsset, io.ReadCloser, error)
-	Bookmark(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
-	RemoveBookmark(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) error
+	ListPublished(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, PublicFilter) (PublicArticlePage, error)
+	ListPublishedCategories(context.Context, uuid.UUID, uuid.UUID, string) (PublicCategoryPage, error)
+	GetPublished(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, string) (PublicArticle, error)
+	OpenArticleAsset(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (ArticleAsset, io.ReadCloser, error)
+	Bookmark(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID) error
+	RemoveBookmark(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID) error
 }

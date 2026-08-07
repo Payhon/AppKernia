@@ -1,10 +1,10 @@
 -- name: CreateSession :one
 INSERT INTO iam.sessions (
-    user_id, tenant_id, device_id, audience, status, access_token_version,
+    user_id, tenant_id, app_id, device_id, audience, status, access_token_version,
     absolute_expires_at, idle_expires_at, ip_address, user_agent
 )
 VALUES (
-    sqlc.arg('user_id'), sqlc.arg('tenant_id'), sqlc.narg('device_id'), sqlc.arg('audience'),
+    sqlc.arg('user_id'), sqlc.arg('tenant_id'), sqlc.narg('app_id'), sqlc.narg('device_id'), sqlc.arg('audience'),
     'active', 1, sqlc.arg('absolute_expires_at'), sqlc.arg('idle_expires_at'),
     sqlc.narg('ip_address'), sqlc.narg('user_agent')
 )
@@ -28,18 +28,18 @@ RETURNING *;
 
 -- name: InsertSuccessfulLoginEvent :exec
 INSERT INTO audit.login_events (
-    tenant_id, user_id, session_id, request_id, auth_method, audience, result,
+    tenant_id, user_id, session_id, app_id, request_id, auth_method, audience, result,
     client_ip, user_agent, device_info
 )
 VALUES (
-    sqlc.arg('tenant_id'), sqlc.arg('user_id'), sqlc.arg('session_id'), sqlc.narg('request_id'),
+    sqlc.arg('tenant_id'), sqlc.arg('user_id'), sqlc.arg('session_id'), sqlc.narg('app_id'), sqlc.narg('request_id'),
     sqlc.arg('auth_method'), sqlc.arg('audience'), 'success', sqlc.narg('client_ip'), sqlc.narg('user_agent'),
     jsonb_build_object('platform', 'web', 'registered', sqlc.arg('device_registered')::boolean)
 );
 
 -- name: InsertFailedLoginEvent :exec
 INSERT INTO audit.login_events (
-    tenant_id, user_id, request_id, auth_method, audience, result, failure_reason, client_ip, user_agent
+    tenant_id, user_id, app_id, request_id, auth_method, audience, result, failure_reason, client_ip, user_agent
 )
 VALUES (
     (
@@ -49,7 +49,7 @@ VALUES (
         ORDER BY tm.created_at, tm.tenant_id
         LIMIT 1
     ),
-    sqlc.narg('user_id'), sqlc.narg('request_id'), 'password', sqlc.arg('audience'),
+    sqlc.narg('user_id'), sqlc.narg('app_id'), sqlc.narg('request_id'), 'password', sqlc.arg('audience'),
     'failure', 'invalid_credentials', sqlc.narg('client_ip'), sqlc.narg('user_agent')
 );
 
@@ -121,6 +121,7 @@ SELECT rt.id AS refresh_token_id,
        rt.revoked_at AS refresh_revoked_at,
        s.user_id,
        s.tenant_id,
+       s.app_id,
        s.audience,
        s.status AS session_status,
        s.access_token_version,
@@ -154,9 +155,9 @@ WHERE session_id = $1 AND revoked_at IS NULL;
 
 -- name: InsertRefreshReuseSecurityEvent :exec
 INSERT INTO audit.security_events (
-    tenant_id, user_id, session_id, event_type, severity, source, client_ip, details
+    tenant_id, user_id, session_id, app_id, event_type, severity, source, client_ip, details
 )
-VALUES ($1, $2, $3, 'iam.refresh_token.reuse', 'high', 'auth', $4, '{"action":"session_revoked"}'::jsonb);
+VALUES ($1, $2, $3, $4, 'iam.refresh_token.reuse', 'high', 'auth', $5, '{"action":"session_revoked"}'::jsonb);
 
 -- name: GetAuthContextUser :one
 SELECT u.id, u.email, u.display_name, u.locale, u.time_zone, u.avatar_file_id,

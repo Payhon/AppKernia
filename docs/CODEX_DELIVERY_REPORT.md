@@ -1187,3 +1187,34 @@
 ### 验证边界
 
 - 本轮是主分支文件完整性和静态契约复核，没有重新执行 Android/iOS/Harmony compile、安装、模拟器或真机；既有平台证据仍以此前交付记录为准。
+
+## 2026-08-07 App 管理与移动认证/法律内容交付报告
+
+### 交付范围
+
+- Backend：新增 App 领域迁移和 App membership，完成 App 范围的内容、页面 revision/法律同意、通知/推送偏好、移动版本、session、登录/安全事件；OpenAPI、sqlc、权限/菜单种子与 Admin/Mobile 契约同步。旧移动版本复制到每个现有 App，回滚采用确定性折叠策略。
+- Admin：新增“App 管理”一级菜单及应用、用户、内容二级页面；内容包括文章和单页内容。应用/用户/单页列表实现服务端筛选、分页与 total，操作使用乐观锁并返回最新 DTO。
+- Mobile：补齐注册、邮箱验证、找回/重置密码、用户协议、隐私政策入口及 App 配置/认证网络边界；请求携带 `X-AppID`，用户协议、隐私政策、关于我们由 App 单页内容读取。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `make sqlc-generate`（`server`） | 0 | App、mobile profile、内容和 IAM 查询生成成功。 |
+| `GOTOOLCHAIN=go1.26.5 go test ./...`（`server`） | 0 | 全量 Go 测试通过，覆盖 App 管理、内容、IAM、移动 profile 回归。 |
+| Node 24 Admin typecheck / lint / test / build / check | 0 | 严格类型、ESLint、24 个测试文件/91 项测试、生产构建及 Admin check 通过。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile 静态项目检查、i18n/VDOM/禁用模式和脚本目标检查通过。 |
+| Backend/Admin/Mobile 蓝图与 i18n validator | 0 | 三端蓝图静态契约及 `zh-CN`/`en-US` 键、占位符一致性通过。 |
+| OpenAPI YAML/参数覆盖断言、`git diff --check` | 0 | 207 paths 可解析；Mobile `/api/v1` operation 声明 AppID；补丁格式通过。 |
+
+### 设计证据
+
+- Admin：[request](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/request.md)、[skill output](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/skill-output.md)、[decisions](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/decisions.md)、[review checklist](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/review-checklist.md)、[screenshot index](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/screenshot-index.md)。
+- Mobile：[request](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-app-management-auth-legal/request.md)、[skill output](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-app-management-auth-legal/skill-output.md)、[decisions](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-app-management-auth-legal/decisions.md)、[review checklist](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-app-management-auth-legal/review-checklist.md)、[screenshot index](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-app-management-auth-legal/screenshots/INDEX.md)。
+
+### 未完成项、阻塞与风险
+
+- Docker daemon 无响应，PostgreSQL 18 migration `up → down → up` 未实际运行；静态检查和 Go 测试不能替代数据库验收。
+- HBuilder X iOS 只编译到 28 页，随后卡在 `ak-secure-storage`；没有 UTS 完成、模拟器安装或运行结果，白屏未由模拟器实测关闭。
+- 未捕获 Admin 真实登录浏览器截图；Admin 构建/测试通过不代表真实登录态视觉验收。
+- OTP 邮件外部通道没有真实凭据，没有发送邮件或进行验证码接收端到端验收。未部署生产；Android/iOS/Harmony 真机、Firefox/Safari 和真实第三方邮件服务均未验证。

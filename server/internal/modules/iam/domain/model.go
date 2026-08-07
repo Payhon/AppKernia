@@ -67,6 +67,7 @@ type Repository interface {
 	CreateIdentity(context.Context, CreateIdentity) (User, Tenant, error)
 	RegisterAdmin(context.Context, RegisterAdmin) error
 	FindCredentialByEmail(context.Context, string) (Credential, error)
+	ResolveActiveMobileAppMembership(context.Context, uuid.UUID, uuid.UUID) (Tenant, error)
 	ListUserTenants(context.Context, uuid.UUID) ([]Tenant, error)
 	UpdateSelfProfile(context.Context, UpdateSelfProfile) (User, error)
 	GetSelfPasswordState(context.Context, uuid.UUID) (SelfPasswordState, error)
@@ -127,6 +128,7 @@ type ResetPassword struct {
 
 type LoginFailure struct {
 	UserID    *uuid.UUID
+	AppID     *uuid.UUID
 	Audience  string
 	RequestID string
 	IPAddress *netip.Addr
@@ -185,6 +187,7 @@ type Session struct {
 	ID                 uuid.UUID
 	UserID             uuid.UUID
 	TenantID           uuid.UUID
+	AppID              *uuid.UUID
 	Audience           string
 	AccessTokenVersion int32
 	AbsoluteExpiresAt  time.Time
@@ -220,6 +223,7 @@ type RevokeSelfSession struct {
 type CreateSession struct {
 	UserID            uuid.UUID
 	TenantID          uuid.UUID
+	AppID             *uuid.UUID
 	Audience          string
 	AuthMethod        string
 	RefreshTokenHash  []byte
@@ -275,6 +279,7 @@ type AuthContext struct {
 type AuthenticatedContext struct {
 	AuthContext
 	SessionID uuid.UUID
+	AppID     *uuid.UUID
 }
 
 type Menu struct {

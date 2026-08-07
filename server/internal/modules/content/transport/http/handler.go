@@ -111,7 +111,7 @@ func (h *Handler) Categories(r *ghttp.Request) {
 	}
 	f.Status = r.GetQuery("status").String()
 	f.Sort = r.GetQuery("sort").String()
-	out, e := h.service.ListCategories(r.Context(), token(r), f)
+	out, e := h.service.ListCategories(r.Context(), token(r), appID(r), f)
 	if !h.fail(r, e) {
 		h.ok(r, 200, out)
 	}
@@ -122,7 +122,7 @@ func (h *Handler) Category(r *ghttp.Request) {
 		h.fail(r, content.ErrInvalid)
 		return
 	}
-	out, e := h.service.GetCategory(r.Context(), token(r), id)
+	out, e := h.service.GetCategory(r.Context(), token(r), appID(r), id)
 	if !h.fail(r, e) {
 		h.ok(r, 200, out)
 	}
@@ -133,7 +133,7 @@ func (h *Handler) CreateCategory(r *ghttp.Request) {
 		h.fail(r, content.ErrInvalid)
 		return
 	}
-	out, e := h.service.CreateCategory(r.Context(), token(r), principal(r), x)
+	out, e := h.service.CreateCategory(r.Context(), token(r), appID(r), principal(r), x)
 	if !h.fail(r, e) {
 		h.ok(r, 201, out)
 	}
@@ -146,7 +146,7 @@ func (h *Handler) UpdateCategory(r *ghttp.Request) {
 		return
 	}
 	x.ID = id
-	out, e := h.service.UpdateCategory(r.Context(), token(r), principal(r), x)
+	out, e := h.service.UpdateCategory(r.Context(), token(r), appID(r), principal(r), x)
 	if !h.fail(r, e) {
 		h.ok(r, 200, out)
 	}
@@ -158,7 +158,7 @@ func (h *Handler) DeleteCategory(r *ghttp.Request) {
 		h.fail(r, content.ErrInvalid)
 		return
 	}
-	if !h.fail(r, h.service.DeleteCategory(r.Context(), token(r), principal(r), id, int32(v))) {
+	if !h.fail(r, h.service.DeleteCategory(r.Context(), token(r), appID(r), principal(r), id, int32(v))) {
 		h.ok(r, 200, map[string]bool{"deleted": true})
 	}
 }
@@ -172,7 +172,7 @@ func (h *Handler) AdminArticles(r *ghttp.Request) {
 		return
 	}
 	f.Status, f.Sort, f.Featured, f.CategoryID = r.GetQuery("status").String(), r.GetQuery("sort").String(), featured, category
-	out, e := h.service.ListArticles(r.Context(), token(r), f)
+	out, e := h.service.ListArticles(r.Context(), token(r), appID(r), f)
 	if !h.fail(r, e) {
 		h.ok(r, 200, out)
 	}
@@ -183,7 +183,7 @@ func (h *Handler) AdminArticle(r *ghttp.Request) {
 		h.fail(r, content.ErrInvalid)
 		return
 	}
-	out, e := h.service.GetArticle(r.Context(), token(r), id)
+	out, e := h.service.GetArticle(r.Context(), token(r), appID(r), id)
 	if !h.fail(r, e) {
 		h.ok(r, 200, out)
 	}
@@ -194,7 +194,7 @@ func (h *Handler) CreateArticle(r *ghttp.Request) {
 		h.fail(r, content.ErrInvalid)
 		return
 	}
-	out, e := h.service.CreateArticle(r.Context(), token(r), principal(r), x)
+	out, e := h.service.CreateArticle(r.Context(), token(r), appID(r), principal(r), x)
 	if !h.fail(r, e) {
 		h.ok(r, 201, out)
 	}
@@ -207,7 +207,7 @@ func (h *Handler) UpdateArticle(r *ghttp.Request) {
 		return
 	}
 	x.ID = id
-	out, e := h.service.UpdateArticle(r.Context(), token(r), principal(r), x)
+	out, e := h.service.UpdateArticle(r.Context(), token(r), appID(r), principal(r), x)
 	if !h.fail(r, e) {
 		h.ok(r, 200, out)
 	}
@@ -219,7 +219,7 @@ func (h *Handler) DeleteArticle(r *ghttp.Request) {
 		h.fail(r, content.ErrInvalid)
 		return
 	}
-	if !h.fail(r, h.service.DeleteArticle(r.Context(), token(r), principal(r), id, int32(v))) {
+	if !h.fail(r, h.service.DeleteArticle(r.Context(), token(r), appID(r), principal(r), id, int32(v))) {
 		h.ok(r, 200, map[string]bool{"deleted": true})
 	}
 }
@@ -235,7 +235,7 @@ func (h *Handler) transition(r *ghttp.Request, state string) {
 		h.fail(r, content.ErrInvalid)
 		return
 	}
-	out, e := h.service.TransitionArticle(r.Context(), token(r), principal(r), id, input.LockVersion, state)
+	out, e := h.service.TransitionArticle(r.Context(), token(r), appID(r), principal(r), id, input.LockVersion, state)
 	if !h.fail(r, e) {
 		h.ok(r, 200, out)
 	}
@@ -268,6 +268,13 @@ func optionalID(r *ghttp.Request, key string) (*uuid.UUID, bool) {
 func idAt(r *ghttp.Request, key string) (uuid.UUID, bool) {
 	id, e := uuid.Parse(r.GetRouter(key).String())
 	return id, e == nil
+}
+func appID(r *ghttp.Request) uuid.UUID {
+	id, err := uuid.Parse(r.GetRouter("app_id").String())
+	if err != nil {
+		return uuid.Nil // Legacy Admin endpoints stay scoped to the tenant's default App.
+	}
+	return id
 }
 func token(r *ghttp.Request) string {
 	parts := strings.Fields(r.Header.Get("Authorization"))

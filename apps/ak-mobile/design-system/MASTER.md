@@ -29,3 +29,10 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Cards use a 16 px radius; contr
 - Async states are explicit: loading, empty, error, offline, forbidden and mutating. Mutations disable duplicate input and show localised feedback.
 - Use outline glyphs or text affordances consistently; do not use emoji as UI icons.
 - Reserve safe-area space around the bottom tab/action bars and leave room for English expansion.
+
+## Authentication and legal surfaces
+
+- Authentication pages use one clear primary action, labelled fields, inline validation and a secondary action hierarchy for password recovery and registration.
+- Legal links remain visible on the login screen, are never preselected as consent, and open static allowlisted routes.
+- Privacy consent is a dedicated pre-bootstrap surface: bundled text is readable offline, primary consent has a 44 px target, and no sensitive SDK or device capability may initialize before acceptance.
+- Legal CMS content is rendered as text-only, allowlisted Markdown/blocks; raw HTML, URLs, scripts and remote components are never interpreted by a page.

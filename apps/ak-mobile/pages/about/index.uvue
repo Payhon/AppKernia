@@ -1,10 +1,15 @@
-<template><ak-theme-root><view class="page"><view class="nav"><ak-back-button/><text>{{t('routes.about.title', null)}}</text><view/></view><ak-status-view v-if="state!=='content'" :state="state" :title="title" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/><ak-card v-else><text class="brand">AppKernia</text><text>{{t('about.current', null)}} {{currentVersion}}</text><text>{{t('about.minimum', null)}} {{minimumVersion}}</text><text>{{releaseNotes}}</text><ak-button v-if="upgradeAvailable" variant="primary" disabled>{{t('about.upgradeUnavailable', null)}}</ak-button></ak-card></view></ak-theme-root></template>
+<template><ak-theme-root><view class="page"><view class="nav"><ak-back-button/><text>{{t('routes.about.title', null)}}</text><view/></view><ak-status-view v-if="state!=='content'" :state="state" :title="title" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/><scroll-view v-else class="content" scroll-y><ak-card><text class="brand">{{aboutTitle}}</text><view v-for="block in aboutBlocks" :key="block.id" class="about-body"><text>{{block.text}}</text></view></ak-card><ak-card><text>{{t('about.current', null)}} {{currentVersion}}</text><text>{{t('about.minimum', null)}} {{minimumVersion}}</text><text>{{releaseNotes}}</text><ak-button v-if="upgradeAvailable" variant="primary" disabled>{{t('about.upgradeUnavailable', null)}}</ak-button></ak-card></scroll-view></view></ak-theme-root></template>
 <script lang="uts">
 import {akI18n} from '../../src/core/i18n/ak-i18n.uts'
 import {versionRuntime} from '../../src/features/version/infrastructure/version-runtime.uts'
+import {legalRuntime} from '../../src/features/legal/legal-runtime.uts'
+import {LegalDocument} from '../../src/features/legal/legal-repository.uts'
+import {ArticleBodyRenderer, ArticleBodyBlock} from '../../src/features/articles/application/article-body-renderer.uts'
+
+const aboutRenderer = new ArticleBodyRenderer()
 
 export default {
-  data() { return {state:'loading', currentVersion:'', minimumVersion:'', releaseNotes:'', upgradeAvailable:false} },
+  data() { return {state:'loading', currentVersion:'', minimumVersion:'', releaseNotes:'', upgradeAvailable:false, aboutTitle:'AppKernia', aboutBlocks:[] as Array<ArticleBodyBlock>} },
   computed: {
     t() { return akI18n.t },
     title() { return akI18n.t(this.state==='offline'?'state.offline.title':this.state==='unavailable'?'state.versionUnavailable.title':'state.error.title', null) },
@@ -32,10 +37,15 @@ export default {
         this.minimumVersion=value.minimum
         this.releaseNotes=value.notes
         this.upgradeAvailable=value.upgradeUrl != null && value.upgradeUrl.length>0
-        this.state='content'
+        this.loadAboutContent()
       }, error => { this.state=error.kind==='network_unavailable'?'offline':error.kind==='maintenance'?'unavailable':'error' })
+    },
+    loadAboutContent() {
+      const repository = legalRuntime.getRepository()
+      if (repository == null) { this.state='content'; return }
+      repository.publicPage('about-us', (value: LegalDocument) => { this.aboutTitle=value.title; this.aboutBlocks=aboutRenderer.render(value.bodyFormat, value.body); this.state='content' }, () => { this.state='content' })
     },
   },
 }
 </script>
-<style lang="scss">.page{height:100%;flex:1;padding:16px;background:var(--ak-page)}.nav{height:48px;flex-direction:row;align-items:center;justify-content:space-between}.brand{font-size:28px;color:var(--ak-text)}</style>
+<style lang="scss">.page{height:100%;flex:1;padding:16px;background:var(--ak-page)}.nav{height:48px;flex-direction:row;align-items:center;justify-content:space-between}.content{height:640px}.brand{font-size:28px;color:var(--ak-text)}.about-body{color:var(--ak-text);font-size:16px;line-height:26px;margin-top:12px}</style>

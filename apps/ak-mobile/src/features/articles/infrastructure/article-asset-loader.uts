@@ -30,7 +30,7 @@ export class ArticleAssetLoader {
     if (url == null) { onFailure(new AkError('forbidden', 'article.asset.invalid_path', 'errors.auth.forbidden', null)); return }
     const token = this.session.getAccessToken()
     if (token == null) { onFailure(new AkError('unauthorized', 'auth.unauthorized', 'errors.auth.unauthorized', null)); return }
-    const task = uni.downloadFile({ url, header: { Authorization: 'Bearer ' + token }, success: result => {
+    const task = uni.downloadFile({ url, header: { Authorization: 'Bearer ' + token, 'X-AppID': this.config.appId }, success: result => {
       if (cancellation.isCancelled()) return
       if (result.statusCode >= 200 && result.statusCode < 300) { onSuccess(result.tempFilePath); return }
       if (result.statusCode == 401 && !replayed) { this.refresh.refresh(() => { if (!cancellation.isCancelled()) this.attempt(path, true, cancellation, onSuccess, onFailure) }, onFailure); return }

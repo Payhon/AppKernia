@@ -75,8 +75,12 @@ func mobileCoverURL(id *uuid.UUID) *string {
 	return &value
 }
 
-func (r *Postgres) ListCategories(ctx context.Context, tenant uuid.UUID, f content.PageFilter) (content.CategoryPage, error) {
-	where, args := []string{"c.tenant_id=$1"}, []any{tenant}
+func (r *Postgres) ListCategories(ctx context.Context, tenant, appID uuid.UUID, f content.PageFilter) (content.CategoryPage, error) {
+	appID, err := r.scopedApp(ctx, tenant, appID)
+	if err != nil {
+		return content.CategoryPage{}, err
+	}
+	where, args := []string{"c.tenant_id=$1", "c.app_id=$2"}, []any{tenant, appID}
 	add := func(q string, v any) { args = append(args, v); where = append(where, fmt.Sprintf(q, len(args))) }
 	if f.Query != "" {
 		add("(c.slug ILIKE '%%'||$%d||'%%' OR EXISTS(SELECT 1 FROM content.category_translations t WHERE t.category_id=c.id AND t.name ILIKE '%%'||$%d||'%%'))", f.Query)
@@ -111,24 +115,33 @@ func (r *Postgres) ListCategories(ctx context.Context, tenant uuid.UUID, f conte
 	}
 	return out, rows.Err()
 }
-func (r *Postgres) GetCategory(ctx context.Context, tenant, id uuid.UUID) (content.Category, error) {
-	x, e := scanCategory(r.pool.QueryRow(ctx, categorySelect+" WHERE c.tenant_id=$1 AND c.id=$2", tenant, id))
+func (r *Postgres) GetCategory(ctx context.Context, tenant, appID, id uuid.UUID) (content.Category, error) {
+	appID, e := r.scopedApp(ctx, tenant, appID)
+	if e != nil {
+		return content.Category{}, e
+	}
+	x, e := scanCategory(r.pool.QueryRow(ctx, categorySelect+" WHERE c.tenant_id=$1 AND c.app_id=$2 AND c.id=$3", tenant, appID, id))
 	return x, mapNotFound(e)
 }
 func (r *Postgres) CreateCategory(ctx context.Context, p content.Principal, x content.Category) (content.Category, error) {
+	var e error
+	p.AppID, e = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if e != nil {
+		return x, e
+	}
 	tx, e := r.begin(ctx)
 	if e != nil {
 		return content.Category{}, e
 	}
 	defer tx.Rollback(ctx)
-	e = tx.QueryRow(ctx, `INSERT INTO content.categories(tenant_id,slug,status,sort_order) VALUES($1,$2,$3,$4) RETURNING id`, p.TenantID, x.Slug, x.Status, x.SortOrder).Scan(&x.ID)
+	e = tx.QueryRow(ctx, `INSERT INTO content.categories(tenant_id,app_id,slug,status,sort_order) VALUES($1,$2,$3,$4,$5) RETURNING id`, p.TenantID, p.AppID, x.Slug, x.Status, x.SortOrder).Scan(&x.ID)
 	if e != nil {
 		return x, mapWrite(e)
 	}
 	if e = upsertCategoryTranslations(ctx, tx, p.TenantID, x.ID, x.Translations); e != nil {
 		return x, e
 	}
-	out, e := getCategory(ctx, tx, p.TenantID, x.ID)
+	out, e := getCategory(ctx, tx, p.TenantID, p.AppID, x.ID)
 	if e != nil {
 		return x, e
 	}
@@ -141,16 +154,21 @@ func (r *Postgres) CreateCategory(ctx context.Context, p content.Principal, x co
 	return out, nil
 }
 func (r *Postgres) UpdateCategory(ctx context.Context, p content.Principal, x content.Category) (content.Category, error) {
+	var e error
+	p.AppID, e = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if e != nil {
+		return x, e
+	}
 	tx, e := r.begin(ctx)
 	if e != nil {
 		return content.Category{}, e
 	}
 	defer tx.Rollback(ctx)
-	before, e := getCategory(ctx, tx, p.TenantID, x.ID)
+	before, e := getCategory(ctx, tx, p.TenantID, p.AppID, x.ID)
 	if e != nil {
 		return x, e
 	}
-	tag, e := tx.Exec(ctx, `UPDATE content.categories SET slug=$1,status=$2,sort_order=$3,lock_version=lock_version+1 WHERE tenant_id=$4 AND id=$5 AND lock_version=$6`, x.Slug, x.Status, x.SortOrder, p.TenantID, x.ID, x.LockVersion)
+	tag, e := tx.Exec(ctx, `UPDATE content.categories SET slug=$1,status=$2,sort_order=$3,lock_version=lock_version+1 WHERE tenant_id=$4 AND app_id=$5 AND id=$6 AND lock_version=$7`, x.Slug, x.Status, x.SortOrder, p.TenantID, p.AppID, x.ID, x.LockVersion)
 	if e != nil {
 		return x, mapWrite(e)
 	}
@@ -160,7 +178,7 @@ func (r *Postgres) UpdateCategory(ctx context.Context, p content.Principal, x co
 	if e = upsertCategoryTranslations(ctx, tx, p.TenantID, x.ID, x.Translations); e != nil {
 		return x, e
 	}
-	out, e := getCategory(ctx, tx, p.TenantID, x.ID)
+	out, e := getCategory(ctx, tx, p.TenantID, p.AppID, x.ID)
 	if e != nil {
 		return x, e
 	}
@@ -173,16 +191,21 @@ func (r *Postgres) UpdateCategory(ctx context.Context, p content.Principal, x co
 	return out, nil
 }
 func (r *Postgres) DeleteCategory(ctx context.Context, p content.Principal, id uuid.UUID, v int32) error {
+	var e error
+	p.AppID, e = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if e != nil {
+		return e
+	}
 	tx, e := r.begin(ctx)
 	if e != nil {
 		return e
 	}
 	defer tx.Rollback(ctx)
-	before, e := getCategory(ctx, tx, p.TenantID, id)
+	before, e := getCategory(ctx, tx, p.TenantID, p.AppID, id)
 	if e != nil {
 		return e
 	}
-	tag, e := tx.Exec(ctx, `DELETE FROM content.categories c WHERE c.tenant_id=$1 AND c.id=$2 AND c.lock_version=$3 AND NOT EXISTS(SELECT 1 FROM content.articles a WHERE a.tenant_id=c.tenant_id AND a.category_id=c.id)`, p.TenantID, id, v)
+	tag, e := tx.Exec(ctx, `DELETE FROM content.categories c WHERE c.tenant_id=$1 AND c.app_id=$2 AND c.id=$3 AND c.lock_version=$4 AND NOT EXISTS(SELECT 1 FROM content.articles a WHERE a.tenant_id=c.tenant_id AND a.app_id=c.app_id AND a.category_id=c.id)`, p.TenantID, p.AppID, id, v)
 	if e != nil {
 		return mapWrite(e)
 	}
@@ -195,8 +218,12 @@ func (r *Postgres) DeleteCategory(ctx context.Context, p content.Principal, id u
 	return tx.Commit(ctx)
 }
 
-func (r *Postgres) ListArticles(ctx context.Context, tenant uuid.UUID, f content.PageFilter) (content.ArticlePage, error) {
-	where, args := []string{"a.tenant_id=$1"}, []any{tenant}
+func (r *Postgres) ListArticles(ctx context.Context, tenant, appID uuid.UUID, f content.PageFilter) (content.ArticlePage, error) {
+	appID, err := r.scopedApp(ctx, tenant, appID)
+	if err != nil {
+		return content.ArticlePage{}, err
+	}
+	where, args := []string{"a.tenant_id=$1", "a.app_id=$2"}, []any{tenant, appID}
 	add := func(q string, v any) { args = append(args, v); where = append(where, fmt.Sprintf(q, len(args))) }
 	if f.Query != "" {
 		add("(a.slug ILIKE '%%'||$%d||'%%' OR EXISTS(SELECT 1 FROM content.article_translations t WHERE t.article_id=a.id AND (t.title ILIKE '%%'||$%d||'%%' OR t.summary ILIKE '%%'||$%d||'%%')))", f.Query)
@@ -240,27 +267,36 @@ func (r *Postgres) ListArticles(ctx context.Context, tenant uuid.UUID, f content
 	}
 	return out, rows.Err()
 }
-func (r *Postgres) GetArticle(ctx context.Context, tenant, id uuid.UUID) (content.Article, error) {
-	x, e := scanArticle(r.pool.QueryRow(ctx, articleSelect+" WHERE a.tenant_id=$1 AND a.id=$2", tenant, id))
+func (r *Postgres) GetArticle(ctx context.Context, tenant, appID, id uuid.UUID) (content.Article, error) {
+	appID, e := r.scopedApp(ctx, tenant, appID)
+	if e != nil {
+		return content.Article{}, e
+	}
+	x, e := scanArticle(r.pool.QueryRow(ctx, articleSelect+" WHERE a.tenant_id=$1 AND a.app_id=$2 AND a.id=$3", tenant, appID, id))
 	return x, mapNotFound(e)
 }
 func (r *Postgres) CreateArticle(ctx context.Context, p content.Principal, x content.Article) (content.Article, error) {
+	var e error
+	p.AppID, e = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if e != nil {
+		return x, e
+	}
 	tx, e := r.begin(ctx)
 	if e != nil {
 		return content.Article{}, e
 	}
 	defer tx.Rollback(ctx)
-	if e = validReferences(ctx, tx, p.TenantID, x.CategoryID, x.CoverFileID); e != nil {
+	if e = validReferences(ctx, tx, p.TenantID, p.AppID, x.CategoryID, x.CoverFileID); e != nil {
 		return x, e
 	}
-	e = tx.QueryRow(ctx, `INSERT INTO content.articles(tenant_id,category_id,slug,status,featured,sort_order,cover_file_id,reading_minutes,created_by,updated_by) VALUES($1,$2,$3,'draft',$4,$5,$6,$7,$8,$8) RETURNING id`, p.TenantID, x.CategoryID, x.Slug, x.Featured, x.SortOrder, x.CoverFileID, x.ReadingMinutes, p.UserID).Scan(&x.ID)
+	e = tx.QueryRow(ctx, `INSERT INTO content.articles(tenant_id,app_id,category_id,slug,status,featured,sort_order,cover_file_id,reading_minutes,created_by,updated_by) VALUES($1,$2,$3,$4,'draft',$5,$6,$7,$8,$9,$9) RETURNING id`, p.TenantID, p.AppID, x.CategoryID, x.Slug, x.Featured, x.SortOrder, x.CoverFileID, x.ReadingMinutes, p.UserID).Scan(&x.ID)
 	if e != nil {
 		return x, mapWrite(e)
 	}
 	if e = upsertArticleTranslations(ctx, tx, x.ID, x.Translations); e != nil {
 		return x, e
 	}
-	out, e := getArticle(ctx, tx, p.TenantID, x.ID)
+	out, e := getArticle(ctx, tx, p.TenantID, p.AppID, x.ID)
 	if e != nil {
 		return x, e
 	}
@@ -273,22 +309,27 @@ func (r *Postgres) CreateArticle(ctx context.Context, p content.Principal, x con
 	return out, nil
 }
 func (r *Postgres) UpdateArticle(ctx context.Context, p content.Principal, x content.Article) (content.Article, error) {
+	var e error
+	p.AppID, e = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if e != nil {
+		return x, e
+	}
 	tx, e := r.begin(ctx)
 	if e != nil {
 		return content.Article{}, e
 	}
 	defer tx.Rollback(ctx)
-	before, e := getArticle(ctx, tx, p.TenantID, x.ID)
+	before, e := getArticle(ctx, tx, p.TenantID, p.AppID, x.ID)
 	if e != nil {
 		return x, e
 	}
 	if before.Status == "archived" {
 		return x, content.ErrConflict
 	}
-	if e = validReferences(ctx, tx, p.TenantID, x.CategoryID, x.CoverFileID); e != nil {
+	if e = validReferences(ctx, tx, p.TenantID, p.AppID, x.CategoryID, x.CoverFileID); e != nil {
 		return x, e
 	}
-	tag, e := tx.Exec(ctx, `UPDATE content.articles SET category_id=$1,slug=$2,featured=$3,sort_order=$4,cover_file_id=$5,reading_minutes=$6,updated_by=$7,lock_version=lock_version+1 WHERE tenant_id=$8 AND id=$9 AND lock_version=$10`, x.CategoryID, x.Slug, x.Featured, x.SortOrder, x.CoverFileID, x.ReadingMinutes, p.UserID, p.TenantID, x.ID, x.LockVersion)
+	tag, e := tx.Exec(ctx, `UPDATE content.articles SET category_id=$1,slug=$2,featured=$3,sort_order=$4,cover_file_id=$5,reading_minutes=$6,updated_by=$7,lock_version=lock_version+1 WHERE tenant_id=$8 AND app_id=$9 AND id=$10 AND lock_version=$11`, x.CategoryID, x.Slug, x.Featured, x.SortOrder, x.CoverFileID, x.ReadingMinutes, p.UserID, p.TenantID, p.AppID, x.ID, x.LockVersion)
 	if e != nil {
 		return x, mapWrite(e)
 	}
@@ -298,7 +339,7 @@ func (r *Postgres) UpdateArticle(ctx context.Context, p content.Principal, x con
 	if e = upsertArticleTranslations(ctx, tx, x.ID, x.Translations); e != nil {
 		return x, e
 	}
-	out, e := getArticle(ctx, tx, p.TenantID, x.ID)
+	out, e := getArticle(ctx, tx, p.TenantID, p.AppID, x.ID)
 	if e != nil {
 		return x, e
 	}
@@ -311,16 +352,21 @@ func (r *Postgres) UpdateArticle(ctx context.Context, p content.Principal, x con
 	return out, nil
 }
 func (r *Postgres) DeleteArticle(ctx context.Context, p content.Principal, id uuid.UUID, v int32) error {
+	var e error
+	p.AppID, e = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if e != nil {
+		return e
+	}
 	tx, e := r.begin(ctx)
 	if e != nil {
 		return e
 	}
 	defer tx.Rollback(ctx)
-	before, e := getArticle(ctx, tx, p.TenantID, id)
+	before, e := getArticle(ctx, tx, p.TenantID, p.AppID, id)
 	if e != nil {
 		return e
 	}
-	tag, e := tx.Exec(ctx, `DELETE FROM content.articles WHERE tenant_id=$1 AND id=$2 AND status='draft' AND lock_version=$3`, p.TenantID, id, v)
+	tag, e := tx.Exec(ctx, `DELETE FROM content.articles WHERE tenant_id=$1 AND app_id=$2 AND id=$3 AND status='draft' AND lock_version=$4`, p.TenantID, p.AppID, id, v)
 	if e != nil {
 		return mapWrite(e)
 	}
@@ -333,26 +379,31 @@ func (r *Postgres) DeleteArticle(ctx context.Context, p content.Principal, id uu
 	return tx.Commit(ctx)
 }
 func (r *Postgres) TransitionArticle(ctx context.Context, p content.Principal, id uuid.UUID, v int32, state string) (content.Article, error) {
+	var e error
+	p.AppID, e = r.scopedApp(ctx, p.TenantID, p.AppID)
+	if e != nil {
+		return content.Article{}, e
+	}
 	tx, e := r.begin(ctx)
 	if e != nil {
 		return content.Article{}, e
 	}
 	defer tx.Rollback(ctx)
-	before, e := getArticle(ctx, tx, p.TenantID, id)
+	before, e := getArticle(ctx, tx, p.TenantID, p.AppID, id)
 	if e != nil {
 		return content.Article{}, e
 	}
 	if !transitionAllowed(before.Status, state) {
 		return content.Article{}, content.ErrConflict
 	}
-	tag, e := tx.Exec(ctx, `UPDATE content.articles SET status=$1,published_at=CASE WHEN $1='published' THEN COALESCE(published_at,now()) WHEN $1='draft' THEN NULL ELSE published_at END,updated_by=$2,lock_version=lock_version+1 WHERE tenant_id=$3 AND id=$4 AND lock_version=$5`, state, p.UserID, p.TenantID, id, v)
+	tag, e := tx.Exec(ctx, `UPDATE content.articles SET status=$1,published_at=CASE WHEN $1='published' THEN COALESCE(published_at,now()) WHEN $1='draft' THEN NULL ELSE published_at END,updated_by=$2,lock_version=lock_version+1 WHERE tenant_id=$3 AND app_id=$4 AND id=$5 AND lock_version=$6`, state, p.UserID, p.TenantID, p.AppID, id, v)
 	if e != nil {
 		return content.Article{}, mapWrite(e)
 	}
 	if tag.RowsAffected() == 0 {
 		return content.Article{}, content.ErrConflict
 	}
-	out, e := getArticle(ctx, tx, p.TenantID, id)
+	out, e := getArticle(ctx, tx, p.TenantID, p.AppID, id)
 	if e != nil {
 		return content.Article{}, e
 	}
@@ -375,7 +426,7 @@ func transitionAllowed(from, to string) bool {
 	return (from == "draft" && (to == "published" || to == "archived")) || (from == "published" && (to == "draft" || to == "archived"))
 }
 
-const publicArticleSelect = `SELECT a.id,a.category_id,a.slug,a.featured,a.sort_order,cover.id,a.reading_minutes,a.published_at,t.title,t.summary,t.body_format,t.body,c.id,c.slug,c.sort_order,ct.name,ct.description,EXISTS(SELECT 1 FROM content.article_bookmarks b WHERE b.tenant_id=a.tenant_id AND b.article_id=a.id AND b.user_id=$1) FROM content.articles a JOIN LATERAL(SELECT * FROM content.article_translations WHERE article_id=a.id AND locale IN ($2,'zh-CN') ORDER BY (locale=$2) DESC LIMIT 1)t ON true LEFT JOIN storage.files cover ON cover.tenant_id=a.tenant_id AND cover.id=a.cover_file_id AND cover.status='ready' AND cover.scan_status IN ('clean','skipped') AND lower(COALESCE(cover.media_type,'')) IN ('image/jpeg','image/png','image/webp') AND cover.deleted_at IS NULL LEFT JOIN content.categories c ON c.id=a.category_id AND c.tenant_id=a.tenant_id AND c.status='active' LEFT JOIN LATERAL(SELECT * FROM content.category_translations WHERE category_id=c.id AND locale IN ($2,'zh-CN') ORDER BY (locale=$2) DESC LIMIT 1)ct ON true`
+const publicArticleSelect = `SELECT a.id,a.category_id,a.slug,a.featured,a.sort_order,cover.id,a.reading_minutes,a.published_at,t.title,t.summary,t.body_format,t.body,c.id,c.slug,c.sort_order,ct.name,ct.description,EXISTS(SELECT 1 FROM content.article_bookmarks b WHERE b.tenant_id=a.tenant_id AND b.app_id=a.app_id AND b.article_id=a.id AND b.user_id=$1) FROM content.articles a JOIN LATERAL(SELECT * FROM content.article_translations WHERE article_id=a.id AND locale IN ($2,'zh-CN') ORDER BY (locale=$2) DESC LIMIT 1)t ON true LEFT JOIN storage.files cover ON cover.tenant_id=a.tenant_id AND cover.id=a.cover_file_id AND cover.status='ready' AND cover.scan_status IN ('clean','skipped') AND lower(COALESCE(cover.media_type,'')) IN ('image/jpeg','image/png','image/webp') AND cover.deleted_at IS NULL LEFT JOIN content.categories c ON c.id=a.category_id AND c.tenant_id=a.tenant_id AND c.app_id=a.app_id AND c.status='active' LEFT JOIN LATERAL(SELECT * FROM content.category_translations WHERE category_id=c.id AND locale IN ($2,'zh-CN') ORDER BY (locale=$2) DESC LIMIT 1)ct ON true`
 
 func scanPublic(row pgx.Row) (content.PublicArticle, error) {
 	var x content.PublicArticle
@@ -409,9 +460,13 @@ func scanPublic(row pgx.Row) (content.PublicArticle, error) {
 	}
 	return x, nil
 }
-func (r *Postgres) ListPublished(ctx context.Context, tenant, user uuid.UUID, locale string, f content.PublicFilter) (content.PublicArticlePage, error) {
-	args := []any{user, locale, tenant}
-	where := []string{"a.tenant_id=$3", "a.status='published'"}
+func (r *Postgres) ListPublished(ctx context.Context, tenant, appID, user uuid.UUID, locale string, f content.PublicFilter) (content.PublicArticlePage, error) {
+	appID, err := r.scopedApp(ctx, tenant, appID)
+	if err != nil {
+		return content.PublicArticlePage{}, err
+	}
+	args := []any{user, locale, tenant, appID}
+	where := []string{"a.tenant_id=$3", "a.app_id=$4", "a.status='published'"}
 	add := func(q string, v any) { args = append(args, v); where = append(where, fmt.Sprintf(q, len(args))) }
 	if f.Query != "" {
 		add("(t.title ILIKE '%%'||$%d||'%%' OR t.summary ILIKE '%%'||$%d||'%%')", f.Query)
@@ -427,7 +482,7 @@ func (r *Postgres) ListPublished(ctx context.Context, tenant, user uuid.UUID, lo
 		if e != nil {
 			return content.PublicArticlePage{}, content.ErrInvalid
 		}
-		add("(a.featured,a.sort_order,a.published_at,a.id) < (SELECT featured,sort_order,published_at,id FROM content.articles WHERE tenant_id=$3 AND id=$%d AND status='published')", id)
+		add("(a.featured,a.sort_order,a.published_at,a.id) < (SELECT featured,sort_order,published_at,id FROM content.articles WHERE tenant_id=$3 AND app_id=$4 AND id=$%d AND status='published')", id)
 	}
 	args = append(args, f.Limit+1)
 	rows, e := r.pool.Query(ctx, publicArticleSelect+" WHERE "+strings.Join(where, " AND ")+fmt.Sprintf(" ORDER BY a.featured DESC,a.sort_order DESC,a.published_at DESC,a.id DESC LIMIT $%d", len(args)), args...)
@@ -453,8 +508,12 @@ func (r *Postgres) ListPublished(ctx context.Context, tenant, user uuid.UUID, lo
 	}
 	return out, nil
 }
-func (r *Postgres) ListPublishedCategories(ctx context.Context, tenant uuid.UUID, locale string) (content.PublicCategoryPage, error) {
-	rows, err := r.queries.ContentListPublishedCategories(ctx, db.ContentListPublishedCategoriesParams{TenantID: tenant, Locale: locale})
+func (r *Postgres) ListPublishedCategories(ctx context.Context, tenant, appID uuid.UUID, locale string) (content.PublicCategoryPage, error) {
+	appID, err := r.scopedApp(ctx, tenant, appID)
+	if err != nil {
+		return content.PublicCategoryPage{}, err
+	}
+	rows, err := r.queries.ContentListPublishedCategories(ctx, db.ContentListPublishedCategoriesParams{TenantID: tenant, AppID: appID, Locale: locale})
 	if err != nil {
 		return content.PublicCategoryPage{}, err
 	}
@@ -464,24 +523,32 @@ func (r *Postgres) ListPublishedCategories(ctx context.Context, tenant uuid.UUID
 	}
 	return out, nil
 }
-func (r *Postgres) GetPublished(ctx context.Context, tenant, user uuid.UUID, locale, slug string) (content.PublicArticle, error) {
-	x, e := scanPublic(r.pool.QueryRow(ctx, publicArticleSelect+" WHERE a.tenant_id=$3 AND a.status='published' AND a.slug=$4", user, locale, tenant, slug))
+func (r *Postgres) GetPublished(ctx context.Context, tenant, appID, user uuid.UUID, locale, slug string) (content.PublicArticle, error) {
+	appID, e := r.scopedApp(ctx, tenant, appID)
+	if e != nil {
+		return content.PublicArticle{}, e
+	}
+	x, e := scanPublic(r.pool.QueryRow(ctx, publicArticleSelect+" WHERE a.tenant_id=$3 AND a.app_id=$4 AND a.status='published' AND a.slug=$5", user, locale, tenant, appID, slug))
 	return x, mapNotFound(e)
 }
 
 const articleAssetSelect = `SELECT f.id,f.provider,f.bucket_name,f.object_key,f.media_type,f.size_bytes,f.sha256
 	FROM storage.files f
-	WHERE f.tenant_id=$1 AND f.id=$2 AND f.status='ready' AND f.scan_status IN ('clean','skipped')
+	WHERE f.tenant_id=$1 AND f.id=$3 AND f.status='ready' AND f.scan_status IN ('clean','skipped')
 	AND lower(COALESCE(f.media_type,'')) IN ('image/jpeg','image/png','image/webp') AND f.deleted_at IS NULL
-	AND EXISTS(SELECT 1 FROM content.articles a WHERE a.tenant_id=$1 AND a.cover_file_id=f.id AND a.status='published')`
+	AND EXISTS(SELECT 1 FROM content.articles a WHERE a.tenant_id=$1 AND a.app_id=$2 AND a.cover_file_id=f.id AND a.status='published')`
 
-func (r *Postgres) OpenArticleAsset(ctx context.Context, tenant, fileID uuid.UUID) (content.ArticleAsset, io.ReadCloser, error) {
+func (r *Postgres) OpenArticleAsset(ctx context.Context, tenant, appID, fileID uuid.UUID) (content.ArticleAsset, io.ReadCloser, error) {
 	if r.objects == nil {
 		return content.ArticleAsset{}, nil, content.ErrNotFound
 	}
+	appID, err := r.scopedApp(ctx, tenant, appID)
+	if err != nil {
+		return content.ArticleAsset{}, nil, err
+	}
 	var asset content.ArticleAsset
 	var mediaType *string
-	err := r.pool.QueryRow(ctx, articleAssetSelect, tenant, fileID).Scan(&asset.FileID, &asset.Provider, &asset.Bucket, &asset.ObjectKey, &mediaType, &asset.SizeBytes, &asset.SHA256)
+	err = r.pool.QueryRow(ctx, articleAssetSelect, tenant, appID, fileID).Scan(&asset.FileID, &asset.Provider, &asset.Bucket, &asset.ObjectKey, &mediaType, &asset.SizeBytes, &asset.SHA256)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return content.ArticleAsset{}, nil, content.ErrNotFound
 	}
@@ -513,32 +580,40 @@ func articleAssetAllowed(status, scanStatus, mediaType string) bool {
 		return false
 	}
 }
-func (r *Postgres) Bookmark(ctx context.Context, tenant, user, article uuid.UUID) error {
-	exists, e := r.queries.ContentPublishedArticleExists(ctx, db.ContentPublishedArticleExistsParams{TenantID: tenant, ArticleID: article})
+func (r *Postgres) Bookmark(ctx context.Context, tenant, appID, user, article uuid.UUID) error {
+	appID, e := r.scopedApp(ctx, tenant, appID)
+	if e != nil {
+		return e
+	}
+	exists, e := r.queries.ContentPublishedArticleExists(ctx, db.ContentPublishedArticleExistsParams{TenantID: tenant, AppID: appID, ArticleID: article})
 	if e != nil {
 		return e
 	}
 	if !exists {
 		return content.ErrNotFound
 	}
-	_, e = r.queries.ContentUpsertBookmark(ctx, db.ContentUpsertBookmarkParams{TenantID: tenant, UserID: user, ArticleID: article})
+	_, e = r.queries.ContentUpsertBookmark(ctx, db.ContentUpsertBookmarkParams{TenantID: tenant, AppID: appID, UserID: user, ArticleID: article})
 	return e
 }
-func (r *Postgres) RemoveBookmark(ctx context.Context, tenant, user, article uuid.UUID) error {
-	_, e := r.queries.ContentDeleteBookmark(ctx, db.ContentDeleteBookmarkParams{TenantID: tenant, UserID: user, ArticleID: article})
+func (r *Postgres) RemoveBookmark(ctx context.Context, tenant, appID, user, article uuid.UUID) error {
+	appID, e := r.scopedApp(ctx, tenant, appID)
+	if e != nil {
+		return e
+	}
+	_, e = r.queries.ContentDeleteBookmark(ctx, db.ContentDeleteBookmarkParams{TenantID: tenant, AppID: appID, UserID: user, ArticleID: article})
 	return e
 }
 
 func getCategory(ctx context.Context, q interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
-}, tenant, id uuid.UUID) (content.Category, error) {
-	x, e := scanCategory(q.QueryRow(ctx, categorySelect+" WHERE c.tenant_id=$1 AND c.id=$2", tenant, id))
+}, tenant, appID, id uuid.UUID) (content.Category, error) {
+	x, e := scanCategory(q.QueryRow(ctx, categorySelect+" WHERE c.tenant_id=$1 AND c.app_id=$2 AND c.id=$3", tenant, appID, id))
 	return x, mapNotFound(e)
 }
 func getArticle(ctx context.Context, q interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
-}, tenant, id uuid.UUID) (content.Article, error) {
-	x, e := scanArticle(q.QueryRow(ctx, articleSelect+" WHERE a.tenant_id=$1 AND a.id=$2", tenant, id))
+}, tenant, appID, id uuid.UUID) (content.Article, error) {
+	x, e := scanArticle(q.QueryRow(ctx, articleSelect+" WHERE a.tenant_id=$1 AND a.app_id=$2 AND a.id=$3", tenant, appID, id))
 	return x, mapNotFound(e)
 }
 func upsertCategoryTranslations(ctx context.Context, tx pgx.Tx, tenant, id uuid.UUID, values map[string]content.CategoryTranslation) error {
@@ -559,10 +634,10 @@ func upsertArticleTranslations(ctx context.Context, tx pgx.Tx, id uuid.UUID, val
 	}
 	return nil
 }
-func validReferences(ctx context.Context, tx pgx.Tx, tenant uuid.UUID, category, cover *uuid.UUID) error {
+func validReferences(ctx context.Context, tx pgx.Tx, tenant, appID uuid.UUID, category, cover *uuid.UUID) error {
 	if category != nil {
 		var ok bool
-		if e := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM content.categories WHERE tenant_id=$1 AND id=$2 AND status='active')`, tenant, *category).Scan(&ok); e != nil {
+		if e := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM content.categories WHERE tenant_id=$1 AND app_id=$2 AND id=$3 AND status='active')`, tenant, appID, *category).Scan(&ok); e != nil {
 			return e
 		}
 		if !ok {
@@ -582,6 +657,16 @@ func validReferences(ctx context.Context, tx pgx.Tx, tenant uuid.UUID, category,
 }
 func (r *Postgres) begin(ctx context.Context) (pgx.Tx, error) {
 	return r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+}
+func (r *Postgres) scopedApp(ctx context.Context, tenant, appID uuid.UUID) (uuid.UUID, error) {
+	if appID != uuid.Nil {
+		var found uuid.UUID
+		err := r.pool.QueryRow(ctx, `SELECT id FROM app.applications WHERE tenant_id=$1 AND id=$2 AND status='active'`, tenant, appID).Scan(&found)
+		return found, mapNotFound(err)
+	}
+	var found uuid.UUID
+	err := r.pool.QueryRow(ctx, `SELECT id FROM app.applications WHERE tenant_id=$1 AND is_default AND status='active'`, tenant).Scan(&found)
+	return found, mapNotFound(err)
 }
 func audit(ctx context.Context, tx pgx.Tx, p content.Principal, action, resource string, id uuid.UUID, method string, before, after any) error {
 	b, _ := json.Marshal(before)

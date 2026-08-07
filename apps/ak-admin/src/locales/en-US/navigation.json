@@ -150,5 +150,15 @@
   "shell.skip_to_content": "Skip to main content",
   "shell.switch_tenant": "Switch workspace",
   "shell.tenant_switch_error": "Could not switch workspace. Try again.",
-  "shell.tenant_switch_success": "Workspace switched"
+  "shell.tenant_switch_success": "Workspace switched",
+  "menu.app": "App management",
+  "menu.app.applications": "Applications",
+  "menu.app.users": "Users",
+  "menu.app.content": "Content",
+  "menu.app.content.articles": "Articles",
+  "menu.app.content.pages": "Single pages",
+  "routes.app.applications.title": "Application management",
+  "routes.app.users.title": "App user management",
+  "routes.app.content.articles.title": "App article management",
+  "routes.app.content.pages.title": "App single pages"
 }

@@ -1,0 +1,22 @@
+import { akI18n } from '../../core/i18n/ak-i18n.uts'
+
+export type LegalSnapshot = { readonly documentType: string; readonly titleKey: string; readonly version: string; readonly contentHash: string; readonly bodyZhCN: string; readonly bodyEnUS: string }
+
+const privacySnapshot: LegalSnapshot = {
+  documentType: 'privacy-policy', titleKey: 'legal.privacy', version: '2026-08-07', contentHash: 'bundled-privacy-2026-08-07',
+  bodyZhCN: 'AppKernia 仅处理提供账号、内容与安全功能所必需的最少信息。您同意本说明前，敏感平台能力保持关闭。继续后可在线阅读当前完整隐私政策。',
+  bodyEnUS: 'AppKernia only processes the minimum information required to provide account, content, and security features. Sensitive platform capabilities remain disabled until you agree to this notice. You can read the current policy online after continuing.',
+}
+const termsSnapshot: LegalSnapshot = {
+  documentType: 'terms-of-service', titleKey: 'legal.terms', version: '2026-08-07', contentHash: 'bundled-terms-2026-08-07',
+  bodyZhCN: '请合法使用 AppKernia 并妥善保管账号凭据。不得滥用服务资源，或尝试访问其他应用或租户的数据。继续后可在线阅读已发布的完整用户协议。',
+  bodyEnUS: 'Use AppKernia lawfully and keep your account credentials confidential. Do not misuse service resources or attempt to access another application or tenant. The published terms are available online after continuing.',
+}
+
+export function bundledLegalBody(snapshot: LegalSnapshot): string { return akI18n.getLocale() == 'en-US' ? snapshot.bodyEnUS : snapshot.bodyZhCN }
+
+export function bundledLegalSnapshot(documentType: string): LegalSnapshot | null {
+  if (documentType == 'privacy-policy') return privacySnapshot
+  if (documentType == 'terms-of-service') return termsSnapshot
+  return null
+}

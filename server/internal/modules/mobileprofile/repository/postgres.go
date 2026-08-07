@@ -27,8 +27,8 @@ func decodePreferences(row db.GetMobilePreferencesRow) (domain.Preferences, erro
 	}
 	return result, nil
 }
-func (repository *Postgres) GetPreferences(ctx context.Context, userID uuid.UUID) (domain.Preferences, error) {
-	row, err := db.New(repository.pool).GetMobilePreferences(ctx, userID)
+func (repository *Postgres) GetPreferences(ctx context.Context, appID, userID uuid.UUID) (domain.Preferences, error) {
+	row, err := db.New(repository.pool).GetMobilePreferences(ctx, db.GetMobilePreferencesParams{AppID: appID, UserID: userID})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.Preferences{}, fmt.Errorf("mobile user not found")
 	}
@@ -44,7 +44,7 @@ func (repository *Postgres) UpdatePreferences(ctx context.Context, input domain.
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	queries := db.New(tx)
-	row, err := queries.GetMobilePreferences(ctx, input.UserID)
+	row, err := queries.GetMobilePreferences(ctx, db.GetMobilePreferencesParams{AppID: input.AppID, UserID: input.UserID})
 	if err != nil {
 		return domain.Preferences{}, fmt.Errorf("get mobile preferences: %w", err)
 	}
@@ -65,20 +65,14 @@ func (repository *Postgres) UpdatePreferences(ctx context.Context, input domain.
 	if err != nil {
 		return domain.Preferences{}, fmt.Errorf("encode notification preferences: %w", err)
 	}
-	if input.Locale != nil {
-		affected, updateErr := queries.UpdateMobileUserLocale(ctx, db.UpdateMobileUserLocaleParams{Locale: current.Locale, UserID: input.UserID})
-		if updateErr != nil || affected != 1 {
-			return domain.Preferences{}, fmt.Errorf("update user locale: affected=%d: %w", affected, updateErr)
-		}
-	}
-	if err = queries.UpsertMobilePreferences(ctx, db.UpsertMobilePreferencesParams{UserID: input.UserID, Appearance: current.Appearance, NotificationPreferences: raw}); err != nil {
+	if err = queries.UpsertMobilePreferences(ctx, db.UpsertMobilePreferencesParams{AppID: input.AppID, UserID: input.UserID, Locale: current.Locale, Appearance: current.Appearance, NotificationPreferences: raw}); err != nil {
 		return domain.Preferences{}, fmt.Errorf("update mobile preferences: %w", err)
 	}
 	after, err := json.Marshal(map[string]any{"locale": current.Locale, "appearance": current.Appearance, "notification_preferences": current.NotificationPreferences})
 	if err != nil {
 		return domain.Preferences{}, err
 	}
-	if _, err = tx.Exec(ctx, `INSERT INTO audit.operation_logs (tenant_id,user_id,session_id,request_id,module_code,action_name,permission_code,resource_type,resource_id,http_method,request_path,after_data,succeeded) VALUES ($1,$2,$3,$4,'iam','mobile_preferences.update','iam.preference.manage_self','iam.user_preferences',$2,'PATCH','/api/v1/me/preferences',$5,true)`, input.TenantID, input.UserID, input.SessionID, input.RequestID, after); err != nil {
+	if _, err = tx.Exec(ctx, `INSERT INTO audit.operation_logs (tenant_id,user_id,session_id,request_id,module_code,action_name,permission_code,resource_type,resource_id,http_method,request_path,after_data,succeeded) VALUES ($1,$2,$3,$4,'iam','mobile_preferences.update','iam.preference.manage_self','iam.user_preferences',$5,'PATCH','/api/v1/me/preferences',$6,true)`, input.TenantID, input.UserID, input.SessionID, input.RequestID, input.AppID.String()+":"+input.UserID.String(), after); err != nil {
 		return domain.Preferences{}, fmt.Errorf("audit mobile preferences: %w", err)
 	}
 	if err = tx.Commit(ctx); err != nil {
@@ -86,11 +80,11 @@ func (repository *Postgres) UpdatePreferences(ctx context.Context, input domain.
 	}
 	return current, nil
 }
-func (repository *Postgres) UnreadCount(ctx context.Context, userID, tenantID uuid.UUID) (int64, error) {
-	return db.New(repository.pool).CountMobileUnreadNotifications(ctx, db.CountMobileUnreadNotificationsParams{TenantID: tenantID, UserID: userID})
+func (repository *Postgres) UnreadCount(ctx context.Context, userID, tenantID, appID uuid.UUID) (int64, error) {
+	return db.New(repository.pool).CountMobileUnreadNotifications(ctx, db.CountMobileUnreadNotificationsParams{TenantID: tenantID, AppID: appID, UserID: userID})
 }
-func (repository *Postgres) LoginEvents(ctx context.Context, userID uuid.UUID) ([]domain.LoginEvent, error) {
-	rows, err := db.New(repository.pool).ListMobileLoginEvents(ctx, &userID)
+func (repository *Postgres) LoginEvents(ctx context.Context, userID, appID uuid.UUID) ([]domain.LoginEvent, error) {
+	rows, err := db.New(repository.pool).ListMobileLoginEvents(ctx, db.ListMobileLoginEventsParams{UserID: &userID, AppID: &appID})
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +99,8 @@ func (repository *Postgres) LoginEvents(ctx context.Context, userID uuid.UUID) (
 	}
 	return out, nil
 }
-func (repository *Postgres) SecurityEvents(ctx context.Context, userID uuid.UUID) ([]domain.SecurityEvent, error) {
-	rows, err := db.New(repository.pool).ListMobileSecurityEvents(ctx, &userID)
+func (repository *Postgres) SecurityEvents(ctx context.Context, userID, appID uuid.UUID) ([]domain.SecurityEvent, error) {
+	rows, err := db.New(repository.pool).ListMobileSecurityEvents(ctx, db.ListMobileSecurityEventsParams{UserID: &userID, AppID: &appID})
 	if err != nil {
 		return nil, err
 	}
@@ -141,12 +135,12 @@ func encodeCursor(createdAt time.Time, id uuid.UUID) *string {
 	value := base64.RawURLEncoding.EncodeToString(raw)
 	return &value
 }
-func (repository *Postgres) Notifications(ctx context.Context, userID, tenantID uuid.UUID, cursor string, limit int) (domain.NotificationPage, error) {
+func (repository *Postgres) Notifications(ctx context.Context, userID, tenantID, appID uuid.UUID, cursor string, limit int) (domain.NotificationPage, error) {
 	parsed, err := decodeCursor(cursor)
 	if err != nil {
 		return domain.NotificationPage{}, err
 	}
-	rows, err := db.New(repository.pool).ListMobileNotifications(ctx, db.ListMobileNotificationsParams{TenantID: tenantID, UserID: userID, CursorCreatedAt: pgtype.Timestamptz{Time: parsed.CreatedAt, Valid: true}, CursorID: parsed.ID, PageLimit: int32(limit + 1)})
+	rows, err := db.New(repository.pool).ListMobileNotifications(ctx, db.ListMobileNotificationsParams{TenantID: tenantID, AppID: appID, UserID: userID, CursorCreatedAt: pgtype.Timestamptz{Time: parsed.CreatedAt, Valid: true}, CursorID: parsed.ID, PageLimit: int32(limit + 1)})
 	if err != nil {
 		return domain.NotificationPage{}, err
 	}
@@ -167,13 +161,13 @@ func (repository *Postgres) Notifications(ctx context.Context, userID, tenantID 
 	}
 	return domain.NotificationPage{Items: items, NextCursor: next}, nil
 }
-func (repository *Postgres) MarkNotificationRead(ctx context.Context, userID, tenantID, sessionID, messageID uuid.UUID, requestID string) error {
+func (repository *Postgres) MarkNotificationRead(ctx context.Context, userID, tenantID, appID, sessionID, messageID uuid.UUID, requestID string) error {
 	tx, err := repository.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	affected, err := db.New(tx).MarkMobileNotificationRead(ctx, db.MarkMobileNotificationReadParams{TenantID: tenantID, UserID: userID, MessageID: messageID})
+	affected, err := db.New(tx).MarkMobileNotificationRead(ctx, db.MarkMobileNotificationReadParams{TenantID: tenantID, AppID: appID, UserID: userID, MessageID: messageID})
 	if err != nil {
 		return err
 	}

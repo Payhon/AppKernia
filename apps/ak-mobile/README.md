@@ -1,8 +1,7 @@
 # AppKernia Mobile
 
-uni-app x + UTS/UVue + VDOM 的移动端工程。当前完成非 UI 的 `AKMOB-000` 与
-`AKMOB-030` 基础；因为本机没有 `ui-ux-pro-max`，页面、AK UI 和可视 App Shell
-仍保持 blocked。
+uni-app x + UTS/UVue + VDOM 的移动端工程。页面与 AK UI 使用可复核的
+`ui-ux-pro-max` 证据；平台编译和模拟器验收仍须按下方真实入口独立记录，不能由静态检查替代。
 
 工具链探测：
 
@@ -17,4 +16,3 @@ uni-app x + UTS/UVue + VDOM 的移动端工程。当前完成非 UI 的 `AKMOB-0
 静态项目门禁：
 
     ./scripts/check-project.sh
-

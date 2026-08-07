@@ -45,6 +45,9 @@ def check_locales() -> None:
         "errors.request.server_error",
     ):
         required(key in zh and key in en, f"network error translation missing {key}")
+    i18n_runtime = (ROOT / "src/core/i18n/ak-i18n.uts").read_text(encoding="utf-8")
+    required("catalogFromEntries" in i18n_runtime, "i18n runtime does not load generated typed entries")
+    required(".toMap()" not in i18n_runtime, "i18n runtime must not call UTSJSONObject methods on imported JSON")
 
 
 def check_routes_and_contracts() -> None:

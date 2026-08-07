@@ -66,8 +66,8 @@ func (s *Service) authorize(ctx context.Context, token, permission string) (iamd
 	return auth, nil
 }
 
-func principal(auth iamdomain.AuthenticatedContext, p notify.Principal) notify.Principal {
-	p.TenantID, p.UserID, p.SessionID = auth.Tenant.ID, auth.User.ID, auth.SessionID
+func principal(auth iamdomain.AuthenticatedContext, appID uuid.UUID, p notify.Principal) notify.Principal {
+	p.TenantID, p.AppID, p.UserID, p.SessionID = auth.Tenant.ID, appID, auth.User.ID, auth.SessionID
 	return p
 }
 
@@ -130,7 +130,7 @@ func normalizeMessage(in notify.MessageInput, notice bool, now time.Time) (notif
 	return in, nil
 }
 
-func (s *Service) ListMessages(ctx context.Context, token string, notice bool, f notify.PageFilter) (notify.MessagePage, error) {
+func (s *Service) ListMessages(ctx context.Context, token string, appID uuid.UUID, notice bool, f notify.PageFilter) (notify.MessagePage, error) {
 	permission := "notify.message.read"
 	if notice {
 		permission = "notify.notice.read"
@@ -143,10 +143,10 @@ func (s *Service) ListMessages(ctx context.Context, token string, notice bool, f
 	if err != nil || !oneOf(f.Status, "", "draft", "scheduled", "published", "cancelled") || (!notice && !oneOf(f.Type, "", "system", "private", "marketing", "security")) {
 		return notify.MessagePage{}, notify.ErrInvalid
 	}
-	return s.repo.ListMessages(ctx, auth.Tenant.ID, notice, f)
+	return s.repo.ListMessages(ctx, auth.Tenant.ID, appID, notice, f)
 }
 
-func (s *Service) GetMessage(ctx context.Context, token string, id uuid.UUID, notice bool) (notify.Message, error) {
+func (s *Service) GetMessage(ctx context.Context, token string, appID, id uuid.UUID, notice bool) (notify.Message, error) {
 	permission := "notify.message.read"
 	if notice {
 		permission = "notify.notice.read"
@@ -155,10 +155,10 @@ func (s *Service) GetMessage(ctx context.Context, token string, id uuid.UUID, no
 	if err != nil {
 		return notify.Message{}, err
 	}
-	return s.repo.GetMessage(ctx, auth.Tenant.ID, id, notice)
+	return s.repo.GetMessage(ctx, auth.Tenant.ID, appID, id, notice)
 }
 
-func (s *Service) CreateMessage(ctx context.Context, token string, p notify.Principal, notice bool, in notify.MessageInput) (notify.Message, error) {
+func (s *Service) CreateMessage(ctx context.Context, token string, appID uuid.UUID, p notify.Principal, notice bool, in notify.MessageInput) (notify.Message, error) {
 	permission := "notify.message.create"
 	if notice {
 		permission = "notify.notice.create"
@@ -171,10 +171,10 @@ func (s *Service) CreateMessage(ctx context.Context, token string, p notify.Prin
 	if err != nil || strings.TrimSpace(p.RequestID) == "" {
 		return notify.Message{}, notify.ErrInvalid
 	}
-	return s.repo.CreateMessage(ctx, principal(auth, p), notice, in)
+	return s.repo.CreateMessage(ctx, principal(auth, appID, p), notice, in)
 }
 
-func (s *Service) UpdateMessage(ctx context.Context, token string, p notify.Principal, id uuid.UUID, notice bool, in notify.MessageInput) (notify.Message, error) {
+func (s *Service) UpdateMessage(ctx context.Context, token string, appID uuid.UUID, p notify.Principal, id uuid.UUID, notice bool, in notify.MessageInput) (notify.Message, error) {
 	permission := "notify.message.update"
 	if notice {
 		permission = "notify.notice.update"
@@ -187,10 +187,10 @@ func (s *Service) UpdateMessage(ctx context.Context, token string, p notify.Prin
 	if err != nil || id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
 		return notify.Message{}, notify.ErrInvalid
 	}
-	return s.repo.UpdateMessage(ctx, principal(auth, p), id, notice, in)
+	return s.repo.UpdateMessage(ctx, principal(auth, appID, p), id, notice, in)
 }
 
-func (s *Service) PreviewRecipients(ctx context.Context, token string, id uuid.UUID, notice bool) (notify.RecipientPreview, error) {
+func (s *Service) PreviewRecipients(ctx context.Context, token string, appID, id uuid.UUID, notice bool) (notify.RecipientPreview, error) {
 	permission := "notify.message.publish"
 	if notice {
 		permission = "notify.notice.publish"
@@ -199,17 +199,17 @@ func (s *Service) PreviewRecipients(ctx context.Context, token string, id uuid.U
 	if err != nil {
 		return notify.RecipientPreview{}, err
 	}
-	message, err := s.repo.GetMessage(ctx, auth.Tenant.ID, id, notice)
+	message, err := s.repo.GetMessage(ctx, auth.Tenant.ID, appID, id, notice)
 	if err != nil {
 		return notify.RecipientPreview{}, err
 	}
 	if message.Status != "draft" && message.Status != "scheduled" {
 		return notify.RecipientPreview{}, notify.ErrConflict
 	}
-	return s.repo.PreviewRecipients(ctx, auth.Tenant.ID, message)
+	return s.repo.PreviewRecipients(ctx, auth.Tenant.ID, appID, message)
 }
 
-func (s *Service) PublishMessage(ctx context.Context, token string, p notify.Principal, id uuid.UUID, notice bool) (notify.Message, notify.RecipientPreview, error) {
+func (s *Service) PublishMessage(ctx context.Context, token string, appID uuid.UUID, p notify.Principal, id uuid.UUID, notice bool) (notify.Message, notify.RecipientPreview, error) {
 	permission := "notify.message.publish"
 	if notice {
 		permission = "notify.notice.publish"
@@ -221,10 +221,10 @@ func (s *Service) PublishMessage(ctx context.Context, token string, p notify.Pri
 	if id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
 		return notify.Message{}, notify.RecipientPreview{}, notify.ErrInvalid
 	}
-	return s.repo.PublishMessage(ctx, principal(auth, p), id, notice)
+	return s.repo.PublishMessage(ctx, principal(auth, appID, p), id, notice)
 }
 
-func (s *Service) CancelMessage(ctx context.Context, token string, p notify.Principal, id uuid.UUID, notice bool) (notify.Message, error) {
+func (s *Service) CancelMessage(ctx context.Context, token string, appID uuid.UUID, p notify.Principal, id uuid.UUID, notice bool) (notify.Message, error) {
 	permission := "notify.message.cancel"
 	if notice {
 		permission = "notify.notice.cancel"
@@ -236,15 +236,15 @@ func (s *Service) CancelMessage(ctx context.Context, token string, p notify.Prin
 	if id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
 		return notify.Message{}, notify.ErrInvalid
 	}
-	return s.repo.CancelMessage(ctx, principal(auth, p), id, notice)
+	return s.repo.CancelMessage(ctx, principal(auth, appID, p), id, notice)
 }
 
-func (s *Service) RecipientStats(ctx context.Context, token string, id uuid.UUID, notice bool) (notify.RecipientStats, error) {
+func (s *Service) RecipientStats(ctx context.Context, token string, appID, id uuid.UUID, notice bool) (notify.RecipientStats, error) {
 	auth, err := s.authorize(ctx, token, "notify.recipient.read")
 	if err != nil {
 		return notify.RecipientStats{}, err
 	}
-	return s.repo.RecipientStats(ctx, auth.Tenant.ID, id, notice)
+	return s.repo.RecipientStats(ctx, auth.Tenant.ID, appID, id, notice)
 }
 
 var templateCode = regexp.MustCompile(`^[a-z][a-z0-9_.-]{1,95}$`)
@@ -348,7 +348,7 @@ func (s *Service) CreateTemplate(ctx context.Context, token string, p notify.Pri
 	if err != nil || strings.TrimSpace(p.RequestID) == "" || s.validateTemplateEvent(ctx, auth.Tenant.ID, in) != nil {
 		return notify.Template{}, notify.ErrInvalid
 	}
-	return s.repo.CreateTemplate(ctx, principal(auth, p), in)
+	return s.repo.CreateTemplate(ctx, principal(auth, uuid.Nil, p), in)
 }
 
 func (s *Service) UpdateTemplate(ctx context.Context, token string, p notify.Principal, id uuid.UUID, in notify.TemplateInput) (notify.Template, error) {
@@ -360,7 +360,7 @@ func (s *Service) UpdateTemplate(ctx context.Context, token string, p notify.Pri
 	if err != nil || id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" || s.validateTemplateEvent(ctx, auth.Tenant.ID, in) != nil {
 		return notify.Template{}, notify.ErrInvalid
 	}
-	return s.repo.UpdateTemplate(ctx, principal(auth, p), id, in)
+	return s.repo.UpdateTemplate(ctx, principal(auth, uuid.Nil, p), id, in)
 }
 
 func (s *Service) ListDeliveries(ctx context.Context, token string, f notify.PageFilter) (notify.DeliveryPage, error) {
@@ -391,7 +391,7 @@ func (s *Service) RetryDelivery(ctx context.Context, token string, p notify.Prin
 	if id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
 		return notify.Delivery{}, notify.ErrInvalid
 	}
-	return s.repo.RetryDelivery(ctx, principal(auth, p), id, acknowledgeDuplicateRisk)
+	return s.repo.RetryDelivery(ctx, principal(auth, uuid.Nil, p), id, acknowledgeDuplicateRisk)
 }
 
 func (s *Service) ListSMSTemplateBindings(ctx context.Context, token string, templateID uuid.UUID) ([]notify.SMSTemplateBinding, error) {
@@ -452,7 +452,7 @@ func (s *Service) UpsertSMSTemplateBinding(ctx context.Context, token string, p 
 			return notify.SMSTemplateBinding{}, notify.ErrInvalid
 		}
 	}
-	return s.repo.UpsertSMSTemplateBinding(ctx, principal(auth, p), templateID, provider, in)
+	return s.repo.UpsertSMSTemplateBinding(ctx, principal(auth, uuid.Nil, p), templateID, provider, in)
 }
 
 func (s *Service) DeleteSMSTemplateBinding(ctx context.Context, token string, p notify.Principal, templateID uuid.UUID, provider string) error {
@@ -463,7 +463,7 @@ func (s *Service) DeleteSMSTemplateBinding(ctx context.Context, token string, p 
 	if templateID == uuid.Nil || !oneOf(provider, "aliyun", "tencent") || strings.TrimSpace(p.RequestID) == "" {
 		return notify.ErrInvalid
 	}
-	return s.repo.DeleteSMSTemplateBinding(ctx, principal(auth, p), templateID, provider)
+	return s.repo.DeleteSMSTemplateBinding(ctx, principal(auth, uuid.Nil, p), templateID, provider)
 }
 
 func normalizeTarget(channel, target string) (string, string, error) {
@@ -568,7 +568,7 @@ func (s *Service) TestTemplate(ctx context.Context, token string, p notify.Princ
 		return notify.Delivery{}, notify.ErrDeliveryUnavailable
 	}
 	hash := sha256.Sum256([]byte(target))
-	return s.repo.CreateTestDelivery(ctx, principal(auth, p), notify.CreateDelivery{
+	return s.repo.CreateTestDelivery(ctx, principal(auth, uuid.Nil, p), notify.CreateDelivery{
 		TemplateID: template.ID, Channel: template.Channel, Provider: provider,
 		TargetCiphertext: targetCiphertext, TargetHash: hash[:], TargetHint: hint, TargetKeyVersion: targetVersion,
 		PayloadCiphertext: payloadCiphertext, PayloadKeyVersion: payloadVersion,

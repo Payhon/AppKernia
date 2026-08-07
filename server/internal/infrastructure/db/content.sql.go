@@ -14,18 +14,25 @@ import (
 const contentDeleteBookmark = `-- name: ContentDeleteBookmark :execrows
 DELETE FROM content.article_bookmarks
 WHERE tenant_id = $1
-  AND user_id = $2
-  AND article_id = $3
+  AND app_id = $2
+  AND user_id = $3
+  AND article_id = $4
 `
 
 type ContentDeleteBookmarkParams struct {
 	TenantID  uuid.UUID `json:"tenant_id"`
+	AppID     uuid.UUID `json:"app_id"`
 	UserID    uuid.UUID `json:"user_id"`
 	ArticleID uuid.UUID `json:"article_id"`
 }
 
 func (q *Queries) ContentDeleteBookmark(ctx context.Context, arg ContentDeleteBookmarkParams) (int64, error) {
-	result, err := q.db.Exec(ctx, contentDeleteBookmark, arg.TenantID, arg.UserID, arg.ArticleID)
+	result, err := q.db.Exec(ctx, contentDeleteBookmark,
+		arg.TenantID,
+		arg.AppID,
+		arg.UserID,
+		arg.ArticleID,
+	)
 	if err != nil {
 		return 0, err
 	}
@@ -43,6 +50,7 @@ JOIN LATERAL (
   LIMIT 1
 ) t ON TRUE
 WHERE c.tenant_id = $2
+  AND c.app_id = $3
   AND c.status = 'active'
 ORDER BY c.sort_order ASC, c.slug ASC, c.id ASC
 `
@@ -50,6 +58,7 @@ ORDER BY c.sort_order ASC, c.slug ASC, c.id ASC
 type ContentListPublishedCategoriesParams struct {
 	Locale   string    `json:"locale"`
 	TenantID uuid.UUID `json:"tenant_id"`
+	AppID    uuid.UUID `json:"app_id"`
 }
 
 type ContentListPublishedCategoriesRow struct {
@@ -61,7 +70,7 @@ type ContentListPublishedCategoriesRow struct {
 }
 
 func (q *Queries) ContentListPublishedCategories(ctx context.Context, arg ContentListPublishedCategoriesParams) ([]ContentListPublishedCategoriesRow, error) {
-	rows, err := q.db.Query(ctx, contentListPublishedCategories, arg.Locale, arg.TenantID)
+	rows, err := q.db.Query(ctx, contentListPublishedCategories, arg.Locale, arg.TenantID, arg.AppID)
 	if err != nil {
 		return nil, err
 	}
@@ -90,37 +99,45 @@ const contentPublishedArticleExists = `-- name: ContentPublishedArticleExists :o
 SELECT EXISTS (
   SELECT 1 FROM content.articles
   WHERE tenant_id = $1
-    AND id = $2
+    AND app_id = $2
+    AND id = $3
     AND status = 'published'
 )
 `
 
 type ContentPublishedArticleExistsParams struct {
 	TenantID  uuid.UUID `json:"tenant_id"`
+	AppID     uuid.UUID `json:"app_id"`
 	ArticleID uuid.UUID `json:"article_id"`
 }
 
 func (q *Queries) ContentPublishedArticleExists(ctx context.Context, arg ContentPublishedArticleExistsParams) (bool, error) {
-	row := q.db.QueryRow(ctx, contentPublishedArticleExists, arg.TenantID, arg.ArticleID)
+	row := q.db.QueryRow(ctx, contentPublishedArticleExists, arg.TenantID, arg.AppID, arg.ArticleID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
 }
 
 const contentUpsertBookmark = `-- name: ContentUpsertBookmark :execrows
-INSERT INTO content.article_bookmarks(tenant_id, user_id, article_id)
-VALUES ($1, $2, $3)
+INSERT INTO content.article_bookmarks(tenant_id, app_id, user_id, article_id)
+VALUES ($1, $2, $3, $4)
 ON CONFLICT (tenant_id, user_id, article_id) DO NOTHING
 `
 
 type ContentUpsertBookmarkParams struct {
 	TenantID  uuid.UUID `json:"tenant_id"`
+	AppID     uuid.UUID `json:"app_id"`
 	UserID    uuid.UUID `json:"user_id"`
 	ArticleID uuid.UUID `json:"article_id"`
 }
 
 func (q *Queries) ContentUpsertBookmark(ctx context.Context, arg ContentUpsertBookmarkParams) (int64, error) {
-	result, err := q.db.Exec(ctx, contentUpsertBookmark, arg.TenantID, arg.UserID, arg.ArticleID)
+	result, err := q.db.Exec(ctx, contentUpsertBookmark,
+		arg.TenantID,
+		arg.AppID,
+		arg.UserID,
+		arg.ArticleID,
+	)
 	if err != nil {
 		return 0, err
 	}

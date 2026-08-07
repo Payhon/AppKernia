@@ -68,7 +68,8 @@
     "system",
     "notifications",
     "content",
-    "mobile_releases"
+    "mobile_releases",
+    "apps"
   ],
   "client_error_policy": "stable error.code is authoritative; translate error.message_key/code locally, then fall back to server message",
   "release_gate": {

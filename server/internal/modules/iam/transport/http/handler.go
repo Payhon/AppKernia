@@ -35,8 +35,13 @@ func (handler *Handler) MobileLogin(request *ghttp.Request) {
 		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
 	}
+	appID, appErr := uuid.Parse(strings.TrimSpace(request.Header.Get("X-AppID")))
+	if appErr != nil {
+		handler.writeError(request, http.StatusBadRequest, "APP.HEADER.REQUIRED", "errors.validation.failed")
+		return
+	}
 	tokens, err := handler.auth.Login(request.Context(), application.LoginInput{
-		Email: body.Email, Password: body.Password, Audience: mobileAudience, Client: clientMetadata(request),
+		Email: body.Email, Password: body.Password, Audience: mobileAudience, AppID: &appID, Client: clientMetadata(request),
 	})
 	if errors.Is(err, application.ErrInvalidCredentials) || errors.Is(err, application.ErrCaptchaRequired) {
 		handler.writeError(request, http.StatusUnauthorized, "IAM.AUTH.INVALID_CREDENTIALS", "errors.iam.auth.invalid_credentials")
@@ -63,6 +68,11 @@ func (handler *Handler) MobileRefresh(request *ghttp.Request) {
 		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
 	}
+	appID, appErr := uuid.Parse(strings.TrimSpace(request.Header.Get("X-AppID")))
+	if appErr != nil {
+		handler.writeError(request, http.StatusBadRequest, "APP.HEADER.REQUIRED", "errors.validation.failed")
+		return
+	}
 	tokens, err := handler.auth.Refresh(request.Context(), body.RefreshToken, mobileAudience, clientMetadata(request))
 	if err != nil {
 		code, key := "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized"
@@ -70,6 +80,10 @@ func (handler *Handler) MobileRefresh(request *ghttp.Request) {
 			code, key = "IAM.SESSION.REFRESH_REUSED", "errors.iam.auth.refresh_reused"
 		}
 		handler.writeError(request, http.StatusUnauthorized, code, key)
+		return
+	}
+	if tokens.AppID == nil || *tokens.AppID != appID {
+		handler.writeError(request, http.StatusUnauthorized, "APP.SESSION.MISMATCH", "errors.common.unauthorized")
 		return
 	}
 	handler.writeMobileSession(request, tokens)
@@ -300,6 +314,7 @@ type mobileTokenResponse struct {
 	RefreshToken          string `json:"refresh_token"`
 	RefreshTokenExpiresIn int64  `json:"refresh_token_expires_in"`
 	SessionID             string `json:"session_id"`
+	AppID                 string `json:"app_id"`
 }
 
 type selfProfileResponse struct {
@@ -875,8 +890,16 @@ func (handler *Handler) writeMobileSession(request *ghttp.Request, tokens applic
 			RefreshToken:          tokens.RefreshToken,
 			RefreshTokenExpiresIn: max(0, int64(time.Until(tokens.RefreshTokenExpiresAt).Seconds())),
 			SessionID:             tokens.SessionID.String(),
+			AppID:                 appIDString(tokens.AppID),
 		},
 	})
+}
+
+func appIDString(value *uuid.UUID) string {
+	if value == nil {
+		return ""
+	}
+	return value.String()
 }
 
 func (handler *Handler) validCSRF(request *ghttp.Request) bool {

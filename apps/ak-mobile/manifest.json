@@ -8,7 +8,8 @@
 	"fallbackLocale": "zh-CN",
 	"akRuntime": {
 		"environment": "development",
-		"apiBaseUrl": "http://127.0.0.1:8080/api/v1"
+		"apiBaseUrl": "http://127.0.0.1:8080/api/v1",
+		"appId": "00000000-0000-4000-8000-000000000001"
 	},
 	"uni-app-x": {
 		"renderer": "vdom"

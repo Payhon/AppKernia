@@ -18,22 +18,25 @@ SELECT count(*)
 FROM notify.recipients r
 JOIN notify.messages m ON m.tenant_id = r.tenant_id AND m.id = r.message_id
 WHERE r.tenant_id = $1
-  AND r.user_id = $2
+  AND r.app_id = $2
+  AND r.user_id = $3
   AND r.delivery_status = 'delivered'
   AND r.read_at IS NULL
   AND r.archived_at IS NULL
   AND m.status = 'published'
+  AND m.app_id = $2
   AND m.deleted_at IS NULL
   AND (m.expires_at IS NULL OR m.expires_at > now())
 `
 
 type CountMobileUnreadNotificationsParams struct {
 	TenantID uuid.UUID `json:"tenant_id"`
+	AppID    uuid.UUID `json:"app_id"`
 	UserID   uuid.UUID `json:"user_id"`
 }
 
 func (q *Queries) CountMobileUnreadNotifications(ctx context.Context, arg CountMobileUnreadNotificationsParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countMobileUnreadNotifications, arg.TenantID, arg.UserID)
+	row := q.db.QueryRow(ctx, countMobileUnreadNotifications, arg.TenantID, arg.AppID, arg.UserID)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -41,22 +44,23 @@ func (q *Queries) CountMobileUnreadNotifications(ctx context.Context, arg CountM
 
 const createMobileRelease = `-- name: CreateMobileRelease :one
 INSERT INTO sys.mobile_releases (
-  platform, current_version, minimum_version, upgrade_url, release_notes, active
+  app_id, platform, current_version, minimum_version, upgrade_url, release_notes, active
 ) VALUES (
-  $1, $2, $3,
-  $4, $5, $6
+  $1, $2, $3, $4,
+  $5, $6, $7
 )
 RETURNING id, platform, current_version, minimum_version, upgrade_url,
           release_notes, active, lock_version, updated_at
 `
 
 type CreateMobileReleaseParams struct {
-	Platform       string  `json:"platform"`
-	CurrentVersion string  `json:"current_version"`
-	MinimumVersion string  `json:"minimum_version"`
-	UpgradeUrl     *string `json:"upgrade_url"`
-	ReleaseNotes   []byte  `json:"release_notes"`
-	Active         bool    `json:"active"`
+	AppID          uuid.UUID `json:"app_id"`
+	Platform       string    `json:"platform"`
+	CurrentVersion string    `json:"current_version"`
+	MinimumVersion string    `json:"minimum_version"`
+	UpgradeUrl     *string   `json:"upgrade_url"`
+	ReleaseNotes   []byte    `json:"release_notes"`
+	Active         bool      `json:"active"`
 }
 
 type CreateMobileReleaseRow struct {
@@ -73,6 +77,7 @@ type CreateMobileReleaseRow struct {
 
 func (q *Queries) CreateMobileRelease(ctx context.Context, arg CreateMobileReleaseParams) (CreateMobileReleaseRow, error) {
 	row := q.db.QueryRow(ctx, createMobileRelease,
+		arg.AppID,
 		arg.Platform,
 		arg.CurrentVersion,
 		arg.MinimumVersion,
@@ -97,17 +102,18 @@ func (q *Queries) CreateMobileRelease(ctx context.Context, arg CreateMobileRelea
 
 const deactivateMobileReleasesByPlatform = `-- name: DeactivateMobileReleasesByPlatform :exec
 UPDATE sys.mobile_releases SET active = false
-WHERE platform = $1 AND active
-  AND ($2::uuid IS NULL OR id <> $2::uuid)
+WHERE app_id = $1 AND platform = $2 AND active
+  AND ($3::uuid IS NULL OR id <> $3::uuid)
 `
 
 type DeactivateMobileReleasesByPlatformParams struct {
+	AppID    uuid.UUID  `json:"app_id"`
 	Platform string     `json:"platform"`
 	ExceptID *uuid.UUID `json:"except_id"`
 }
 
 func (q *Queries) DeactivateMobileReleasesByPlatform(ctx context.Context, arg DeactivateMobileReleasesByPlatformParams) error {
-	_, err := q.db.Exec(ctx, deactivateMobileReleasesByPlatform, arg.Platform, arg.ExceptID)
+	_, err := q.db.Exec(ctx, deactivateMobileReleasesByPlatform, arg.AppID, arg.Platform, arg.ExceptID)
 	return err
 }
 
@@ -115,8 +121,13 @@ const getActiveMobileRelease = `-- name: GetActiveMobileRelease :one
 SELECT id, platform, current_version, minimum_version, upgrade_url,
        release_notes, active, lock_version, updated_at
 FROM sys.mobile_releases
-WHERE platform = $1 AND active = true
+WHERE app_id = $1 AND platform = $2 AND active = true
 `
+
+type GetActiveMobileReleaseParams struct {
+	AppID    uuid.UUID `json:"app_id"`
+	Platform string    `json:"platform"`
+}
 
 type GetActiveMobileReleaseRow struct {
 	ID             uuid.UUID          `json:"id"`
@@ -130,8 +141,8 @@ type GetActiveMobileReleaseRow struct {
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
-func (q *Queries) GetActiveMobileRelease(ctx context.Context, platform string) (GetActiveMobileReleaseRow, error) {
-	row := q.db.QueryRow(ctx, getActiveMobileRelease, platform)
+func (q *Queries) GetActiveMobileRelease(ctx context.Context, arg GetActiveMobileReleaseParams) (GetActiveMobileReleaseRow, error) {
+	row := q.db.QueryRow(ctx, getActiveMobileRelease, arg.AppID, arg.Platform)
 	var i GetActiveMobileReleaseRow
 	err := row.Scan(
 		&i.ID,
@@ -148,13 +159,18 @@ func (q *Queries) GetActiveMobileRelease(ctx context.Context, platform string) (
 }
 
 const getMobilePreferences = `-- name: GetMobilePreferences :one
-SELECT u.locale,
+SELECT COALESCE(p.locale, u.locale) AS locale,
        COALESCE(p.appearance, 'system') AS appearance,
        COALESCE(p.notification_preferences, '{"in_app":true,"push":false,"email":true}'::jsonb) AS notification_preferences
 FROM iam.users u
-LEFT JOIN iam.user_preferences p ON p.user_id = u.id
-WHERE u.id = $1 AND u.deleted_at IS NULL
+LEFT JOIN iam.user_preferences p ON p.user_id = u.id AND p.app_id = $1
+WHERE u.id = $2 AND u.deleted_at IS NULL
 `
+
+type GetMobilePreferencesParams struct {
+	AppID  uuid.UUID `json:"app_id"`
+	UserID uuid.UUID `json:"user_id"`
+}
 
 type GetMobilePreferencesRow struct {
 	Locale                  string `json:"locale"`
@@ -162,8 +178,8 @@ type GetMobilePreferencesRow struct {
 	NotificationPreferences []byte `json:"notification_preferences"`
 }
 
-func (q *Queries) GetMobilePreferences(ctx context.Context, id uuid.UUID) (GetMobilePreferencesRow, error) {
-	row := q.db.QueryRow(ctx, getMobilePreferences, id)
+func (q *Queries) GetMobilePreferences(ctx context.Context, arg GetMobilePreferencesParams) (GetMobilePreferencesRow, error) {
+	row := q.db.QueryRow(ctx, getMobilePreferences, arg.AppID, arg.UserID)
 	var i GetMobilePreferencesRow
 	err := row.Scan(&i.Locale, &i.Appearance, &i.NotificationPreferences)
 	return i, err
@@ -173,8 +189,13 @@ const getMobileReleaseByID = `-- name: GetMobileReleaseByID :one
 SELECT id, platform, current_version, minimum_version, upgrade_url,
        release_notes, active, lock_version, updated_at
 FROM sys.mobile_releases
-WHERE id = $1
+WHERE app_id = $1 AND id = $2
 `
+
+type GetMobileReleaseByIDParams struct {
+	AppID uuid.UUID `json:"app_id"`
+	ID    uuid.UUID `json:"id"`
+}
 
 type GetMobileReleaseByIDRow struct {
 	ID             uuid.UUID          `json:"id"`
@@ -188,8 +209,8 @@ type GetMobileReleaseByIDRow struct {
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
-func (q *Queries) GetMobileReleaseByID(ctx context.Context, id uuid.UUID) (GetMobileReleaseByIDRow, error) {
-	row := q.db.QueryRow(ctx, getMobileReleaseByID, id)
+func (q *Queries) GetMobileReleaseByID(ctx context.Context, arg GetMobileReleaseByIDParams) (GetMobileReleaseByIDRow, error) {
+	row := q.db.QueryRow(ctx, getMobileReleaseByID, arg.AppID, arg.ID)
 	var i GetMobileReleaseByIDRow
 	err := row.Scan(
 		&i.ID,
@@ -208,10 +229,15 @@ func (q *Queries) GetMobileReleaseByID(ctx context.Context, id uuid.UUID) (GetMo
 const listMobileLoginEvents = `-- name: ListMobileLoginEvents :many
 SELECT id, auth_method, result, occurred_at, client_ip
 FROM audit.login_events
-WHERE user_id = $1 AND audience = 'ak-mobile'
+WHERE user_id = $1 AND app_id = $2 AND audience = 'ak-mobile'
 ORDER BY occurred_at DESC, id DESC
 LIMIT 100
 `
+
+type ListMobileLoginEventsParams struct {
+	UserID *uuid.UUID `json:"user_id"`
+	AppID  *uuid.UUID `json:"app_id"`
+}
 
 type ListMobileLoginEventsRow struct {
 	ID         uuid.UUID          `json:"id"`
@@ -221,8 +247,8 @@ type ListMobileLoginEventsRow struct {
 	ClientIp   *netip.Addr        `json:"client_ip"`
 }
 
-func (q *Queries) ListMobileLoginEvents(ctx context.Context, userID *uuid.UUID) ([]ListMobileLoginEventsRow, error) {
-	rows, err := q.db.Query(ctx, listMobileLoginEvents, userID)
+func (q *Queries) ListMobileLoginEvents(ctx context.Context, arg ListMobileLoginEventsParams) ([]ListMobileLoginEventsRow, error) {
+	rows, err := q.db.Query(ctx, listMobileLoginEvents, arg.UserID, arg.AppID)
 	if err != nil {
 		return nil, err
 	}
@@ -252,19 +278,22 @@ SELECT m.id, m.title, m.body, m.body_format, m.message_type, m.created_at, r.rea
 FROM notify.recipients r
 JOIN notify.messages m ON m.tenant_id = r.tenant_id AND m.id = r.message_id
 WHERE r.tenant_id = $1
-  AND r.user_id = $2
+  AND r.app_id = $2
+  AND r.user_id = $3
   AND r.archived_at IS NULL
   AND r.delivery_status = 'delivered'
   AND m.status = 'published'
+  AND m.app_id = $2
   AND m.deleted_at IS NULL
   AND (m.expires_at IS NULL OR m.expires_at > now())
-  AND (m.created_at, m.id) < ($3, $4::uuid)
+  AND (m.created_at, m.id) < ($4, $5::uuid)
 ORDER BY m.created_at DESC, m.id DESC
-LIMIT $5
+LIMIT $6
 `
 
 type ListMobileNotificationsParams struct {
 	TenantID        uuid.UUID          `json:"tenant_id"`
+	AppID           uuid.UUID          `json:"app_id"`
 	UserID          uuid.UUID          `json:"user_id"`
 	CursorCreatedAt pgtype.Timestamptz `json:"cursor_created_at"`
 	CursorID        uuid.UUID          `json:"cursor_id"`
@@ -284,6 +313,7 @@ type ListMobileNotificationsRow struct {
 func (q *Queries) ListMobileNotifications(ctx context.Context, arg ListMobileNotificationsParams) ([]ListMobileNotificationsRow, error) {
 	rows, err := q.db.Query(ctx, listMobileNotifications,
 		arg.TenantID,
+		arg.AppID,
 		arg.UserID,
 		arg.CursorCreatedAt,
 		arg.CursorID,
@@ -319,6 +349,7 @@ const listMobileReleases = `-- name: ListMobileReleases :many
 SELECT id, platform, current_version, minimum_version, upgrade_url,
        release_notes, active, lock_version, updated_at
 FROM sys.mobile_releases
+WHERE app_id = $1
 ORDER BY platform, updated_at DESC, id DESC
 `
 
@@ -334,8 +365,8 @@ type ListMobileReleasesRow struct {
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
 }
 
-func (q *Queries) ListMobileReleases(ctx context.Context) ([]ListMobileReleasesRow, error) {
-	rows, err := q.db.Query(ctx, listMobileReleases)
+func (q *Queries) ListMobileReleases(ctx context.Context, appID uuid.UUID) ([]ListMobileReleasesRow, error) {
+	rows, err := q.db.Query(ctx, listMobileReleases, appID)
 	if err != nil {
 		return nil, err
 	}
@@ -367,10 +398,15 @@ func (q *Queries) ListMobileReleases(ctx context.Context) ([]ListMobileReleasesR
 const listMobileSecurityEvents = `-- name: ListMobileSecurityEvents :many
 SELECT id, event_type, severity, occurred_at
 FROM audit.security_events
-WHERE user_id = $1
+WHERE user_id = $1 AND app_id = $2
 ORDER BY occurred_at DESC, id DESC
 LIMIT 100
 `
+
+type ListMobileSecurityEventsParams struct {
+	UserID *uuid.UUID `json:"user_id"`
+	AppID  *uuid.UUID `json:"app_id"`
+}
 
 type ListMobileSecurityEventsRow struct {
 	ID         uuid.UUID          `json:"id"`
@@ -379,8 +415,8 @@ type ListMobileSecurityEventsRow struct {
 	OccurredAt pgtype.Timestamptz `json:"occurred_at"`
 }
 
-func (q *Queries) ListMobileSecurityEvents(ctx context.Context, userID *uuid.UUID) ([]ListMobileSecurityEventsRow, error) {
-	rows, err := q.db.Query(ctx, listMobileSecurityEvents, userID)
+func (q *Queries) ListMobileSecurityEvents(ctx context.Context, arg ListMobileSecurityEventsParams) ([]ListMobileSecurityEventsRow, error) {
+	rows, err := q.db.Query(ctx, listMobileSecurityEvents, arg.UserID, arg.AppID)
 	if err != nil {
 		return nil, err
 	}
@@ -408,20 +444,27 @@ const markMobileNotificationRead = `-- name: MarkMobileNotificationRead :execrow
 UPDATE notify.recipients
 SET read_at = COALESCE(read_at, now())
 WHERE tenant_id = $1
-  AND user_id = $2
-  AND message_id = $3
+  AND app_id = $2
+  AND user_id = $3
+  AND message_id = $4
   AND delivery_status = 'delivered'
   AND archived_at IS NULL
 `
 
 type MarkMobileNotificationReadParams struct {
 	TenantID  uuid.UUID `json:"tenant_id"`
+	AppID     uuid.UUID `json:"app_id"`
 	UserID    uuid.UUID `json:"user_id"`
 	MessageID uuid.UUID `json:"message_id"`
 }
 
 func (q *Queries) MarkMobileNotificationRead(ctx context.Context, arg MarkMobileNotificationReadParams) (int64, error) {
-	result, err := q.db.Exec(ctx, markMobileNotificationRead, arg.TenantID, arg.UserID, arg.MessageID)
+	result, err := q.db.Exec(ctx, markMobileNotificationRead,
+		arg.TenantID,
+		arg.AppID,
+		arg.UserID,
+		arg.MessageID,
+	)
 	if err != nil {
 		return 0, err
 	}
@@ -437,6 +480,7 @@ SET current_version = $1,
     active = $5,
     lock_version = lock_version + 1
 WHERE id = $6 AND lock_version = $7
+  AND app_id = $8
 RETURNING id, platform, current_version, minimum_version, upgrade_url,
           release_notes, active, lock_version, updated_at
 `
@@ -449,6 +493,7 @@ type UpdateMobileReleaseParams struct {
 	Active         bool      `json:"active"`
 	ID             uuid.UUID `json:"id"`
 	LockVersion    int32     `json:"lock_version"`
+	AppID          uuid.UUID `json:"app_id"`
 }
 
 type UpdateMobileReleaseRow struct {
@@ -472,6 +517,7 @@ func (q *Queries) UpdateMobileRelease(ctx context.Context, arg UpdateMobileRelea
 		arg.Active,
 		arg.ID,
 		arg.LockVersion,
+		arg.AppID,
 	)
 	var i UpdateMobileReleaseRow
 	err := row.Scan(
@@ -488,39 +534,30 @@ func (q *Queries) UpdateMobileRelease(ctx context.Context, arg UpdateMobileRelea
 	return i, err
 }
 
-const updateMobileUserLocale = `-- name: UpdateMobileUserLocale :execrows
-UPDATE iam.users SET locale = $1
-WHERE id = $2 AND deleted_at IS NULL
-`
-
-type UpdateMobileUserLocaleParams struct {
-	Locale string    `json:"locale"`
-	UserID uuid.UUID `json:"user_id"`
-}
-
-func (q *Queries) UpdateMobileUserLocale(ctx context.Context, arg UpdateMobileUserLocaleParams) (int64, error) {
-	result, err := q.db.Exec(ctx, updateMobileUserLocale, arg.Locale, arg.UserID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
-}
-
 const upsertMobilePreferences = `-- name: UpsertMobilePreferences :exec
-INSERT INTO iam.user_preferences (user_id, appearance, notification_preferences)
-VALUES ($1, $2, $3)
-ON CONFLICT (user_id) DO UPDATE
-SET appearance = EXCLUDED.appearance,
+INSERT INTO iam.user_preferences (app_id, user_id, locale, appearance, notification_preferences)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (app_id, user_id) DO UPDATE
+SET locale = EXCLUDED.locale,
+    appearance = EXCLUDED.appearance,
     notification_preferences = EXCLUDED.notification_preferences
 `
 
 type UpsertMobilePreferencesParams struct {
+	AppID                   uuid.UUID `json:"app_id"`
 	UserID                  uuid.UUID `json:"user_id"`
+	Locale                  string    `json:"locale"`
 	Appearance              string    `json:"appearance"`
 	NotificationPreferences []byte    `json:"notification_preferences"`
 }
 
 func (q *Queries) UpsertMobilePreferences(ctx context.Context, arg UpsertMobilePreferencesParams) error {
-	_, err := q.db.Exec(ctx, upsertMobilePreferences, arg.UserID, arg.Appearance, arg.NotificationPreferences)
+	_, err := q.db.Exec(ctx, upsertMobilePreferences,
+		arg.AppID,
+		arg.UserID,
+		arg.Locale,
+		arg.Appearance,
+		arg.NotificationPreferences,
+	)
 	return err
 }

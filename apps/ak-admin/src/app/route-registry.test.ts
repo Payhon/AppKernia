@@ -54,6 +54,16 @@ describe('static route registry', () => {
     expect(resolveBackendMenus(menus, new Set(['jobs.schedule.read']), {})).toHaveLength(1)
   })
 
+  it('keeps App management as a static permission-gated root', () => {
+    const app = directory('app', null, 15)
+    const users = page('app.users', app.id, 'app.users')
+    expect(resolveBackendMenus([app, users], new Set(), {})).toEqual([])
+    const resolved = resolveBackendMenus([app, users], new Set(['app.user.read']), {})
+    expect(resolved).toHaveLength(1)
+    expect(resolved[0]?.code).toBe('app')
+    expect(resolved[0]?.children[0]?.path).toBe('/app/users')
+  })
+
   it('preserves the Dashboard and System hierarchy and prunes inaccessible empty groups', () => {
     const dashboard = page('dashboard', null, 'dashboard')
     dashboard.sort = 10
@@ -101,6 +111,7 @@ describe('static route registry', () => {
     expect(isSafeInternalRedirect('/profile/security')).toBe(true)
     expect(isSafeInternalRedirect('/system/notifications/notices')).toBe(true)
     expect(isSafeInternalRedirect('/system/integrations/schedules')).toBe(true)
+    expect(isSafeInternalRedirect('/app/content/pages')).toBe(true)
     expect(isSafeInternalRedirect('//evil.example/dashboard')).toBe(false)
     expect(isSafeInternalRedirect('https://evil.example')).toBe(false)
     expect(isSafeInternalRedirect('/login')).toBe(false)

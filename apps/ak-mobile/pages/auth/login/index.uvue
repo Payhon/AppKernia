@@ -1,3 +1,25 @@
-<template><ak-theme-root><view class="page"><text class="brand">AppKernia</text><text class="title">{{t('routes.auth.login.title', null)}}</text><ak-text-field v-model="email" :label="t('auth.email', null)"/><ak-text-field v-model="password" :label="t('auth.password', null)" password/><ak-status-view v-if="state==='error'" state="error" :title="t('state.error.title', null)" :description="errorText"/><ak-button variant="primary" :loading="state==='loading'" :loading-text="t('common.loading', null)" @click="login">{{t('auth.login', null)}}</ak-button></view></ak-theme-root></template>
-<script lang="uts">import {akI18n} from '../../../src/core/i18n/ak-i18n.uts';import {completeAuthenticatedBootstrap} from '../../../src/core/bootstrap/app-bootstrap.uts';import {authRuntime} from '../../../src/features/auth/auth-runtime.uts';export default{data(){return{email:'',password:'',state:'content',errorText:''}},computed:{t(){return akI18n.t}},methods:{login(){if(this.email.length==0||this.password.length==0){this.errorText=akI18n.t('errors.validation.required', null);this.state='error';return}const service=authRuntime.getService();if(service==null){this.errorText=akI18n.t('errors.runtime.unavailable', null);this.state='error';return}this.state='loading';service.login({email:this.email,password:this.password,deviceKey:authRuntime.getDeviceKey()},()=>{completeAuthenticatedBootstrap()},(error)=>{this.errorText=akI18n.t(error.messageKey, null);this.state='error'})}}}</script>
-<style lang="scss">.page{height:100%;flex:1;background:var(--ak-page);padding:80px 24px}.brand{color:var(--ak-brand);font-size:28px;font-weight:700}.title{color:var(--ak-text);font-size:30px;font-weight:600;margin:24px 0}</style>
+<template>
+  <ak-theme-root><view class="page">
+    <view class="hero"><text class="brand">AppKernia</text><text class="title">{{t('routes.auth.login.title', null)}}</text></view>
+    <ak-card class="form-card">
+      <ak-text-field v-model="email" :label="t('auth.email', null)" :error="emailError" />
+      <ak-text-field v-model="password" :label="t('auth.password', null)" :error="passwordError" password />
+      <ak-status-view v-if="state==='error'" state="error" :title="t('state.error.title', null)" :description="errorText" />
+      <ak-button variant="primary" :loading="state==='loading'" :loading-text="t('common.loading', null)" @click="login">{{t('auth.login', null)}}</ak-button>
+      <ak-button variant="secondary" @click="goForgot">{{t('auth.forgotPassword', null)}}</ak-button>
+      <ak-button v-if="registrationEnabled" variant="secondary" @click="goRegister">{{t('auth.register.link', null)}}</ak-button>
+    </ak-card>
+    <view class="legal-links"><text @click="goPrivacy">{{t('legal.privacy', null)}}</text><text class="separator"> · </text><text @click="goTerms">{{t('legal.terms', null)}}</text></view>
+  </view></ak-theme-root>
+</template>
+<script lang="uts">
+import {akI18n} from '../../../src/core/i18n/ak-i18n.uts'
+import {completeAuthenticatedBootstrap} from '../../../src/core/bootstrap/app-bootstrap.uts'
+import {authRuntime} from '../../../src/features/auth/auth-runtime.uts'
+import {appPublicConfigRuntime} from '../../../src/features/app-config/public-config-runtime.uts'
+export default { data() { return {email:'',password:'',state:'content',errorText:'',emailError:'',passwordError:''} }, computed: { t(){return akI18n.t}, registrationEnabled(): boolean { return appPublicConfigRuntime.registrationEnabled() } }, methods: {
+  goForgot(){uni.navigateTo({url:'/pages/auth/forgot-password/index'})}, goRegister(){uni.navigateTo({url:'/pages/auth/register/index'})}, goPrivacy(){uni.navigateTo({url:'/pages/legal/privacy/index'})}, goTerms(){uni.navigateTo({url:'/pages/legal/terms/index'})},
+  login(){ this.emailError=''; this.passwordError=''; if(this.email.trim().length==0){this.emailError=akI18n.t('errors.validation.required',null);return}; if(this.password.length==0){this.passwordError=akI18n.t('errors.validation.required',null);return}; const service=authRuntime.getService(); if(service==null){this.errorText=akI18n.t('errors.runtime.unavailable',null);this.state='error';return}; this.state='loading'; service.login({email:this.email.trim(),password:this.password,deviceKey:authRuntime.getDeviceKey()},()=>{completeAuthenticatedBootstrap()},error=>{this.errorText=akI18n.t(error.messageKey,null);this.state='error'}) }
+} }
+</script>
+<style lang="scss">.page{min-height:100%;flex:1;background:var(--ak-page);padding:64px 16px 32px}.hero{margin:0 8px 24px}.brand{color:var(--ak-brand);font-size:28px;font-weight:700}.title{color:var(--ak-text);font-size:30px;font-weight:600;margin-top:16px}.form-card{padding:20px}.legal-links{margin-top:20px;flex-direction:row;justify-content:center;color:var(--ak-brand);font-size:14px}.separator{color:var(--ak-muted)}</style>

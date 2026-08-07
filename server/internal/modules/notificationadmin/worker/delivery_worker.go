@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -122,6 +123,13 @@ func (w *DeliveryWorker) send(ctx context.Context, delivery storedDelivery) deli
 		return permanent(err)
 	}
 	if delivery.Channel == "email" {
+		if delivery.RenderedSubject == "" && delivery.RenderedBody == "" {
+			var renderErr error
+			delivery, renderErr = w.renderEncryptedEmail(ctx, delivery)
+			if renderErr != nil {
+				return permanent(renderErr)
+			}
+		}
 		return w.sendEmail(ctx, string(target), delivery, config)
 	}
 	if delivery.Channel != "sms" {
@@ -147,6 +155,63 @@ func (w *DeliveryWorker) send(ctx context.Context, delivery storedDelivery) deli
 	default:
 		return permanent(errors.New("SMS provider is not registered"))
 	}
+}
+
+var notificationPlaceholder = regexp.MustCompile(`\{\{\s*([a-zA-Z][a-zA-Z0-9_.-]*)\s*\}\}`)
+
+func (w *DeliveryWorker) renderEncryptedEmail(ctx context.Context, delivery storedDelivery) (storedDelivery, error) {
+	variables, err := decryptNotificationVariables(w.secrets, delivery.PayloadCiphertext, delivery.TenantID)
+	if err != nil {
+		return delivery, err
+	}
+	var subject, body string
+	if err = w.pool.QueryRow(ctx, `SELECT COALESCE(subject_template,''),body_template FROM notify.templates WHERE id=$1 AND channel='email' AND status='active'`, delivery.TemplateID).Scan(&subject, &body); err != nil {
+		return delivery, errors.New("email template is unavailable")
+	}
+	if delivery.RenderedSubject, delivery.RenderedBody, err = renderNotificationTemplate(subject, body, variables); err != nil {
+		return delivery, err
+	}
+	return delivery, nil
+}
+
+func decryptNotificationVariables(opener SecretOpener, ciphertext []byte, tenantID uuid.UUID) (map[string]any, error) {
+	payload, err := opener.Open(ciphertext, tenantID.String()+":notification-payload")
+	if err != nil {
+		return nil, errors.New("encrypted email variables cannot be opened")
+	}
+	variables := map[string]any{}
+	if json.Unmarshal(payload, &variables) != nil {
+		return nil, errors.New("encrypted email variables are invalid")
+	}
+	return variables, nil
+}
+
+func renderNotificationTemplate(subject, body string, variables map[string]any) (string, string, error) {
+	render := func(raw string) (string, error) {
+		missing := false
+		out := notificationPlaceholder.ReplaceAllStringFunc(raw, func(match string) string {
+			key := notificationPlaceholder.FindStringSubmatch(match)[1]
+			value, ok := variables[key]
+			if !ok {
+				missing = true
+				return ""
+			}
+			return fmt.Sprint(value)
+		})
+		if missing {
+			return "", errors.New("email template variables are incomplete")
+		}
+		return out, nil
+	}
+	renderedSubject, err := render(subject)
+	if err != nil {
+		return "", "", err
+	}
+	renderedBody, err := render(body)
+	if err != nil {
+		return "", "", err
+	}
+	return renderedSubject, renderedBody, nil
 }
 
 type configValues struct {

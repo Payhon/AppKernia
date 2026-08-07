@@ -3,6 +3,13 @@ import { AkRouteGuard, NavigationContext, RouteDefinition } from './route-guard.
 import { authContextStore } from '../stores/auth-context-store.uts'
 
 const routes: Array<RouteDefinition> = [
+  { key: 'auth.register', path: 'pages/auth/register/index', access: 'guest', permission: null, featureFlag: 'registration_enabled' },
+  { key: 'auth.forgot-password', path: 'pages/auth/forgot-password/index', access: 'guest', permission: null, featureFlag: null },
+  { key: 'auth.reset-password', path: 'pages/auth/reset-password/index', access: 'guest', permission: null, featureFlag: null },
+  { key: 'auth.verify-contact', path: 'pages/auth/verify-contact/index', access: 'guest', permission: null, featureFlag: null },
+  { key: 'legal.privacy', path: 'pages/legal/privacy/index', access: 'public', permission: null, featureFlag: null },
+  { key: 'legal.terms', path: 'pages/legal/terms/index', access: 'public', permission: null, featureFlag: null },
+  { key: 'legal.page', path: 'pages/legal/page/index', access: 'public', permission: null, featureFlag: null },
   { key: 'home', path: 'pages/home/index', access: 'authenticated', permission: null, featureFlag: null },
   { key: 'notifications.list', path: 'pages/notifications/index', access: 'authenticated', permission: null, featureFlag: null },
   { key: 'profile.index', path: 'pages/profile/index', access: 'authenticated', permission: null, featureFlag: null },

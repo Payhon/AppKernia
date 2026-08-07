@@ -1,5 +1,74 @@
 # 页面功能规格
 
+## `app.applications` — 应用管理
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `app.application.read` |
+| Schema | `app.applications` |
+| 后端状态 | `delta_required` |
+
+**API**
+
+- `GET /admin-api/v1/apps`
+- `POST /admin-api/v1/apps`
+- `PATCH /admin-api/v1/apps/{app_id}`
+- `POST /admin-api/v1/apps/{app_id}/enable`
+- `POST /admin-api/v1/apps/{app_id}/disable`
+
+**页面验收**
+
+- 每租户可管理多个应用，注册开关和验证方式经由服务端授权保存。
+
+## `app.users` — App 用户管理
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `app.user.read` |
+| Schema | `app.applications`, `app.user_memberships` |
+| 后端状态 | `existing` |
+
+**API**
+
+**页面验收**
+
+- `app_id` 必须在 URL 和页面上下文中明确；嵌套用户 API 未发布时页面不伪装为已联调。
+
+## `app.content.articles` — App 文章管理
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `app.content.read` |
+| Schema | `app.applications`, `content.articles`, `content.categories` |
+| 后端状态 | `existing` |
+
+**API**
+
+**页面验收**
+
+- 新 App 路由不会回退到旧 System 内容接口。
+
+## `app.content.pages` — App 单页内容
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `app.content.read` |
+| Schema | `app.applications`, `content.pages`, `content.page_revisions`, `content.page_revision_translations` |
+| 后端状态 | `delta_required` |
+
+**API**
+
+- `GET /admin-api/v1/apps/{app_id}/content/pages`
+- `POST /admin-api/v1/apps/{app_id}/content/pages`
+
+**页面验收**
+
+- 用户协议、隐私政策、关于我们为保留页面；删除入口不可用。
+
 Coding Agent 一次只实现一个 feature，并同时读取本文件和机器可读规格。
 
 ## `dashboard` — Dashboard

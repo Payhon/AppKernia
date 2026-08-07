@@ -1,0 +1,18 @@
+import { LegalSnapshot, bundledLegalSnapshot } from './legal-snapshots.uts'
+
+const CONSENT_KEY = 'ak.mobile.legal.consent.v1'
+
+export class LegalConsentStore {
+  accepted(snapshot: LegalSnapshot): boolean {
+    const value = uni.getStorageSync(CONSENT_KEY + '.' + snapshot.documentType) as string
+    return value == snapshot.version + ':' + snapshot.contentHash
+  }
+  acceptedAll(): boolean {
+    const privacy = bundledLegalSnapshot('privacy-policy')
+    const terms = bundledLegalSnapshot('terms-of-service')
+    return privacy != null && terms != null && this.accepted(privacy) && this.accepted(terms)
+  }
+  accept(snapshot: LegalSnapshot): void { uni.setStorageSync(CONSENT_KEY + '.' + snapshot.documentType, snapshot.version + ':' + snapshot.contentHash) }
+}
+
+export const legalConsentStore = new LegalConsentStore()

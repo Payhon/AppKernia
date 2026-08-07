@@ -270,6 +270,63 @@
       "path": "/profile/security",
       "component_key": "profile.security",
       "sort": 20
+    },
+    {
+      "code": "app",
+      "title": "App管理",
+      "type": "directory",
+      "path": "/app",
+      "icon": "MobileOutlined",
+      "sort": 25
+    },
+    {
+      "code": "app.applications",
+      "parent": "app",
+      "title": "应用管理",
+      "type": "page",
+      "path": "/app/applications",
+      "component_key": "app.applications",
+      "permission": "app.application.read",
+      "sort": 10
+    },
+    {
+      "code": "app.users",
+      "parent": "app",
+      "title": "用户管理",
+      "type": "page",
+      "path": "/app/users",
+      "component_key": "app.users",
+      "permission": "app.user.read",
+      "sort": 20
+    },
+    {
+      "code": "app.content",
+      "parent": "app",
+      "title": "内容管理",
+      "type": "directory",
+      "path": "/app/content",
+      "icon": "ReadOutlined",
+      "sort": 30
+    },
+    {
+      "code": "app.content.articles",
+      "parent": "app.content",
+      "title": "文章管理",
+      "type": "page",
+      "path": "/app/content/articles",
+      "component_key": "app.content.articles",
+      "permission": "app.content.read",
+      "sort": 10
+    },
+    {
+      "code": "app.content.pages",
+      "parent": "app.content",
+      "title": "单页内容",
+      "type": "page",
+      "path": "/app/content/pages",
+      "component_key": "app.content.pages",
+      "permission": "app.content.read",
+      "sort": 20
     }
   ]
 }

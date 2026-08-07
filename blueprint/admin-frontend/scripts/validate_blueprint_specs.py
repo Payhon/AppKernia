@@ -30,7 +30,7 @@ menu_copy=load('integration/backend-core-menus.v2.json'); backlog=load('spec/age
 menus=menu_doc.get('menus',[]); routes=route_doc.get('routes',[]); menu_by={m.get('code'):m for m in menus}; route_by={r.get('component_key'):r for r in routes}
 unique([m.get('code') for m in menus],'menu code'); unique([m.get('path') for m in menus],'menu path')
 roots=sorted(m['code'] for m in menus if not m.get('parent'))
-if roots!=['dashboard','system']: fail(f'unexpected roots: {roots}')
+if roots!=['app','dashboard','system']: fail(f'unexpected roots: {roots}')
 max_depth=menu_doc.get('constraints',{}).get('max_depth',3)
 for m in menus:
     code=m.get('code'); parent=m.get('parent')

@@ -1002,43 +1002,274 @@
       "status": "active"
     },
     {
-      "code": "content.category.read", "name": "查看内容分类", "module_code": "content", "resource_name": "category", "action_name": "read", "permission_kind": "api", "status": "active"
+      "code": "content.category.read",
+      "name": "查看内容分类",
+      "module_code": "content",
+      "resource_name": "category",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "content.category.create", "name": "创建内容分类", "module_code": "content", "resource_name": "category", "action_name": "create", "permission_kind": "api", "status": "active"
+      "code": "content.category.create",
+      "name": "创建内容分类",
+      "module_code": "content",
+      "resource_name": "category",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "content.category.update", "name": "更新内容分类", "module_code": "content", "resource_name": "category", "action_name": "update", "permission_kind": "api", "status": "active"
+      "code": "content.category.update",
+      "name": "更新内容分类",
+      "module_code": "content",
+      "resource_name": "category",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "content.category.delete", "name": "删除内容分类", "module_code": "content", "resource_name": "category", "action_name": "delete", "permission_kind": "api", "status": "active"
+      "code": "content.category.delete",
+      "name": "删除内容分类",
+      "module_code": "content",
+      "resource_name": "category",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "content.article.read", "name": "查看文章", "module_code": "content", "resource_name": "article", "action_name": "read", "permission_kind": "api", "status": "active"
+      "code": "content.article.read",
+      "name": "查看文章",
+      "module_code": "content",
+      "resource_name": "article",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "content.article.create", "name": "创建文章", "module_code": "content", "resource_name": "article", "action_name": "create", "permission_kind": "api", "status": "active"
+      "code": "content.article.create",
+      "name": "创建文章",
+      "module_code": "content",
+      "resource_name": "article",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "content.article.update", "name": "更新文章", "module_code": "content", "resource_name": "article", "action_name": "update", "permission_kind": "api", "status": "active"
+      "code": "content.article.update",
+      "name": "更新文章",
+      "module_code": "content",
+      "resource_name": "article",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "content.article.delete", "name": "删除文章", "module_code": "content", "resource_name": "article", "action_name": "delete", "permission_kind": "api", "status": "active"
+      "code": "content.article.delete",
+      "name": "删除文章",
+      "module_code": "content",
+      "resource_name": "article",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "content.article.publish", "name": "发布或撤回文章", "module_code": "content", "resource_name": "article", "action_name": "publish", "permission_kind": "api", "status": "active"
+      "code": "content.article.publish",
+      "name": "发布或撤回文章",
+      "module_code": "content",
+      "resource_name": "article",
+      "action_name": "publish",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "mobile.release.read", "name": "查看移动端发布策略", "module_code": "mobile", "resource_name": "release", "action_name": "read", "permission_kind": "api", "status": "active"
+      "code": "mobile.release.read",
+      "name": "查看移动端发布策略",
+      "module_code": "mobile",
+      "resource_name": "release",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "mobile.release.create", "name": "创建移动端发布策略", "module_code": "mobile", "resource_name": "release", "action_name": "create", "permission_kind": "api", "status": "active"
+      "code": "mobile.release.create",
+      "name": "创建移动端发布策略",
+      "module_code": "mobile",
+      "resource_name": "release",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "mobile.release.update", "name": "更新移动端发布策略", "module_code": "mobile", "resource_name": "release", "action_name": "update", "permission_kind": "api", "status": "active"
+      "code": "mobile.release.update",
+      "name": "更新移动端发布策略",
+      "module_code": "mobile",
+      "resource_name": "release",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "content.article.archive", "name": "归档文章", "module_code": "content", "resource_name": "article", "action_name": "archive", "permission_kind": "api", "status": "active"
+      "code": "content.article.archive",
+      "name": "归档文章",
+      "module_code": "content",
+      "resource_name": "article",
+      "action_name": "archive",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.application.read",
+      "name": "查看应用",
+      "module_code": "app",
+      "resource_name": "application",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.application.create",
+      "name": "创建应用",
+      "module_code": "app",
+      "resource_name": "application",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.application.update",
+      "name": "更新应用",
+      "module_code": "app",
+      "resource_name": "application",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.application.disable",
+      "name": "停用应用",
+      "module_code": "app",
+      "resource_name": "application",
+      "action_name": "disable",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.user.read",
+      "name": "查看应用用户",
+      "module_code": "app",
+      "resource_name": "user",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.user.create",
+      "name": "创建应用用户",
+      "module_code": "app",
+      "resource_name": "user",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.user.update",
+      "name": "更新应用用户",
+      "module_code": "app",
+      "resource_name": "user",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.user.disable",
+      "name": "停用应用用户",
+      "module_code": "app",
+      "resource_name": "user",
+      "action_name": "disable",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.user.enable",
+      "name": "启用应用用户",
+      "module_code": "app",
+      "resource_name": "user",
+      "action_name": "enable",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.user.unlock",
+      "name": "解锁应用用户",
+      "module_code": "app",
+      "resource_name": "user",
+      "action_name": "unlock",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.user.reset_password",
+      "name": "重置应用用户密码",
+      "module_code": "app",
+      "resource_name": "user",
+      "action_name": "reset_password",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.user.revoke_session",
+      "name": "撤销应用用户会话",
+      "module_code": "app",
+      "resource_name": "user",
+      "action_name": "revoke_session",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.content.read",
+      "name": "查看应用内容",
+      "module_code": "app",
+      "resource_name": "content",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.content.create",
+      "name": "创建应用内容",
+      "module_code": "app",
+      "resource_name": "content",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.content.update",
+      "name": "更新应用内容",
+      "module_code": "app",
+      "resource_name": "content",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.content.publish",
+      "name": "发布应用内容",
+      "module_code": "app",
+      "resource_name": "content",
+      "action_name": "publish",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.content.delete",
+      "name": "删除应用内容",
+      "module_code": "app",
+      "resource_name": "content",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
     }
   ]
 }

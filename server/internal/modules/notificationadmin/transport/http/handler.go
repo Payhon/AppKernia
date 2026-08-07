@@ -35,7 +35,7 @@ func (h *Handler) listMessages(r *ghttp.Request, notice bool) {
 		return
 	}
 	f.Status, f.Type = r.GetQuery("status").String(), r.GetQuery("message_type").String()
-	out, err := h.service.ListMessages(r.Context(), token(r), notice, f)
+	out, err := h.service.ListMessages(r.Context(), token(r), appID(r), notice, f)
 	if !h.fail(r, err) {
 		h.ok(r, 200, out)
 	}
@@ -49,7 +49,7 @@ func (h *Handler) createMessage(r *ghttp.Request, notice bool) {
 		h.fail(r, notify.ErrInvalid)
 		return
 	}
-	out, err := h.service.CreateMessage(r.Context(), token(r), requestPrincipal(r), notice, body)
+	out, err := h.service.CreateMessage(r.Context(), token(r), appID(r), requestPrincipal(r), notice, body)
 	if !h.fail(r, err) {
 		h.ok(r, 201, out)
 	}
@@ -63,7 +63,7 @@ func (h *Handler) getMessage(r *ghttp.Request, notice bool) {
 		h.fail(r, notify.ErrInvalid)
 		return
 	}
-	out, err := h.service.GetMessage(r.Context(), token(r), id, notice)
+	out, err := h.service.GetMessage(r.Context(), token(r), appID(r), id, notice)
 	if !h.fail(r, err) {
 		h.ok(r, 200, out)
 	}
@@ -78,7 +78,7 @@ func (h *Handler) updateMessage(r *ghttp.Request, notice bool) {
 		h.fail(r, notify.ErrInvalid)
 		return
 	}
-	out, err := h.service.UpdateMessage(r.Context(), token(r), requestPrincipal(r), id, notice, body)
+	out, err := h.service.UpdateMessage(r.Context(), token(r), appID(r), requestPrincipal(r), id, notice, body)
 	if !h.fail(r, err) {
 		h.ok(r, 200, out)
 	}
@@ -92,7 +92,7 @@ func (h *Handler) preview(r *ghttp.Request, notice bool) {
 		h.fail(r, notify.ErrInvalid)
 		return
 	}
-	out, err := h.service.PreviewRecipients(r.Context(), token(r), id, notice)
+	out, err := h.service.PreviewRecipients(r.Context(), token(r), appID(r), id, notice)
 	if !h.fail(r, err) {
 		h.ok(r, 200, out)
 	}
@@ -107,7 +107,7 @@ func (h *Handler) publish(r *ghttp.Request, notice bool) {
 		h.fail(r, notify.ErrInvalid)
 		return
 	}
-	message, recipients, err := h.service.PublishMessage(r.Context(), token(r), requestPrincipal(r), id, notice)
+	message, recipients, err := h.service.PublishMessage(r.Context(), token(r), appID(r), requestPrincipal(r), id, notice)
 	if !h.fail(r, err) {
 		h.ok(r, 200, map[string]any{"message": message, "recipients": recipients})
 	}
@@ -122,7 +122,7 @@ func (h *Handler) cancel(r *ghttp.Request, notice bool) {
 		h.fail(r, notify.ErrInvalid)
 		return
 	}
-	out, err := h.service.CancelMessage(r.Context(), token(r), requestPrincipal(r), id, notice)
+	out, err := h.service.CancelMessage(r.Context(), token(r), appID(r), requestPrincipal(r), id, notice)
 	if !h.fail(r, err) {
 		h.ok(r, 200, out)
 	}
@@ -136,7 +136,7 @@ func (h *Handler) recipients(r *ghttp.Request, notice bool) {
 		h.fail(r, notify.ErrInvalid)
 		return
 	}
-	out, err := h.service.RecipientStats(r.Context(), token(r), id, notice)
+	out, err := h.service.RecipientStats(r.Context(), token(r), appID(r), id, notice)
 	if !h.fail(r, err) {
 		h.ok(r, 200, out)
 	}
@@ -272,6 +272,13 @@ func pageFilter(r *ghttp.Request) (notify.PageFilter, bool) {
 	page, errPage := strconv.Atoi(r.GetQuery("page", 1).String())
 	size, errSize := strconv.Atoi(r.GetQuery("page_size", 20).String())
 	return notify.PageFilter{Query: r.GetQuery("q").String(), Page: int32(page), PageSize: int32(size)}, errPage == nil && errSize == nil
+}
+func appID(r *ghttp.Request) uuid.UUID {
+	id, err := uuid.Parse(r.GetRouter("app_id").String())
+	if err != nil {
+		return uuid.Nil
+	}
+	return id
 }
 
 func requestPrincipal(r *ghttp.Request) notify.Principal {

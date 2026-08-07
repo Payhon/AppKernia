@@ -19,6 +19,19 @@ export type HealthResponse = {
     request_id: string;
 };
 
+export type AppPublicConfigResponse = {
+    code: 'OK';
+    message: string;
+    data: {
+        app_id: string;
+        name: string;
+        default_locale: SupportedLocale;
+        registration_enabled: boolean;
+        registration_verification_mode: 'none' | 'email_otp';
+    };
+    request_id: string;
+};
+
 export type PublicConfigResponse = {
     code: 'OK';
     message: string;
@@ -29,14 +42,234 @@ export type PublicConfigResponse = {
         feature_flags: {
             [key: string]: boolean;
         };
-        /**
-         * Effective public values keyed by module_code.config_group.config_key. Tenant-scoped and secret settings are never included.
-         */
         settings: {
             [key: string]: unknown;
         };
     };
     request_id: string;
+};
+
+export type AppPublicPage = {
+    slug: string;
+    document_type: 'privacy-policy' | 'terms-of-service' | 'about-us' | 'custom';
+    title: string;
+    body: string | Array<unknown>;
+    body_format: 'markdown' | 'blocks';
+    version: number;
+    content_hash: string;
+    locale: SupportedLocale;
+    revision_id: string;
+};
+
+export type AppPublicPageResponse = {
+    code: string;
+    message: string;
+    data: AppPublicPage;
+    request_id: string;
+};
+
+export type AppLegalConsentRequest = {
+    document_type: 'privacy-policy' | 'terms-of-service';
+    revision_id: string;
+    content_hash: string;
+    locale: SupportedLocale;
+};
+
+export type AppRegistrationRequest = {
+    email: string;
+    display_name: string;
+    password: string;
+    locale: SupportedLocale;
+    accept_terms: true;
+};
+
+export type AppEmailRequest = {
+    email: string;
+};
+
+export type AppEmailOtpRequest = AppEmailRequest & {
+    code: string;
+};
+
+export type AppPasswordResetRequest = AppEmailOtpRequest & {
+    new_password: string;
+};
+
+export type AppAcceptedResponse = {
+    code: string;
+    message: string;
+    data: {
+        accepted: boolean;
+        verification_required?: boolean;
+        retry_after_seconds?: number;
+    };
+    request_id: string;
+};
+
+export type AdminApp = {
+    id: string;
+    tenant_id: string;
+    code: string;
+    name: string;
+    status: 'active' | 'disabled';
+    default_locale: SupportedLocale;
+    registration_enabled: boolean;
+    registration_verification_mode: 'none' | 'email_otp';
+    is_default: boolean;
+    lock_version: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AdminAppRequest = {
+    code?: string;
+    name: string;
+    default_locale: SupportedLocale;
+    registration_enabled: boolean;
+    registration_verification_mode: 'none' | 'email_otp';
+    lock_version?: number;
+};
+
+export type AdminAppStatusRequest = {
+    lock_version: number;
+};
+
+export type AdminAppResponse = {
+    code: string;
+    message: string;
+    data: AdminApp;
+    request_id: string;
+};
+
+export type AdminAppListResponse = {
+    code: string;
+    message: string;
+    data: AdminAppListPage;
+    request_id: string;
+};
+
+export type AdminAppListPage = {
+    items: Array<AdminApp>;
+    total: number;
+};
+
+export type AdminAppPage = {
+    id: string;
+    slug: string;
+    page_type: 'privacy-policy' | 'terms-of-service' | 'about-us' | 'custom';
+    status: 'draft' | 'published' | 'archived';
+    lock_version: number;
+    current_revision_id?: string | null;
+    updated_at: string;
+    translations: {
+        'zh-CN': {
+            title: string;
+            body_format: 'markdown' | 'blocks';
+            body: string | Array<unknown>;
+        };
+        'en-US': {
+            title: string;
+            body_format: 'markdown' | 'blocks';
+            body: string | Array<unknown>;
+        };
+    };
+    revisions: Array<{
+        id: string;
+        version: number;
+        status: 'draft' | 'published' | 'archived';
+        content_hash: string;
+        created_at: string;
+        created_by?: string | null;
+    }>;
+};
+
+export type AdminAppPageRequest = {
+    slug: string;
+    page_type: 'privacy-policy' | 'terms-of-service' | 'about-us' | 'custom';
+    lock_version?: number;
+    publish: boolean;
+    translations: {
+        'zh-CN': AdminAppPageTranslation;
+        'en-US': AdminAppPageTranslation;
+    };
+};
+
+export type AdminAppPageTranslation = {
+    title: string;
+    body_format: 'markdown' | 'blocks';
+    body: string | Array<unknown>;
+};
+
+export type AdminAppPageResponse = {
+    code: string;
+    message: string;
+    data: AdminAppPage;
+    request_id: string;
+};
+
+export type AdminAppPageListResponse = {
+    code: string;
+    message: string;
+    data: AdminAppPageListPage;
+    request_id: string;
+};
+
+export type AdminAppPageListPage = {
+    items: Array<AdminAppPage>;
+    total: number;
+};
+
+export type AdminAppUser = {
+    id: string;
+    user_id: string;
+    email: string;
+    display_name: string;
+    status: 'pending_verification' | 'active' | 'disabled';
+    source: 'self_registration' | 'admin_created' | 'legacy';
+    verified_at?: string | null;
+    created_at: string;
+    last_sign_in_at?: string | null;
+    lock_version: number;
+};
+
+export type AdminAppUserResponse = {
+    code: string;
+    message: string;
+    data: AdminAppUser;
+    request_id: string;
+};
+
+export type AdminAppUserListResponse = {
+    code: string;
+    message: string;
+    data: AdminAppUserListPage;
+    request_id: string;
+};
+
+export type AdminAppUserListPage = {
+    items: Array<AdminAppUser>;
+    total: number;
+};
+
+export type AdminAppUserCreateRequest = {
+    email: string;
+    display_name: string;
+    locale: SupportedLocale;
+    password: string;
+};
+
+export type AdminAppUserUpdateRequest = {
+    display_name: string;
+    lock_version: number;
+};
+
+export type AdminAppUserActionRequest = {
+    lock_version: number;
+};
+
+export type AdminAppPasswordResetRequest = {
+    new_password: string;
+    lock_version: number;
 };
 
 export type ErrorResponse = {
@@ -1363,6 +1596,7 @@ export type AdminFileDownloadResponse = {
 
 export type AdminNotificationMessage = {
     id: string;
+    app_id: string;
     message_type: 'system' | 'notice' | 'private' | 'marketing' | 'security';
     title: string;
     /**
@@ -2512,6 +2746,7 @@ export type MobileToken = {
     refresh_token: string;
     refresh_token_expires_in: number;
     session_id: string;
+    app_id: string;
 };
 
 export type MobileTokenResponse = {
@@ -2735,6 +2970,7 @@ export type MobileNotificationPageResponse = {
 
 export type AdminMobileRelease = {
     id: string;
+    app_id: string;
     platform: 'android' | 'ios' | 'harmony';
     current_version: string;
     minimum_version: string;
@@ -2908,6 +3144,11 @@ export type AdminBlockRuleCreateRequestWritable = {
 
 export type AcceptLanguage = string;
 
+/**
+ * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+ */
+export type AppId = string;
+
 export type CsrfToken = string;
 
 /**
@@ -2991,8 +3232,12 @@ export type GetReadinessResponse = GetReadinessResponses[keyof GetReadinessRespo
 
 export type GetAppPublicConfigData = {
     body?: never;
-    headers?: {
+    headers: {
         'Accept-Language'?: string;
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
     };
     path?: never;
     query?: never;
@@ -3016,14 +3261,121 @@ export type GetAppPublicConfigResponses = {
     /**
      * Public application configuration. Database-backed settings include only active global records where is_public is true and is_secret is false.
      */
-    200: PublicConfigResponse;
+    200: AppPublicConfigResponse;
 };
 
 export type GetAppPublicConfigResponse = GetAppPublicConfigResponses[keyof GetAppPublicConfigResponses];
 
+export type GetAppLegalDocumentData = {
+    body?: never;
+    headers: {
+        'Accept-Language'?: string;
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        document_type: 'privacy-policy' | 'terms-of-service';
+    };
+    query?: never;
+    url: '/api/v1/public/legal/{document_type}';
+};
+
+export type GetAppLegalDocumentErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAppLegalDocumentError = GetAppLegalDocumentErrors[keyof GetAppLegalDocumentErrors];
+
+export type GetAppLegalDocumentResponses = {
+    /**
+     * Published legal document and immutable revision hash.
+     */
+    200: AppPublicPageResponse;
+};
+
+export type GetAppLegalDocumentResponse = GetAppLegalDocumentResponses[keyof GetAppLegalDocumentResponses];
+
+export type GetAppPublicPageData = {
+    body?: never;
+    headers: {
+        'Accept-Language'?: string;
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/api/v1/public/pages/{slug}';
+};
+
+export type GetAppPublicPageErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAppPublicPageError = GetAppPublicPageErrors[keyof GetAppPublicPageErrors];
+
+export type GetAppPublicPageResponses = {
+    /**
+     * Published App page and immutable revision hash.
+     */
+    200: AppPublicPageResponse;
+};
+
+export type GetAppPublicPageResponse = GetAppPublicPageResponses[keyof GetAppPublicPageResponses];
+
+export type AcceptAppLegalDocumentData = {
+    body: AppLegalConsentRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/legal-consents';
+};
+
+export type AcceptAppLegalDocumentErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type AcceptAppLegalDocumentError = AcceptAppLegalDocumentErrors[keyof AcceptAppLegalDocumentErrors];
+
+export type AcceptAppLegalDocumentResponses = {
+    /**
+     * Consent was recorded idempotently.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type AcceptAppLegalDocumentResponse = AcceptAppLegalDocumentResponses[keyof AcceptAppLegalDocumentResponses];
+
 export type ListAppRegionsData = {
     body?: never;
-    headers?: {
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
         'Accept-Language'?: string;
     };
     path?: never;
@@ -3056,8 +3408,12 @@ export type ListAppRegionsResponse = ListAppRegionsResponses[keyof ListAppRegion
 
 export type GetMobileAppVersionData = {
     body?: never;
-    headers?: {
+    headers: {
         'Accept-Language'?: string;
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
     };
     path?: never;
     query: {
@@ -3091,6 +3447,10 @@ export type GetMobileAppVersionResponse = GetMobileAppVersionResponses[keyof Get
 export type MobilePasswordLoginData = {
     body: MobilePasswordLoginRequest;
     headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
         'Accept-Language'?: string;
         'X-AK-Device-Key': string;
     };
@@ -3121,8 +3481,173 @@ export type MobilePasswordLoginResponses = {
 
 export type MobilePasswordLoginResponse = MobilePasswordLoginResponses[keyof MobilePasswordLoginResponses];
 
+export type RegisterAppUserData = {
+    body: AppRegistrationRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/register';
+};
+
+export type RegisterAppUserErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type RegisterAppUserError = RegisterAppUserErrors[keyof RegisterAppUserErrors];
+
+export type RegisterAppUserResponses = {
+    /**
+     * Generic accepted response; does not reveal whether an account already exists.
+     */
+    202: AppAcceptedResponse;
+};
+
+export type RegisterAppUserResponse = RegisterAppUserResponses[keyof RegisterAppUserResponses];
+
+export type VerifyAppRegistrationEmailData = {
+    body: AppEmailOtpRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/registration/verify-email';
+};
+
+export type VerifyAppRegistrationEmailErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type VerifyAppRegistrationEmailError = VerifyAppRegistrationEmailErrors[keyof VerifyAppRegistrationEmailErrors];
+
+export type VerifyAppRegistrationEmailResponses = {
+    /**
+     * Membership activated
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type VerifyAppRegistrationEmailResponse = VerifyAppRegistrationEmailResponses[keyof VerifyAppRegistrationEmailResponses];
+
+export type ResendAppRegistrationEmailData = {
+    body: AppEmailRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/registration/resend-code';
+};
+
+export type ResendAppRegistrationEmailErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ResendAppRegistrationEmailError = ResendAppRegistrationEmailErrors[keyof ResendAppRegistrationEmailErrors];
+
+export type ResendAppRegistrationEmailResponses = {
+    /**
+     * Generic accepted response with resend cooldown.
+     */
+    202: AppAcceptedResponse;
+};
+
+export type ResendAppRegistrationEmailResponse = ResendAppRegistrationEmailResponses[keyof ResendAppRegistrationEmailResponses];
+
+export type ForgotAppPasswordData = {
+    body: AppEmailRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/password/forgot';
+};
+
+export type ForgotAppPasswordErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ForgotAppPasswordError = ForgotAppPasswordErrors[keyof ForgotAppPasswordErrors];
+
+export type ForgotAppPasswordResponses = {
+    /**
+     * Generic accepted response to prevent account enumeration.
+     */
+    202: AppAcceptedResponse;
+};
+
+export type ForgotAppPasswordResponse = ForgotAppPasswordResponses[keyof ForgotAppPasswordResponses];
+
+export type ResetAppPasswordData = {
+    body: AppPasswordResetRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/password/reset';
+};
+
+export type ResetAppPasswordErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ResetAppPasswordError = ResetAppPasswordErrors[keyof ResetAppPasswordErrors];
+
+export type ResetAppPasswordResponses = {
+    /**
+     * Password reset and current App mobile sessions revoked.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type ResetAppPasswordResponse = ResetAppPasswordResponses[keyof ResetAppPasswordResponses];
+
 export type MobileRefreshTokenData = {
     body: MobileRefreshRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/auth/token/refresh';
@@ -3148,6 +3673,12 @@ export type MobileRefreshTokenResponse = MobileRefreshTokenResponses[keyof Mobil
 
 export type MobileLogoutData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/auth/logout';
@@ -3173,6 +3704,12 @@ export type MobileLogoutResponse = MobileLogoutResponses[keyof MobileLogoutRespo
 
 export type MobileAuthContextData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/auth/context';
@@ -3198,6 +3735,12 @@ export type MobileAuthContextResponse = MobileAuthContextResponses[keyof MobileA
 
 export type MobileChangePasswordData = {
     body: SelfPasswordChangeRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/auth/password/change';
@@ -3227,6 +3770,12 @@ export type MobileChangePasswordResponse = MobileChangePasswordResponses[keyof M
 
 export type GetMobileMeData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me';
@@ -3252,6 +3801,12 @@ export type GetMobileMeResponse = GetMobileMeResponses[keyof GetMobileMeResponse
 
 export type UpdateMobileMeData = {
     body: SelfProfileUpdateRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me';
@@ -3281,6 +3836,12 @@ export type UpdateMobileMeResponse = UpdateMobileMeResponses[keyof UpdateMobileM
 
 export type ListMobileSelfSessionsData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me/sessions';
@@ -3306,6 +3867,12 @@ export type ListMobileSelfSessionsResponse = ListMobileSelfSessionsResponses[key
 
 export type RevokeMobileSelfSessionData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path: {
         id: string;
     };
@@ -3337,6 +3904,12 @@ export type RevokeMobileSelfSessionResponse = RevokeMobileSelfSessionResponses[k
 
 export type ListMobileSelfDevicesData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me/devices';
@@ -3362,6 +3935,12 @@ export type ListMobileSelfDevicesResponse = ListMobileSelfDevicesResponses[keyof
 
 export type RemoveMobileSelfDeviceData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path: {
         id: string;
     };
@@ -3393,6 +3972,12 @@ export type RemoveMobileSelfDeviceResponse = RemoveMobileSelfDeviceResponses[key
 
 export type GetMobilePreferencesData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me/preferences';
@@ -3418,6 +4003,12 @@ export type GetMobilePreferencesResponse = GetMobilePreferencesResponses[keyof G
 
 export type UpdateMobilePreferencesData = {
     body: MobilePreferencesUpdateRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me/preferences';
@@ -3447,6 +4038,12 @@ export type UpdateMobilePreferencesResponse = UpdateMobilePreferencesResponses[k
 
 export type GetMobileNotificationPreferencesData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me/notification-preferences';
@@ -3472,6 +4069,12 @@ export type GetMobileNotificationPreferencesResponse = GetMobileNotificationPref
 
 export type UpdateMobileNotificationPreferencesData = {
     body: MobileNotificationPreferencesUpdateRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me/notification-preferences';
@@ -3501,6 +4104,12 @@ export type UpdateMobileNotificationPreferencesResponse = UpdateMobileNotificati
 
 export type GetMobileUnreadNotificationCountData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me/notifications/unread-count';
@@ -3526,6 +4135,12 @@ export type GetMobileUnreadNotificationCountResponse = GetMobileUnreadNotificati
 
 export type ListMobileNotificationsData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: {
         cursor?: string;
@@ -3558,6 +4173,12 @@ export type ListMobileNotificationsResponse = ListMobileNotificationsResponses[k
 
 export type MarkMobileNotificationReadData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path: {
         id: string;
     };
@@ -3589,6 +4210,12 @@ export type MarkMobileNotificationReadResponse = MarkMobileNotificationReadRespo
 
 export type ListMobileLoginEventsData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me/login-events';
@@ -3614,6 +4241,12 @@ export type ListMobileLoginEventsResponse = ListMobileLoginEventsResponses[keyof
 
 export type ListMobileSecurityEventsData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/me/security-events';
@@ -3734,6 +4367,1561 @@ export type UpdateAdminMobileReleaseResponses = {
 
 export type UpdateAdminMobileReleaseResponse = UpdateAdminMobileReleaseResponses[keyof UpdateAdminMobileReleaseResponses];
 
+export type ListAdminAppsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        q?: string;
+        status?: 'active' | 'disabled';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps';
+};
+
+export type ListAdminAppsErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListAdminAppsError = ListAdminAppsErrors[keyof ListAdminAppsErrors];
+
+export type ListAdminAppsResponses = {
+    /**
+     * Tenant Apps
+     */
+    200: AdminAppListResponse;
+};
+
+export type ListAdminAppsResponse = ListAdminAppsResponses[keyof ListAdminAppsResponses];
+
+export type CreateAdminAppData = {
+    body: AdminAppRequest;
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/apps';
+};
+
+export type CreateAdminAppErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminAppError = CreateAdminAppErrors[keyof CreateAdminAppErrors];
+
+export type CreateAdminAppResponses = {
+    /**
+     * App created
+     */
+    201: AdminAppResponse;
+};
+
+export type CreateAdminAppResponse = CreateAdminAppResponses[keyof CreateAdminAppResponses];
+
+export type GetAdminAppData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}';
+};
+
+export type GetAdminAppErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppError = GetAdminAppErrors[keyof GetAdminAppErrors];
+
+export type GetAdminAppResponses = {
+    /**
+     * App detail
+     */
+    200: AdminAppResponse;
+};
+
+export type GetAdminAppResponse = GetAdminAppResponses[keyof GetAdminAppResponses];
+
+export type UpdateAdminAppData = {
+    body: AdminAppRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}';
+};
+
+export type UpdateAdminAppErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateAdminAppError = UpdateAdminAppErrors[keyof UpdateAdminAppErrors];
+
+export type UpdateAdminAppResponses = {
+    /**
+     * Updated App
+     */
+    200: AdminAppResponse;
+};
+
+export type UpdateAdminAppResponse = UpdateAdminAppResponses[keyof UpdateAdminAppResponses];
+
+export type EnableAdminAppData = {
+    body: AdminAppStatusRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/enable';
+};
+
+export type EnableAdminAppErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type EnableAdminAppError = EnableAdminAppErrors[keyof EnableAdminAppErrors];
+
+export type EnableAdminAppResponses = {
+    /**
+     * Enabled App
+     */
+    200: AdminAppResponse;
+};
+
+export type EnableAdminAppResponse = EnableAdminAppResponses[keyof EnableAdminAppResponses];
+
+export type DisableAdminAppData = {
+    body: AdminAppStatusRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/disable';
+};
+
+export type DisableAdminAppErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DisableAdminAppError = DisableAdminAppErrors[keyof DisableAdminAppErrors];
+
+export type DisableAdminAppResponses = {
+    /**
+     * Disabled App
+     */
+    200: AdminAppResponse;
+};
+
+export type DisableAdminAppResponse = DisableAdminAppResponses[keyof DisableAdminAppResponses];
+
+export type ListAdminAppMobileReleasesData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/mobile/releases';
+};
+
+export type ListAdminAppMobileReleasesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type ListAdminAppMobileReleasesError = ListAdminAppMobileReleasesErrors[keyof ListAdminAppMobileReleasesErrors];
+
+export type ListAdminAppMobileReleasesResponses = {
+    /**
+     * App release policies.
+     */
+    200: AdminMobileReleaseListResponse;
+};
+
+export type ListAdminAppMobileReleasesResponse = ListAdminAppMobileReleasesResponses[keyof ListAdminAppMobileReleasesResponses];
+
+export type CreateAdminAppMobileReleaseData = {
+    body: AdminMobileReleaseRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/mobile/releases';
+};
+
+export type CreateAdminAppMobileReleaseErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminAppMobileReleaseError = CreateAdminAppMobileReleaseErrors[keyof CreateAdminAppMobileReleaseErrors];
+
+export type CreateAdminAppMobileReleaseResponses = {
+    /**
+     * App release policy created.
+     */
+    201: AdminMobileReleaseResponse;
+};
+
+export type CreateAdminAppMobileReleaseResponse = CreateAdminAppMobileReleaseResponses[keyof CreateAdminAppMobileReleaseResponses];
+
+export type UpdateAdminAppMobileReleaseData = {
+    body: AdminMobileReleaseRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/mobile/releases/{id}';
+};
+
+export type UpdateAdminAppMobileReleaseErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateAdminAppMobileReleaseError = UpdateAdminAppMobileReleaseErrors[keyof UpdateAdminAppMobileReleaseErrors];
+
+export type UpdateAdminAppMobileReleaseResponses = {
+    /**
+     * Updated App release policy.
+     */
+    200: AdminMobileReleaseResponse;
+};
+
+export type UpdateAdminAppMobileReleaseResponse = UpdateAdminAppMobileReleaseResponses[keyof UpdateAdminAppMobileReleaseResponses];
+
+export type ListAdminAppNoticesData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        q?: string;
+        status?: 'draft' | 'scheduled' | 'published' | 'cancelled';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/notices';
+};
+
+export type ListAdminAppNoticesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type ListAdminAppNoticesError = ListAdminAppNoticesErrors[keyof ListAdminAppNoticesErrors];
+
+export type ListAdminAppNoticesResponses = {
+    /**
+     * App notices.
+     */
+    200: AdminNotificationMessageListResponse;
+};
+
+export type ListAdminAppNoticesResponse = ListAdminAppNoticesResponses[keyof ListAdminAppNoticesResponses];
+
+export type CreateAdminAppNoticeData = {
+    body: AdminNotificationMessageRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/notices';
+};
+
+export type CreateAdminAppNoticeErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminAppNoticeError = CreateAdminAppNoticeErrors[keyof CreateAdminAppNoticeErrors];
+
+export type CreateAdminAppNoticeResponses = {
+    /**
+     * App notice created.
+     */
+    201: AdminNotificationMessageResponse;
+};
+
+export type CreateAdminAppNoticeResponse = CreateAdminAppNoticeResponses[keyof CreateAdminAppNoticeResponses];
+
+export type GetAdminAppNoticeData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/notices/{id}';
+};
+
+export type GetAdminAppNoticeErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppNoticeError = GetAdminAppNoticeErrors[keyof GetAdminAppNoticeErrors];
+
+export type GetAdminAppNoticeResponses = {
+    /**
+     * App notice.
+     */
+    200: AdminNotificationMessageResponse;
+};
+
+export type GetAdminAppNoticeResponse = GetAdminAppNoticeResponses[keyof GetAdminAppNoticeResponses];
+
+export type UpdateAdminAppNoticeData = {
+    body: AdminNotificationMessageRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/notices/{id}';
+};
+
+export type UpdateAdminAppNoticeErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateAdminAppNoticeError = UpdateAdminAppNoticeErrors[keyof UpdateAdminAppNoticeErrors];
+
+export type UpdateAdminAppNoticeResponses = {
+    /**
+     * Updated App notice.
+     */
+    200: AdminNotificationMessageResponse;
+};
+
+export type UpdateAdminAppNoticeResponse = UpdateAdminAppNoticeResponses[keyof UpdateAdminAppNoticeResponses];
+
+export type PreviewAdminAppNoticeRecipientsData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/notices/{id}/recipient-preview';
+};
+
+export type PreviewAdminAppNoticeRecipientsErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type PreviewAdminAppNoticeRecipientsError = PreviewAdminAppNoticeRecipientsErrors[keyof PreviewAdminAppNoticeRecipientsErrors];
+
+export type PreviewAdminAppNoticeRecipientsResponses = {
+    /**
+     * App recipient preview.
+     */
+    200: AdminNotificationRecipientPreviewResponse;
+};
+
+export type PreviewAdminAppNoticeRecipientsResponse = PreviewAdminAppNoticeRecipientsResponses[keyof PreviewAdminAppNoticeRecipientsResponses];
+
+export type TransitionAdminAppNoticeData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+        action: 'publish' | 'cancel';
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/notices/{id}/{action}';
+};
+
+export type TransitionAdminAppNoticeErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type TransitionAdminAppNoticeError = TransitionAdminAppNoticeErrors[keyof TransitionAdminAppNoticeErrors];
+
+export type TransitionAdminAppNoticeResponses = {
+    /**
+     * Transitioned App notice.
+     */
+    200: AdminNotificationMessageResponse;
+};
+
+export type TransitionAdminAppNoticeResponse = TransitionAdminAppNoticeResponses[keyof TransitionAdminAppNoticeResponses];
+
+export type GetAdminAppNoticeRecipientsData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/notices/{id}/recipients';
+};
+
+export type GetAdminAppNoticeRecipientsErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppNoticeRecipientsError = GetAdminAppNoticeRecipientsErrors[keyof GetAdminAppNoticeRecipientsErrors];
+
+export type GetAdminAppNoticeRecipientsResponses = {
+    /**
+     * App recipient statistics.
+     */
+    200: AdminNotificationRecipientStatsResponse;
+};
+
+export type GetAdminAppNoticeRecipientsResponse = GetAdminAppNoticeRecipientsResponses[keyof GetAdminAppNoticeRecipientsResponses];
+
+export type ListAdminAppMessagesData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        q?: string;
+        status?: 'draft' | 'scheduled' | 'published' | 'cancelled';
+        message_type?: 'system' | 'private' | 'marketing' | 'security';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/messages';
+};
+
+export type ListAdminAppMessagesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type ListAdminAppMessagesError = ListAdminAppMessagesErrors[keyof ListAdminAppMessagesErrors];
+
+export type ListAdminAppMessagesResponses = {
+    /**
+     * App messages.
+     */
+    200: AdminNotificationMessageListResponse;
+};
+
+export type ListAdminAppMessagesResponse = ListAdminAppMessagesResponses[keyof ListAdminAppMessagesResponses];
+
+export type CreateAdminAppMessageData = {
+    body: AdminNotificationMessageRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/messages';
+};
+
+export type CreateAdminAppMessageErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminAppMessageError = CreateAdminAppMessageErrors[keyof CreateAdminAppMessageErrors];
+
+export type CreateAdminAppMessageResponses = {
+    /**
+     * App message created.
+     */
+    201: AdminNotificationMessageResponse;
+};
+
+export type CreateAdminAppMessageResponse = CreateAdminAppMessageResponses[keyof CreateAdminAppMessageResponses];
+
+export type GetAdminAppMessageData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/messages/{id}';
+};
+
+export type GetAdminAppMessageErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppMessageError = GetAdminAppMessageErrors[keyof GetAdminAppMessageErrors];
+
+export type GetAdminAppMessageResponses = {
+    /**
+     * App message.
+     */
+    200: AdminNotificationMessageResponse;
+};
+
+export type GetAdminAppMessageResponse = GetAdminAppMessageResponses[keyof GetAdminAppMessageResponses];
+
+export type UpdateAdminAppMessageData = {
+    body: AdminNotificationMessageRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/messages/{id}';
+};
+
+export type UpdateAdminAppMessageErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateAdminAppMessageError = UpdateAdminAppMessageErrors[keyof UpdateAdminAppMessageErrors];
+
+export type UpdateAdminAppMessageResponses = {
+    /**
+     * Updated App message.
+     */
+    200: AdminNotificationMessageResponse;
+};
+
+export type UpdateAdminAppMessageResponse = UpdateAdminAppMessageResponses[keyof UpdateAdminAppMessageResponses];
+
+export type PreviewAdminAppMessageRecipientsData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/messages/{id}/recipient-preview';
+};
+
+export type PreviewAdminAppMessageRecipientsErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type PreviewAdminAppMessageRecipientsError = PreviewAdminAppMessageRecipientsErrors[keyof PreviewAdminAppMessageRecipientsErrors];
+
+export type PreviewAdminAppMessageRecipientsResponses = {
+    /**
+     * App recipient preview.
+     */
+    200: AdminNotificationRecipientPreviewResponse;
+};
+
+export type PreviewAdminAppMessageRecipientsResponse = PreviewAdminAppMessageRecipientsResponses[keyof PreviewAdminAppMessageRecipientsResponses];
+
+export type TransitionAdminAppMessageData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+        action: 'publish' | 'cancel';
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/messages/{id}/{action}';
+};
+
+export type TransitionAdminAppMessageErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type TransitionAdminAppMessageError = TransitionAdminAppMessageErrors[keyof TransitionAdminAppMessageErrors];
+
+export type TransitionAdminAppMessageResponses = {
+    /**
+     * Transitioned App message.
+     */
+    200: AdminNotificationMessageResponse;
+};
+
+export type TransitionAdminAppMessageResponse = TransitionAdminAppMessageResponses[keyof TransitionAdminAppMessageResponses];
+
+export type GetAdminAppMessageRecipientsData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/messages/{id}/recipients';
+};
+
+export type GetAdminAppMessageRecipientsErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppMessageRecipientsError = GetAdminAppMessageRecipientsErrors[keyof GetAdminAppMessageRecipientsErrors];
+
+export type GetAdminAppMessageRecipientsResponses = {
+    /**
+     * App recipient statistics.
+     */
+    200: AdminNotificationRecipientStatsResponse;
+};
+
+export type GetAdminAppMessageRecipientsResponse = GetAdminAppMessageRecipientsResponses[keyof GetAdminAppMessageRecipientsResponses];
+
+export type ListAdminAppContentCategoriesData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        q?: string;
+        status?: 'active' | 'disabled';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/categories';
+};
+
+export type ListAdminAppContentCategoriesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type ListAdminAppContentCategoriesError = ListAdminAppContentCategoriesErrors[keyof ListAdminAppContentCategoriesErrors];
+
+export type ListAdminAppContentCategoriesResponses = {
+    /**
+     * App category page.
+     */
+    200: AdminContentCategoryListResponse;
+};
+
+export type ListAdminAppContentCategoriesResponse = ListAdminAppContentCategoriesResponses[keyof ListAdminAppContentCategoriesResponses];
+
+export type CreateAdminAppContentCategoryData = {
+    body: AdminContentCategoryRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/categories';
+};
+
+export type CreateAdminAppContentCategoryErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminAppContentCategoryError = CreateAdminAppContentCategoryErrors[keyof CreateAdminAppContentCategoryErrors];
+
+export type CreateAdminAppContentCategoryResponses = {
+    /**
+     * Created.
+     */
+    201: AdminContentCategoryResponse;
+};
+
+export type CreateAdminAppContentCategoryResponse = CreateAdminAppContentCategoryResponses[keyof CreateAdminAppContentCategoryResponses];
+
+export type DeleteAdminAppContentCategoryData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/categories/{id}';
+};
+
+export type DeleteAdminAppContentCategoryErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminAppContentCategoryError = DeleteAdminAppContentCategoryErrors[keyof DeleteAdminAppContentCategoryErrors];
+
+export type DeleteAdminAppContentCategoryResponses = {
+    /**
+     * Deleted.
+     */
+    200: AdminDeleteResponse;
+};
+
+export type DeleteAdminAppContentCategoryResponse = DeleteAdminAppContentCategoryResponses[keyof DeleteAdminAppContentCategoryResponses];
+
+export type GetAdminAppContentCategoryData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/categories/{id}';
+};
+
+export type GetAdminAppContentCategoryErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppContentCategoryError = GetAdminAppContentCategoryErrors[keyof GetAdminAppContentCategoryErrors];
+
+export type GetAdminAppContentCategoryResponses = {
+    /**
+     * Category.
+     */
+    200: AdminContentCategoryResponse;
+};
+
+export type GetAdminAppContentCategoryResponse = GetAdminAppContentCategoryResponses[keyof GetAdminAppContentCategoryResponses];
+
+export type UpdateAdminAppContentCategoryData = {
+    body: AdminContentCategoryUpdateRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/categories/{id}';
+};
+
+export type UpdateAdminAppContentCategoryErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateAdminAppContentCategoryError = UpdateAdminAppContentCategoryErrors[keyof UpdateAdminAppContentCategoryErrors];
+
+export type UpdateAdminAppContentCategoryResponses = {
+    /**
+     * Updated.
+     */
+    200: AdminContentCategoryResponse;
+};
+
+export type UpdateAdminAppContentCategoryResponse = UpdateAdminAppContentCategoryResponses[keyof UpdateAdminAppContentCategoryResponses];
+
+export type ListAdminAppContentArticlesData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        q?: string;
+        category_id?: string;
+        status?: 'draft' | 'published' | 'archived';
+        featured?: boolean;
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/articles';
+};
+
+export type ListAdminAppContentArticlesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type ListAdminAppContentArticlesError = ListAdminAppContentArticlesErrors[keyof ListAdminAppContentArticlesErrors];
+
+export type ListAdminAppContentArticlesResponses = {
+    /**
+     * App article page.
+     */
+    200: AdminContentArticleListResponse;
+};
+
+export type ListAdminAppContentArticlesResponse = ListAdminAppContentArticlesResponses[keyof ListAdminAppContentArticlesResponses];
+
+export type CreateAdminAppContentArticleData = {
+    body: AdminContentArticleRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/articles';
+};
+
+export type CreateAdminAppContentArticleErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminAppContentArticleError = CreateAdminAppContentArticleErrors[keyof CreateAdminAppContentArticleErrors];
+
+export type CreateAdminAppContentArticleResponses = {
+    /**
+     * Created.
+     */
+    201: AdminContentArticleResponse;
+};
+
+export type CreateAdminAppContentArticleResponse = CreateAdminAppContentArticleResponses[keyof CreateAdminAppContentArticleResponses];
+
+export type DeleteAdminAppContentArticleData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/articles/{id}';
+};
+
+export type DeleteAdminAppContentArticleErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminAppContentArticleError = DeleteAdminAppContentArticleErrors[keyof DeleteAdminAppContentArticleErrors];
+
+export type DeleteAdminAppContentArticleResponses = {
+    /**
+     * Deleted.
+     */
+    200: AdminDeleteResponse;
+};
+
+export type DeleteAdminAppContentArticleResponse = DeleteAdminAppContentArticleResponses[keyof DeleteAdminAppContentArticleResponses];
+
+export type GetAdminAppContentArticleData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/articles/{id}';
+};
+
+export type GetAdminAppContentArticleErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppContentArticleError = GetAdminAppContentArticleErrors[keyof GetAdminAppContentArticleErrors];
+
+export type GetAdminAppContentArticleResponses = {
+    /**
+     * Article.
+     */
+    200: AdminContentArticleResponse;
+};
+
+export type GetAdminAppContentArticleResponse = GetAdminAppContentArticleResponses[keyof GetAdminAppContentArticleResponses];
+
+export type UpdateAdminAppContentArticleData = {
+    body: AdminContentArticleUpdateRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/articles/{id}';
+};
+
+export type UpdateAdminAppContentArticleErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateAdminAppContentArticleError = UpdateAdminAppContentArticleErrors[keyof UpdateAdminAppContentArticleErrors];
+
+export type UpdateAdminAppContentArticleResponses = {
+    /**
+     * Updated.
+     */
+    200: AdminContentArticleResponse;
+};
+
+export type UpdateAdminAppContentArticleResponse = UpdateAdminAppContentArticleResponses[keyof UpdateAdminAppContentArticleResponses];
+
+export type TransitionAdminAppContentArticleData = {
+    body: AdminContentTransitionRequest;
+    path: {
+        app_id: string;
+        id: string;
+        transition: 'publish' | 'unpublish' | 'archive';
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/articles/{id}/{transition}';
+};
+
+export type TransitionAdminAppContentArticleErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type TransitionAdminAppContentArticleError = TransitionAdminAppContentArticleErrors[keyof TransitionAdminAppContentArticleErrors];
+
+export type TransitionAdminAppContentArticleResponses = {
+    /**
+     * Transitioned.
+     */
+    200: AdminContentArticleResponse;
+};
+
+export type TransitionAdminAppContentArticleResponse = TransitionAdminAppContentArticleResponses[keyof TransitionAdminAppContentArticleResponses];
+
+export type ListAdminAppPagesData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        q?: string;
+        status?: 'draft' | 'published' | 'archived';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/pages';
+};
+
+export type ListAdminAppPagesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type ListAdminAppPagesError = ListAdminAppPagesErrors[keyof ListAdminAppPagesErrors];
+
+export type ListAdminAppPagesResponses = {
+    /**
+     * Pages belonging only to the selected App.
+     */
+    200: AdminAppPageListResponse;
+};
+
+export type ListAdminAppPagesResponse = ListAdminAppPagesResponses[keyof ListAdminAppPagesResponses];
+
+export type SaveAdminAppPageData = {
+    body: AdminAppPageRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/pages';
+};
+
+export type SaveAdminAppPageErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type SaveAdminAppPageError = SaveAdminAppPageErrors[keyof SaveAdminAppPageErrors];
+
+export type SaveAdminAppPageResponses = {
+    /**
+     * Versioned page saved; publish atomically updates current_revision_id.
+     */
+    200: AdminAppPageResponse;
+};
+
+export type SaveAdminAppPageResponse = SaveAdminAppPageResponses[keyof SaveAdminAppPageResponses];
+
+export type DeleteAdminAppPageData = {
+    body?: never;
+    path: {
+        app_id: string;
+        slug: string;
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/pages/{slug}';
+};
+
+export type DeleteAdminAppPageErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminAppPageError = DeleteAdminAppPageErrors[keyof DeleteAdminAppPageErrors];
+
+export type DeleteAdminAppPageResponses = {
+    /**
+     * Custom page deleted.
+     */
+    200: AdminDeleteResponse;
+};
+
+export type DeleteAdminAppPageResponse = DeleteAdminAppPageResponses[keyof DeleteAdminAppPageResponses];
+
+export type SaveAdminAppPageDraftData = {
+    body: AdminAppPageRequest;
+    path: {
+        app_id: string;
+        slug: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/pages/{slug}';
+};
+
+export type SaveAdminAppPageDraftErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type SaveAdminAppPageDraftError = SaveAdminAppPageDraftErrors[keyof SaveAdminAppPageDraftErrors];
+
+export type SaveAdminAppPageDraftResponses = {
+    /**
+     * Draft revision saved.
+     */
+    200: AdminAppPageResponse;
+};
+
+export type SaveAdminAppPageDraftResponse = SaveAdminAppPageDraftResponses[keyof SaveAdminAppPageDraftResponses];
+
+export type PublishAdminAppPageData = {
+    body: AdminContentTransitionRequest;
+    path: {
+        app_id: string;
+        slug: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/pages/{slug}/publish';
+};
+
+export type PublishAdminAppPageErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type PublishAdminAppPageError = PublishAdminAppPageErrors[keyof PublishAdminAppPageErrors];
+
+export type PublishAdminAppPageResponses = {
+    /**
+     * Draft published atomically.
+     */
+    200: AdminAppPageResponse;
+};
+
+export type PublishAdminAppPageResponse = PublishAdminAppPageResponses[keyof PublishAdminAppPageResponses];
+
+export type ListAdminAppUsersData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        q?: string;
+        status?: 'pending_verification' | 'active' | 'disabled';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/users';
+};
+
+export type ListAdminAppUsersErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type ListAdminAppUsersError = ListAdminAppUsersErrors[keyof ListAdminAppUsersErrors];
+
+export type ListAdminAppUsersResponses = {
+    /**
+     * App memberships
+     */
+    200: AdminAppUserListResponse;
+};
+
+export type ListAdminAppUsersResponse = ListAdminAppUsersResponses[keyof ListAdminAppUsersResponses];
+
+export type CreateAdminAppUserData = {
+    body: AdminAppUserCreateRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/users';
+};
+
+export type CreateAdminAppUserErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminAppUserError = CreateAdminAppUserErrors[keyof CreateAdminAppUserErrors];
+
+export type CreateAdminAppUserResponses = {
+    /**
+     * App user created
+     */
+    201: AdminAppUserResponse;
+};
+
+export type CreateAdminAppUserResponse = CreateAdminAppUserResponses[keyof CreateAdminAppUserResponses];
+
+export type GetAdminAppUserData = {
+    body?: never;
+    path: {
+        app_id: string;
+        user_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/users/{user_id}';
+};
+
+export type GetAdminAppUserErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppUserError = GetAdminAppUserErrors[keyof GetAdminAppUserErrors];
+
+export type GetAdminAppUserResponses = {
+    /**
+     * App user detail
+     */
+    200: AdminAppUserResponse;
+};
+
+export type GetAdminAppUserResponse = GetAdminAppUserResponses[keyof GetAdminAppUserResponses];
+
+export type UpdateAdminAppUserData = {
+    body: AdminAppUserUpdateRequest;
+    path: {
+        app_id: string;
+        user_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/users/{user_id}';
+};
+
+export type UpdateAdminAppUserErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type UpdateAdminAppUserError = UpdateAdminAppUserErrors[keyof UpdateAdminAppUserErrors];
+
+export type UpdateAdminAppUserResponses = {
+    /**
+     * Updated App user
+     */
+    200: AdminAppUserResponse;
+};
+
+export type UpdateAdminAppUserResponse = UpdateAdminAppUserResponses[keyof UpdateAdminAppUserResponses];
+
+export type EnableAdminAppUserData = {
+    body: AdminAppUserActionRequest;
+    path: {
+        app_id: string;
+        user_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/users/{user_id}/enable';
+};
+
+export type EnableAdminAppUserErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type EnableAdminAppUserError = EnableAdminAppUserErrors[keyof EnableAdminAppUserErrors];
+
+export type EnableAdminAppUserResponses = {
+    /**
+     * App membership enabled
+     */
+    200: AdminAppUserResponse;
+};
+
+export type EnableAdminAppUserResponse = EnableAdminAppUserResponses[keyof EnableAdminAppUserResponses];
+
+export type DisableAdminAppUserData = {
+    body: AdminAppUserActionRequest;
+    path: {
+        app_id: string;
+        user_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/users/{user_id}/disable';
+};
+
+export type DisableAdminAppUserErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DisableAdminAppUserError = DisableAdminAppUserErrors[keyof DisableAdminAppUserErrors];
+
+export type DisableAdminAppUserResponses = {
+    /**
+     * App membership disabled
+     */
+    200: AdminAppUserResponse;
+};
+
+export type DisableAdminAppUserResponse = DisableAdminAppUserResponses[keyof DisableAdminAppUserResponses];
+
+export type UnlockAdminAppUserData = {
+    body: AdminAppUserActionRequest;
+    path: {
+        app_id: string;
+        user_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/users/{user_id}/unlock';
+};
+
+export type UnlockAdminAppUserErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UnlockAdminAppUserError = UnlockAdminAppUserErrors[keyof UnlockAdminAppUserErrors];
+
+export type UnlockAdminAppUserResponses = {
+    /**
+     * User credential unlocked and membership lock incremented
+     */
+    200: AdminAppUserResponse;
+};
+
+export type UnlockAdminAppUserResponse = UnlockAdminAppUserResponses[keyof UnlockAdminAppUserResponses];
+
+export type ResetAdminAppUserPasswordData = {
+    body: AdminAppPasswordResetRequest;
+    path: {
+        app_id: string;
+        user_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/users/{user_id}/reset-password';
+};
+
+export type ResetAdminAppUserPasswordErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type ResetAdminAppUserPasswordError = ResetAdminAppUserPasswordErrors[keyof ResetAdminAppUserPasswordErrors];
+
+export type ResetAdminAppUserPasswordResponses = {
+    /**
+     * Password reset and membership lock incremented
+     */
+    200: AdminAppUserResponse;
+};
+
+export type ResetAdminAppUserPasswordResponse = ResetAdminAppUserPasswordResponses[keyof ResetAdminAppUserPasswordResponses];
+
+export type RevokeAdminAppUserSessionsData = {
+    body: AdminAppUserActionRequest;
+    path: {
+        app_id: string;
+        user_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/users/{user_id}/sessions/revoke';
+};
+
+export type RevokeAdminAppUserSessionsErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type RevokeAdminAppUserSessionsError = RevokeAdminAppUserSessionsErrors[keyof RevokeAdminAppUserSessionsErrors];
+
+export type RevokeAdminAppUserSessionsResponses = {
+    /**
+     * Current App sessions revoked and membership lock incremented
+     */
+    200: AdminAppUserResponse;
+};
+
+export type RevokeAdminAppUserSessionsResponse = RevokeAdminAppUserSessionsResponses[keyof RevokeAdminAppUserSessionsResponses];
+
 export type AdminLoginData = {
     body: AdminLoginRequest;
     headers?: {
@@ -3772,7 +5960,11 @@ export type AdminLoginResponse = AdminLoginResponses[keyof AdminLoginResponses];
 
 export type GetPublicDictionaryData = {
     body?: never;
-    headers?: {
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
         'Accept-Language'?: string;
     };
     path: {
@@ -7579,7 +9771,11 @@ export type DownloadAdminFileContentResponse = DownloadAdminFileContentResponses
 
 export type ListAppArticlesData = {
     body?: never;
-    headers?: {
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
         'Accept-Language'?: string;
     };
     path?: never;
@@ -7617,7 +9813,11 @@ export type ListAppArticlesResponse = ListAppArticlesResponses[keyof ListAppArti
 
 export type ListAppArticleCategoriesData = {
     body?: never;
-    headers?: {
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
         'Accept-Language'?: string;
     };
     path?: never;
@@ -7645,6 +9845,12 @@ export type ListAppArticleCategoriesResponse = ListAppArticleCategoriesResponses
 
 export type GetAppArticleAssetData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path: {
         file_id: string;
     };
@@ -7680,7 +9886,11 @@ export type GetAppArticleAssetResponse = GetAppArticleAssetResponses[keyof GetAp
 
 export type GetAppArticleData = {
     body?: never;
-    headers?: {
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
         'Accept-Language'?: string;
     };
     path: {
@@ -7718,6 +9928,12 @@ export type GetAppArticleResponse = GetAppArticleResponses[keyof GetAppArticleRe
 
 export type RemoveAppArticleBookmarkData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path: {
         article_id: string;
     };
@@ -7745,6 +9961,12 @@ export type RemoveAppArticleBookmarkResponse = RemoveAppArticleBookmarkResponses
 
 export type BookmarkAppArticleData = {
     body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path: {
         article_id: string;
     };
@@ -9600,6 +11822,12 @@ export type UpdateAdminDictionaryItemResponse = UpdateAdminDictionaryItemRespons
 
 export type CreateApiClientTokenData = {
     body: ApiClientTokenRequestWritable;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/api/v1/auth/client-token';

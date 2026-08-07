@@ -29,6 +29,7 @@ func (DeliveryJobArgs) Kind() string { return DeliveryJobKind }
 
 type Principal struct {
 	TenantID  uuid.UUID
+	AppID     uuid.UUID
 	UserID    uuid.UUID
 	SessionID uuid.UUID
 	RequestID string
@@ -48,6 +49,7 @@ type PageFilter struct {
 
 type Message struct {
 	ID              uuid.UUID   `json:"id"`
+	AppID           uuid.UUID   `json:"app_id"`
 	MessageType     string      `json:"message_type"`
 	Title           string      `json:"title"`
 	Body            string      `json:"body"`
@@ -137,6 +139,7 @@ type TemplatePage struct {
 
 type Delivery struct {
 	ID                uuid.UUID  `json:"id"`
+	AppID             *uuid.UUID `json:"app_id,omitempty"`
 	MessageID         *uuid.UUID `json:"message_id,omitempty"`
 	UserID            *uuid.UUID `json:"user_id,omitempty"`
 	TemplateID        *uuid.UUID `json:"template_id,omitempty"`
@@ -209,14 +212,14 @@ type DeliveryPage struct {
 }
 
 type Repository interface {
-	ListMessages(context.Context, uuid.UUID, bool, PageFilter) (MessagePage, error)
-	GetMessage(context.Context, uuid.UUID, uuid.UUID, bool) (Message, error)
+	ListMessages(context.Context, uuid.UUID, uuid.UUID, bool, PageFilter) (MessagePage, error)
+	GetMessage(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, bool) (Message, error)
 	CreateMessage(context.Context, Principal, bool, MessageInput) (Message, error)
 	UpdateMessage(context.Context, Principal, uuid.UUID, bool, MessageInput) (Message, error)
-	PreviewRecipients(context.Context, uuid.UUID, Message) (RecipientPreview, error)
+	PreviewRecipients(context.Context, uuid.UUID, uuid.UUID, Message) (RecipientPreview, error)
 	PublishMessage(context.Context, Principal, uuid.UUID, bool) (Message, RecipientPreview, error)
 	CancelMessage(context.Context, Principal, uuid.UUID, bool) (Message, error)
-	RecipientStats(context.Context, uuid.UUID, uuid.UUID, bool) (RecipientStats, error)
+	RecipientStats(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, bool) (RecipientStats, error)
 	ListTemplates(context.Context, uuid.UUID, PageFilter) (TemplatePage, error)
 	GetTemplate(context.Context, uuid.UUID, uuid.UUID) (Template, error)
 	CreateTemplate(context.Context, Principal, TemplateInput) (Template, error)

@@ -37,7 +37,7 @@ func (repository *Postgres) CreateSession(ctx context.Context, input domain.Crea
 	}
 	userAgent := input.UserAgent
 	session, err := queries.CreateSession(ctx, db.CreateSessionParams{
-		UserID: input.UserID, TenantID: &input.TenantID, DeviceID: deviceID, Audience: input.Audience,
+		UserID: input.UserID, TenantID: &input.TenantID, AppID: input.AppID, DeviceID: deviceID, Audience: input.Audience,
 		AbsoluteExpiresAt: timestamp(input.AbsoluteExpiresAt), IdleExpiresAt: timestamp(input.IdleExpiresAt),
 		IpAddress: input.IPAddress, UserAgent: &userAgent,
 	})
@@ -58,7 +58,7 @@ func (repository *Postgres) CreateSession(ctx context.Context, input domain.Crea
 	}
 	userID, tenantID, sessionID := input.UserID, input.TenantID, session.ID
 	if err = queries.InsertSuccessfulLoginEvent(ctx, db.InsertSuccessfulLoginEventParams{
-		TenantID: &tenantID, UserID: &userID, SessionID: &sessionID, RequestID: requestID,
+		TenantID: &tenantID, UserID: &userID, SessionID: &sessionID, AppID: input.AppID, RequestID: requestID,
 		AuthMethod: authMethod, Audience: input.Audience, ClientIp: input.IPAddress, UserAgent: userAgentValue,
 		DeviceRegistered: input.DeviceKey != "",
 	}); err != nil {
@@ -97,7 +97,7 @@ func (repository *Postgres) RecordLoginFailure(ctx context.Context, input domain
 		return 0, fmt.Errorf("update login failure state: %w", err)
 	}
 	if err := queries.InsertFailedLoginEvent(ctx, db.InsertFailedLoginEventParams{
-		UserID: input.UserID, RequestID: optionalString(input.RequestID), Audience: input.Audience,
+		UserID: input.UserID, AppID: input.AppID, RequestID: optionalString(input.RequestID), Audience: input.Audience,
 		ClientIp: input.IPAddress, UserAgent: optionalString(input.UserAgent),
 	}); err != nil {
 		return 0, fmt.Errorf("record failed login: %w", err)
@@ -220,9 +220,28 @@ func (repository *Postgres) RotateRefreshToken(ctx context.Context, oldHash, new
 	}
 	return domain.Session{
 		ID: row.SessionID, UserID: row.UserID, TenantID: *row.TenantID,
+		AppID:    row.AppID,
 		Audience: row.Audience, AccessTokenVersion: row.AccessTokenVersion,
 		AbsoluteExpiresAt: row.AbsoluteExpiresAt.Time,
 	}, nil
+}
+
+func (repository *Postgres) ResolveActiveMobileAppMembership(ctx context.Context, appID, userID uuid.UUID) (domain.Tenant, error) {
+	var tenant domain.Tenant
+	err := repository.pool.QueryRow(ctx, `
+SELECT t.id, t.code, t.name, t.status
+FROM app.user_memberships m
+JOIN app.applications a ON a.id=m.app_id AND a.tenant_id=m.tenant_id AND a.status='active'
+JOIN iam.tenants t ON t.id=m.tenant_id AND t.status='active' AND t.deleted_at IS NULL
+JOIN iam.users u ON u.id=m.user_id AND u.status='active' AND u.deleted_at IS NULL
+WHERE m.app_id=$1 AND m.user_id=$2 AND m.status='active'`, appID, userID).Scan(&tenant.ID, &tenant.Code, &tenant.Name, &tenant.Status)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Tenant{}, domain.ErrIdentityNotFound
+	}
+	if err != nil {
+		return domain.Tenant{}, fmt.Errorf("resolve mobile app membership: %w", err)
+	}
+	return tenant, nil
 }
 
 func (repository *Postgres) revokeReusedRefresh(
@@ -243,7 +262,7 @@ func (repository *Postgres) revokeReusedRefresh(
 	}
 	userID, sessionID := row.UserID, row.SessionID
 	if err := queries.InsertRefreshReuseSecurityEvent(ctx, db.InsertRefreshReuseSecurityEventParams{
-		TenantID: row.TenantID, UserID: &userID, SessionID: &sessionID, ClientIp: ipAddress,
+		TenantID: row.TenantID, UserID: &userID, SessionID: &sessionID, AppID: row.AppID, ClientIp: ipAddress,
 	}); err != nil {
 		return fmt.Errorf("record refresh reuse security event: %w", err)
 	}
@@ -479,6 +498,7 @@ func mapSession(session db.IamSession) domain.Session {
 	}
 	return domain.Session{
 		ID: session.ID, UserID: session.UserID, TenantID: tenantID, Audience: session.Audience,
+		AppID:              session.AppID,
 		AccessTokenVersion: session.AccessTokenVersion, AbsoluteExpiresAt: session.AbsoluteExpiresAt.Time,
 	}
 }

@@ -337,6 +337,66 @@ export const generatedRouteRegistry = [
     "activeMenuCode": "system.mobile.releases"
   },
   {
+    "componentKey": "app.applications",
+    "path": "/app/applications",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.app.applications.title",
+    "permissions": [
+      "app.application.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "app.applications"
+  },
+  {
+    "componentKey": "app.users",
+    "path": "/app/users",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.app.users.title",
+    "permissions": [
+      "app.user.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "app.users"
+  },
+  {
+    "componentKey": "app.content.articles",
+    "path": "/app/content/articles",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.app.content.articles.title",
+    "permissions": [
+      "app.content.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "app.content.articles"
+  },
+  {
+    "componentKey": "app.content.pages",
+    "path": "/app/content/pages",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.app.content.pages.title",
+    "permissions": [
+      "app.content.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "app.content.pages"
+  },
+  {
+    "componentKey": "app.content.categories",
+    "path": "/app/content/categories",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.app.content.articles.title",
+    "permissions": [
+      "app.content.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "app.content.articles"
+  },
+  {
     "componentKey": "profile.basic",
     "path": "/profile/basic",
     "auth": "required",

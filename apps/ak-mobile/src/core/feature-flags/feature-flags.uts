@@ -15,7 +15,7 @@ export type FeatureFlagKey =
   | 'dev_component_gallery'
 
 const defaults: Map<FeatureFlagKey, boolean> = new Map<FeatureFlagKey, boolean>([
-  ['registration_enabled', true],
+  ['registration_enabled', false],
   ['onboarding_enabled', false],
   ['password_login_enabled', true],
   ['otp_login_enabled', false],

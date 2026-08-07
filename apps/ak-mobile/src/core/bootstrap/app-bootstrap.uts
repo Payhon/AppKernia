@@ -14,10 +14,14 @@ import { versionRuntime } from '../../features/version/infrastructure/version-ru
 import { NavigationLocaleSync } from '../i18n/navigation-sync.uts'
 import { akI18n } from '../i18n/ak-i18n.uts'
 import { themeStore } from '../theme/theme-store.uts'
+import { legalConsentStore } from '../../features/legal/legal-consent-store.uts'
+import { legalRuntime } from '../../features/legal/legal-runtime.uts'
+import { appPublicConfigRuntime } from '../../features/app-config/public-config-runtime.uts'
 
 type ManifestRuntimeConfig = {
   readonly environment: string
   readonly apiBaseUrl: string
+  readonly appId: string
 }
 
 /**
@@ -26,15 +30,18 @@ type ManifestRuntimeConfig = {
  * must set `akRuntime.apiBaseUrl` to the approved `/api/v1` base URL.
  */
 export function initializeAppRuntime(): boolean {
+  if (!legalConsentStore.acceptedAll()) { uni.reLaunch({ url: '/pages/privacy/consent/index' }); return false }
   const sessionRuntime = new SessionRuntime(appSessionStore, new AkSecureSessionStorage())
   const manifest: UTSJSONObject = appManifest as UTSJSONObject
   const raw: UTSJSONObject | null = manifest['akRuntime'] as UTSJSONObject | null
   if (raw == null) { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
   const runtime: ManifestRuntimeConfig = raw as ManifestRuntimeConfig
-  if (runtime.apiBaseUrl == null || runtime.apiBaseUrl.length == 0) { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
+  if (runtime.apiBaseUrl == null || runtime.apiBaseUrl.length == 0 || runtime.appId == null || runtime.appId.length == 0) { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
   if (runtime.environment != 'development' && runtime.environment != 'test' && runtime.environment != 'production') { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
-  const config = new AkConfig(runtime.environment as AkEnvironment, runtime.apiBaseUrl)
+  const config = new AkConfig(runtime.environment as AkEnvironment, runtime.apiBaseUrl, runtime.appId)
   const client = new AkHttpClient(config, appSessionStore)
+  appPublicConfigRuntime.configure(client, config.appId)
+  legalRuntime.configure(client)
   authRuntime.configure(client, sessionRuntime)
   const auth = authRuntime.getService()
   if (auth != null) {
@@ -43,12 +50,17 @@ export function initializeAppRuntime(): boolean {
     notificationsRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     preferencesRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     versionRuntime.configure(config, appSessionStore)
-    sessionRuntime.restore((credential) => {
+    const restoreSession = () => sessionRuntime.restore((credential) => {
       if (credential == null) { uni.reLaunch({ url: '/pages/auth/login/index' }); return }
       authRuntime.restore(credential, () => {
         completeAuthenticatedBootstrap()
       }, () => sessionRuntime.signOut(() => { uni.reLaunch({url:'/pages/auth/login/index'}); }))
     })
+    const configLoad = appPublicConfigRuntime.load(restoreSession, error => {
+      if (error.code == 'app.config_mismatch') { sessionRuntime.signOut(() => { uni.reLaunch({ url: '/pages/auth/login/index' }) }); return }
+      restoreSession()
+    })
+    if (configLoad == null) restoreSession()
   }
   return true
 }
@@ -58,6 +70,16 @@ export function completeAuthenticatedBootstrap(): void {
   authRuntime.refreshContext(() => {
     const preferences = preferencesRuntime.getRepository()
     if (preferences == null) { uni.reLaunch({ url: '/pages/home/index' }); return }
-    preferences.get(value => { new NavigationLocaleSync(akI18n).apply(value.locale, 'routes.home.title'); themeStore.apply(value.appearance); uni.reLaunch({ url: '/pages/home/index' }) }, () => { uni.reLaunch({url:'/pages/home/index'}); })
+    preferences.get(value => { new NavigationLocaleSync(akI18n).apply(value.locale, 'routes.home.title'); themeStore.apply(value.appearance); recordPublishedLegalConsent(); uni.reLaunch({ url: '/pages/home/index' }) }, () => { recordPublishedLegalConsent(); uni.reLaunch({url:'/pages/home/index'}); })
   }, () => authRuntime.signOut(() => { uni.reLaunch({url:'/pages/auth/login/index'}); }))
+}
+
+/** Server audit is best effort after authenticated bootstrap; local consent already gated startup. */
+function recordPublishedLegalConsent(): void {
+  const repository = legalRuntime.getRepository()
+  if (repository == null) return
+  repository.publicDocument('privacy-policy', privacy => {
+    repository.recordConsent(privacy, () => {}, () => {})
+    repository.publicDocument('terms-of-service', terms => repository.recordConsent(terms, () => {}, () => {}), () => {})
+  }, () => {})
 }

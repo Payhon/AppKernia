@@ -1,7 +1,7 @@
 {
   "schema_version": 2,
   "name": "AppKernia Admin Core Menu",
-  "description": "仅 Dashboard 与 系统 为一级菜单；平台能力全部收敛到“系统”。个人中心和认证页面不得写入菜单。",
+  "description": "Dashboard、App 管理与系统为一级菜单；个人中心和认证页面不得写入菜单。",
   "constraints": {
     "max_depth": 3,
     "component_key_must_exist_in_static_registry": true,
@@ -22,6 +22,79 @@
       "icon": "DashboardOutlined",
       "affix": true,
       "description": "所有已登录用户可进入；卡片和数据按权限裁剪。"
+    },
+    {
+      "code": "app",
+      "i18n_key": "menu.app",
+      "title": "App管理",
+      "type": "directory",
+      "path": "/app",
+      "sort": 15,
+      "phase": "P2",
+      "icon": "AppstoreOutlined"
+    },
+    {
+      "code": "app.applications",
+      "i18n_key": "menu.app.applications",
+      "title": "应用管理",
+      "type": "page",
+      "path": "/app/applications",
+      "sort": 10,
+      "parent": "app",
+      "component_key": "app.applications",
+      "icon": "AppstoreOutlined",
+      "permission": "app.application.read",
+      "phase": "P2"
+    },
+    {
+      "code": "app.users",
+      "i18n_key": "menu.app.users",
+      "title": "用户管理",
+      "type": "page",
+      "path": "/app/users",
+      "sort": 20,
+      "parent": "app",
+      "component_key": "app.users",
+      "icon": "TeamOutlined",
+      "permission": "app.user.read",
+      "phase": "P2"
+    },
+    {
+      "code": "app.content",
+      "i18n_key": "menu.app.content",
+      "title": "内容管理",
+      "type": "directory",
+      "path": "/app/content",
+      "sort": 30,
+      "parent": "app",
+      "icon": "ReadOutlined",
+      "phase": "P2"
+    },
+    {
+      "code": "app.content.articles",
+      "i18n_key": "menu.app.content.articles",
+      "title": "文章管理",
+      "type": "page",
+      "path": "/app/content/articles",
+      "sort": 10,
+      "parent": "app.content",
+      "component_key": "app.content.articles",
+      "icon": "ReadOutlined",
+      "permission": "app.content.read",
+      "phase": "P2"
+    },
+    {
+      "code": "app.content.pages",
+      "i18n_key": "menu.app.content.pages",
+      "title": "单页内容",
+      "type": "page",
+      "path": "/app/content/pages",
+      "sort": 20,
+      "parent": "app.content",
+      "component_key": "app.content.pages",
+      "icon": "FileOutlined",
+      "permission": "app.content.read",
+      "phase": "P2"
     },
     {
       "code": "system",

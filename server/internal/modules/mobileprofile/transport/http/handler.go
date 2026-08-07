@@ -156,7 +156,12 @@ func (handler *Handler) MarkNotificationRead(request *ghttp.Request) {
 }
 
 func (handler *Handler) AppVersion(request *ghttp.Request) {
-	release, err := handler.service.PublicRelease(request.Context(), request.GetQuery("platform").String())
+	appID, ok := requestAppID(request)
+	if !ok {
+		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	release, err := handler.service.PublicRelease(request.Context(), appID, request.GetQuery("platform").String())
 	if status, code, key := publicReleaseError(err); err != nil {
 		handler.failure(request, status, code, key)
 		return
@@ -165,7 +170,12 @@ func (handler *Handler) AppVersion(request *ghttp.Request) {
 	handler.success(request, publicReleaseResponse(release, httpx.Locale(request)))
 }
 func (handler *Handler) AdminReleases(request *ghttp.Request) {
-	data, err := handler.service.AdminReleases(request.Context(), bearer(request))
+	appID, ok := requestAppID(request)
+	if !ok {
+		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	data, err := handler.service.AdminReleases(request.Context(), bearer(request), appID)
 	if err != nil {
 		handler.adminError(request, err)
 		return
@@ -178,7 +188,12 @@ func (handler *Handler) AdminCreateRelease(request *ghttp.Request) {
 		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
 	}
-	out, err := handler.service.CreateRelease(request.Context(), bearer(request), httpx.RequestID(request), release.domain(uuid.Nil, 0))
+	appID, ok := requestAppID(request)
+	if !ok {
+		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	out, err := handler.service.CreateRelease(request.Context(), bearer(request), httpx.RequestID(request), appID, release.domain(uuid.Nil, 0))
 	if err != nil {
 		handler.adminError(request, err)
 		return
@@ -196,12 +211,25 @@ func (handler *Handler) AdminUpdateRelease(request *ghttp.Request) {
 		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
 	}
-	out, err := handler.service.UpdateRelease(request.Context(), bearer(request), httpx.RequestID(request), release.domain(id, release.LockVersion))
+	appID, ok := requestAppID(request)
+	if !ok {
+		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	out, err := handler.service.UpdateRelease(request.Context(), bearer(request), httpx.RequestID(request), appID, release.domain(id, release.LockVersion))
 	if err != nil {
 		handler.adminError(request, err)
 		return
 	}
 	handler.success(request, out)
+}
+func requestAppID(request *ghttp.Request) (uuid.UUID, bool) {
+	raw := strings.TrimSpace(request.GetRouter("app_id").String())
+	if raw == "" {
+		raw = strings.TrimSpace(request.Header.Get("X-AppID"))
+	}
+	id, err := uuid.Parse(raw)
+	return id, err == nil && id != uuid.Nil
 }
 
 type mobileReleaseResponse struct {

@@ -24,6 +24,12 @@
 - Mobile: stack filters, actions, descriptions, and upload feedback with no horizontal page overflow.
 - Service status follows `pages/service-status.md`: 24/16 px section rhythm, equal-height summary cards, semantic module identity, and focusable contained tables.
 
+## App management scope
+
+- App-scoped administration always shows the selected application in the page header, with the selection reflected in the URL as `app_id`; never make a destructive or publishing action appear to target an unnamed application.
+- Use a compact application context strip (name, public ID, enabled/disabled status and registration policy) before scoped user, content, release and notification tables. On narrow screens it becomes a labelled select above the page title.
+- Treat pending verification, enabled and disabled membership states as separate textual status tags. Legal-page publishing must show the document type and immutable published version beside the action.
+
 ## Delivery checks
 
 - Verify 1440 px light/dark and 768 px layouts, both locales, loading/error/empty states, keyboard focus, and upload progress/cancel/resume.

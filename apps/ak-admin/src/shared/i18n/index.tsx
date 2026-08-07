@@ -9,6 +9,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { I18nextProvider } from 'react-i18next'
 
 import enAuth from '../../locales/en-US/auth.json'
+import enApps from '../../locales/en-US/apps.json'
 import enCommon from '../../locales/en-US/common.json'
 import enContent from '../../locales/en-US/content.json'
 import enErrors from '../../locales/en-US/errors.json'
@@ -20,6 +21,7 @@ import enSettings from '../../locales/en-US/settings.json'
 import enSystem from '../../locales/en-US/system.json'
 import enValidation from '../../locales/en-US/validation.json'
 import zhAuth from '../../locales/zh-CN/auth.json'
+import zhApps from '../../locales/zh-CN/apps.json'
 import zhCommon from '../../locales/zh-CN/common.json'
 import zhContent from '../../locales/zh-CN/content.json'
 import zhErrors from '../../locales/zh-CN/errors.json'
@@ -36,8 +38,8 @@ export const supportedLocales = ['zh-CN', 'en-US'] as const
 export type AdminLocale = (typeof supportedLocales)[number]
 
 const localeStorageKey = 'ak.admin.locale'
-const enCatalog = { ...enAuth, ...enCommon, ...enContent, ...enErrors, ...enMobileReleases, ...enNavigation, ...enNotifications, ...enProfile, ...enSettings, ...enSystem, ...enValidation }
-const zhCatalog = { ...zhAuth, ...zhCommon, ...zhContent, ...zhErrors, ...zhMobileReleases, ...zhNavigation, ...zhNotifications, ...zhProfile, ...zhSettings, ...zhSystem, ...zhValidation }
+const enCatalog = { ...enApps, ...enAuth, ...enCommon, ...enContent, ...enErrors, ...enMobileReleases, ...enNavigation, ...enNotifications, ...enProfile, ...enSettings, ...enSystem, ...enValidation }
+const zhCatalog = { ...zhApps, ...zhAuth, ...zhCommon, ...zhContent, ...zhErrors, ...zhMobileReleases, ...zhNavigation, ...zhNotifications, ...zhProfile, ...zhSettings, ...zhSystem, ...zhValidation }
 
 function readStoredLocale(): string | null {
   try {

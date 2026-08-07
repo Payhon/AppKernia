@@ -10,7 +10,7 @@ export class AuthRuntime {
   private deviceKey: string = ''
 
   configure(client: AkHttpClient, sessions: SessionRuntime): void {
-    this.service = new MobileAuthService(new HttpAuthRepository(client), sessions)
+    this.service = new MobileAuthService(new HttpAuthRepository(client, client.getAppId()), sessions)
     this.deviceKey = 'ak-mobile-' + Date.now().toString() + '-' + Math.floor(Math.random() * 1000000000).toString()
     this.service.setDeviceKey(this.deviceKey)
   }

@@ -1,0 +1,53 @@
+import { Alert, Button, Card, Drawer, Form, Grid, Input, Modal, Select, Space, Table, Tag, Tabs, Typography, type TableColumnsType } from "antd";
+import { Controller, useForm } from "react-hook-form";
+import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useAuthStore } from "../features/auth/store";
+import { useAppPages, useApplicationMutations } from "../features/apps/hooks";
+import { appPageEditorInputSchema, toAppPageEditorInput, toAppPageInput, type AppPageEditorInput, type ManagedPage } from "../features/apps/model";
+import { AppScopeContext, type AppScope } from "../features/apps/scope";
+
+type Editor = ManagedPage | "new" | null;
+const reserved = new Set(["privacy-policy", "terms-of-service", "about-us"]);
+const defaults = (): AppPageEditorInput => ({ slug: "", page_type: "custom", publish: false, translations: { "zh-CN": { title: "", body_format: "markdown", body: "" }, "en-US": { title: "", body_format: "markdown", body: "" } } });
+const fromPage = (page: ManagedPage): AppPageEditorInput => toAppPageEditorInput(page);
+
+export function AdminAppPagesPage() { return <AppScopeContext>{(scope) => <AppPagesContents scope={scope} />}</AppScopeContext>; }
+
+function AppPagesContents({ scope }: { scope: AppScope }) {
+  const { t, i18n } = useTranslation();
+  const screens = Grid.useBreakpoint();
+  const permissions = new Set(useAuthStore((state) => state.context?.permissions ?? []));
+  const [q, setQ] = useState("");
+  const status = "";
+  const [editor, setEditor] = useState<Editor>(null);
+  const [feedback, setFeedback] = useState<{ key: string; error: boolean } | null>(null);
+  const form = useForm<AppPageEditorInput>({ defaultValues: defaults() });
+  const pages = useAppPages(scope.appId, { q, status, page: 1, page_size: 100 });
+  const mutations = useApplicationMutations();
+  const date = useMemo(() => new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }), [i18n.language]);
+  const open = (value: ManagedPage | "new") => { form.reset(value === "new" ? defaults() : fromPage(value)); setEditor(value); };
+  const save = form.handleSubmit(async (values) => {
+    if (!scope.appId) return;
+    const parsed = appPageEditorInputSchema.safeParse(values);
+    if (!parsed.success) { setFeedback({ key: "apps.feedback.validation_error", error: true }); return; }
+    try { const input = toAppPageInput(parsed.data); if (editor === "new") await mutations.createPage.mutateAsync({ appId: scope.appId, input }); else if (editor) await mutations.updatePage.mutateAsync({ appId: scope.appId, pageId: editor.slug, input }); setEditor(null); setFeedback({ key: "apps.feedback.saved", error: false }); } catch { setFeedback({ key: "apps.feedback.save_error", error: true }); }
+  });
+  const publish = async (page: ManagedPage) => { if (!scope.appId) return; try { await mutations.publishPage.mutateAsync({ appId: scope.appId, pageId: page.slug, lockVersion: page.lock_version }); setFeedback({ key: "apps.pages.feedback.published", error: false }); } catch { setFeedback({ key: "apps.feedback.save_error", error: true }); } };
+  const deletePage = (page: ManagedPage) => { const appId = scope.appId; if (!appId || reserved.has(page.page_type)) return; Modal.confirm({ title: t("apps.pages.delete.title"), content: t("apps.pages.delete.description", { name: page.translations["zh-CN"].title }), okText: t("common.actions.delete"), cancelText: t("common.actions.cancel"), okButtonProps: { danger: true }, onOk: async () => { try { await mutations.deletePage.mutateAsync({ appId, pageId: page.slug, lockVersion: page.lock_version }); setFeedback({ key: "apps.feedback.deleted", error: false }); } catch { setFeedback({ key: "apps.feedback.save_error", error: true }); } } }); };
+  const columns: TableColumnsType<ManagedPage> = [
+    { title: t("apps.pages.columns.title"), render: (_, item) => <div><strong>{item.translations[i18n.language === "en-US" ? "en-US" : "zh-CN"].title}</strong><div className="ak-content-slug">/{item.slug}</div></div> },
+    { title: t("apps.pages.columns.type"), dataIndex: "page_type", responsive: ["md"], render: (value: string) => <Tag>{t(`apps.pages.type.${value}`)}</Tag> },
+    { title: t("apps.pages.columns.status"), dataIndex: "status", render: (value: ManagedPage["status"]) => <Tag className={value === "published" ? "ak-status-success" : "ak-status-warning"}>{t(`apps.pages.status.${value}`)}</Tag> },
+    { title: t("apps.pages.columns.updated"), dataIndex: "updated_at", responsive: ["lg"], render: (value: string) => date.format(new Date(value)) },
+    { title: t("apps.pages.columns.actions"), width: screens.md ? 240 : 100, render: (_, item) => <Space wrap>{permissions.has("app.content.update") ? <Button size="small" onClick={() => { open(item); }}>{t("common.actions.edit")}</Button> : null}{item.status === "draft" && permissions.has("app.content.publish") ? <Button size="small" type="primary" onClick={() => void publish(item)}>{t("apps.pages.actions.publish")}</Button> : null}{!reserved.has(item.page_type) && permissions.has("app.content.delete") ? <Button danger size="small" onClick={() => { deletePage(item); }}>{t("common.actions.delete")}</Button> : <Typography.Text type="secondary">{t("apps.pages.reserved")}</Typography.Text>}</Space> },
+  ];
+  return <div className="ak-page-container"><header className="ak-page-heading"><div><Typography.Title level={1}>{t("apps.pages.title")}</Typography.Title><Typography.Paragraph type="secondary">{t("apps.pages.description")}</Typography.Paragraph></div>{scope.appId && !scope.disabled && permissions.has("app.content.create") ? <Button type="primary" onClick={() => { open("new"); }}>{t("apps.pages.actions.create")}</Button> : null}</header>{feedback ? <Alert showIcon type={feedback.error ? "error" : "success"} title={t(feedback.key)} /> : null}<Card><div className="ak-content-filters" role="search" aria-label={t("apps.pages.filters.landmark")}><Input.Search allowClear aria-label={t("apps.pages.filters.q")} disabled={!scope.appId} onChange={(event) => { setQ(event.target.value); }} placeholder={t("apps.pages.filters.q")} value={q} /></div>{pages.isError ? <Alert showIcon type="error" title={t("apps.feedback.load_error")} action={<Button onClick={() => void pages.refetch()}>{t("common.actions.retry")}</Button>} /> : null}<div className="ak-table-scroll"><Table columns={columns} dataSource={pages.data?.items ?? []} loading={pages.isPending} locale={{ emptyText: scope.appId ? t("apps.pages.empty") : t("apps.scope.required") }} pagination={false} rowKey="id" scroll={{ x: 880 }} /></div></Card><PageDrawer editor={editor} form={form} fullScreen={!screens.md} saving={mutations.createPage.isPending || mutations.updatePage.isPending} onClose={() => { setEditor(null); }} onSave={() => void save()} /></div>;
+}
+
+function PageDrawer({ editor, form, fullScreen, saving, onClose, onSave }: { editor: Editor; form: ReturnType<typeof useForm<AppPageEditorInput>>; fullScreen: boolean; saving: boolean; onClose: () => void; onSave: () => void }) {
+  const { t } = useTranslation();
+  const pageType = form.watch("page_type");
+  const protectedType = editor !== "new" && (reserved.has(pageType));
+  return <Drawer destroyOnHidden extra={<Button loading={saving} type="primary" onClick={onSave}>{t("common.actions.save")}</Button>} onClose={onClose} open={editor !== null} size={fullScreen ? "100%" : "large"} title={t(editor === "new" ? "apps.pages.editor.create" : "apps.pages.editor.edit")}><Form layout="vertical"><Form.Item label={t("apps.pages.fields.slug")}><Controller control={form.control} name="slug" render={({ field }) => <Input {...field} aria-label={t("apps.pages.fields.slug")} disabled={protectedType} />} /></Form.Item><Form.Item label={t("apps.pages.fields.type")}><Controller control={form.control} name="page_type" render={({ field }) => <Select {...field} aria-label={t("apps.pages.fields.type")} disabled={protectedType} options={["privacy-policy", "terms-of-service", "about-us", "custom"].map((value) => ({ value, label: t(`apps.pages.type.${value}`) }))} />} /></Form.Item>{protectedType ? <Alert showIcon type="info" title={t("apps.pages.reserved_hint")} /> : null}<Tabs items={(["zh-CN", "en-US"] as const).map((locale) => ({ key: locale, label: t(`apps.locale.${locale}`), children: <><Form.Item label={t("apps.pages.fields.title")}><Controller control={form.control} name={`translations.${locale}.title`} render={({ field }) => <Input {...field} aria-label={`${t(`apps.locale.${locale}`)} ${t("apps.pages.fields.title")}`} />} /></Form.Item><Form.Item label={t("apps.pages.fields.body_format")}><Controller control={form.control} name={`translations.${locale}.body_format`} render={({ field }) => <Select {...field} aria-label={`${t(`apps.locale.${locale}`)} ${t("apps.pages.fields.body_format")}`} options={["markdown", "blocks"].map((value) => ({ value, label: t(`apps.pages.body_format.${value}`) }))} />} /></Form.Item><Form.Item label={t(`apps.pages.fields.${form.watch(`translations.${locale}.body_format`) === "blocks" ? "blocks" : "body"}`)} extra={form.watch(`translations.${locale}.body_format`) === "blocks" ? t("apps.pages.fields.blocks_hint") : undefined}><Controller control={form.control} name={`translations.${locale}.body`} render={({ field }) => <Input.TextArea {...field} aria-label={`${t(`apps.locale.${locale}`)} ${t("apps.pages.fields.body")}`} maxLength={100000} rows={16} showCount />} /></Form.Item></> }))} /></Form></Drawer>;
+}

@@ -422,21 +422,56 @@
     },
     {
       "component_key": "system.content.articles",
-      "view": ["content.article.read"],
-      "actions": {"create": "content.article.create", "update": "content.article.update", "delete": "content.article.delete", "publish": "content.article.publish", "archive": "content.article.archive"},
-      "permission_status": {"content.article.read": "existing", "content.article.create": "existing", "content.article.update": "existing", "content.article.delete": "existing", "content.article.publish": "existing", "content.article.archive": "existing"}
+      "view": [
+        "content.article.read"
+      ],
+      "actions": {
+        "create": "content.article.create",
+        "update": "content.article.update",
+        "delete": "content.article.delete",
+        "publish": "content.article.publish",
+        "archive": "content.article.archive"
+      },
+      "permission_status": {
+        "content.article.read": "existing",
+        "content.article.create": "existing",
+        "content.article.update": "existing",
+        "content.article.delete": "existing",
+        "content.article.publish": "existing",
+        "content.article.archive": "existing"
+      }
     },
     {
       "component_key": "system.content.categories",
-      "view": ["content.category.read"],
-      "actions": {"create": "content.category.create", "update": "content.category.update", "delete": "content.category.delete"},
-      "permission_status": {"content.category.read": "existing", "content.category.create": "existing", "content.category.update": "existing", "content.category.delete": "existing"}
+      "view": [
+        "content.category.read"
+      ],
+      "actions": {
+        "create": "content.category.create",
+        "update": "content.category.update",
+        "delete": "content.category.delete"
+      },
+      "permission_status": {
+        "content.category.read": "existing",
+        "content.category.create": "existing",
+        "content.category.update": "existing",
+        "content.category.delete": "existing"
+      }
     },
     {
       "component_key": "system.mobile.releases",
-      "view": ["mobile.release.read"],
-      "actions": {"create": "mobile.release.create", "update": "mobile.release.update"},
-      "permission_status": {"mobile.release.read": "existing", "mobile.release.create": "existing", "mobile.release.update": "existing"}
+      "view": [
+        "mobile.release.read"
+      ],
+      "actions": {
+        "create": "mobile.release.create",
+        "update": "mobile.release.update"
+      },
+      "permission_status": {
+        "mobile.release.read": "existing",
+        "mobile.release.create": "existing",
+        "mobile.release.update": "existing"
+      }
     },
     {
       "component_key": "profile.basic",
@@ -470,6 +505,86 @@
       },
       "permission_status": {
         "iam.oauth.manage_self": "existing"
+      }
+    },
+    {
+      "component_key": "app.applications",
+      "view": [
+        "app.application.read"
+      ],
+      "actions": {
+        "create": "app.application.create",
+        "update": "app.application.update",
+        "disable": "app.application.disable"
+      },
+      "permission_status": {
+        "app.application.read": "existing",
+        "app.application.create": "existing",
+        "app.application.update": "existing",
+        "app.application.disable": "existing"
+      }
+    },
+    {
+      "component_key": "app.users",
+      "view": [
+        "app.user.read"
+      ],
+      "actions": {
+        "create": "app.user.create",
+        "update": "app.user.update",
+        "enable": "app.user.enable",
+        "disable": "app.user.disable",
+        "unlock": "app.user.unlock",
+        "resetPassword": "app.user.reset_password",
+        "revokeSessions": "app.user.revoke_session"
+      },
+      "permission_status": {
+        "app.user.read": "existing",
+        "app.user.create": "existing",
+        "app.user.update": "existing",
+        "app.user.enable": "existing",
+        "app.user.disable": "existing",
+        "app.user.unlock": "existing",
+        "app.user.reset_password": "existing",
+        "app.user.revoke_session": "existing"
+      }
+    },
+    {
+      "component_key": "app.content.articles",
+      "view": [
+        "app.content.read"
+      ],
+      "actions": {
+        "create": "app.content.create",
+        "update": "app.content.update",
+        "publish": "app.content.publish",
+        "delete": "app.content.delete"
+      },
+      "permission_status": {
+        "app.content.read": "existing",
+        "app.content.create": "existing",
+        "app.content.update": "existing",
+        "app.content.publish": "existing",
+        "app.content.delete": "existing"
+      }
+    },
+    {
+      "component_key": "app.content.pages",
+      "view": [
+        "app.content.read"
+      ],
+      "actions": {
+        "create": "app.content.create",
+        "update": "app.content.update",
+        "publish": "app.content.publish",
+        "delete": "app.content.delete"
+      },
+      "permission_status": {
+        "app.content.read": "existing",
+        "app.content.create": "existing",
+        "app.content.update": "existing",
+        "app.content.publish": "existing",
+        "app.content.delete": "existing"
       }
     }
   ]

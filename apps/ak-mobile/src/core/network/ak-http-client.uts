@@ -51,6 +51,9 @@ export class AkHttpClient implements AkHttpPort {
     this.session = session
   }
 
+  /** Immutable packaged public application id; never accepted from page input. */
+  getAppId(): string { return this.config.appId }
+
   execute<TBody, TData>(request: HttpRequest<TBody>, onSuccess: (response: HttpResponse<TData>) => void, onFailure: (error: AkError) => void): HttpCancellation {
     const cancellation = new UniRequestCancellation()
     const url: string = this.buildUrl(request.path, request.query)
@@ -59,6 +62,7 @@ export class AkHttpClient implements AkHttpPort {
       'Accept-Language': request.locale,
       Accept: 'application/json',
       'Content-Type': 'application/json',
+      'X-AppID': this.config.appId,
     }
     if (token != null) headers['Authorization'] = 'Bearer ' + token
     request.headers.forEach((value: string, key: string) => { headers[key] = value })

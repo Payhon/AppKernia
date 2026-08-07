@@ -267,6 +267,12 @@
       "view_permissions": [],
       "action_permissions": [],
       "feature_flag": "dev_component_gallery"
+    },
+    {
+      "route_key": "legal.page",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
     }
   ]
 }

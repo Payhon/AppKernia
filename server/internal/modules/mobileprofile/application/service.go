@@ -28,37 +28,46 @@ func NewService(auth *application.AuthService, repository profile.Repository, re
 	return &Service{auth: auth, repository: repository, releases: releases}
 }
 
-func (service *Service) PublicRelease(ctx context.Context, platform string) (profile.Release, error) {
-	if platform != "android" && platform != "ios" && platform != "harmony" {
+func (service *Service) PublicRelease(ctx context.Context, appID uuid.UUID, platform string) (profile.Release, error) {
+	if appID == uuid.Nil || (platform != "android" && platform != "ios" && platform != "harmony") {
 		return profile.Release{}, ErrInvalidRelease
 	}
-	return service.releases.ActiveRelease(ctx, platform)
+	return service.releases.ActiveRelease(ctx, appID, platform)
 }
-func (service *Service) AdminReleases(ctx context.Context, token string) ([]profile.Release, error) {
+func (service *Service) AdminReleases(ctx context.Context, token string, appID uuid.UUID) ([]profile.Release, error) {
 	if _, err := service.admin(ctx, token, "mobile.release.read"); err != nil {
 		return nil, err
 	}
-	return service.releases.ListReleases(ctx)
+	if appID == uuid.Nil {
+		return nil, ErrInvalidRelease
+	}
+	return service.releases.ListReleases(ctx, appID)
 }
-func (service *Service) CreateRelease(ctx context.Context, token, requestID string, release profile.Release) (profile.Release, error) {
+func (service *Service) CreateRelease(ctx context.Context, token, requestID string, appID uuid.UUID, release profile.Release) (profile.Release, error) {
 	actor, err := service.admin(ctx, token, "mobile.release.create")
 	if err != nil {
 		return profile.Release{}, err
 	}
+	if appID == uuid.Nil {
+		return profile.Release{}, ErrInvalidRelease
+	}
 	if err = validRelease(release, false); err != nil {
 		return profile.Release{}, err
 	}
-	return service.releases.CreateRelease(ctx, release, actor.User.ID, requestID)
+	return service.releases.CreateRelease(ctx, appID, release, actor.User.ID, requestID)
 }
-func (service *Service) UpdateRelease(ctx context.Context, token, requestID string, release profile.Release) (profile.Release, error) {
+func (service *Service) UpdateRelease(ctx context.Context, token, requestID string, appID uuid.UUID, release profile.Release) (profile.Release, error) {
 	actor, err := service.admin(ctx, token, "mobile.release.update")
 	if err != nil {
 		return profile.Release{}, err
 	}
+	if appID == uuid.Nil {
+		return profile.Release{}, ErrInvalidRelease
+	}
 	if err = validRelease(release, true); err != nil {
 		return profile.Release{}, err
 	}
-	return service.releases.UpdateRelease(ctx, release, actor.User.ID, requestID)
+	return service.releases.UpdateRelease(ctx, appID, release, actor.User.ID, requestID)
 }
 func (service *Service) admin(ctx context.Context, token, permission string) (domain.AuthenticatedContext, error) {
 	p, err := service.auth.Authenticate(ctx, token, "ak-admin")
@@ -121,14 +130,21 @@ func compareSemver(left, right semver) int {
 }
 
 func (service *Service) authenticate(ctx context.Context, token string) (domain.AuthenticatedContext, error) {
-	return service.auth.Authenticate(ctx, token, "ak-mobile")
+	principal, err := service.auth.Authenticate(ctx, token, "ak-mobile")
+	if err != nil {
+		return domain.AuthenticatedContext{}, err
+	}
+	if principal.AppID == nil || *principal.AppID == uuid.Nil {
+		return domain.AuthenticatedContext{}, ErrForbidden
+	}
+	return principal, nil
 }
 func (service *Service) Preferences(ctx context.Context, token string) (profile.Preferences, error) {
 	principal, err := service.authenticate(ctx, token)
 	if err != nil {
 		return profile.Preferences{}, err
 	}
-	return service.repository.GetPreferences(ctx, principal.User.ID)
+	return service.repository.GetPreferences(ctx, *principal.AppID, principal.User.ID)
 }
 func (service *Service) UpdatePreferences(ctx context.Context, token, requestID string, locale, appearance *string, notifications map[string]bool) (profile.Preferences, error) {
 	if locale == nil && appearance == nil && notifications == nil {
@@ -154,7 +170,7 @@ func (service *Service) UpdatePreferences(ctx context.Context, token, requestID 
 		locale = &normalized
 	}
 	return service.repository.UpdatePreferences(ctx, profile.PreferenceUpdate{
-		UserID: principal.User.ID, TenantID: principal.Tenant.ID, SessionID: principal.SessionID, RequestID: requestID,
+		UserID: principal.User.ID, AppID: *principal.AppID, TenantID: principal.Tenant.ID, SessionID: principal.SessionID, RequestID: requestID,
 		Locale: locale, Appearance: appearance, NotificationPreferences: notifications,
 	})
 }
@@ -163,21 +179,21 @@ func (service *Service) UnreadCount(ctx context.Context, token string) (int64, e
 	if err != nil {
 		return 0, err
 	}
-	return service.repository.UnreadCount(ctx, principal.User.ID, principal.Tenant.ID)
+	return service.repository.UnreadCount(ctx, principal.User.ID, principal.Tenant.ID, *principal.AppID)
 }
 func (service *Service) LoginEvents(ctx context.Context, token string) ([]profile.LoginEvent, error) {
 	principal, err := service.authenticate(ctx, token)
 	if err != nil {
 		return nil, err
 	}
-	return service.repository.LoginEvents(ctx, principal.User.ID)
+	return service.repository.LoginEvents(ctx, principal.User.ID, *principal.AppID)
 }
 func (service *Service) SecurityEvents(ctx context.Context, token string) ([]profile.SecurityEvent, error) {
 	principal, err := service.authenticate(ctx, token)
 	if err != nil {
 		return nil, err
 	}
-	return service.repository.SecurityEvents(ctx, principal.User.ID)
+	return service.repository.SecurityEvents(ctx, principal.User.ID, *principal.AppID)
 }
 func (service *Service) Notifications(ctx context.Context, token, cursor string, limit int) (profile.NotificationPage, error) {
 	if limit < 1 || limit > 100 {
@@ -192,7 +208,7 @@ func (service *Service) Notifications(ctx context.Context, token, cursor string,
 	if err != nil {
 		return profile.NotificationPage{}, err
 	}
-	return service.repository.Notifications(ctx, p.User.ID, p.Tenant.ID, cursor, limit)
+	return service.repository.Notifications(ctx, p.User.ID, p.Tenant.ID, *p.AppID, cursor, limit)
 }
 func (service *Service) MarkNotificationRead(ctx context.Context, token, requestID, id string) error {
 	messageID, err := uuid.Parse(id)
@@ -203,5 +219,5 @@ func (service *Service) MarkNotificationRead(ctx context.Context, token, request
 	if err != nil {
 		return err
 	}
-	return service.repository.MarkNotificationRead(ctx, p.User.ID, p.Tenant.ID, p.SessionID, messageID, requestID)
+	return service.repository.MarkNotificationRead(ctx, p.User.ID, p.Tenant.ID, *p.AppID, p.SessionID, messageID, requestID)
 }

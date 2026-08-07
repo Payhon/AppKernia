@@ -18,6 +18,7 @@ var ErrInvalidAccessToken = errors.New("invalid access token")
 type AccessClaims struct {
 	SessionID    uuid.UUID `json:"sid"`
 	TenantID     uuid.UUID `json:"tid"`
+	AppID        uuid.UUID `json:"aid,omitempty"`
 	TokenVersion int32     `json:"ver"`
 	jwt.RegisteredClaims
 }
@@ -61,10 +62,14 @@ func NewTokenIssuerFromBase64(issuer, keyID, encodedPrivateKey string, lifetime 
 }
 
 func (issuer *TokenIssuer) Issue(userID, tenantID, sessionID uuid.UUID, audience string, version int32) (string, time.Time, error) {
+	return issuer.IssueForApp(userID, tenantID, sessionID, audience, version, uuid.Nil)
+}
+
+func (issuer *TokenIssuer) IssueForApp(userID, tenantID, sessionID uuid.UUID, audience string, version int32, appID uuid.UUID) (string, time.Time, error) {
 	now := issuer.clock().UTC()
 	expiresAt := now.Add(issuer.lifetime)
 	claims := AccessClaims{
-		SessionID: sessionID, TenantID: tenantID, TokenVersion: version,
+		SessionID: sessionID, TenantID: tenantID, AppID: appID, TokenVersion: version,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer: issuer.issuer, Subject: userID.String(), Audience: jwt.ClaimStrings{audience},
 			IssuedAt: jwt.NewNumericDate(now), NotBefore: jwt.NewNumericDate(now.Add(-5 * time.Second)),

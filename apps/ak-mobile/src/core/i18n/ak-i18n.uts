@@ -1,18 +1,18 @@
 import { AkLocale } from './types.uts'
-import zhCNJson from '../../../locale/zh-CN.json'
-import enUSJson from '../../../locale/en-US.json'
+import { zhCNEntries, enUSEntries } from './generated/catalog-entries.uts'
 
 type CatalogValues = Map<string, string>
 
-const zhCN: CatalogValues = catalogFromJson(zhCNJson as UTSJSONObject)
-const enUS: CatalogValues = catalogFromJson(enUSJson as UTSJSONObject)
+const zhCN: CatalogValues = catalogFromEntries(zhCNEntries)
+const enUS: CatalogValues = catalogFromEntries(enUSEntries)
 
-function catalogFromJson(source: UTSJSONObject): CatalogValues {
+function catalogFromEntries(source: Array<string>): CatalogValues {
   const catalog: CatalogValues = new Map<string, string>()
-  source.toMap().forEach((entry) => {
-    const value: string | null = source.getString(entry.key)
-    if (value != null) catalog.set(entry.key, value)
-  })
+  let index = 0
+  while (index + 1 < source.length) {
+    catalog.set(source[index], source[index + 1])
+    index += 2
+  }
   return catalog
 }
 

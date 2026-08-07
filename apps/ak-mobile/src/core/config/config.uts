@@ -3,11 +3,13 @@ export type AkEnvironment = 'development' | 'test' | 'production'
 export class AkConfig {
   readonly environment: AkEnvironment
   readonly apiBaseUrl: string
+  readonly appId: string
   readonly requestTimeoutMs: number
 
   constructor(
     environment: AkEnvironment,
     apiBaseUrl: string,
+    appId: string,
     requestTimeoutMs: number = 15000,
   ) {
     if (requestTimeoutMs <= 0) {
@@ -19,9 +21,12 @@ export class AkConfig {
     if (!apiBaseUrl.endsWith('/api/v1')) {
       throw new Error('validation.config.mobile_api_prefix')
     }
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(appId)) {
+      throw new Error('validation.config.mobile_app_id')
+    }
     this.environment = environment
     this.apiBaseUrl = apiBaseUrl
+    this.appId = appId.toLowerCase()
     this.requestTimeoutMs = requestTimeoutMs
   }
 }
-

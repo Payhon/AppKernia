@@ -444,7 +444,9 @@
     {
       "table": "sys.mobile_releases",
       "coverage": "page_backed",
-      "pages": ["system.mobile.releases"],
+      "pages": [
+        "system.mobile.releases"
+      ],
       "reason": "移动端发布策略页面管理各平台版本、升级地址、双语说明和生效状态。"
     },
     {
@@ -473,25 +475,34 @@
     {
       "table": "content.article_translations",
       "coverage": "page_backed",
-      "pages": ["system.content.articles"],
+      "pages": [
+        "system.content.articles"
+      ],
       "reason": "文章双语内容由 Admin 文章编辑器直接维护。"
     },
     {
       "table": "content.articles",
       "coverage": "page_backed",
-      "pages": ["system.content.articles"],
+      "pages": [
+        "system.content.articles"
+      ],
       "reason": "文章列表与生命周期由 Admin 文章页直接维护。"
     },
     {
       "table": "content.categories",
       "coverage": "page_backed",
-      "pages": ["system.content.articles", "system.content.categories"],
+      "pages": [
+        "system.content.articles",
+        "system.content.categories"
+      ],
       "reason": "文章选择分类，分类页直接维护分类目录。"
     },
     {
       "table": "content.category_translations",
       "coverage": "page_backed",
-      "pages": ["system.content.categories"],
+      "pages": [
+        "system.content.categories"
+      ],
       "reason": "分类双语名称与说明由分类编辑器直接维护。"
     },
     {
@@ -507,6 +518,55 @@
         "system.integrations.webhooks"
       ],
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "app.applications",
+      "coverage": "page_backed",
+      "pages": [
+        "app.applications",
+        "app.content.pages",
+        "app.users",
+        "app.content.articles"
+      ],
+      "reason": "App 管理范围与受保护内容的后端数据边界。"
+    },
+    {
+      "table": "app.user_memberships",
+      "coverage": "page_backed",
+      "pages": [
+        "app.users"
+      ],
+      "reason": "App 管理范围与受保护内容的后端数据边界。"
+    },
+    {
+      "table": "app.legal_consents",
+      "coverage": "backend_only",
+      "pages": [],
+      "reason": "App 管理范围与受保护内容的后端数据边界。"
+    },
+    {
+      "table": "content.pages",
+      "coverage": "page_backed",
+      "pages": [
+        "app.content.pages"
+      ],
+      "reason": "App 管理范围与受保护内容的后端数据边界。"
+    },
+    {
+      "table": "content.page_revisions",
+      "coverage": "page_backed",
+      "pages": [
+        "app.content.pages"
+      ],
+      "reason": "App 管理范围与受保护内容的后端数据边界。"
+    },
+    {
+      "table": "content.page_revision_translations",
+      "coverage": "page_backed",
+      "pages": [
+        "app.content.pages"
+      ],
+      "reason": "App 管理范围与受保护内容的后端数据边界。"
     }
   ]
 }

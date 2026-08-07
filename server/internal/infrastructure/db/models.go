@@ -11,6 +11,49 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type AppApplication struct {
+	ID                       uuid.UUID          `json:"id"`
+	TenantID                 uuid.UUID          `json:"tenant_id"`
+	Code                     string             `json:"code"`
+	Name                     string             `json:"name"`
+	Status                   string             `json:"status"`
+	DefaultLocale            string             `json:"default_locale"`
+	RegistrationEnabled      bool               `json:"registration_enabled"`
+	RegistrationVerification string             `json:"registration_verification"`
+	IsDefault                bool               `json:"is_default"`
+	LockVersion              int32              `json:"lock_version"`
+	CreatedAt                pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt                pgtype.Timestamptz `json:"updated_at"`
+}
+
+type AppLegalConsent struct {
+	ID          uuid.UUID          `json:"id"`
+	AppID       uuid.UUID          `json:"app_id"`
+	TenantID    uuid.UUID          `json:"tenant_id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	PageType    string             `json:"page_type"`
+	RevisionID  uuid.UUID          `json:"revision_id"`
+	ContentHash []byte             `json:"content_hash"`
+	Locale      string             `json:"locale"`
+	AcceptedAt  pgtype.Timestamptz `json:"accepted_at"`
+	IpAddress   *netip.Addr        `json:"ip_address"`
+	UserAgent   *string            `json:"user_agent"`
+}
+
+type AppUserMembership struct {
+	AppID       uuid.UUID          `json:"app_id"`
+	TenantID    uuid.UUID          `json:"tenant_id"`
+	UserID      uuid.UUID          `json:"user_id"`
+	Source      string             `json:"source"`
+	Status      string             `json:"status"`
+	InvitedBy   *uuid.UUID         `json:"invited_by"`
+	VerifiedAt  pgtype.Timestamptz `json:"verified_at"`
+	DisabledAt  pgtype.Timestamptz `json:"disabled_at"`
+	LockVersion int32              `json:"lock_version"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
 // Authentication success/failure/block events for security review.
 type AuditLoginEvent struct {
 	ID                  uuid.UUID          `json:"id"`
@@ -29,6 +72,7 @@ type AuditLoginEvent struct {
 	DeviceInfo          []byte             `json:"device_info"`
 	GeoInfo             []byte             `json:"geo_info"`
 	OccurredAt          pgtype.Timestamptz `json:"occurred_at"`
+	AppID               *uuid.UUID         `json:"app_id"`
 }
 
 // Immutable, redacted business-operation audit log; not a replacement for application logs in an observability backend.
@@ -72,6 +116,7 @@ type AuditSecurityEvent struct {
 	ResolvedAt pgtype.Timestamptz `json:"resolved_at"`
 	ResolvedBy *uuid.UUID         `json:"resolved_by"`
 	OccurredAt pgtype.Timestamptz `json:"occurred_at"`
+	AppID      *uuid.UUID         `json:"app_id"`
 }
 
 type BillingPaymentOrder struct {
@@ -197,6 +242,7 @@ type ContentArticle struct {
 	UpdatedBy      *uuid.UUID         `json:"updated_by"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	AppID          uuid.UUID          `json:"app_id"`
 }
 
 type ContentArticleBookmark struct {
@@ -204,6 +250,7 @@ type ContentArticleBookmark struct {
 	UserID    uuid.UUID          `json:"user_id"`
 	ArticleID uuid.UUID          `json:"article_id"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	AppID     uuid.UUID          `json:"app_id"`
 }
 
 type ContentArticleTranslation struct {
@@ -224,6 +271,7 @@ type ContentCategory struct {
 	LockVersion int32              `json:"lock_version"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	AppID       uuid.UUID          `json:"app_id"`
 }
 
 type ContentCategoryTranslation struct {
@@ -232,6 +280,42 @@ type ContentCategoryTranslation struct {
 	Locale      string    `json:"locale"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+}
+
+type ContentPage struct {
+	ID                uuid.UUID          `json:"id"`
+	AppID             uuid.UUID          `json:"app_id"`
+	TenantID          uuid.UUID          `json:"tenant_id"`
+	Slug              string             `json:"slug"`
+	PageType          string             `json:"page_type"`
+	Status            string             `json:"status"`
+	CurrentRevisionID *uuid.UUID         `json:"current_revision_id"`
+	LockVersion       int32              `json:"lock_version"`
+	CreatedBy         *uuid.UUID         `json:"created_by"`
+	UpdatedBy         *uuid.UUID         `json:"updated_by"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ContentPageRevision struct {
+	ID             uuid.UUID          `json:"id"`
+	PageID         uuid.UUID          `json:"page_id"`
+	AppID          uuid.UUID          `json:"app_id"`
+	TenantID       uuid.UUID          `json:"tenant_id"`
+	RevisionNumber int32              `json:"revision_number"`
+	ContentHash    []byte             `json:"content_hash"`
+	Status         string             `json:"status"`
+	PublishedAt    pgtype.Timestamptz `json:"published_at"`
+	CreatedBy      *uuid.UUID         `json:"created_by"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+}
+
+type ContentPageRevisionTranslation struct {
+	RevisionID uuid.UUID `json:"revision_id"`
+	Locale     string    `json:"locale"`
+	Title      string    `json:"title"`
+	BodyFormat string    `json:"body_format"`
+	Body       []byte    `json:"body"`
 }
 
 type IamBlockRule struct {
@@ -428,6 +512,7 @@ type IamSession struct {
 	RevokeReason       *string            `json:"revoke_reason"`
 	CreatedAt          pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+	AppID              *uuid.UUID         `json:"app_id"`
 }
 
 type IamTenant struct {
@@ -500,6 +585,8 @@ type IamUserPreference struct {
 	Appearance              string             `json:"appearance"`
 	NotificationPreferences []byte             `json:"notification_preferences"`
 	UpdatedAt               pgtype.Timestamptz `json:"updated_at"`
+	AppID                   uuid.UUID          `json:"app_id"`
+	Locale                  string             `json:"locale"`
 }
 
 type IamUserRole struct {
@@ -625,6 +712,7 @@ type NotifyDelivery struct {
 	PayloadKeyVersion *int32             `json:"payload_key_version"`
 	Retryable         bool               `json:"retryable"`
 	RetryRisk         string             `json:"retry_risk"`
+	AppID             *uuid.UUID         `json:"app_id"`
 }
 
 type NotifyMessage struct {
@@ -643,6 +731,7 @@ type NotifyMessage struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+	AppID        uuid.UUID          `json:"app_id"`
 }
 
 type NotifyPushDevice struct {
@@ -658,6 +747,7 @@ type NotifyPushDevice struct {
 	LastFailureAt   pgtype.Timestamptz `json:"last_failure_at"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	AppID           uuid.UUID          `json:"app_id"`
 }
 
 type NotifyRecipient struct {
@@ -670,6 +760,7 @@ type NotifyRecipient struct {
 	ArchivedAt     pgtype.Timestamptz `json:"archived_at"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	AppID          uuid.UUID          `json:"app_id"`
 }
 
 type NotifySmsTemplateBinding struct {
@@ -965,6 +1056,7 @@ type SysMobileRelease struct {
 	LockVersion    int32              `json:"lock_version"`
 	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+	AppID          uuid.UUID          `json:"app_id"`
 }
 
 // Compile-time module registry. AK does not load or uninstall arbitrary Go code at runtime.

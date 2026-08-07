@@ -500,24 +500,50 @@
       "component_key": "system.content.articles",
       "title": "文章管理",
       "phase": "P2",
-      "schema": ["content.articles", "content.article_translations", "content.categories"],
-      "endpoints": ["GET /admin-api/v1/content/articles", "POST /admin-api/v1/content/articles", "GET /admin-api/v1/content/articles/{id}", "PATCH /admin-api/v1/content/articles/{id}", "DELETE /admin-api/v1/content/articles/{id}", "POST /admin-api/v1/content/articles/{id}/{transition}"],
+      "schema": [
+        "content.articles",
+        "content.article_translations",
+        "content.categories"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/content/articles",
+        "POST /admin-api/v1/content/articles",
+        "GET /admin-api/v1/content/articles/{id}",
+        "PATCH /admin-api/v1/content/articles/{id}",
+        "DELETE /admin-api/v1/content/articles/{id}",
+        "POST /admin-api/v1/content/articles/{id}/{transition}"
+      ],
       "backend_status": "delta_required"
     },
     {
       "component_key": "system.content.categories",
       "title": "文章分类",
       "phase": "P2",
-      "schema": ["content.categories", "content.category_translations"],
-      "endpoints": ["GET /admin-api/v1/content/categories", "POST /admin-api/v1/content/categories", "GET /admin-api/v1/content/categories/{id}", "PATCH /admin-api/v1/content/categories/{id}", "DELETE /admin-api/v1/content/categories/{id}"],
+      "schema": [
+        "content.categories",
+        "content.category_translations"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/content/categories",
+        "POST /admin-api/v1/content/categories",
+        "GET /admin-api/v1/content/categories/{id}",
+        "PATCH /admin-api/v1/content/categories/{id}",
+        "DELETE /admin-api/v1/content/categories/{id}"
+      ],
       "backend_status": "delta_required"
     },
     {
       "component_key": "system.mobile.releases",
       "title": "移动端发布策略",
       "phase": "P2",
-      "schema": ["sys.mobile_releases"],
-      "endpoints": ["GET /admin-api/v1/mobile/releases", "POST /admin-api/v1/mobile/releases", "PATCH /admin-api/v1/mobile/releases/{id}"],
+      "schema": [
+        "sys.mobile_releases"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/mobile/releases",
+        "POST /admin-api/v1/mobile/releases",
+        "PATCH /admin-api/v1/mobile/releases/{id}"
+      ],
       "backend_status": "delta_required"
     },
     {
@@ -593,6 +619,61 @@
       "endpoints": [
         "POST /admin-api/v1/auth/password/reset"
       ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "app.applications",
+      "title": "应用管理",
+      "phase": "P2",
+      "schema": [
+        "app.applications"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/apps",
+        "POST /admin-api/v1/apps",
+        "PATCH /admin-api/v1/apps/{app_id}",
+        "POST /admin-api/v1/apps/{app_id}/enable",
+        "POST /admin-api/v1/apps/{app_id}/disable"
+      ],
+      "backend_status": "delta_required"
+    },
+    {
+      "component_key": "app.content.pages",
+      "title": "App 单页内容",
+      "phase": "P2",
+      "schema": [
+        "app.applications",
+        "content.pages",
+        "content.page_revisions",
+        "content.page_revision_translations"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/apps/{app_id}/content/pages",
+        "POST /admin-api/v1/apps/{app_id}/content/pages"
+      ],
+      "backend_status": "delta_required"
+    },
+    {
+      "component_key": "app.users",
+      "title": "App 用户管理",
+      "phase": "P2",
+      "schema": [
+        "app.applications",
+        "app.user_memberships"
+      ],
+      "endpoints": [],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "app.content.articles",
+      "title": "App 文章管理",
+      "phase": "P2",
+      "schema": [
+        "app.applications",
+        "content.articles",
+        "content.categories"
+      ],
+      "endpoints": [],
       "backend_status": "existing"
     }
   ]

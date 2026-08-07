@@ -39,6 +39,10 @@ func TestNotificationLifecycleTemplatesAndDeliveryRetryAreTenantScopedAndAudited
 	if err != nil {
 		t.Fatal(err)
 	}
+	var appID uuid.UUID
+	if err = pool.QueryRow(ctx, `SELECT id FROM app.applications WHERE tenant_id=$1 AND is_default=true`, tenant.ID).Scan(&appID); err != nil {
+		t.Fatal(err)
+	}
 	var secondID uuid.UUID
 	if err = pool.QueryRow(ctx, `INSERT INTO iam.users(email,display_name,locale,status) VALUES($1,'Recipient','zh-CN','active') RETURNING id`, "recipient-"+suffix+"@example.test").Scan(&secondID); err != nil {
 		t.Fatal(err)
@@ -56,12 +60,12 @@ func TestNotificationLifecycleTemplatesAndDeliveryRetryAreTenantScopedAndAudited
 	}
 	var _ *river.Client[pgx.Tx] = riverClient
 	repo := NewPostgres(pool, riverClient)
-	principal := notify.Principal{TenantID: tenant.ID, UserID: user.ID, SessionID: session.ID, RequestID: "notify-integration", IPAddress: "127.0.0.1", UserAgent: "integration"}
+	principal := notify.Principal{TenantID: tenant.ID, AppID: appID, UserID: user.ID, SessionID: session.ID, RequestID: "notify-integration", IPAddress: "127.0.0.1", UserAgent: "integration"}
 	message, err := repo.CreateMessage(ctx, principal, false, notify.MessageInput{MessageType: "system", Title: "Maintenance", Body: "A safe message", BodyFormat: "plain", AudienceScope: "selected", AudienceUserIDs: []uuid.UUID{secondID}})
 	if err != nil {
 		t.Fatal(err)
 	}
-	preview, err := repo.PreviewRecipients(ctx, tenant.ID, message)
+	preview, err := repo.PreviewRecipients(ctx, tenant.ID, appID, message)
 	if err != nil || preview.Count != 1 || len(preview.Items) != 1 || preview.Items[0].EmailHint == "" {
 		t.Fatalf("preview=%#v err=%v", preview, err)
 	}
@@ -69,11 +73,11 @@ func TestNotificationLifecycleTemplatesAndDeliveryRetryAreTenantScopedAndAudited
 	if err != nil || published.Status != "published" || recipients.Count != 1 {
 		t.Fatalf("published=%#v recipients=%#v err=%v", published, recipients, err)
 	}
-	stats, err := repo.RecipientStats(ctx, tenant.ID, message.ID, false)
+	stats, err := repo.RecipientStats(ctx, tenant.ID, appID, message.ID, false)
 	if err != nil || stats.Total != 1 || stats.Pending != 1 {
 		t.Fatalf("stats=%#v err=%v", stats, err)
 	}
-	if _, err = repo.GetMessage(ctx, uuid.New(), message.ID, false); !errors.Is(err, notify.ErrNotFound) {
+	if _, err = repo.GetMessage(ctx, uuid.New(), appID, message.ID, false); !errors.Is(err, notify.ErrNotFound) {
 		t.Fatalf("cross-tenant message error=%v", err)
 	}
 	locale := "en-US"
