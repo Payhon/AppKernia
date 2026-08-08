@@ -123,7 +123,7 @@
   "common.resend": "重新发送",
   "common.done": "完成",
   "auth.register": "注册账号",
-  "auth.register.link": "还没有账号？注册",
+  "auth.register.link": "注册账号",
   "auth.forgotPassword": "忘记密码？",
   "auth.resetPassword": "重置密码",
   "auth.verificationCode": "验证码",

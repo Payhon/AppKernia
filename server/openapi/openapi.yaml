@@ -116,7 +116,7 @@ paths:
       summary: Sign in to the mobile application with a password
       operationId: mobilePasswordLogin
       security: []
-      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: X-AK-Device-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 160}}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: X-AK-Device-Key, in: header, required: true, description: A random UUID identifying this mobile installation. It is not an authentication factor., schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePasswordLoginRequest"}}}}
       responses: {"200": {description: Bearer access token plus one-time opaque refresh token for secure platform storage., content: {application/json: {schema: {$ref: "#/components/schemas/MobileTokenResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/auth/register:

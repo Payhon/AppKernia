@@ -1,12 +1,12 @@
 <template>
-  <ak-theme-root><view class="page">
-    <view class="nav"><ak-back-button/><text>{{t('settings.appearance', null)}}</text><view/></view>
-    <ak-cell-list>
-      <view class="row" @click="save('system')"><text>{{t('settings.system', null)}}</text><ak-icon v-if="appearance==='system'" name="check"/></view>
-      <view class="row" @click="save('light')"><text>{{t('settings.light', null)}}</text><ak-icon v-if="appearance==='light'" name="check"/></view>
-      <view class="row" @click="save('dark')"><text>{{t('settings.dark', null)}}</text><ak-icon v-if="appearance==='dark'" name="check"/></view>
+  <ak-theme-root><scroll-view class="page" scroll-y>
+    <view class="nav"><ak-back-button/><text class="nav-title">{{t('settings.appearance', null)}}</text><view class="nav-slot"/></view>
+    <ak-cell-list class="selection-list">
+      <view class="row" :class="appearance==='system' ? 'row-selected' : ''" @click="save('system')"><text>{{t('settings.system', null)}}</text><ak-icon v-if="appearance==='system'" name="check"/></view>
+      <view class="row" :class="appearance==='light' ? 'row-selected' : ''" @click="save('light')"><text>{{t('settings.light', null)}}</text><ak-icon v-if="appearance==='light'" name="check"/></view>
+      <view class="row" :class="appearance==='dark' ? 'row-selected' : ''" @click="save('dark')"><text>{{t('settings.dark', null)}}</text><ak-icon v-if="appearance==='dark'" name="check"/></view>
     </ak-cell-list>
-  </view></ak-theme-root>
+  </scroll-view></ak-theme-root>
 </template>
 
 <script lang="uts">
@@ -43,5 +43,5 @@ export default {
 </script>
 
 <style lang="scss">
-.page{height:100%;flex:1;padding:16px}.nav,.row{flex-direction:row;align-items:center;justify-content:space-between}.nav{height:48px}.row{height:58px}
+.page{height:100%;flex:1;padding:16px 20px 32px;background:var(--ak-page)}.nav,.row{flex-direction:row;align-items:center;justify-content:space-between}.nav{height:44px;margin-bottom:20px}.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}.nav-slot{width:44px;height:44px}.selection-list{border-radius:18px}.row{min-height:60px;padding:0 16px;color:var(--ak-text);font-size:16px;border-bottom:1px solid var(--ak-border)}.row-selected{background:var(--ak-accent-surface);font-weight:600}
 </style>

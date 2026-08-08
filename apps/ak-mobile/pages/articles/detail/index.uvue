@@ -11,7 +11,7 @@
         <view v-for="block in safeBlocks" :key="block.id" :class="block.kind === 'heading' ? 'body-heading' : block.kind === 'callout' ? 'callout' : 'body-paragraph'"><text>{{ block.text }}</text></view>
       </view>
     </scroll-view>
-    <view class="action-bar"><ak-button variant="secondary" :loading="mutating" :loading-text="t('state.mutating', null)" @click="toggleBookmark">{{ bookmarked ? t('common.bookmarked', null) : t('common.bookmark', null) }}</ak-button><ak-button variant="secondary" @click="share">{{ t('common.share', null) }}</ak-button></view>
+    <view class="action-bar"><ak-button class="action-button action-button-leading" variant="secondary" :loading="mutating" :loading-text="t('state.mutating', null)" @click="toggleBookmark">{{ bookmarked ? t('common.bookmarked', null) : t('common.bookmark', null) }}</ak-button><ak-button class="action-button" variant="secondary" @click="share">{{ t('common.share', null) }}</ak-button></view>
   </view></ak-theme-root>
 </template>
 
@@ -103,17 +103,19 @@ export default {
 
 <style lang="scss">
 .page { height:100%;flex:1; background:var(--ak-page); }
-.nav { height:60px; padding:8px 16px; flex-direction:row; align-items:center; justify-content:space-between; }
+.nav { min-height:56px; padding:4px 16px; flex-direction:row; align-items:center; justify-content:space-between; }
 .nav-icon { width:44px; height:44px; }
 .nav-title { color:var(--ak-text); font-size:20px; font-weight:600; }
-.content { height:640px; padding:20px 16px; }
-.category { color:var(--ak-brand); font-size:14px; border:1px solid var(--ak-brand); border-radius:6px; padding:4px 8px; }
-.title { color:var(--ak-text); font-size:30px; line-height:40px; font-weight:600; margin-top:20px; }
-.meta { color:var(--ak-muted); font-size:14px; margin-top:12px; }
-.hero { width:100%; height:260px; margin:24px 0; border-radius:12px; }
+.content { flex:1; min-height:0; padding:16px 16px 32px; }
+.category { color:var(--ak-brand); font-size:13px; border:1px solid var(--ak-accent-surface); border-radius:10px; background:var(--ak-accent-surface); padding:5px 9px; }
+.title { color:var(--ak-text); font-size:30px; line-height:38px; font-weight:700; margin-top:16px; }
+.meta { color:var(--ak-muted); font-size:14px; margin-top:10px; }
+.hero { width:100%; height:216px; margin:20px 0 24px; border-radius:16px; }
 .hero-fallback { background:var(--ak-accent-surface); }
-.body-heading { color:var(--ak-text); font-size:24px; line-height:32px; font-weight:600; margin:24px 0 12px; }
-.body-paragraph { color:var(--ak-text); font-size:17px; line-height:30px; margin:12px 0; }
-.callout { color:var(--ak-callout-text); background:var(--ak-accent-surface); border-left:3px solid var(--ak-brand); border-radius:8px; padding:16px; margin:20px 0; }
-.action-bar { height:76px; padding:12px 16px; flex-direction:row; align-items:center; border-top:1px solid var(--ak-border); background:var(--ak-surface); }
+.body-heading { color:var(--ak-text); font-size:23px; line-height:31px; font-weight:700; margin:28px 0 12px; }
+.body-paragraph { color:var(--ak-text); font-size:17px; line-height:29px; margin:12px 0; }
+.callout { color:var(--ak-callout-text); background:var(--ak-accent-surface); border-left:3px solid var(--ak-brand); border-radius:12px; padding:16px; margin:24px 0; }
+.action-bar { min-height:68px; padding:12px 16px; padding-bottom:env(safe-area-inset-bottom); flex-direction:row; align-items:center; border-top:1px solid var(--ak-border); background:var(--ak-surface); }
+.action-button { flex:1; }
+.action-button-leading { margin-right:8px; }
 </style>

@@ -45,6 +45,7 @@ class UniRequestCancellation implements HttpCancellation {
 export class AkHttpClient implements AkHttpPort {
   private readonly config: AkConfig
   private readonly session: SessionStore
+  private deviceKey: string = ''
 
   constructor(config: AkConfig, session: SessionStore) {
     this.config = config
@@ -53,19 +54,29 @@ export class AkHttpClient implements AkHttpPort {
 
   /** Immutable packaged public application id; never accepted from page input. */
   getAppId(): string { return this.config.appId }
+  setDeviceKey(value: string): void { this.deviceKey = value }
 
   execute<TBody, TData>(request: HttpRequest<TBody>, onSuccess: (response: HttpResponse<TData>) => void, onFailure: (error: AkError) => void): HttpCancellation {
     const cancellation = new UniRequestCancellation()
     const url: string = this.buildUrl(request.path, request.query)
     const token: string | null = this.session.getAccessToken()
-    const headers: UTSJSONObject = {
+    const authorization: string = token != null ? 'Bearer ' + token : ''
+    const headerSource: UTSJSONObject = {
       'Accept-Language': request.locale,
       Accept: 'application/json',
       'Content-Type': 'application/json',
       'X-AppID': this.config.appId,
+      Authorization: authorization,
+      'X-AK-Device-Key': this.deviceKey,
     }
-    if (token != null) headers['Authorization'] = 'Bearer ' + token
-    request.headers.forEach((value: string, key: string) => { headers[key] = value })
+    // UTS class and Map string values are boxed as `{}` by uni.request on iOS.
+    // A JSON round-trip materializes primitive values inside UTSJSONObject;
+    // AuthRuntime injects and restores the secure device UUID in memory.
+    const headers: UTSJSONObject | null = JSON.parseObject(JSON.stringify(headerSource))
+    if (headers == null) {
+      onFailure(new AkError('unknown', 'request.invalid_headers', 'errors.unknown', null))
+      return cancellation
+    }
     const task = uni.request({
       url: url,
       method: request.method,
@@ -127,7 +138,13 @@ export class AkHttpClient implements AkHttpPort {
 
   private headerString(headers: UTSJSONObject | null, key: string): string | null {
     if (headers == null) return null
-    return headers.getString(key)
+    // uni.request returns a platform bridge object on iOS, not a UTSJSONObject
+    // instance. Indexing works for both representations; invoking UTSJSONObject
+    // helper methods on the bridge object does not.
+    const value: string | null = headers[key] as string | null
+    if (value != null) return value
+    if (key == 'x-request-id') return headers['X-Request-Id'] as string | null
+    return null
   }
 
   private errorFromStatus(statusCode: number, requestId: string | null): AkError {

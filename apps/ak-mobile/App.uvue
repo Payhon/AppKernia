@@ -5,3 +5,7 @@ export default {
   onLaunch() { themeStore.initialize() },
 }
 </script>
+
+<style lang="scss">
+@import '@/design-system/app.scss';
+</style>

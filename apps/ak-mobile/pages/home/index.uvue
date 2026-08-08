@@ -2,16 +2,17 @@
   <ak-theme-root><scroll-view class="page" scroll-y>
     <view class="topbar"><text class="brand">AppKernia</text><view class="notification" @click="go('notifications.list')"><ak-icon name="bell"/><text v-if="unreadCount>0" class="badge">{{unreadCount}}</text></view></view>
     <view class="greeting"><text class="greeting__title">{{t('home.greeting',nameParams)}}</text><text class="greeting__subtitle">{{t('home.subtitle', null)}}</text></view>
-    <ak-card class="hero"><text class="hero__title">{{t('home.hero.title', null)}}</text><ak-button variant="secondary" @click="go('articles.list')">{{t('home.hero.action', null)}}</ak-button></ak-card>
+    <ak-card class="hero"><text class="hero__title">{{t('home.hero.title', null)}}</text><ak-button variant="secondary" :label="t('home.hero.action', null)" @click="go('articles.list')"/></ak-card>
     <view class="section-title"><text>{{t('home.quickActions', null)}}</text></view>
-    <view class="quick-grid"><ak-card v-for="item in quickActions" :key="item.key" class="quick-card" @click="go(item.route)"><ak-icon :name="item.icon"/><text>{{t(item.key, null)}}</text><ak-icon name="chevron-right" tone="muted"/></ak-card></view>
+    <view class="quick-grid"><ak-card v-for="item in quickActions" :key="item.key" class="quick-card" @click="go(item.route)"><view class="quick-card__lead"><ak-icon :name="item.icon"/><text class="quick-card__label">{{t(item.key, null)}}</text></view><ak-icon name="chevron-right" tone="muted"/></ak-card></view>
     <view class="section-title"><text>{{t('home.featured', null)}}</text><text class="link" @click="go('articles.list')">{{t('common.more', null)}}</text></view>
-    <ak-status-view v-if="state!=='content'" :state="state" :title="stateTitle" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/>
+    <view v-if="state!=='content'" class="featured-state"><ak-status-view :state="state" :title="stateTitle" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/></view>
     <view v-else class="featured-list"><ak-card v-for="article in featured" :key="article.slug" class="article-preview" @click="openArticle(article.slug)"><image v-if="coverPath(article.id)" class="cover-placeholder" :src="coverPath(article.id)" mode="aspectFill"/><view v-else class="cover-placeholder"/><view class="article-preview__copy"><text class="article-preview__title">{{article.title}}</text><text class="article-preview__meta">{{t('articles.readMinutes',readingParams(article.readingMinutes))}}</text></view><ak-icon name="chevron-right" tone="muted"/></ak-card></view>
   </scroll-view></ak-theme-root>
 </template>
 <script lang="uts">
 import { akI18n } from '../../src/core/i18n/ak-i18n.uts'
+import { NavigationLocaleSync } from '../../src/core/i18n/navigation-sync.uts'
 import { AkError } from '../../src/core/errors/ak-error.uts'
 import { HttpCancellation } from '../../src/core/network/http-port.uts'
 import { akNavigator, authenticatedNavigationContext, navigateArticleDetail } from '../../src/core/navigation/app-routes.uts'
@@ -30,6 +31,7 @@ export default {
   data() { return { state: 'loading', unreadCount: 0, displayName: '', featured: [] as Array<ArticleSummary>, coverPaths: new Map<string, string>(), pending: 0, failed: false, quickActions: [{ key: 'home.action.articles', route: 'articles.list', icon: 'bookmark' }, { key: 'home.action.messages', route: 'notifications.list', icon: 'bell' }, { key: 'home.action.security', route: 'profile.security', icon: 'security' }, { key: 'home.action.settings', route: 'settings.language', icon: 'settings' }] as Array<QuickAction> } },
   computed: { t() { return akI18n.t }, nameParams() { return new Map<string, string>([['name', this.displayName]]) }, stateTitle() { return this.state == 'offline' ? akI18n.t('state.offline.title', null) : akI18n.t('state.error.title', null) } },
   onLoad() { this.reload() },
+  onShow() { new NavigationLocaleSync(akI18n).apply(akI18n.getLocale(), 'routes.home.title') },
   onUnload() { this.cancelRequests() },
   methods: {
     cancelRequests() { const activeProfile = profileTask; if (activeProfile != null) activeProfile.cancel(); const activeUnread = unreadTask; if (activeUnread != null) activeUnread.cancel(); const activeFeatured = featuredTask; if (activeFeatured != null) activeFeatured.cancel(); coverTasks.forEach(task => task.cancel()); coverTasks = []; profileTask = null; unreadTask = null; featuredTask = null },
@@ -51,4 +53,30 @@ export default {
   },
 }
 </script>
-<style lang="scss">.page{flex:1;background:var(--ak-page);padding:24px 16px 32px}.topbar,.section-title,.quick-card,.article-preview{flex-direction:row;align-items:center}.topbar,.section-title{justify-content:space-between}.brand{font-size:28px;font-weight:700;color:var(--ak-text)}.notification{position:relative;min-width:44px;min-height:44px;justify-content:center;align-items:center}.badge{position:absolute;top:0;right:0;min-width:20px;height:20px;border-radius:10px;text-align:center;background:var(--ak-danger);color:var(--ak-on-danger);font-size:12px}.greeting{margin:32px 0 24px}.greeting__title{color:var(--ak-text);font-size:30px;font-weight:600}.greeting__subtitle{margin-top:8px;color:var(--ak-muted);font-size:16px}.hero{background:var(--ak-brand);padding:24px;margin-bottom:28px}.hero__title{color:var(--ak-on-brand);font-size:24px;font-weight:600;margin-bottom:24px}.section-title{color:var(--ak-text);font-size:22px;font-weight:600;margin:24px 0 12px}.link{color:var(--ak-brand);font-size:14px}.quick-grid{flex-direction:row;flex-wrap:wrap}.quick-card{width:48%;min-height:72px;padding:12px;justify-content:space-between}.cover-placeholder{width:100px;height:64px;border-radius:8px;background:var(--ak-accent-surface)}.article-preview__copy{flex:1}.article-preview__title{color:var(--ak-text);font-size:16px;font-weight:600}.article-preview__meta{color:var(--ak-muted);font-size:13px;margin-top:8px}</style>
+<style lang="scss">
+.page{flex:1;background:var(--ak-page);padding:16px 16px 48px}
+.topbar,.section-title,.quick-card,.quick-card__lead,.article-preview{flex-direction:row;align-items:center}
+.topbar,.section-title,.quick-card{justify-content:space-between}
+.topbar{min-height:48px}
+.brand{font-size:28px;font-weight:700;color:var(--ak-text)}
+.notification{position:relative;min-width:44px;min-height:44px;justify-content:center;align-items:center;border-radius:22px;background:var(--ak-surface)}
+.badge{position:absolute;top:2px;right:2px;min-width:18px;height:18px;border-radius:9px;text-align:center;background:var(--ak-danger);color:var(--ak-on-danger);font-size:11px}
+.greeting{margin:24px 0}
+.greeting__title{color:var(--ak-text);font-size:30px;font-weight:700;line-height:38px}
+.greeting__subtitle{margin-top:8px;color:var(--ak-muted);font-size:16px;line-height:24px}
+.hero{background:var(--ak-brand);padding:24px;margin-bottom:28px;border-color:var(--ak-brand)}
+.hero__title{color:var(--ak-on-brand);font-size:24px;font-weight:700;line-height:32px;margin-bottom:20px}
+.section-title{color:var(--ak-text);font-size:22px;font-weight:700;margin:28px 0 12px}
+.link{color:var(--ak-brand);font-size:15px;font-weight:600;min-height:44px;align-items:center}
+.quick-grid{flex-direction:row;flex-wrap:wrap;justify-content:space-between}
+.quick-card{width:48%;min-height:104px;padding:16px;margin-bottom:12px}
+.quick-card__lead{flex:1;min-width:0}
+.quick-card__label{flex:1;margin-left:10px;color:var(--ak-text);font-size:16px;font-weight:600}
+.featured-state{min-height:216px;justify-content:center;padding-bottom:32px}
+.featured-list{padding-bottom:16px}
+.article-preview{min-height:88px;margin-bottom:12px;padding:14px}
+.cover-placeholder{width:96px;height:64px;border-radius:12px;background:var(--ak-accent-surface)}
+.article-preview__copy{flex:1;margin-left:12px}
+.article-preview__title{color:var(--ak-text);font-size:16px;font-weight:600;line-height:22px}
+.article-preview__meta{color:var(--ak-muted);font-size:13px;margin-top:6px}
+</style>

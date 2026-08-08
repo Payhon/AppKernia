@@ -11,7 +11,6 @@ const REFRESH_TOKEN_KEY = 'session.refresh-token'
 const DEVICE_KEY = 'session.device-key'
 const SESSION_ID_KEY = 'session.session-id'
 const SUBJECT_VERSION_KEY = 'session.subject-version'
-const ACCESSIBILITY = 'after_first_unlock_this_device_only'
 
 /**
  * Platform vault adapter. Credential members are separate so Harmony Asset
@@ -54,7 +53,9 @@ export class AkSecureSessionStorage implements SecureSessionStoragePort {
 
   private writeField(key: string, value: string, onSuccess: () => void, onFailure: () => void): void {
     if (value.length == 0) { this.clear(() => onFailure(), onFailure); return }
-    vaultSet(key, value, ACCESSIBILITY, onSuccess, (_: string) => {
+    // API response fields are UTS boxed strings on iOS. Normalize them to a
+    // JavaScript string primitive before crossing into the native plugin.
+    vaultSet(key, value.toString(), onSuccess, (_: string) => {
       // Remove every member after a partial write; never leave a usable token
       // set after persistence failure.
       vaultRemove(key, () => this.clear(() => onFailure(), onFailure), (_: string) => this.clear(() => onFailure(), onFailure))

@@ -4,4 +4,4 @@
 <script lang="uts">
 export default { props: { state: { type: String, default: 'empty' }, title: { type: String, default: '' }, description: { type: String, default: '' }, loadingLabel: { type: String, default: '' }, retryLabel: { type: String, default: '' } }, emits: ['retry'] }
 </script>
-<style lang="scss">.ak-status { flex:1; }</style>
+<style lang="scss">.ak-status { flex:1; min-height:160px; padding:var(--ak-space-2) 0; box-sizing:border-box; }</style>

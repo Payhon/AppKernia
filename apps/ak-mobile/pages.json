@@ -30,10 +30,10 @@
     { "path": "pages/error/forbidden/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/error/offline/index", "style": { "navigationStyle": "custom" } }
   ],
-  "tabBar": { "color": "#64748B", "selectedColor": "#2563EB", "borderStyle": "white", "list": [
-    { "pagePath": "pages/home/index", "text": "首页" },
-    { "pagePath": "pages/notifications/index", "text": "消息" },
-    { "pagePath": "pages/profile/index", "text": "我的" }
+  "tabBar": { "color": "#8E8E93", "selectedColor": "#246BFE", "backgroundColor": "#FFFFFF", "borderStyle": "white", "list": [
+    { "pagePath": "pages/home/index", "text": "首页", "iconPath": "static/ak-tabbar/home-default.png", "selectedIconPath": "static/ak-tabbar/home-selected.png" },
+    { "pagePath": "pages/notifications/index", "text": "消息", "iconPath": "static/ak-tabbar/notifications-default.png", "selectedIconPath": "static/ak-tabbar/notifications-selected.png" },
+    { "pagePath": "pages/profile/index", "text": "我的", "iconPath": "static/ak-tabbar/profile-default.png", "selectedIconPath": "static/ak-tabbar/profile-selected.png" }
   ] },
   "globalStyle": { "navigationBarTitleText": "AppKernia", "backgroundColor": "#F8FAFC" }
 }

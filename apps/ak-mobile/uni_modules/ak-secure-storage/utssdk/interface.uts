@@ -8,8 +8,6 @@ export type SecureStorageErrorCode =
   | 'unavailable'
   | 'native_failure'
 
-export type SecureStorageAccessibility = 'after_first_unlock_this_device_only'
-
 /**
  * A class is intentional here: the Harmony ArkTS compiler rejects an
  * untyped object literal at this UTS boundary, even when the UTS return type
@@ -37,7 +35,6 @@ export type SecureStorageAvailabilityApi = () => SecureStorageAvailability
 export type SecureStorageSet = (
   key: string,
   value: string,
-  accessibility: SecureStorageAccessibility,
   onSuccess: SecureStorageSuccess,
   onFailure: SecureStorageFailure,
 ) => void

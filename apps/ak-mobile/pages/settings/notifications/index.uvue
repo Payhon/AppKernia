@@ -1,13 +1,13 @@
 <template>
-  <ak-theme-root><view class="page">
-    <view class="nav"><ak-back-button/><text>{{t('routes.settings.notifications.title', null)}}</text><view/></view>
+  <ak-theme-root><scroll-view class="page" scroll-y>
+    <view class="nav"><ak-back-button/><text class="nav-title">{{t('routes.settings.notifications.title', null)}}</text><view class="nav-slot"/></view>
     <ak-status-view v-if="state!=='content'" :state="state" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/>
-    <ak-cell-list v-else>
-      <view class="row"><text>{{t('settings.notificationEmail', null)}}</text><ak-switch v-model="email" @change="save"/></view>
-      <view class="row"><text>{{t('settings.notificationPush', null)}}</text><ak-switch v-model="push" @change="save"/></view>
-      <view class="row"><text>{{t('settings.notificationInApp', null)}}</text><ak-switch v-model="inApp" @change="save"/></view>
+    <ak-cell-list v-else class="preference-list">
+      <view class="row"><text class="row-label">{{t('settings.notificationEmail', null)}}</text><ak-switch v-model="email" @change="save"/></view>
+      <view class="row"><text class="row-label">{{t('settings.notificationPush', null)}}</text><ak-switch v-model="push" @change="save"/></view>
+      <view class="row"><text class="row-label">{{t('settings.notificationInApp', null)}}</text><ak-switch v-model="inApp" @change="save"/></view>
     </ak-cell-list>
-  </view></ak-theme-root>
+  </scroll-view></ak-theme-root>
 </template>
 
 <script lang="uts">
@@ -41,5 +41,5 @@ export default {
 </script>
 
 <style lang="scss">
-.page{height:100%;flex:1;padding:16px}.nav,.row{flex-direction:row;align-items:center;justify-content:space-between}.nav{height:48px}.row{height:58px}
+.page{height:100%;flex:1;padding:16px 20px 32px;background:var(--ak-page)}.nav,.row{flex-direction:row;align-items:center;justify-content:space-between}.nav{height:44px;margin-bottom:20px}.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}.nav-slot{width:44px;height:44px}.preference-list{border-radius:18px}.row{min-height:60px;padding:0 16px;border-bottom:1px solid var(--ak-border)}.row-label{color:var(--ak-text);font-size:16px}
 </style>

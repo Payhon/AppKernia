@@ -6,6 +6,7 @@ export type PasswordLoginInput = { readonly email: string; readonly password: st
 export type RegisterInput = { readonly email: string; readonly displayName: string; readonly password: string; readonly acceptTerms: boolean }
 export type VerificationInput = { readonly email: string; readonly code: string }
 export type PasswordResetInput = { readonly email: string; readonly code: string; readonly newPassword: string }
+export type ResendRegistrationInput = { readonly email: string }
 export type AcceptedResult = { readonly verificationRequired: boolean; readonly retryAfterSeconds: number }
 export type MobileAuthToken = { readonly accessToken: string; readonly refreshToken: string; readonly sessionId: string; readonly appId: string }
 export type MobileAuthContext = { readonly permissions: Array<string>; readonly enabledFlags: Array<string> }
@@ -29,10 +30,8 @@ export class HttpAuthRepository {
   constructor(http: AkHttpPort, expectedAppId: string) { this.http = http; this.expectedAppId = expectedAppId }
 
   login(input: PasswordLoginInput, onSuccess: (token: MobileAuthToken) => void, onFailure: (error: AkError) => void): HttpCancellation {
-    const headers = new Map<string, string>()
-    headers.set('X-AK-Device-Key', input.deviceKey)
     const body: PasswordLoginWire = { email: input.email, password: input.password }
-    const request: HttpRequest<PasswordLoginWire> = { method: 'POST', path: '/auth/login/password', query: new Map<string, string>(), headers: headers, retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    const request: HttpRequest<PasswordLoginWire> = { method: 'POST', path: '/auth/login/password', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
     return this.http.execute<PasswordLoginWire, TokenWire>(request, (response) => this.acceptToken(response.data, onSuccess, onFailure), onFailure)
   }
 
@@ -43,7 +42,7 @@ export class HttpAuthRepository {
   }
 
   verifyRegistration(input: VerificationInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { return this.challenge('/auth/registration/verify-email', input, onSuccess, onFailure) }
-  resendRegistration(input: { readonly email: string }, onSuccess: (result: AcceptedResult) => void, onFailure: (error: AkError) => void): HttpCancellation {
+  resendRegistration(input: ResendRegistrationInput, onSuccess: (result: AcceptedResult) => void, onFailure: (error: AkError) => void): HttpCancellation {
     const body: ForgotWire = { email: input.email }
     const request: HttpRequest<ForgotWire> = { method: 'POST', path: '/auth/registration/resend-code', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
     return this.http.execute<ForgotWire, AcceptedWire>(request, response => onSuccess(this.accepted(response.data)), onFailure)

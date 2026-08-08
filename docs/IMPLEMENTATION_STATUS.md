@@ -8,8 +8,16 @@
 |---|---|---|
 | Backend | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环 | 当前 Admin backlog 已收口；生产 Adapter 联调见风险 |
 | Admin | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁 | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险 |
-| Mobile | Home、Profile 及子页、文章列表/详情、会话/安全存储/刷新策略与内容契约已实现；HBuilderX 5.06 的 iOS 18.6 / iPhone 16 Pro 模拟器已验证旧 20 页面登录启动且不再出现 i18n `source.toMap` 白屏；本次注册/找回/法律页及 `X-AppID` 已通过静态门禁 | 本次扩展后的 28 页面未完成 UTS/模拟器验收；Android/Harmony 安装运行、三端真机、签名/发布与安全存储回读仍未完成 |
+| Mobile | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证 | Android/Harmony 安装运行、三端真机、签名/发布仍未完成 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线 | Mobile 三端长英文/运行时视觉验收 |
+
+## 2026-08-08 Mobile Apple UI refresh
+
+- 全局 `ak-theme-root` 统一状态栏安全区；`ak-button` 对 slot 文本显式应用 primary/secondary/danger 颜色，修复蓝色主按钮黑字；三项原生 TabBar 增加原创 outline/filled PNG 图标及暗色 selected 资产。
+- Home、Notifications、Articles、Profile/Settings/Security、Authentication、Legal、Help/About、Error 共 28 页面改为语义 token、分组表面、44 px 触控目标和可滚动高度；移除文章 620/640 px 固定视口。
+- `zh-CN` / `en-US` 首页与 TabBar 已在 iPhone 16 Pro 模拟器运行时切换并截图；切回 `zh-CN` 后保留测试账号登录状态。
+- iOS 真实运行发现并修复 UTS 字符串桥接把设备 UUID 变成 `[object Object]` / `{}` 的问题：请求头先 JSON 物化原始值，Auth client 使用内存 UUID，安全会话恢复校验 UUID 并在陈旧凭据失败时重建。首次登录及 App 重启 refresh 均验证为合法 36 位 UUID。
+- HBuilderX 5.06 iOS、Android、Harmony 三端 28 页面编译均退出 0；Harmony 生成未签名 `.hap`，明确提示未配置包名/证书。Android/Harmony 安装运行、物理设备、暗色/动态字体/VoiceOver 仍未执行。
 
 ## 2026-08-04 HotGo 地区编码初始化数据
 
@@ -475,3 +483,26 @@
 - Docker daemon 无响应，PostgreSQL 18 migration `up → down → up` 未实际运行；本次扩展后的 HBuilder X iOS 构建仅推进到 28 页后卡在 `ak-secure-storage`，没有 UTS 完成、模拟器安装或运行验收，因此新增注册、找回和法律页尚未完成模拟器验收。
 - 未捕获 Admin 真实登录浏览器截图。OTP 外部邮件通道没有真实凭据，未发送邮件或完成验证码接收验收。
 - 本次 App 扩展不重新声明白屏修复验收；既有 iOS 模拟器证据保留在上一节，新 28 页面仍需另行运行验证。
+
+## 2026-08-08 App 管理本地验收修复
+
+### 状态：完成（隔离 PostgreSQL 18 + Go API + Chromium + iOS 模拟器）
+
+- Backend 通知管理集成 fixture 为第二位用户补齐当前 App membership，使查询继续按 tenant + App 双作用域验证；全量 Go check/build 与隔离库 integration 已通过。
+- Admin 单页模型允许系统预留页在首个 revision 前没有 translations；编辑器安全初始化双语空值，列表标题按当前语言、另一支持语言、页面类型依次回退。应用状态改用稳定 API 枚举 `active` 的翻译键，并同步 Admin 与 blueprint 双语事实源。
+- Mobile 登录页移除 HBuilderX iOS 不支持的百分比 `min-height`；HTTP 响应头不再对 iOS bridge 普通对象调用 `UTSJSONObject.getString()`，改为索引读取并兼容请求 ID 大小写。
+- Admin 真实浏览器完成应用列表和单页列表的 `zh-CN/en-US` 验收，4 个状态 axe serious/critical 均为 0，无 console error，相关 API 均为 200。
+- HBuilderX 5.06 完成 28 页面 iOS 编译；iPhone 16 Pro / iOS 18.6 模拟器真实进入登录、找回密码、注册、隐私政策和用户协议页面，未再出现白屏、`source.toMap` 或 `headers.getString` 异常。
+- 两份法律内容仅在隔离验收库临时发布用于注册流程验证，验收结束后已清理，不属于源码或生产数据。
+- HBuilderX 本机 UI 的资源同步阶段仍会停滞；本轮用其最新生成的 `app-ios` 资源覆盖官方标准基座数据容器后完成运行验收。此结果不等同于 HBuilderX 一键同步、自定义基座安全存储、iOS 真机、Android 或 HarmonyOS 验收。
+
+## 2026-08-08 Mobile 登录与访客返回链路修复
+
+### 状态：完成（隔离 PostgreSQL 18 + Go API + iPhone 16 Pro 模拟器）
+
+- 登录页只保留全宽主登录按钮；忘记密码和受 `registration_enabled` 控制的注册账号改为按钮下方的文字链接，使用 44px 点击高度和 8px 相邻间距。
+- 认证与法律页自定义导航栏补齐 iOS safe-area 偏移；公共返回控件使用显式点击处理、页面栈返回和空历史登录页兜底，找回密码、注册、隐私政策、用户协议均完成坐标点击往返。
+- 修复 iOS UTS 请求边界：设备 UUID 生成后持久化并在请求头对象构造时直接写入；OpenAPI 将设备标识约束为 UUID。安全存储插件接口去除未使用的动态 accessibility 参数，三平台实现保持固定系统安全策略。
+- 使用公开注册接口创建本地测试用户；隔离验收库完成邮箱激活后，模拟器真实登录成功。重启应用仍恢复会话并进入 Home，证明本地自定义模拟器基座中的安全存储可读写。
+- 本地测试 API、隔离数据库和已登录模拟器保留运行，方便后续手工复测。账号凭据只在对话交付，不写入源码、文档或 fixture。
+- iOS 模拟器运行使用包含 `ak-secure-storage` 原生模块的本地重建基座；未执行 iOS 真机、Android/HarmonyOS 运行、真实 OTP 邮件收发或生产环境测试。

@@ -3,6 +3,24 @@
 日期：2026-08-04  
 范围：Backend + Admin frontend 完成性与 GitHub 开源开发体验；未自动 commit、push 或部署。
 
+## 2026-08-08 Mobile Apple UI refresh
+
+- 使用仓库 `ui-ux-pro-max`，并从 skills.sh 安装/读取框架无关的 `ios-hig-design`，形成 Apple HIG 启发但不复制 Apple 资产的视觉方向；request、skill output、decisions、checklist 与截图已保存。
+- 完成全局安全区、语义色/间距/圆角、AK UI 按钮/卡片/表单/状态/模态/开关、原创 TabBar 图标，以及 28 个 Mobile 页面家族的统一刷新。
+- iPhone 16 Pro 模拟器验证登录、注册、找回、隐私政策返回、Home、Notifications、Articles、Profile、Language；`zh-CN` / `en-US` 首页和原生 TabBar 均有最终截图。
+- 运行时登录曾稳定返回 422；只读诊断确认 iOS UTS bridge 把设备 UUID 变成对象字符串。最终实现改为运行时内存 UUID + 安全会话恢复，并对请求头做 JSON primitive materialization。真实首次登录与重启 refresh 均成功，测试账号保持登录。
+
+| 命令/验收 | 退出码 | 结果 |
+|---|---:|---|
+| `bash apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile blueprint、i18n、目录与新增 UI/UUID 防回归门禁通过 |
+| `bash apps/ak-mobile/scripts/build-platform.sh ios` | 0 | HBuilderX 5.06，28 页面，UTS 编译完成；无 UTS/UCSS error |
+| `bash apps/ak-mobile/scripts/build-platform.sh android` | 0 | 28 页面 Android class 编译完成；过程中修复 2 处 Android UTS 强类型差异后重跑通过 |
+| `bash apps/ak-mobile/scripts/build-platform.sh harmony` | 0 | 28 页面 UTS 编译、鸿蒙工程依赖与未签名 `.hap` 制作成功；未配置包名/证书 |
+| `git diff --check` | 0 | 当前混合工作树补丁格式通过 |
+| iPhone 16 Pro / iOS 18.6 模拟器 | 0 | 双语 Home/TabBar、登录与重启 refresh、返回链路、页面家族状态通过 |
+
+未执行：Android/Harmony 安装运行、三端物理设备、签名/发布、暗色模式、动态字体和 VoiceOver；不将三端编译或 iOS 模拟器结果表述为这些验收已通过。
+
 ## 交付摘要
 
 ### 2026-08-04 HotGo 地区编码数据移植
@@ -1246,3 +1264,68 @@
 - 本次扩展后的 HBuilder X iOS 构建只推进到 28 页，随后卡在 `ak-secure-storage`；没有 UTS 完成、安装或运行结果，因此新增注册、找回和法律页未做模拟器验收。此前 20 页面白屏修复的 iOS 模拟器证据保留在上一节。
 - 未捕获 Admin 真实登录浏览器截图；Admin 构建/测试通过不代表真实登录态视觉验收。
 - OTP 邮件外部通道没有真实凭据，没有发送邮件或进行验证码接收端到端验收。未部署生产；Android/iOS/Harmony 真机、Firefox/Safari 和真实第三方邮件服务均未验证。
+
+## 2026-08-08 App 管理本地验收修复报告
+
+### 修复内容
+
+- Backend：修正通知管理 PostgreSQL integration fixture，确保第二位用户同时属于测试 tenant 和当前 App，不放宽生产 App/tenant 过滤。
+- Admin：容忍系统预留单页在首个 revision 前没有 translations；补齐双语编辑初值和安全标题回退；应用状态翻译键与稳定 API `active` 枚举对齐。
+- Mobile：移除 iOS UCSS 不支持的百分比 `min-height`；修复 `uni.request` 响应 header bridge 对象误调用 `getString()` 导致的运行时异常，并增加静态回归门禁。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `GOTOOLCHAIN=go1.26.5 go test -tags=integration ./... -count=1`（`server`，隔离 PostgreSQL 18） | 0 | 全量 integration 包通过；通知管理 application/repository/worker 目标复测均通过。 |
+| `make check && make build`（`server`） | 0 | gofmt、go vet、全量 Go 测试及 API/Worker/CLI 三个二进制构建通过。 |
+| `pnpm check`（`apps/ak-admin`） | 0 | ESLint、TypeScript strict、24 个测试文件/93 项测试、Vite production build、bundle budget、Admin blueprint 全部通过。 |
+| Admin 双语 Chromium 验收 | 0 | 应用/单页 `zh-CN`、`en-US` 共 4 个状态；axe serious/critical=0，console error=0，两个真实 API GET 均为 200。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile blueprint、i18n、Catalog、VDOM、禁用模式、UCSS/header bridge 新门禁及平台脚本目标通过。 |
+| HBuilderX 5.06 iOS build | 0 | 28 页面 UTS/UCSS 编译通过，无 compile error。 |
+| iPhone 16 Pro / iOS 18.6 模拟器交互 | 通过 | 登录、找回密码、注册表单、隐私政策、用户协议均渲染并可导航；运行日志无应用 UTS/JS exception。 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` / `python3 blueprint/scripts/validate_i18n_contract.py` | 0 / 0 | Mobile 规格及 Admin/Mobile 双语键、占位符契约通过。 |
+| `git diff --check` | 0 | 最终文本补丁格式通过。 |
+
+### 设计与截图证据
+
+- Admin：[request](../apps/ak-admin/artifacts/ui-ux-pro-max/acceptance-repair/request.md)、[skill output](../apps/ak-admin/artifacts/ui-ux-pro-max/acceptance-repair/skill-output.md)、[decisions](../apps/ak-admin/artifacts/ui-ux-pro-max/acceptance-repair/decisions.md)、[review checklist](../apps/ak-admin/artifacts/ui-ux-pro-max/acceptance-repair/review-checklist.md)、[screenshots](../apps/ak-admin/artifacts/ui-ux-pro-max/acceptance-repair/screenshots/INDEX.md)。
+- Mobile：[request](../apps/ak-mobile/artifacts/ui-ux-pro-max/acceptance-repair/request.md)、[skill output](../apps/ak-mobile/artifacts/ui-ux-pro-max/acceptance-repair/skill-output.md)、[decisions](../apps/ak-mobile/artifacts/ui-ux-pro-max/acceptance-repair/decisions.md)、[review checklist](../apps/ak-mobile/artifacts/ui-ux-pro-max/acceptance-repair/review-checklist.md)、[screenshots](../apps/ak-mobile/artifacts/ui-ux-pro-max/acceptance-repair/screenshots/INDEX.md)。
+
+### 验证边界和风险
+
+- HBuilderX UI 在完成编译后，本机资源同步阶段仍停滞；模拟器运行使用 HBuilderX 最新生成的 `unpackage/dist/dev/app-ios` 覆盖已安装官方标准基座的数据容器。已证明最终编译资源的渲染和交互，不将其描述为 HBuilderX 一键同步闭环。
+- 官方标准基座不会加载 `ak-secure-storage` 自定义原生配置；Keychain/安全存储仍需自定义基座或真机验证。
+- 未执行 iOS 真机、Android/HarmonyOS、Release 签名、Firefox/Safari、真实 OTP 邮件收发或生产部署。
+- 本轮未 commit、未 push；工作区保留本轮修复与证据，未覆盖其他 Agent 的无关改动。
+
+## 2026-08-08 Mobile 登录与访客返回链路修复报告
+
+### 修复内容
+
+- 登录页移除全宽“忘记密码”次按钮，在主按钮下提供“忘记密码 / 注册账号”双文字链接；注册入口继续由应用发布策略控制。
+- 公共返回控件改用原生点击处理；认证、法律页面导航栏避开状态栏，并在没有页面历史时回到登录页。
+- 设备键改为持久化 UUID，并在 `uni.request` 的头部字面量中直接携带，避开 iOS UTS bridge 将动态对象值序列化为 `{}`；OpenAPI 同步 UUID 契约。
+- 安全存储插件调用使用稳定的 key/value/callback 接口；本地重建 iOS 模拟器基座后完成登录、重启和会话恢复。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile 蓝图、双语 Catalog、登录结构、访客返回兜底、VDOM/UCSS 和安全存储源级门禁通过。 |
+| `apps/ak-mobile/scripts/build-platform.sh ios` | 0 | HBuilderX 5.06 编译 28 页面及原生模块，UTS/UCSS 无错误。 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | Mobile 机器可读规格通过。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN` / `en-US` 键和占位符一致。 |
+| iPhone 16 Pro / iOS 18.6 模拟器坐标交互 | 通过 | 登录、忘记密码、注册、隐私政策、用户协议和顶部返回均通过；登录响应 200。 |
+| 模拟器重启与会话恢复 | 通过 | 重启后进入已认证 Home，并显示本地测试用户。 |
+| `git diff --check` | 0 | 补丁格式通过。 |
+
+### 设计与截图证据
+
+- [request](../apps/ak-mobile/artifacts/ui-ux-pro-max/login-navigation-repair/request.md)、[skill output](../apps/ak-mobile/artifacts/ui-ux-pro-max/login-navigation-repair/skill-output.md)、[decisions](../apps/ak-mobile/artifacts/ui-ux-pro-max/login-navigation-repair/decisions.md)、[review checklist](../apps/ak-mobile/artifacts/ui-ux-pro-max/login-navigation-repair/review-checklist.md)、[simulator screenshots](../apps/ak-mobile/artifacts/ui-ux-pro-max/login-navigation-repair/screenshots/INDEX.md)。
+
+### 验证边界和风险
+
+- 测试用户、已发布法律内容和数据库激活仅存在本机隔离验收环境，不是远端或生产账号/数据。
+- 官方 HBuilderX 标准基座不会加载项目自定义原生插件。本次把最新 UTS 产物嵌入本地模拟器基座并重新签名安装，安全存储与重启恢复已在该基座通过；后续从 HBuilderX 运行应继续选择包含 `ak-secure-storage` 的自定义基座。
+- 未执行 iOS 真机、Android/HarmonyOS 运行、Release 签名、真实邮件 OTP 或生产部署。本轮未 commit、未 push。

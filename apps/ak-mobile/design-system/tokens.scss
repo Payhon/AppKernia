@@ -1,0 +1,66 @@
+// AppKernia semantic visual tokens. Keep feature pages token-only.
+.ak-theme-light {
+  --ak-page:#F2F2F7;
+  --ak-surface:#FFFFFF;
+  --ak-surface-subtle:#F7F7FA;
+  --ak-surface-tint:#EAF1FF;
+  --ak-text:#1C1C1E;
+  --ak-muted:#6C6C70;
+  --ak-text-tertiary:#8E8E93;
+  --ak-border:#E5E5EA;
+  --ak-border-strong:#C7C7CC;
+  --ak-brand:#246BFE;
+  --ak-brand-pressed:#1557DC;
+  --ak-on-brand:#FFFFFF;
+  --ak-danger:#FF3B30;
+  --ak-on-danger:#FFFFFF;
+  --ak-success:#34C759;
+  --ak-accent-surface:#EAF1FF;
+  --ak-callout-text:#1D4ED8;
+  --ak-safe-top:var(--status-bar-height);
+  --ak-safe-bottom:env(safe-area-inset-bottom);
+  --ak-space-1:4px;
+  --ak-space-2:8px;
+  --ak-space-3:12px;
+  --ak-space-4:16px;
+  --ak-space-5:20px;
+  --ak-space-6:24px;
+  --ak-space-8:32px;
+  --ak-radius-control:14px;
+  --ak-radius-card:18px;
+  --ak-radius-hero:22px;
+  --ak-shadow-floating:0 4px 18px rgba(15,23,42,0.06);
+}
+
+.ak-theme-dark {
+  --ak-page:#000000;
+  --ak-surface:#1C1C1E;
+  --ak-surface-subtle:#2C2C2E;
+  --ak-surface-tint:#172F62;
+  --ak-text:#F2F2F7;
+  --ak-muted:#AEAEB2;
+  --ak-text-tertiary:#8E8E93;
+  --ak-border:#38383A;
+  --ak-border-strong:#48484A;
+  --ak-brand:#4D8DFF;
+  --ak-brand-pressed:#77A9FF;
+  --ak-on-brand:#FFFFFF;
+  --ak-danger:#FF6961;
+  --ak-on-danger:#FFFFFF;
+  --ak-success:#30D158;
+  --ak-accent-surface:#172F62;
+  --ak-callout-text:#9FC1FF;
+  --ak-safe-top:var(--status-bar-height);
+  --ak-safe-bottom:env(safe-area-inset-bottom);
+  --ak-space-1:4px;
+  --ak-space-2:8px;
+  --ak-space-3:12px;
+  --ak-space-4:16px;
+  --ak-space-5:20px;
+  --ak-space-6:24px;
+  --ak-space-8:32px;
+  --ak-radius-control:14px;
+  --ak-radius-card:18px;
+  --ak-radius-hero:22px;
+  --ak-shadow-floating:0 4px 18px rgba(0,0,0,0.24);
+}

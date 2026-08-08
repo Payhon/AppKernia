@@ -10,7 +10,6 @@ import SecretKey from 'javax.crypto.SecretKey'
 import GCMParameterSpec from 'javax.crypto.spec.GCMParameterSpec'
 import Charsets from 'kotlin.text.Charsets'
 import {
-  SecureStorageAccessibility,
   SecureStorageAvailability,
   SecureStorageAvailabilityApi,
   SecureStorageClearNamespace,
@@ -99,7 +98,6 @@ export const availability: SecureStorageAvailabilityApi = function (): SecureSto
 export const set: SecureStorageSet = function (
   key: string,
   value: string,
-  accessibility: SecureStorageAccessibility,
   onSuccess: SecureStorageSuccess,
   onFailure: SecureStorageFailure,
 ): void {
@@ -108,8 +106,8 @@ export const set: SecureStorageSet = function (
   const encrypted = encrypt(value)
   const store = preferences()
   if (encrypted == null || store == null) { onFailure('unavailable'); return }
-  // Accessibility is enforced by the non-exportable Keystore key. Android does
-  // not use a normal preference entry for plaintext; it contains ciphertext only.
+  // Accessibility is enforced by the non-exportable Keystore key. The normal
+  // preference entry contains ciphertext only.
   if (store.edit().putString(ENTRY_PREFIX + key, encrypted).commit()) onSuccess()
   else onFailure('native_failure')
 }

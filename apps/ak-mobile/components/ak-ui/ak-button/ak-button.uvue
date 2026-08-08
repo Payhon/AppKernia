@@ -1,7 +1,8 @@
 <template>
   <view class="ak-button" :class="[variantClass, disabled || loading ? 'ak-button-disabled' : 'ak-button-enabled']" @click="handleClick">
-    <text v-if="loading" class="ak-button__loading">{{ loadingText }}</text>
-    <slot v-else />
+    <text v-if="loading" :class="labelClass">{{ loadingText }}</text>
+    <text v-else-if="label.length > 0" :class="labelClass">{{ label }}</text>
+    <text v-else :class="labelClass"><slot /></text>
   </view>
 </template>
 
@@ -12,6 +13,7 @@ export default {
     loading: { type: Boolean, default: false },
     disabled: { type: Boolean, default: false },
     loadingText: { type: String, default: '' },
+    label: { type: String, default: '' },
   },
   emits: ['click'],
   computed: {
@@ -19,6 +21,11 @@ export default {
       if (this.variant == 'secondary') return 'ak-button-secondary'
       if (this.variant == 'danger') return 'ak-button-danger'
       return 'ak-button-primary'
+    },
+    labelClass(): string {
+      if (this.variant == 'secondary') return 'ak-button__label ak-button__label-secondary'
+      if (this.variant == 'danger') return 'ak-button__label ak-button__label-danger'
+      return 'ak-button__label ak-button__label-primary'
     },
   },
   methods: {
@@ -30,14 +37,14 @@ export default {
 </script>
 
 <style lang="scss">
-.ak-button { height:44px; padding:0 16px; border-radius:12px; align-items:center; justify-content:center; }
-.ak-button-primary { background:var(--ak-brand); color:var(--ak-on-brand); }
-.ak-button-secondary { background:var(--ak-surface); border:1px solid var(--ak-border-strong); color:var(--ak-text); }
-.ak-button-danger { background:var(--ak-danger); color:var(--ak-on-danger); }
+.ak-button { min-height:44px; padding:0 16px; border-radius:var(--ak-radius-control); align-items:center; justify-content:center; box-sizing:border-box; }
+.ak-button-primary { background:var(--ak-brand); }
+.ak-button-secondary { background:var(--ak-surface-subtle); border:1px solid var(--ak-border); }
+.ak-button-danger { background:var(--ak-danger); }
 .ak-button-enabled { opacity:1; }
 .ak-button-disabled { opacity:0.5; }
-.ak-button__loading { font-size:16px; font-weight:600; }
-.ak-button-primary .ak-button__loading { color:var(--ak-on-brand); }
-.ak-button-secondary .ak-button__loading { color:var(--ak-text); }
-.ak-button-danger .ak-button__loading { color:var(--ak-on-danger); }
+.ak-button__label { font-size:16px; font-weight:600; line-height:22px; }
+.ak-button__label-primary { color:var(--ak-on-brand); }
+.ak-button__label-secondary { color:var(--ak-text); }
+.ak-button__label-danger { color:var(--ak-on-danger); }
 </style>

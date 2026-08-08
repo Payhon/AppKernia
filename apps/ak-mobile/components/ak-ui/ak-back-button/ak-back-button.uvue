@@ -1,15 +1,37 @@
 <template>
-  <navigator class="ak-back-button" open-type="navigateBack" url="/" :delta="delta">
-    <ak-icon name="back" />
-  </navigator>
+  <image
+    class="ak-back-button"
+    src="/static/ak-icons/back.svg"
+    mode="aspectFit"
+    @click="goBack"
+  />
 </template>
 
 <script lang="uts">
 export default {
-  props: { delta: { type: Number, default: 1 } },
+  props: {
+    delta: { type: Number, default: 1 },
+    fallbackUrl: { type: String, default: '/pages/home/index' },
+  },
+  methods: {
+    goBack() {
+      const requestedDelta: number = this.delta > 0 ? this.delta : 1
+      const pageStack = getCurrentPages()
+      if (pageStack.length > requestedDelta) {
+        uni.navigateBack({ delta: requestedDelta })
+        return
+      }
+      uni.reLaunch({ url: this.fallbackUrl })
+    },
+  },
 }
 </script>
 
 <style lang="scss">
-.ak-back-button { width:44px; height:44px; align-items:center; justify-content:center; }
+.ak-back-button {
+  width: 44px;
+  height: 44px;
+  padding: 10px;
+  box-sizing: border-box;
+}
 </style>

@@ -1,5 +1,4 @@
 import {
-  SecureStorageAccessibility,
   SecureStorageAvailability,
   SecureStorageAvailabilityApi,
   SecureStorageClearNamespace,
@@ -26,7 +25,6 @@ export const availability: SecureStorageAvailabilityApi = function (): SecureSto
 export const set: SecureStorageSet = function (
   key: string,
   value: string,
-  accessibility: SecureStorageAccessibility,
   onSuccess: SecureStorageSuccess,
   onFailure: SecureStorageFailure,
 ): void {

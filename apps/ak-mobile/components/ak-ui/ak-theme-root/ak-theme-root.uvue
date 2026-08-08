@@ -1,18 +1,11 @@
-<template><view :class="themeClass"><slot/></view></template>
+<template><view :class="[themeClass, 'ak-theme-root']"><slot/></view></template>
 <script lang="uts">import{themeState}from'../../../src/core/theme/theme-store.uts';export default{computed:{themeClass(){return themeState.isDark?'ak-theme-dark':'ak-theme-light'}}}</script>
 <style lang="scss">
-.ak-theme-light {
-  --ak-page:#F8FAFC; --ak-surface:#FFFFFF; --ak-surface-subtle:#F1F5F9;
-  --ak-text:#0F172A; --ak-muted:#64748B; --ak-border:#E2E8F0; --ak-border-strong:#CBD5E1;
-  --ak-brand:#2563EB; --ak-on-brand:#FFFFFF; --ak-danger:#DC2626; --ak-on-danger:#FFFFFF;
-  --ak-accent-surface:#DBEAFE; --ak-callout-text:#1E3A8A;
-  height:100%; flex:1; background:var(--ak-page); color:var(--ak-text);
-}
-.ak-theme-dark {
-  --ak-page:#0F172A; --ak-surface:#1E293B; --ak-surface-subtle:#334155;
-  --ak-text:#F8FAFC; --ak-muted:#CBD5E1; --ak-border:#475569; --ak-border-strong:#64748B;
-  --ak-brand:#60A5FA; --ak-on-brand:#0F172A; --ak-danger:#F87171; --ak-on-danger:#0F172A;
-  --ak-accent-surface:#1E3A8A; --ak-callout-text:#DBEAFE;
-  height:100%; flex:1; background:var(--ak-page); color:var(--ak-text);
+.ak-theme-root {
+  height:100%;
+  flex:1;
+  padding-top:var(--ak-safe-top);
+  box-sizing:border-box;
+  background:var(--ak-page);
 }
 </style>

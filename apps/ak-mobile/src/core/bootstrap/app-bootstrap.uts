@@ -80,6 +80,6 @@ function recordPublishedLegalConsent(): void {
   if (repository == null) return
   repository.publicDocument('privacy-policy', privacy => {
     repository.recordConsent(privacy, () => {}, () => {})
-    repository.publicDocument('terms-of-service', terms => repository.recordConsent(terms, () => {}, () => {}), () => {})
+    repository.publicDocument('terms-of-service', terms => { repository.recordConsent(terms, () => {}, () => {}) }, () => {})
   }, () => {})
 }

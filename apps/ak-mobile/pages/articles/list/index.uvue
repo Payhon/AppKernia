@@ -18,7 +18,7 @@
     </scroll-view>
     <scroll-view class="list" scroll-y @scrolltolower="loadMore">
       <ak-status-view v-if="state !== 'content'" :state="state" :title="stateTitle" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload" />
-      <view v-else>
+      <view v-else class="list-content">
         <ak-card v-for="article in articles" :key="article.id" class="article" @click="openArticle(article.slug)">
           <view class="cover"><image v-if="coverPath(article.id)" class="cover-image" :src="coverPath(article.id)" mode="aspectFill" /><view v-else class="cover-fallback" /></view>
           <view class="article-content">
@@ -159,31 +159,32 @@ export default {
 </script>
 
 <style lang="scss">
-.page { height:100%;flex:1; padding:20px 16px; background:var(--ak-page); }
-.nav { height:48px; flex-direction:row; align-items:center; justify-content:space-between; }
+.page { height:100%;flex:1; padding:16px; background:var(--ak-page); }
+.nav { min-height:48px; flex-direction:row; align-items:center; justify-content:space-between; }
 .nav-icon { width:44px; height:44px; }
 .nav-title { color:var(--ak-text); font-size:20px; font-weight:600; }
 .nav-space { width:44px; height:44px; }
-.search { height:48px; flex-direction:row; align-items:center; border:1px solid var(--ak-border-strong); border-radius:14px; background:var(--ak-surface); padding:0 12px; margin:16px 0; }
+.search { min-height:48px; flex-direction:row; align-items:center; border:1px solid var(--ak-border); border-radius:14px; background:var(--ak-surface); padding:0 14px; margin:16px 0 12px; }
 .search-icon { width:24px; height:24px; margin-right:8px; }
 .search-input { flex:1; color:var(--ak-text); font-size:16px; }
-.chips { height:52px; }
+.chips { height:56px; }
 .chips-row { flex-direction:row; align-items:center; }
-.chip { height:40px; padding:0 16px; justify-content:center; border:1px solid var(--ak-border-strong); border-radius:12px; background:var(--ak-surface); margin-right:12px; }
-.chip-text { color:var(--ak-text); font-size:16px; }
+.chip { min-height:44px; padding:0 16px; justify-content:center; border:1px solid var(--ak-border); border-radius:22px; background:var(--ak-surface); margin-right:8px; }
+.chip-text { color:var(--ak-text); font-size:15px; }
 .chip-active { border-color:var(--ak-brand); background:var(--ak-brand); }
-.chip-active-text { color:var(--ak-on-brand); font-size:16px; }
-.list { height:620px; }
-.article { flex-direction:row; align-items:center; margin:12px 0; }
-.cover { width:112px; height:144px; border-radius:10px; margin-right:12px; }
-.cover-image { width:112px; height:144px; border-radius:10px; }
-.cover-fallback { width:112px; height:144px; border-radius:10px; background:var(--ak-accent-surface); }
+.chip-active-text { color:var(--ak-on-brand); font-size:15px; font-weight:600; }
+.list { flex:1; min-height:0; }
+.list-content { padding:4px 0 48px; }
+.article { flex-direction:row; align-items:center; min-height:124px; padding:14px; margin-bottom:12px; }
+.cover { width:104px; height:112px; border-radius:12px; margin-right:14px; overflow:hidden; }
+.cover-image { width:104px; height:112px; border-radius:12px; }
+.cover-fallback { width:104px; height:112px; border-radius:12px; background:var(--ak-accent-surface); }
 .article-content { flex:1; }
 .article-top { flex-direction:row; align-items:center; justify-content:space-between; }
-.category { color:var(--ak-brand); font-size:12px; border:1px solid var(--ak-brand); border-radius:6px; padding:3px 6px; }
+.category { color:var(--ak-brand); font-size:12px; border:1px solid var(--ak-accent-surface); border-radius:10px; background:var(--ak-accent-surface); padding:4px 8px; }
 .bookmark { width:44px; height:44px; }
-.article-title { color:var(--ak-text); font-size:18px; font-weight:600; margin-top:12px; }
-.article-summary { color:var(--ak-muted); font-size:14px; margin-top:8px; line-height:20px; }
-.article-meta { color:var(--ak-muted); font-size:14px; margin-top:8px; line-height:20px; }
-.no-more { color:var(--ak-muted); font-size:13px; padding:16px; text-align:center; }
+.article-title { color:var(--ak-text); font-size:17px; font-weight:600; line-height:23px; margin-top:10px; }
+.article-summary { color:var(--ak-muted); font-size:14px; margin-top:6px; line-height:20px; }
+.article-meta { color:var(--ak-muted); font-size:13px; margin-top:8px; line-height:18px; }
+.no-more { color:var(--ak-muted); font-size:13px; padding:20px 16px; text-align:center; }
 </style>

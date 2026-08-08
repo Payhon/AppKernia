@@ -123,7 +123,7 @@
   "common.resend": "Resend",
   "common.done": "Done",
   "auth.register": "Create account",
-  "auth.register.link": "New here? Create an account",
+  "auth.register.link": "Create account",
   "auth.forgotPassword": "Forgot password?",
   "auth.resetPassword": "Reset password",
   "auth.verificationCode": "Verification code",

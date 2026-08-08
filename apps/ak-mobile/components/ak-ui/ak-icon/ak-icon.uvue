@@ -3,9 +3,23 @@
 </template>
 <script lang="uts">
 export default {
-  props: { name: { type: String, default: 'chevron-right' } },
+  props: {
+    name: { type: String, default: 'chevron-right' },
+    tone: { type: String, default: 'primary' },
+    filled: { type: Boolean, default: false },
+  },
   computed: {
     source(): string {
+      if (this.filled) {
+        if (this.name == 'home') return '/static/ak-icons/home-filled.svg'
+        if (this.name == 'bell') return '/static/ak-icons/bell-filled.svg'
+        if (this.name == 'profile') return '/static/ak-icons/profile-filled.svg'
+      }
+      if (this.tone == 'muted') {
+        if (this.name == 'home') return '/static/ak-icons/home-muted.svg'
+        if (this.name == 'bell') return '/static/ak-icons/bell-muted.svg'
+        if (this.name == 'profile') return '/static/ak-icons/profile-muted.svg'
+      }
       if (this.name == 'back') return '/static/ak-icons/back.svg'
       if (this.name == 'bookmark') return '/static/ak-icons/bookmark.svg'
       if (this.name == 'search') return '/static/ak-icons/search.svg'
