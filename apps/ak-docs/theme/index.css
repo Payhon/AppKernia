@@ -185,6 +185,10 @@ html.dark .rp-home-background {
   display: block;
 }
 
+.rp-home-hero__title {
+  text-wrap: balance;
+}
+
 .rp-home-hero__name {
   display: inline-flex;
   align-items: center;

@@ -9,6 +9,7 @@
 - [x] Home, docs tables, code blocks, and screenshots do not cause page-level horizontal scrolling.
 - [x] `prefers-reduced-motion` disables decorative animation.
 - [x] 375, 768, 1024, and 1440 px screenshots are captured after implementation.
+- [x] Production 375 and 1440 px review has no orphaned single-character hero line.
 - [x] Chinese and English routes both build and navigate.
 - [x] Search, sidebar, locale switch, appearance switch, previous/next page, and edit link render in the production preview.
 - [x] Product claims distinguish implemented, planned, and platform-unverified work.

@@ -8,3 +8,4 @@
 6. Document OpenAPI as the server contract source and label current project maturity honestly.
 7. Use system font fallbacks when IBM Plex Sans or JetBrains Mono is unavailable to avoid a blocking external font request.
 8. Override Rspress's light/dark code token colors and low-contrast footer labels, and remove hidden heading anchors from keyboard order. Eight axe runs must remain at zero serious/critical findings.
+9. Balance the two hero heading lines at all breakpoints. Production review showed the final Chinese character orphaned at 1440 px; native `text-wrap: balance` preserves the wording and hierarchy without breakpoint-specific copy or fixed widths.
