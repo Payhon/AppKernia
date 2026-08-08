@@ -1,0 +1,166 @@
+---
+description: AppKernia is an open-source application foundation connecting uni-app x mobile, a React admin, and a Go backend.
+pageType: home
+
+hero:
+  name: MIT licensed · Built for real app projects
+  text: Cross-platform development should finally feel complete
+  tagline: From Android, iOS, and HarmonyOS to React Admin, Go APIs, and PostgreSQL. AppKernia brings the foundations a modern app actually needs into one auditable and extensible system.
+  actions:
+    - theme: brand
+      text: Run from source
+      link: /guide/quick-start
+    - theme: alt
+      text: View on GitHub
+      link: https://github.com/Payhon/AppKernia
+  image:
+    src: /hero-ecosystem.png
+    alt: AppKernia ecosystem connecting mobile apps, an admin console, and server infrastructure
+
+features:
+  - title: Three mobile platforms, including HarmonyOS
+    details: A uni-app x, UTS/UVue, and AK UI foundation designed for Android, iOS, and HarmonyOS NEXT.
+    link: /concepts/architecture
+  - title: Admin and API ship together
+    details: React Admin and the Go backend are not add-ons. OpenAPI, authorization, tenancy, audit, and data models are designed as one system.
+    link: /api/
+  - title: Security and i18n from day one
+    details: Token rotation, scoped authorization, PostgreSQL tenancy, zh-CN/en-US, and privacy boundaries belong in the foundation—not in a pre-launch patch.
+    link: /concepts/security
+---
+
+<section className="ak-home-section" aria-labelledby="origin-title">
+  <p className="ak-home-eyebrow">WHY APPKERNIA</p>
+  <h2 id="origin-title" className="ak-home-heading">
+    In 2026, building an app should not begin by stitching together disconnected halves
+  </h2>
+  <p className="ak-home-lead">
+    Across real app projects, the author kept seeing the same gap: there are excellent mobile
+    frameworks, capable admin starters, and countless backend templates. Yet the moment a product
+    needs Android, iOS, HarmonyOS, an operations console, authorization, files, notifications,
+    audit, and a reliable API, developers are still left to bridge every seam themselves.
+  </p>
+  <p className="ak-home-lead">
+    AppKernia begins with that frustration. It is not an attempt to create an all-knowing
+    mega-framework. It is an effort to turn the work every serious app team repeats into a path that
+    can be understood, verified, and improved together.
+  </p>
+  <div className="ak-belief-grid">
+    <article className="ak-belief-card">
+      <span className="ak-card-index">01</span>
+      <h3>Complete, not piled up</h3>
+      <p>
+        Mobile, admin, and server share contracts and boundaries. Every layer has a clear reason to
+        exist and a clear way to cooperate.
+      </p>
+    </article>
+    <article className="ak-belief-card">
+      <span className="ak-card-index">02</span>
+      <h3>Developer time matters</h3>
+      <p>
+        Security, i18n, authorization, state, and engineering discipline should be defaults, so
+        teams can focus on the product.
+      </p>
+    </article>
+    <article className="ak-belief-card">
+      <span className="ak-card-index">03</span>
+      <h3>Built for the long term</h3>
+      <p>
+        A demo is not production and a plan is not an implementation. Trust is earned through
+        contracts, tests, and real platform evidence.
+      </p>
+    </article>
+  </div>
+</section>
+
+<section className="ak-home-section" aria-labelledby="surfaces-title">
+  <p className="ak-home-eyebrow">ONE FOUNDATION · THREE SURFACES</p>
+  <h2 id="surfaces-title" className="ak-home-heading">
+    One repository, spanning the complete path from app interface to data boundary
+  </h2>
+  <div className="ak-surface-grid">
+    <article className="ak-surface-card">
+      <span className="ak-card-index">M</span>
+      <h3>AK Mobile</h3>
+      <p>
+        A uni-app x foundation for Android, iOS, and HarmonyOS NEXT with typed networking, secure
+        storage, static routes, and an AK UI layer.
+      </p>
+      <div className="ak-tech-line">uni-app x · UTS/UVue · VDOM · AK UI</div>
+    </article>
+    <article className="ak-surface-card">
+      <span className="ak-card-index">A</span>
+      <h3>AK Admin</h3>
+      <p>
+        An operations console built around real permissions, organizations, multi-tenancy, and safe
+        administrative workflows.
+      </p>
+      <div className="ak-tech-line">React · Vite · TanStack · Ant Design</div>
+    </article>
+    <article className="ak-surface-card">
+      <span className="ak-card-index">S</span>
+      <h3>AK Server</h3>
+      <p>
+        A PostgreSQL-first modular Go backend with OpenAPI contracts, rotating sessions, audit,
+        jobs, files, and notification boundaries.
+      </p>
+      <div className="ak-tech-line">GoFrame · pgx/sqlc · PostgreSQL · River</div>
+    </article>
+  </div>
+</section>
+
+<section className="ak-home-section" aria-labelledby="proof-title">
+  <p className="ak-home-eyebrow">BUILT IN THE OPEN</p>
+  <h2 id="proof-title" className="ak-home-heading">
+    More than an architecture diagram: an engineering system being completed with care
+  </h2>
+  <p className="ak-home-lead">
+    The interfaces shown here come from the current repository and real test environments.
+    Compilation, simulator checks, and physical-device acceptance are reported separately.
+  </p>
+  <div className="ak-proof-grid">
+    <figure className="ak-proof-card">
+      <img
+        src="/screenshots/admin-dashboard.png"
+        alt="AppKernia React administration sign-in screen"
+      />
+    </figure>
+    <div className="ak-phone-stack">
+      <figure className="ak-phone-frame">
+        <img
+          src="/screenshots/mobile-home-ios.png"
+          alt="AppKernia home screen in an iOS simulator"
+        />
+      </figure>
+      <figure className="ak-phone-frame">
+        <img
+          src="/screenshots/mobile-login-ios.png"
+          alt="AppKernia login screen in an iOS simulator"
+        />
+      </figure>
+    </div>
+  </div>
+  <p className="ak-proof-note">
+    Screenshots contain no production credentials or personal data. Mobile images are iOS simulator
+    evidence and do not claim Android or HarmonyOS physical-device acceptance in this site build.
+  </p>
+</section>
+
+<section className="ak-home-section" aria-labelledby="community-title">
+  <div className="ak-community-panel">
+    <p className="ak-home-eyebrow">BUILD WITH US</p>
+    <h2 id="community-title" className="ak-home-heading">
+      If you want the next developer to cross one fewer gap, help us make this foundation better
+    </h2>
+    <p className="ak-home-lead">
+      An issue, a documentation fix, one physical-device check, or a note about something unclear
+      can make the project more trustworthy. If AppKernia's direction resonates with you, please
+      leave a Star on GitHub—it helps the people looking for this path find us.
+    </p>
+    <div className="ak-community-actions">
+      <a href="https://github.com/Payhon/AppKernia">Star on GitHub</a>
+      <a href="/community/contributing">Start contributing</a>
+      <a href="/guide/roadmap">View the roadmap</a>
+    </div>
+  </div>
+</section>

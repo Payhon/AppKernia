@@ -1,0 +1,32 @@
+---
+title: Mobile development
+description: Run and verify the uni-app x mobile project with HBuilderX.
+---
+
+# Mobile development
+
+AK Mobile lives in `apps/ak-mobile` and uses uni-app x, UTS/UVue, VDOM, and AK UI. A Node or Vite build is never a substitute for a mobile platform build.
+
+## Toolchains
+
+- Stable HBuilderX (currently the 5.15 stable line or a verified patch)
+- Android 8 / API 26 or newer tooling
+- Xcode, certificates, and provisioning for iOS 13+
+- HBuilderX plus DevEco Studio for HarmonyOS NEXT API 14+
+
+```bash
+apps/ak-mobile/scripts/detect-toolchain.sh
+apps/ak-mobile/scripts/check-project.sh
+```
+
+Open `apps/ak-mobile` in HBuilderX, configure signing locally, point the API base URL to a reachable Go API, and choose a target platform.
+
+```bash
+apps/ak-mobile/scripts/build-platform.sh android
+apps/ak-mobile/scripts/build-platform.sh ios
+apps/ak-mobile/scripts/build-platform.sh harmony
+```
+
+Completion depends on installed IDEs, SDKs, signing, and devices. A static check only proves static gates; do not report a platform as accepted without its build and device record.
+
+Business pages must use `ak-*` components from `components/ak-ui`, never bind directly to `up-*`. Continue with the [mobile component overview](../mobile-components/).

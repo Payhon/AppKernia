@@ -6,3 +6,6 @@ allowBuilds:
 
 overrides:
   js-yaml: 4.3.0
+  # hast-util-to-estree loads this package through ESM. 1.0.0 exposes only a
+  # nested CommonJS default and breaks every highlighted Markdown code block.
+  style-to-js: 1.1.21

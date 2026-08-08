@@ -2,6 +2,8 @@
 
 感谢参与 AppKernia。提交修改前，请先阅读根目录 `AGENTS.md` 和所改子项目的 `AGENTS.md`；跨端修改需要同时核对 Backend、Admin、Mobile 三份蓝图。
 
+参与社区即表示同意遵守 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)。完整的贡献向导也会发布在 [AppKernia 文档站](https://appkernia.com/community/contributing)。不确定从哪里开始时，修正文档、补充复现步骤、增加测试和回答 Issue 都是有价值的贡献。
+
 ## 本地准备
 
 ```bash
@@ -28,6 +30,7 @@ make check
 ```bash
 make -C server check
 pnpm check
+pnpm check:docs
 ```
 
 Admin 或 Mobile 的可视 UI 修改必须先运行项目内 `ui-ux-pro-max`，保存真实 request、output、decision、review checklist 与截图，再实现页面。移动业务页面只能使用 `ak-*` UI 适配组件。

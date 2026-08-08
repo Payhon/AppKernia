@@ -1329,3 +1329,40 @@
 - 测试用户、已发布法律内容和数据库激活仅存在本机隔离验收环境，不是远端或生产账号/数据。
 - 官方 HBuilderX 标准基座不会加载项目自定义原生插件。本次把最新 UTS 产物嵌入本地模拟器基座并重新签名安装，安全存储与重启恢复已在该基座通过；后续从 HBuilderX 运行应继续选择包含 `ak-secure-storage` 的自定义基座。
 - 未执行 iOS 真机、Android/HarmonyOS 运行、Release 签名、真实邮件 OTP 或生产部署。本轮未 commit、未 push。
+
+## 2026-08-08 AppKernia 开源官网与 Rspress 文档站交付报告
+
+### 交付内容
+
+- 在 `apps/ak-docs` 新建 Rspress 2.0.19 文档站，提供 `zh-CN` / `en-US` 完整镜像路由、响应式首页、明暗主题、本地搜索、SEO metadata、Sitemap、robots、Web Manifest、`llms.txt`、OpenAPI 下载及自定义 404。
+- 形成官网、零门槛快速开始、源码开发、Docker、Mobile 开发、项目结构、路线图、故障排查、架构、认证、多租户/权限、i18n、安全、核心 Mobile/Admin API、AK Mobile 组件和社区治理内容，共构建 64 个静态页面。
+- 首页写入项目初心、全栈跨端定位、HarmonyOS 支持、真实 Admin/Mobile 界面证据，以及贡献与 GitHub Star 引导；新增 Code of Conduct，并同步根 README、CONTRIBUTING、Makefile、workspace 和 package scripts。
+- OpenAPI 的公开 license 元数据改为 MIT；新增 `check-api-docs.mjs`，在每次文档门禁中校验中英文 API 文档引用、接口前缀和协议元数据。构建时自动复制 OpenAPI，避免文档内维护第二份契约。
+- 使用 `ui-ux-pro-max` 建立 Master、request、skill output、decisions、review checklist 和截图索引；使用 imagegen 生成不含文字/商标的跨端生态主视觉。Admin 登录图片为本轮真实启动 Vite 后截图，Mobile 图片来自仓库既有 iPhone 16 Pro / iOS 18.6 模拟器证据。
+- 新增 `.github/workflows/docs-pages.yml`：main 分支相关路径变更时以 Node 24.18.1 + pnpm 11.18.0 冻结安装，执行完整 Docs check，上传 `apps/ak-docs/doc_build` 并通过 GitHub Pages 官方 Actions 部署。`DEPLOYMENT.md` 记录 Pages Source、`appkernia.com` apex DNS、HTTPS 和 GitHub fallback URL 的一次性设置。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm install --frozen-lockfile` | 0 | 3 个 workspace project 已是最新；pnpm 11.18.0。当前本机 Node 26.5.0 产生项目 Node 24 engine warning。 |
+| `pnpm --filter @appkernia/docs check` | 0 | 113 个 API 路径引用通过；RSLint 9 文件 0 error/warning；TypeScript、Prettier、build 全部通过；双语 route parity 通过，Sitemap 生成 64 页。 |
+| `DOCS_ORIGIN=https://payhon.github.io DOCS_BASE=/AppKernia pnpm --filter @appkernia/docs build` | 0 | 模拟默认 project Pages 地址构建成功；HTML 静态资源使用 `/AppKernia/`，Sitemap/LLM 链接使用 `https://payhon.github.io/AppKernia/`。随后恢复默认 custom-domain 根路径构建。 |
+| `pnpm check` | 0 | Admin 生成器、ESLint、strict TypeScript、24 文件 / 93 测试、Vite build、bundle budget、Admin blueprint 通过；Docs 全门禁随后再次通过。 |
+| Backend / Admin / Mobile blueprint validators | 0 / 0 / 0 | Backend 16 组 migration、74 张表；Admin 45 菜单、55 路由；Mobile 38 路由、33 组件，均为 0 error/warning。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN` / `en-US`、默认/回退语言和三端 reference packs 契约通过。 |
+| GitHub Actions YAML parse | 0 | 本机没有 `actionlint`，使用 Ruby YAML parser 确认语法有效；未运行 GitHub 托管 job。 |
+| Rspress production preview + Chromium | 0 | 中英文首页/Quick Start 共 8 张截图；所有页面 HTTP 200、单一 H1、无横向溢出、破图、console error 或失败资源。 |
+| axe representative audit | 0 | 首页 375/1440、暗色、英文、Quick Start 中英文、API、暗色组件共 8 个样本，所有 violation 及 serious/critical 均为 0。 |
+| `git diff --check` | 0 | 最终文本补丁无空白错误。 |
+
+### 设计与截图证据
+
+- [设计请求与决策](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-001/decisions.md)、[review checklist](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-001/review-checklist.md)、[截图索引](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-001/screenshots/INDEX.md)。
+- 截图覆盖 `375×812`、`768×1024`、`1024×900`、`1440×900`，包括中文/英文首页、明/暗主题与双语 Quick Start。
+
+### 未完成项、阻塞与风险
+
+- 本轮没有 commit 或 push，未触发远端 GitHub Actions；Pages Source、Custom Domain、DNS A/AAAA/CNAME 及 Enforce HTTPS 都需要仓库所有者在 push 后按 `apps/ak-docs/DEPLOYMENT.md` 完成。因此当前不声明 `appkernia.com` 或 GitHub Pages fallback 已上线。
+- `playwright` Skill 的包装脚本与本机 `@playwright/mcp@0.0.79` 命令名不兼容；浏览器取证改用仓库现有 Python Playwright + 真实 Chromium 完成。此差异不影响截图、HTTP、console 或 axe 结果，但没有伪报包装脚本通过。
+- Admin 截图证明本轮本地登录界面可渲染，不包含登录后生产数据；Mobile 截图是既有模拟器证据，本轮未重新执行 Android/iOS/Harmony build、安装、真机或发布签名。

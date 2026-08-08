@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">AppKernia</title>
+  <defs><linearGradient id="g" x1="8" y1="8" x2="56" y2="56" gradientUnits="userSpaceOnUse"><stop stop-color="#7dd3fc"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>
+  <rect x="7" y="7" width="22" height="22" rx="7" fill="url(#g)"/>
+  <rect x="35" y="7" width="22" height="22" rx="7" fill="#38bdf8" opacity=".76"/>
+  <rect x="7" y="35" width="22" height="22" rx="7" fill="#0ea5e9" opacity=".82"/>
+  <path d="M38 36h10.5a8.5 8.5 0 0 1 0 17H38V36Z" fill="url(#g)"/>
+  <path d="M29 18h6M18 29v6M46 29v7M29 46h9" stroke="#bae6fd" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup dev-deps db-setup dev-backend dev-admin build build-backend build-admin test test-backend test-admin check check-blueprints check-server check-admin check-mobile toolchain docker-up docker-down docker-logs docker-bootstrap-admin
+.PHONY: help setup dev-deps db-setup dev-backend dev-admin dev-docs build build-backend build-admin build-docs test test-backend test-admin check check-blueprints check-server check-admin check-mobile check-docs toolchain docker-up docker-down docker-logs docker-bootstrap-admin
 
 help:
 	@echo "AppKernia development commands"
@@ -9,7 +9,8 @@ help:
 	@echo "  make db-setup          Apply migrations and idempotent core seeds"
 	@echo "  make dev-backend       Run API and worker from source"
 	@echo "  make dev-admin         Run the Admin Vite development server"
-	@echo "  make build             Build backend binaries and Admin assets"
+	@echo "  make dev-docs          Run the Rspress documentation site"
+	@echo "  make build             Build backend binaries, Admin and docs assets"
 	@echo "  make test              Run backend and Admin tests"
 	@echo "  make check             Run all repository quality gates"
 	@echo "  make docker-up         Run the Docker development stack"
@@ -33,13 +34,19 @@ dev-backend:
 dev-admin:
 	pnpm dev
 
-build: build-backend build-admin
+dev-docs:
+	pnpm --filter @appkernia/docs dev
+
+build: build-backend build-admin build-docs
 
 build-backend:
 	$(MAKE) -C server build
 
 build-admin:
 	pnpm build
+
+build-docs:
+	pnpm --filter @appkernia/docs build
 
 test: test-backend test-admin
 
@@ -49,7 +56,7 @@ test-backend:
 test-admin:
 	pnpm test
 
-check: check-blueprints check-server check-admin check-mobile
+check: check-blueprints check-server check-admin check-mobile check-docs
 
 check-blueprints:
 	python3 blueprint/backend/tools/validate_blueprint.py
@@ -65,6 +72,9 @@ check-admin:
 
 check-mobile:
 	apps/ak-mobile/scripts/check-project.sh
+
+check-docs:
+	pnpm --filter @appkernia/docs check
 
 toolchain:
 	./scripts/doctor.sh

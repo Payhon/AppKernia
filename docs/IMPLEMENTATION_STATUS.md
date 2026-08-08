@@ -9,7 +9,18 @@
 | Backend | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环 | 当前 Admin backlog 已收口；生产 Adapter 联调见风险 |
 | Admin | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁 | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险 |
 | Mobile | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证 | Android/Harmony 安装运行、三端真机、签名/发布仍未完成 |
+| Docs / Website | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：64 个静态页面、零门槛向导、核心 API、AK Mobile 组件、社区治理、搜索、SEO、暗色与响应式体验均已本地验收 | GitHub Pages 工作流已就绪；尚待 push 后启用 Pages、配置 DNS/HTTPS 并验证线上域名 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线 | Mobile 三端长英文/运行时视觉验收 |
+
+## 2026-08-08 AppKernia 开源官网与文档站
+
+- 新增 `apps/ak-docs`，使用 Rspress 2.0.19 构建 `zh-CN` / `en-US` 双语官网、指南、架构与安全概念、服务端核心 API、AK Mobile 组件、贡献指南、安全政策和 MIT 协议说明；构建产出 64 个静态页面并生成本地搜索索引、Sitemap、`llms.txt` 和 OpenAPI 下载资产。
+- 官网首页以 AppKernia 的跨端初心为主线，说明 Mobile + Admin + Backend 一体化与 HarmonyOS 支持，提供 Quick Start、GitHub、贡献和 Star 路径；根 README、CONTRIBUTING、Code of Conduct 与 OpenAPI license 元数据同步完成。
+- API 文档新增契约检查器，实际核验 113 个路径引用均存在于 `server/openapi/openapi.yaml`；中英文路由启用 build-time parity 门禁。移动组件文档覆盖 button、text field、layout/status、modal/switch、icons/theme，并链接真实 AK UI 源码边界。
+- 真实 `ui-ux-pro-max` 产物与截图保存在 `apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-001`。Rspress production preview 覆盖 375/768/1024/1440、明暗主题与中英文；8 个代表页面的 axe serious/critical/all violation 均为 0，控制台错误、失败资源、页面横向溢出和破图均为 0。
+- `.github/workflows/docs-pages.yml` 已固定 Node 24.18.1、pnpm 11.18.0，并使用官方 Pages Actions 构建、上传和部署 `apps/ak-docs/doc_build`；`appkernia.com` 的一次性 Pages、DNS 和 HTTPS 操作写入 `apps/ak-docs/DEPLOYMENT.md`。
+- 本地 `pnpm check` 通过：Admin 24 个测试文件 / 93 项测试、生产构建和 bundle budget 均通过，随后 Docs lint、TypeScript、Prettier、API 引用、语言对等与 64 页构建通过。Backend/Admin/Mobile 三蓝图及统一 i18n validator 均退出 0。
+- 验证边界：本轮未 commit、未 push、未触发 GitHub Actions，也未修改 DNS，因此 `appkernia.com` 和 `payhon.github.io/AppKernia/` 尚未声明线上可访问；本机 Node 26.5.0 产生预期 engine warning，CI 已固定项目要求的 Node 24.18.1。Admin 图片为本轮本地 Vite 登录页实拍，Mobile 图片复用仓库既有 iOS 18.6 模拟器证据，不代表新的真机验收。
 
 ## 2026-08-08 Mobile Apple UI refresh
 

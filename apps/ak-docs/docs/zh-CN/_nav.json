@@ -1,0 +1,8 @@
+[
+  { "text": "向导", "link": "/guide/", "activeMatch": "/guide/" },
+  { "text": "核心概念", "link": "/concepts/", "activeMatch": "/concepts/" },
+  { "text": "服务端 API", "link": "/api/", "activeMatch": "/api/" },
+  { "text": "移动组件", "link": "/mobile-components/", "activeMatch": "/mobile-components/" },
+  { "text": "参与社区", "link": "/community/", "activeMatch": "/community/" },
+  { "text": "GitHub", "link": "https://github.com/Payhon/AppKernia" }
+]

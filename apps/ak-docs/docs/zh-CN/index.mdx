@@ -1,0 +1,143 @@
+---
+description: AppKernia 是一套贯通 uni-app x 移动端、React 管理端与 Go 服务端的现代开源应用开发基座。
+pageType: home
+
+hero:
+  name: MIT 开源 · 面向真实 App 工程
+  text: 让跨端开发，终于是一件完整的事
+  tagline: 从 Android、iOS 与 HarmonyOS，到 React Admin、Go API 与 PostgreSQL。AppKernia 把一个现代 App 真正需要的基础能力放进同一套可审计、可扩展的工程里。
+  actions:
+    - theme: brand
+      text: 从源码运行
+      link: /guide/quick-start
+    - theme: alt
+      text: 查看 GitHub
+      link: https://github.com/Payhon/AppKernia
+  image:
+    src: /hero-ecosystem.png
+    alt: 连接移动应用、管理平台与服务端基础设施的 AppKernia 生态示意图
+
+features:
+  - title: 三端移动，不留鸿蒙空白
+    details: 以 uni-app x、UTS/UVue 与 AK UI 为基础，统一面向 Android、iOS 和 HarmonyOS NEXT。
+    link: /concepts/architecture
+  - title: Admin 与 API 一起交付
+    details: React 管理端和 Go 服务端不是外接拼图；OpenAPI、权限、租户、审计与数据模型从一开始就协同设计。
+    link: /api/
+  - title: 安全与国际化先于业务
+    details: Token 轮换、受控权限、PostgreSQL 多租户、zh-CN/en-US 与隐私边界都属于底座，而不是上线前的补丁。
+    link: /concepts/security
+---
+
+<section className="ak-home-section" aria-labelledby="origin-title">
+  <p className="ak-home-eyebrow">WHY APPKERNIA</p>
+  <h2 id="origin-title" className="ak-home-heading">
+    我们不该在 2026 年，还从一堆彼此陌生的半成品开始
+  </h2>
+  <p className="ak-home-lead">
+    作者在一次又一次真实 App 项目里发现：移动端框架很多，Admin
+    框架也很多，服务端脚手架同样不少；可当产品需要同时跑在
+    Android、iOS、鸿蒙，还要有后台、权限、文件、通知、审计和可靠 API
+    时，开发者依然要独自把所有断层补起来。
+  </p>
+  <p className="ak-home-lead">
+    AppKernia 就从这个遗憾出发。它不是为了再造一个更大的“万能框架”，而是想把那些每个认真做 App
+    的团队都会遇见、却总被留给开发者重复承受的工作，沉淀成一条可以理解、可以验证、也可以共同改进的路。
+  </p>
+  <div className="ak-belief-grid">
+    <article className="ak-belief-card">
+      <span className="ak-card-index">01</span>
+      <h3>完整，而非堆砌</h3>
+      <p>移动、管理端和服务端共享契约与边界，每一层都知道自己为何存在、如何协作。</p>
+    </article>
+    <article className="ak-belief-card">
+      <span className="ak-card-index">02</span>
+      <h3>方便开发者</h3>
+      <p>把安全、国际化、权限、状态与工程化做成默认能力，让时间回到真正有价值的产品问题上。</p>
+    </article>
+    <article className="ak-belief-card">
+      <span className="ak-card-index">03</span>
+      <h3>长期主义</h3>
+      <p>不把 Demo 当成生产，不把计划当成实现；用契约、测试和真实平台证据积累可信度。</p>
+    </article>
+  </div>
+</section>
+
+<section className="ak-home-section" aria-labelledby="surfaces-title">
+  <p className="ak-home-eyebrow">ONE FOUNDATION · THREE SURFACES</p>
+  <h2 id="surfaces-title" className="ak-home-heading">
+    一个仓库，覆盖 App 从用户界面到数据边界的完整路径
+  </h2>
+  <div className="ak-surface-grid">
+    <article className="ak-surface-card">
+      <span className="ak-card-index">M</span>
+      <h3>AK Mobile</h3>
+      <p>
+        面向 Android、iOS、HarmonyOS NEXT 的 uni-app x 基座，使用类型化网络、安全存储、静态路由与 AK
+        UI 组件层。
+      </p>
+      <div className="ak-tech-line">uni-app x · UTS/UVue · VDOM · AK UI</div>
+    </article>
+    <article className="ak-surface-card">
+      <span className="ak-card-index">A</span>
+      <h3>AK Admin</h3>
+      <p>围绕真实权限、组织、多租户与运营能力构建的管理平台；菜单可见性与后端授权严格分离。</p>
+      <div className="ak-tech-line">React · Vite · TanStack · Ant Design</div>
+    </article>
+    <article className="ak-surface-card">
+      <span className="ak-card-index">S</span>
+      <h3>AK Server</h3>
+      <p>
+        PostgreSQL-first 的 Go 模块化单体，以 OpenAPI
+        为事实源，内置认证轮换、审计、任务、文件与通知边界。
+      </p>
+      <div className="ak-tech-line">GoFrame · pgx/sqlc · PostgreSQL · River</div>
+    </article>
+  </div>
+</section>
+
+<section className="ak-home-section" aria-labelledby="proof-title">
+  <p className="ak-home-eyebrow">BUILT IN THE OPEN</p>
+  <h2 id="proof-title" className="ak-home-heading">
+    不是一张架构图，而是一套正在被认真完成的工程
+  </h2>
+  <p className="ak-home-lead">
+    官网展示的界面来自当前仓库与真实测试环境。平台编译、模拟器与真机验收在文档中分别标注，绝不混为一谈。
+  </p>
+  <div className="ak-proof-grid">
+    <figure className="ak-proof-card">
+      <img src="/screenshots/admin-dashboard.png" alt="AppKernia React 管理平台登录界面" />
+    </figure>
+    <div className="ak-phone-stack">
+      <figure className="ak-phone-frame">
+        <img src="/screenshots/mobile-home-ios.png" alt="AppKernia 在 iOS 模拟器中的首页" />
+      </figure>
+      <figure className="ak-phone-frame">
+        <img src="/screenshots/mobile-login-ios.png" alt="AppKernia 在 iOS 模拟器中的登录页" />
+      </figure>
+    </div>
+  </div>
+  <p className="ak-proof-note">
+    截图不含生产凭据或个人数据。Mobile 图片为 iOS 模拟器验收结果，不代表 Android、HarmonyOS
+    真机已经由本页复验。
+  </p>
+</section>
+
+<section className="ak-home-section" aria-labelledby="community-title">
+  <div className="ak-community-panel">
+    <p className="ak-home-eyebrow">BUILD WITH US</p>
+    <h2 id="community-title" className="ak-home-heading">
+      如果你也想让下一位开发者少走一点弯路，欢迎一起把它做好
+    </h2>
+    <p className="ak-home-lead">
+      一个
+      Issue、一段文档、一次真实设备验证，甚至只是指出一个不够清楚的地方，都可能让这套基座更值得信任。如果
+      AppKernia 的方向与你共鸣，也请在 GitHub 留下一颗 Star——它会让更多需要这条路的人看见我们。
+    </p>
+    <div className="ak-community-actions">
+      <a href="https://github.com/Payhon/AppKernia">在 GitHub Star</a>
+      <a href="/community/contributing">开始贡献</a>
+      <a href="/guide/roadmap">查看路线图</a>
+    </div>
+  </div>
+</section>

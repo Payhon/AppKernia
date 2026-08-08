@@ -2,6 +2,12 @@
 
 AppKernia（AK）是一个面向生产项目的跨平台应用基座：Go API/Worker、React 管理后台，以及 uni-app x 移动端。后端以 OpenAPI 为 API 事实源，Admin 与 Mobile 共用权限、数据库和 `zh-CN` / `en-US` 国际化契约。
 
+- 开源官网与文档：<https://appkernia.com>
+- GitHub Pages 地址：<https://payhon.github.io/AppKernia/>
+- 源码仓库：<https://github.com/Payhon/AppKernia>
+
+如果 AppKernia 帮你少走了一些跨端与服务端集成的弯路，欢迎点一个 Star；如果它还缺少你需要的能力，也欢迎从文档、Issue、测试或代码开始贡献。
+
 ## 技术栈
 
 - Backend：Go 1.26、GoFrame、pgx/v5、sqlc、PostgreSQL 18、River。
@@ -78,7 +84,7 @@ make docker-up
 make docker-bootstrap-admin
 ```
 
-打开 <http://localhost:4173>。查看日志或停止服务：
+打开 <http://localhost:4174>。查看日志或停止服务：
 
 ```bash
 make docker-logs
@@ -91,13 +97,15 @@ make docker-down
 
 前端脚本均可使用 `pnpm <script>` 或 `npm run <script>`：
 
-| 命令 | 作用 |
-|---|---|
-| `pnpm dev` | 启动 Admin Vite 开发服务器 |
-| `pnpm test` | 运行 Admin Vitest 测试 |
-| `pnpm test:e2e:admin` | 运行 Admin 双语关键 E2E/视觉测试 |
-| `pnpm build` | 构建 Admin 生产静态资源 |
-| `pnpm check` | 生成契约代码并执行 lint、类型、测试、构建和蓝图校验 |
+| 命令                        | 作用                                                  |
+| --------------------------- | ----------------------------------------------------- |
+| `pnpm dev`                  | 启动 Admin Vite 开发服务器                            |
+| `pnpm dev:docs`             | 启动 Rspress 文档站                                   |
+| `pnpm test`                 | 运行 Admin Vitest 测试                                |
+| `pnpm test:e2e:admin`       | 运行 Admin 双语关键 E2E/视觉测试                      |
+| `pnpm build`                | 构建 Admin 与文档站生产静态资源                       |
+| `pnpm check:docs`           | 校验并构建双语文档、死链、锚点、OpenAPI 镜像与 Sitemap |
+| `pnpm check`                | 生成契约代码并执行 lint、类型、测试、构建和蓝图校验   |
 
 后端命令集中在 `server/Makefile`：
 
@@ -116,9 +124,9 @@ make docker-down
 根目录还有跨项目入口：
 
 ```bash
-make build       # Backend + Admin
+make build       # Backend + Admin + Docs
 make test        # Backend + Admin
-make check       # 蓝图 + Backend + Admin + Mobile 静态门禁
+make check       # 蓝图 + Backend + Admin + Mobile + Docs 静态门禁
 ```
 
 需要数据库集成测试时，显式提供隔离的测试数据库，禁止指向生产库：
@@ -144,6 +152,7 @@ Admin 只调用 `/admin-api/v1`，Mobile 只调用 `/api/v1`。所有 API 请求
 
 ```text
 apps/ak-admin       React 管理后台
+apps/ak-docs        Rspress 开源官网与中英文文档站
 apps/ak-mobile      uni-app x 移动端
 server              Go API、Worker、CLI
 blueprint           架构蓝图、机器可读契约与校验器
@@ -151,7 +160,7 @@ design-system       Admin/Mobile 设计系统与 UI 产物
 docs                ADR、实施状态与交付报告
 ```
 
-参与开发前请阅读根目录及所属子项目的 `AGENTS.md`，贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，漏洞报告方式见 [SECURITY.md](SECURITY.md)。
+参与开发前请阅读根目录及所属子项目的 `AGENTS.md`。贡献流程见 [CONTRIBUTING.md](CONTRIBUTING.md)，社区行为约定见 [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)，漏洞报告方式见 [SECURITY.md](SECURITY.md)。
 
 ## License
 

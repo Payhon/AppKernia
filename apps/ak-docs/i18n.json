@@ -1,0 +1,122 @@
+{
+  "languagesText": {
+    "zh-CN": "语言",
+    "en-US": "Language"
+  },
+  "themeText": {
+    "zh-CN": "外观",
+    "en-US": "Appearance"
+  },
+  "versionsText": {
+    "zh-CN": "版本",
+    "en-US": "Versions"
+  },
+  "menuTitle": {
+    "zh-CN": "菜单",
+    "en-US": "Menu"
+  },
+  "outlineTitle": {
+    "zh-CN": "本页内容",
+    "en-US": "On this page"
+  },
+  "scrollToTopText": {
+    "zh-CN": "返回顶部",
+    "en-US": "Back to top"
+  },
+  "lastUpdatedText": {
+    "zh-CN": "最后更新",
+    "en-US": "Last updated"
+  },
+  "lastUpdatedAuthorText": {
+    "zh-CN": "最后更新者",
+    "en-US": "Last updated by"
+  },
+  "prevPageText": {
+    "zh-CN": "上一页",
+    "en-US": "Previous"
+  },
+  "nextPageText": {
+    "zh-CN": "下一页",
+    "en-US": "Next"
+  },
+  "sourceCodeText": {
+    "zh-CN": "源代码",
+    "en-US": "Source code"
+  },
+  "searchPlaceholderText": {
+    "zh-CN": "搜索文档",
+    "en-US": "Search docs"
+  },
+  "searchPanelCancelText": {
+    "zh-CN": "取消",
+    "en-US": "Cancel"
+  },
+  "searchNoResultsText": {
+    "zh-CN": "未找到结果",
+    "en-US": "No results found"
+  },
+  "searchSuggestedQueryText": {
+    "zh-CN": "建议搜索",
+    "en-US": "Suggested query"
+  },
+  "overview.filterNameText": {
+    "zh-CN": "筛选",
+    "en-US": "Filter"
+  },
+  "overview.filterPlaceholderText": {
+    "zh-CN": "输入关键词筛选",
+    "en-US": "Filter by keyword"
+  },
+  "overview.filterNoResultText": {
+    "zh-CN": "没有匹配内容",
+    "en-US": "No matching content"
+  },
+  "openInText": {
+    "zh-CN": "打开方式",
+    "en-US": "Open in"
+  },
+  "copyMarkdownText": {
+    "zh-CN": "复制 Markdown",
+    "en-US": "Copy Markdown"
+  },
+  "copyMarkdownLinkText": {
+    "zh-CN": "复制 Markdown 链接",
+    "en-US": "Copy Markdown link"
+  },
+  "editLinkText": {
+    "zh-CN": "在 GitHub 上编辑此页",
+    "en-US": "Edit this page on GitHub"
+  },
+  "codeButtonGroupCopyButtonText": {
+    "zh-CN": "复制代码",
+    "en-US": "Copy code"
+  },
+  "codeButtonGroupWrapButtonText": {
+    "zh-CN": "切换自动换行",
+    "en-US": "Toggle line wrapping"
+  },
+  "notFoundText": {
+    "zh-CN": "页面未找到",
+    "en-US": "Page not found"
+  },
+  "takeMeHomeText": {
+    "zh-CN": "返回首页",
+    "en-US": "Back to home"
+  },
+  "promptCopyText": {
+    "zh-CN": "复制提示词",
+    "en-US": "Copy prompt"
+  },
+  "promptCopiedText": {
+    "zh-CN": "已复制",
+    "en-US": "Copied"
+  },
+  "promptExpandText": {
+    "zh-CN": "展开",
+    "en-US": "Expand"
+  },
+  "promptCollapseText": {
+    "zh-CN": "收起",
+    "en-US": "Collapse"
+  }
+}

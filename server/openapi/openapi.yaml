@@ -3,7 +3,8 @@ info:
   title: AppKernia API
   version: 0.1.0
   license:
-    name: Proprietary
+    name: MIT
+    identifier: MIT
 servers:
   - url: /
 paths:

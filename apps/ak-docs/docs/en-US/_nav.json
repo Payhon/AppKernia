@@ -1,0 +1,8 @@
+[
+  { "text": "Guide", "link": "/guide/", "activeMatch": "/guide/" },
+  { "text": "Concepts", "link": "/concepts/", "activeMatch": "/concepts/" },
+  { "text": "Server API", "link": "/api/", "activeMatch": "/api/" },
+  { "text": "Mobile UI", "link": "/mobile-components/", "activeMatch": "/mobile-components/" },
+  { "text": "Community", "link": "/community/", "activeMatch": "/community/" },
+  { "text": "GitHub", "link": "https://github.com/Payhon/AppKernia" }
+]

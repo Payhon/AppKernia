@@ -1,0 +1,10 @@
+{
+  "name": "AppKernia",
+  "short_name": "AppKernia",
+  "description": "A modern cross-platform application foundation spanning mobile, admin, and server.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07111f",
+  "theme_color": "#07111f",
+  "icons": []
+}

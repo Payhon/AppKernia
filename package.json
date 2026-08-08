@@ -5,7 +5,7 @@
   "license": "MIT",
   "packageManager": "pnpm@11.18.0",
   "workspaces": [
-    "apps/ak-admin"
+    "apps/*"
   ],
   "engines": {
     "node": ">=24 <25",
@@ -14,8 +14,10 @@
   "scripts": {
     "dev": "npm run dev:admin",
     "dev:admin": "npm --prefix apps/ak-admin run dev",
-    "build": "npm run build:admin",
+    "dev:docs": "pnpm --filter @appkernia/docs dev",
+    "build": "npm run build:admin && npm run build:docs",
     "build:admin": "npm --prefix apps/ak-admin run build",
+    "build:docs": "pnpm --filter @appkernia/docs build",
     "preview:admin": "npm --prefix apps/ak-admin run preview",
     "test": "npm run test:admin",
     "test:admin": "npm --prefix apps/ak-admin run test",
@@ -23,6 +25,7 @@
     "typecheck:admin": "npm --prefix apps/ak-admin run typecheck",
     "lint:admin": "npm --prefix apps/ak-admin run lint",
     "generate:admin": "npm --prefix apps/ak-admin run generate",
-    "check": "npm --prefix apps/ak-admin run check"
+    "check:docs": "pnpm --filter @appkernia/docs check",
+    "check": "npm --prefix apps/ak-admin run check && pnpm check:docs"
   }
 }
