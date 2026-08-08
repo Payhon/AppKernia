@@ -1,98 +1,98 @@
 {
-  "generated_at": "2026-08-07T13:38:07.553Z",
+  "generated_at": "2026-08-08T15:13:13.919Z",
   "budgets": {
     "initial_gzip_bytes": 307200,
     "chunk_gzip_bytes": 184320
   },
   "actual": {
-    "initial_gzip_bytes": 217446,
+    "initial_gzip_bytes": 216654,
     "largest_chunks": [
       {
         "file": "assets/DashboardTrendChart-BmUDRLF1.js",
-        "gzip_bytes": 166087
+        "gzip_bytes": 165429
       },
       {
         "file": "assets/context-DywDVt-A.js",
-        "gzip_bytes": 94125
+        "gzip_bytes": 93800
       },
       {
-        "file": "assets/query-client-B39Q6Z01.js",
-        "gzip_bytes": 83500
+        "file": "assets/query-client-TNMJ4qS6.js",
+        "gzip_bytes": 83040
       },
       {
-        "file": "assets/AppShell-CF6ZbRmL.js",
-        "gzip_bytes": 58784
+        "file": "assets/AppShell-DZG2t2p5.js",
+        "gzip_bytes": 58727
       },
       {
         "file": "assets/typography-BaONyMga.js",
-        "gzip_bytes": 52311
+        "gzip_bytes": 52066
       },
       {
-        "file": "assets/table-CJ9jutWQ.js",
-        "gzip_bytes": 38686
+        "file": "assets/table-e2Dla6nr.js",
+        "gzip_bytes": 38589
       },
       {
-        "file": "assets/schemas-BWjHEpZY.js",
-        "gzip_bytes": 36855
+        "file": "assets/schemas-YMCZBO8V.js",
+        "gzip_bytes": 36734
       },
       {
         "file": "assets/space-Bg_aHXDY.js",
-        "gzip_bytes": 27005
+        "gzip_bytes": 26950
       },
       {
         "file": "assets/Match-DqMyU-Vq.js",
-        "gzip_bytes": 15601
+        "gzip_bytes": 15628
       },
       {
-        "file": "assets/tree-xdyKN5jQ.js",
-        "gzip_bytes": 15386
+        "file": "assets/tree-DSJa7Jr6.js",
+        "gzip_bytes": 15335
       }
     ]
   },
   "initial_files": [
     {
       "file": "assets/context-DywDVt-A.js",
-      "gzip_bytes": 94125
+      "gzip_bytes": 93800
     },
     {
-      "file": "assets/query-client-B39Q6Z01.js",
-      "gzip_bytes": 83500
+      "file": "assets/query-client-TNMJ4qS6.js",
+      "gzip_bytes": 83040
     },
     {
       "file": "assets/Match-DqMyU-Vq.js",
-      "gzip_bytes": 15601
+      "gzip_bytes": 15628
     },
     {
-      "file": "assets/index-DexfuzGK.js",
-      "gzip_bytes": 8823
+      "file": "assets/index-BhR0DhGu.js",
+      "gzip_bytes": 8789
     },
     {
       "file": "assets/useStore-B11YKrzp.js",
-      "gzip_bytes": 6631
+      "gzip_bytes": 6628
     },
     {
       "file": "assets/jsx-runtime-KJkY8l8U.js",
-      "gzip_bytes": 3302
+      "gzip_bytes": 3312
     },
     {
       "file": "assets/link-BpwE05VL.js",
-      "gzip_bytes": 2409
+      "gzip_bytes": 2393
     },
     {
       "file": "assets/lazyRouteComponent-CgWUwnGH.js",
-      "gzip_bytes": 1385
+      "gzip_bytes": 1392
     },
     {
       "file": "assets/shim-DRT8D95O.js",
-      "gzip_bytes": 486
+      "gzip_bytes": 489
     },
     {
       "file": "assets/redirect-D3L17tzd.js",
-      "gzip_bytes": 326
+      "gzip_bytes": 327
     },
     {
       "file": "assets/useNavigate-DqCnFULB.js",
-      "gzip_bytes": 235
+      "gzip_bytes": 236
     },
     {
       "file": "assets/useParams-ClqzaoLM.js",
@@ -100,11 +100,11 @@
     },
     {
       "file": "assets/useSearch-Dwf_At7k.js",
-      "gzip_bytes": 209
+      "gzip_bytes": 205
     },
     {
       "file": "assets/useRouter-DVsENc7m.js",
-      "gzip_bytes": 183
+      "gzip_bytes": 184
     }
   ],
   "passed": true,

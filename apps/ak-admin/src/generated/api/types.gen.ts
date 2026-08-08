@@ -3452,6 +3452,9 @@ export type MobilePasswordLoginData = {
          */
         'X-AppID': string;
         'Accept-Language'?: string;
+        /**
+         * A random UUID identifying this mobile installation. It is not an authentication factor.
+         */
         'X-AK-Device-Key': string;
     };
     path?: never;
