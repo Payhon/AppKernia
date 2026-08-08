@@ -1767,7 +1767,7 @@
   "apps.scope.label": "Current application",
   "apps.scope.placeholder": "Select an application",
   "apps.scope.required": "Select an application before managing its data.",
-  "apps.status.enabled": "Enabled",
+  "apps.status.active": "Active",
   "apps.status.disabled": "Disabled",
   "apps.actions.enable": "Enable",
   "apps.actions.disable": "Disable",

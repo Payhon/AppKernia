@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appMemberCreateInputSchema, appMemberPasswordResetSchema, appPageInputSchema, applicationInputSchema, toAppPageEditorInput, toAppPageInput } from "./model";
+import { appMemberCreateInputSchema, appMemberPasswordResetSchema, appPageInputSchema, applicationInputSchema, getAppPageTitle, toAppPageEditorInput, toAppPageInput, type ManagedPage } from "./model";
 
 describe("App management schemas", () => {
   it("requires a bounded application configuration", () => {
@@ -24,5 +24,25 @@ describe("App management schemas", () => {
     expect(editor.translations["zh-CN"].body).toContain("heading");
     expect(toAppPageInput(editor).translations["zh-CN"].body).toEqual(request.translations["zh-CN"].body);
     expect(appPageInputSchema.safeParse({ ...request, translations: { ...request.translations, "zh-CN": { ...request.translations["zh-CN"], body: [{ type: "unsupported" }] } } }).success).toBe(false);
+  });
+  it("keeps seeded reserved drafts editable and displayable before their first revision", () => {
+    const seededDraft = { id: "page-id", slug: "privacy-policy", page_type: "privacy-policy", status: "draft", lock_version: 1, current_revision_id: null, updated_at: "2026-08-08T00:00:00Z", translations: {}, revisions: [] } as unknown as ManagedPage;
+
+    expect(getAppPageTitle(seededDraft, "zh-CN")).toBeUndefined();
+    expect(getAppPageTitle(seededDraft, "en-US")).toBeUndefined();
+    expect(toAppPageEditorInput(seededDraft)).toMatchObject({
+      slug: "privacy-policy",
+      page_type: "privacy-policy",
+      publish: false,
+      translations: {
+        "zh-CN": { title: "", body_format: "markdown", body: "" },
+        "en-US": { title: "", body_format: "markdown", body: "" },
+      },
+    });
+  });
+  it("uses the alternate supported locale when a page title is untranslated", () => {
+    const translatedPage = { id: "page-id", slug: "about-us", page_type: "about-us", status: "draft", lock_version: 1, updated_at: "2026-08-08T00:00:00Z", translations: { "zh-CN": { title: "关于我们", body_format: "markdown", body: "内容" } }, revisions: [] } as unknown as ManagedPage;
+
+    expect(getAppPageTitle(translatedPage, "en-US")).toBe("关于我们");
   });
 });

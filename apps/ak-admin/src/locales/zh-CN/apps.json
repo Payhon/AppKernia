@@ -2,7 +2,7 @@
   "apps.scope.label": "当前应用",
   "apps.scope.placeholder": "选择应用",
   "apps.scope.required": "请先选择一个应用，再管理其数据。",
-  "apps.status.enabled": "启用",
+  "apps.status.active": "启用",
   "apps.status.disabled": "停用",
   "apps.actions.enable": "启用",
   "apps.actions.disable": "停用",

@@ -1,0 +1,20 @@
+{
+  "axe_applications_zh_CN": 0,
+  "axe_applications_en_US": 0,
+  "axe_pages_zh_CN": 0,
+  "axe_pages_en_US": 0,
+  "console_errors": [],
+  "api_responses": [
+    {
+      "method": "GET",
+      "status": 200,
+      "url": "http://127.0.0.1:4173/admin-api/v1/apps?page=1&page_size=100"
+    },
+    {
+      "method": "GET",
+      "status": 200,
+      "url": "http://127.0.0.1:4173/admin-api/v1/apps/019fe114-efd9-7597-b0c5-7bc3b0e1366c/content/pages?page=1&page_size=100"
+    }
+  ],
+  "passed": true
+}

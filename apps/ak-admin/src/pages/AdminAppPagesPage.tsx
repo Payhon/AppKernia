@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "../features/auth/store";
 import { useAppPages, useApplicationMutations } from "../features/apps/hooks";
-import { appPageEditorInputSchema, toAppPageEditorInput, toAppPageInput, type AppPageEditorInput, type ManagedPage } from "../features/apps/model";
+import { appPageEditorInputSchema, getAppPageTitle, toAppPageEditorInput, toAppPageInput, type AppPageEditorInput, type AppPageLocale, type ManagedPage } from "../features/apps/model";
 import { AppScopeContext, type AppScope } from "../features/apps/scope";
 
 type Editor = ManagedPage | "new" | null;
@@ -26,6 +26,8 @@ function AppPagesContents({ scope }: { scope: AppScope }) {
   const pages = useAppPages(scope.appId, { q, status, page: 1, page_size: 100 });
   const mutations = useApplicationMutations();
   const date = useMemo(() => new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }), [i18n.language]);
+  const pageLocale: AppPageLocale = i18n.language === "en-US" ? "en-US" : "zh-CN";
+  const pageTitle = (page: ManagedPage) => getAppPageTitle(page, pageLocale) ?? t(`apps.pages.type.${page.page_type}`);
   const open = (value: ManagedPage | "new") => { form.reset(value === "new" ? defaults() : fromPage(value)); setEditor(value); };
   const save = form.handleSubmit(async (values) => {
     if (!scope.appId) return;
@@ -34,9 +36,9 @@ function AppPagesContents({ scope }: { scope: AppScope }) {
     try { const input = toAppPageInput(parsed.data); if (editor === "new") await mutations.createPage.mutateAsync({ appId: scope.appId, input }); else if (editor) await mutations.updatePage.mutateAsync({ appId: scope.appId, pageId: editor.slug, input }); setEditor(null); setFeedback({ key: "apps.feedback.saved", error: false }); } catch { setFeedback({ key: "apps.feedback.save_error", error: true }); }
   });
   const publish = async (page: ManagedPage) => { if (!scope.appId) return; try { await mutations.publishPage.mutateAsync({ appId: scope.appId, pageId: page.slug, lockVersion: page.lock_version }); setFeedback({ key: "apps.pages.feedback.published", error: false }); } catch { setFeedback({ key: "apps.feedback.save_error", error: true }); } };
-  const deletePage = (page: ManagedPage) => { const appId = scope.appId; if (!appId || reserved.has(page.page_type)) return; Modal.confirm({ title: t("apps.pages.delete.title"), content: t("apps.pages.delete.description", { name: page.translations["zh-CN"].title }), okText: t("common.actions.delete"), cancelText: t("common.actions.cancel"), okButtonProps: { danger: true }, onOk: async () => { try { await mutations.deletePage.mutateAsync({ appId, pageId: page.slug, lockVersion: page.lock_version }); setFeedback({ key: "apps.feedback.deleted", error: false }); } catch { setFeedback({ key: "apps.feedback.save_error", error: true }); } } }); };
+  const deletePage = (page: ManagedPage) => { const appId = scope.appId; if (!appId || reserved.has(page.page_type)) return; Modal.confirm({ title: t("apps.pages.delete.title"), content: t("apps.pages.delete.description", { name: pageTitle(page) }), okText: t("common.actions.delete"), cancelText: t("common.actions.cancel"), okButtonProps: { danger: true }, onOk: async () => { try { await mutations.deletePage.mutateAsync({ appId, pageId: page.slug, lockVersion: page.lock_version }); setFeedback({ key: "apps.feedback.deleted", error: false }); } catch { setFeedback({ key: "apps.feedback.save_error", error: true }); } } }); };
   const columns: TableColumnsType<ManagedPage> = [
-    { title: t("apps.pages.columns.title"), render: (_, item) => <div><strong>{item.translations[i18n.language === "en-US" ? "en-US" : "zh-CN"].title}</strong><div className="ak-content-slug">/{item.slug}</div></div> },
+    { title: t("apps.pages.columns.title"), render: (_, item) => <div><strong>{pageTitle(item)}</strong><div className="ak-content-slug">/{item.slug}</div></div> },
     { title: t("apps.pages.columns.type"), dataIndex: "page_type", responsive: ["md"], render: (value: string) => <Tag>{t(`apps.pages.type.${value}`)}</Tag> },
     { title: t("apps.pages.columns.status"), dataIndex: "status", render: (value: ManagedPage["status"]) => <Tag className={value === "published" ? "ak-status-success" : "ak-status-warning"}>{t(`apps.pages.status.${value}`)}</Tag> },
     { title: t("apps.pages.columns.updated"), dataIndex: "updated_at", responsive: ["lg"], render: (value: string) => date.format(new Date(value)) },

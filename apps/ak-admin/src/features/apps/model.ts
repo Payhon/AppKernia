@@ -33,7 +33,10 @@ export const appMemberPasswordResetSchema = z.object({
 }).refine((value) => value.new_password === value.confirm_password, { path: ["confirm_password"] });
 export type AppMemberPasswordResetInput = z.infer<typeof appMemberPasswordResetSchema>;
 
-export type ManagedPage = AdminAppPage;
+export type AppPageLocale = "zh-CN" | "en-US";
+type PartialAppPageTranslation = Partial<AdminAppPage["translations"]["zh-CN"]>;
+/** Reserved drafts are seeded before their first revision, so the API can legitimately omit translations. */
+export type ManagedPage = Omit<AdminAppPage, "translations"> & { translations?: Partial<Record<AppPageLocale, PartialAppPageTranslation>> | null };
 
 export const appPageBlockSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("heading"), text: z.string().trim().min(1).max(10_000), level: z.number().int().min(1).max(6) }),
@@ -82,8 +85,20 @@ export const appPageEditorInputSchema = z.object({
   });
 });
 export function toAppPageEditorInput(page: AppPageInput | ManagedPage): AppPageEditorInput {
-  const editable = (translation: { title: string; body_format: "markdown" | "blocks"; body: string | unknown[] }): AppPageEditorInput["translations"]["zh-CN"] => ({ title: translation.title, body_format: translation.body_format, body: typeof translation.body === "string" ? translation.body : JSON.stringify(translation.body, null, 2) });
-  return { slug: page.slug, page_type: page.page_type, publish: "status" in page ? page.status === "published" : page.publish, translations: { "zh-CN": editable(page.translations["zh-CN"]), "en-US": editable(page.translations["en-US"]) }, lock_version: page.lock_version };
+  const editable = (translation: PartialAppPageTranslation | undefined): AppPageEditorInput["translations"]["zh-CN"] => ({
+    title: translation?.title ?? "",
+    body_format: translation?.body_format ?? "markdown",
+    body: typeof translation?.body === "string" ? translation.body : translation?.body ? JSON.stringify(translation.body, null, 2) : "",
+  });
+  return { slug: page.slug, page_type: page.page_type, publish: "status" in page ? page.status === "published" : page.publish, translations: { "zh-CN": editable(page.translations?.["zh-CN"]), "en-US": editable(page.translations?.["en-US"]) }, lock_version: page.lock_version };
+}
+
+/** Resolves a title for display while older reserved drafts have no revision or translations yet. */
+export function getAppPageTitle(page: ManagedPage, locale: AppPageLocale): string | undefined {
+  const alternateLocale: AppPageLocale = locale === "zh-CN" ? "en-US" : "zh-CN";
+  return [page.translations?.[locale]?.title, page.translations?.[alternateLocale]?.title]
+    .map((title) => title?.trim())
+    .find((title): title is string => Boolean(title));
 }
 export function toAppPageInput(editor: AppPageEditorInput): AppPageInput {
   const parsed = appPageEditorInputSchema.parse(editor);
