@@ -14,7 +14,7 @@
 
 ## 2026-08-09 GitHub Pages 正式发布
 
-- 官网主体、生成产物、Node 24 Actions 更新和 production hero 排版修复分为 `10f58e2`、`f2a9534`、`71f366c`、`31abe86` 四个可审查提交并直接推送至明确授权的 `main`；最终本地、`origin/main` SHA 均为 `31abe861a19e6c917051450dccb81e1a2f3d4432`。
+- 官网主体、生成产物、Node 24 Actions 更新和 production hero 排版修复分为 `10f58e2`、`f2a9534`、`71f366c`、`31abe86` 四个可审查提交并直接推送至明确授权的 `main`；Pages artifact 对应的站点 revision 为 `31abe861a19e6c917051450dccb81e1a2f3d4432`。之后仅追加发布报告，不命中 Pages 路径过滤。
 - GitHub Pages 已通过 API 启用为 `workflow` 模式，公开地址为 `https://payhon.github.io/AppKernia/`，HTTPS enforcement 已开启。最终 Actions run `31266883357` 的 build 40 秒、deploy 8 秒，全部退出成功。
 - 发布后 Chromium 实查中文/英文首页、Quick Start、服务端 API、Mobile 组件及 OpenAPI/Sitemap；7 个 URL 均为 HTTP 200。1440 与 375 首页均为一个 H1、无横向溢出、破图、console error 或失败资源。
 - 首轮线上 1440 截图发现 hero 渐变标语末字形成孤行；按 `ui-ux-pro-max` 复核后使用原生 `text-wrap: balance` 修正，仅作用于品牌标语。最终线上 1440/375 重新验证为 balanced title + natural subtitle。

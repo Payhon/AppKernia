@@ -1378,7 +1378,7 @@
 | `71f366c` | `ci(docs): update Node 24 actions`，升级 `actions/checkout@v7`、`pnpm/action-setup@v6`。 |
 | `31abe86` | `fix(docs): balance hero heading`，修复线上 1440 px 标语末字孤行并同步 UI 决策/检查表。 |
 
-- 四个提交均直接推送到用户明确授权的 `origin/main`；最终 `HEAD` 与 `origin/main` 均为 `31abe861a19e6c917051450dccb81e1a2f3d4432`，ahead/behind=`0/0`。
+- 四个站点相关提交均直接推送到用户明确授权的 `origin/main`；Pages artifact 的 head SHA 为 `31abe861a19e6c917051450dccb81e1a2f3d4432`。其后只追加本发布报告，根 `docs/` 不在 Pages workflow 的路径触发范围内。
 - GitHub Pages 通过 REST API 启用为 `workflow` build type，公开地址为 `https://payhon.github.io/AppKernia/`，`https_enforced=true`。
 - 最终 Docs Pages run：`https://github.com/Payhon/AppKernia/actions/runs/31266883357`，build job `93126361063` 用时 40 秒、deploy job `93126433768` 用时 8 秒，结论均为 `success`。
 
