@@ -9,8 +9,17 @@
 | Backend | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环 | 当前 Admin backlog 已收口；生产 Adapter 联调见风险 |
 | Admin | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁 | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险 |
 | Mobile | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证 | Android/Harmony 安装运行、三端真机、签名/发布仍未完成 |
-| Docs / Website | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：64 个静态页面、零门槛向导、核心 API、AK Mobile 组件、社区治理、搜索、SEO、暗色与响应式体验均已本地验收 | GitHub Pages 工作流已就绪；尚待 push 后启用 Pages、配置 DNS/HTTPS 并验证线上域名 |
+| Docs / Website | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站并发布至 `https://payhon.github.io/AppKernia/`：64 个静态页面、零门槛向导、核心 API、AK Mobile 组件、社区治理、搜索、SEO、暗色与响应式体验已通过本地及线上验收 | GitHub Pages HTTPS 已启用；`appkernia.com` 尚待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线 | Mobile 三端长英文/运行时视觉验收 |
+
+## 2026-08-09 GitHub Pages 正式发布
+
+- 官网主体、生成产物、Node 24 Actions 更新和 production hero 排版修复分为 `10f58e2`、`f2a9534`、`71f366c`、`31abe86` 四个可审查提交并直接推送至明确授权的 `main`；最终本地、`origin/main` SHA 均为 `31abe861a19e6c917051450dccb81e1a2f3d4432`。
+- GitHub Pages 已通过 API 启用为 `workflow` 模式，公开地址为 `https://payhon.github.io/AppKernia/`，HTTPS enforcement 已开启。最终 Actions run `31266883357` 的 build 40 秒、deploy 8 秒，全部退出成功。
+- 发布后 Chromium 实查中文/英文首页、Quick Start、服务端 API、Mobile 组件及 OpenAPI/Sitemap；7 个 URL 均为 HTTP 200。1440 与 375 首页均为一个 H1、无横向溢出、破图、console error 或失败资源。
+- 首轮线上 1440 截图发现 hero 渐变标语末字形成孤行；按 `ui-ux-pro-max` 复核后使用原生 `text-wrap: balance` 修正，仅作用于品牌标语。最终线上 1440/375 重新验证为 balanced title + natural subtitle。
+- `actions/checkout` 和 `pnpm/action-setup` 升级至正式 Node 24 runtime 版本 `v7` / `v6`；第二、三轮 Pages run 不再产生原 Node 20 deprecated annotation。
+- `appkernia.com` 当前 A、AAAA、`www` CNAME 及 GitHub 验证 TXT 均为空，因此未把 Pages 强制绑定到不可达域名。待 DNS 配置完成后再设置 Custom Domain 并验证证书，当前 GitHub Pages 默认地址不受影响。
 
 ## 2026-08-08 AppKernia 开源官网与文档站
 

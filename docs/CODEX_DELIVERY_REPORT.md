@@ -1366,3 +1366,33 @@
 - 本轮没有 commit 或 push，未触发远端 GitHub Actions；Pages Source、Custom Domain、DNS A/AAAA/CNAME 及 Enforce HTTPS 都需要仓库所有者在 push 后按 `apps/ak-docs/DEPLOYMENT.md` 完成。因此当前不声明 `appkernia.com` 或 GitHub Pages fallback 已上线。
 - `playwright` Skill 的包装脚本与本机 `@playwright/mcp@0.0.79` 命令名不兼容；浏览器取证改用仓库现有 Python Playwright + 真实 Chromium 完成。此差异不影响截图、HTTP、console 或 axe 结果，但没有伪报包装脚本通过。
 - Admin 截图证明本轮本地登录界面可渲染，不包含登录后生产数据；Mobile 截图是既有模拟器证据，本轮未重新执行 Android/iOS/Harmony build、安装、真机或发布签名。
+
+## 2026-08-09 GitHub 提交与 Pages 发布报告
+
+### 提交与远端状态
+
+| Commit | 内容 |
+|---|---|
+| `10f58e2` | `feat(docs): add AppKernia website`，128 个文件，官网、双语内容、MIT/OpenAPI、Pages workflow 与根级接入。 |
+| `f2a9534` | `chore(admin): refresh generated artifacts`，单独提交 OpenAPI 生成类型和 bundle budget 证据。 |
+| `71f366c` | `ci(docs): update Node 24 actions`，升级 `actions/checkout@v7`、`pnpm/action-setup@v6`。 |
+| `31abe86` | `fix(docs): balance hero heading`，修复线上 1440 px 标语末字孤行并同步 UI 决策/检查表。 |
+
+- 四个提交均直接推送到用户明确授权的 `origin/main`；最终 `HEAD` 与 `origin/main` 均为 `31abe861a19e6c917051450dccb81e1a2f3d4432`，ahead/behind=`0/0`。
+- GitHub Pages 通过 REST API 启用为 `workflow` build type，公开地址为 `https://payhon.github.io/AppKernia/`，`https_enforced=true`。
+- 最终 Docs Pages run：`https://github.com/Payhon/AppKernia/actions/runs/31266883357`，build job `93126361063` 用时 40 秒、deploy job `93126433768` 用时 8 秒，结论均为 `success`。
+
+### 线上验收
+
+| 验证 | Exit / 结果 |
+|---|---|
+| GitHub Pages 首页、中英文、Quick Start、API、Mobile 组件、OpenAPI、Sitemap curl | 7 个 URL 全部 HTTP 200。 |
+| Python Playwright + 真实 Chromium | 中文/英文首页、Quick Start、API、Mobile 组件共 5 条路由 HTTP 200；lang 正确、每页一个 H1、无 overflow、broken image、console/page error 或 4xx/5xx resource。 |
+| 最终线上首页 1440×900 / 375×812 | 两个 viewport 均 HTTP 200、`titleWrap=balance`、`subtitleWrap=wrap`、一个 H1、无溢出、破图、console error 或失败资源。 |
+| `pnpm --filter @appkernia/docs check` | 0；113 个 API 引用、lint、TypeScript、Prettier、双语 parity、64 页 build 和 Sitemap 通过。 |
+
+### 自定义域名边界
+
+- `appkernia.com` 当前没有 A/AAAA 记录，`www.appkernia.com` 没有 CNAME，GitHub Pages 域名验证 TXT 也未配置；本轮没有把可用的 Pages 地址重定向到不可达域名。
+- DNS 就绪后需要将 Pages Custom Domain 设置为 `appkernia.com`，等待证书签发并再次验证 HTTPS；现阶段已完成的是 GitHub Pages 默认域名发布，不声明 `appkernia.com` 已上线。
+- `playwright` Skill 包装脚本仍因本机 `@playwright/mcp@0.0.79` 不提供 `playwright-cli` 而退出 127；线上验收继续使用已安装 Python Playwright 驱动真实 Chromium，未伪报包装脚本通过。
