@@ -1188,6 +1188,34 @@
 
 - 本轮是主分支文件完整性和静态契约复核，没有重新执行 Android/iOS/Harmony compile、安装、模拟器或真机；既有平台证据仍以此前交付记录为准。
 
+## 2026-08-07 iOS 模拟器国际化白屏修复
+
+### 交付内容
+
+- 删除 `ak-i18n.uts` 对导入 JSON 执行 `as UTSJSONObject` 后调用 `toMap()/getString()` 的启动级路径，改用生成的 `Array<string>` 条目构造 `Map<string, string>`，避开 HBuilderX 5.06 iOS app-service 的普通对象/UTSJSONObject 运行时差异。
+- 新增 `scripts/check-i18n-catalogs.py` 与生成 Catalog；`check-project.sh` 和 Mobile framework verifier 会拒绝语言包漂移，以及再次在 i18n 启动路径引入 `.toMap()`。
+- 该变更不修改可见文案、布局、交互、API、数据库或权限；因此不创建新的 `ui-ux-pro-max` UI 设计产物。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `python3 apps/ak-mobile/scripts/check-i18n-catalogs.py` | 0 | 119 组 `zh-CN` / `en-US` 词条与生成 UTS Catalog 完全一致 |
+| `python3 apps/ak-mobile/scripts/verify-mobile-framework.py` | 0 | Mobile framework 源级契约通过，i18n 启动路径不再调用 `.toMap()` |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile Blueprint、统一 i18n、生成 Catalog、VDOM、禁用模式扫描和三平台脚本目标检查通过 |
+| `python3 apps/ak-mobile/scripts/verify-secure-storage-contract.py` | 0 | 三端安全存储源级契约及无普通 Storage fallback 检查通过 |
+| `python3 apps/ak-mobile/scripts/test_refresh_policy.py` | 0 | Refresh fake HttpPort 策略回归通过 |
+| `apps/ak-mobile/scripts/build-platform.sh ios` | 0 | HBuilderX 5.06 编译 20 页面与 `ak-secure-storage`，`UTS编译完毕`，`ready in 44138ms`，compile-only 正常停止 |
+| HBuilderX 5.06 `launch app-ios`，iOS 18.6 / iPhone 16 Pro 模拟器 | 启动成功；取证后手动结束 CLI 日志会话 | UTS `ready in 48518ms`；标准基座重签、安装、同步和启动成功；应用进入中文登录页，无原 `source.toMap` TypeError |
+| 模拟器 `log show` 与 `unpackage` 精确搜索 | 0 | `catalogFromJson`、`source.toMap`、TypeError、fatal/exception 均无匹配 |
+| `git diff --check` | 0 | 补丁格式通过 |
+
+### 截图索引与验证边界
+
+- [iOS 18.6 / iPhone 16 Pro 中文登录页](../apps/ak-mobile/artifacts/runtime/AKMOB-ios-white-screen-fix/screenshots/ios-iphone16pro-login-zh-CN.png)，1206×2622，SHA-256 `3446299ae2bfa19c9e807fb5e2e4c076f8288f1ca1a76aed2ca754fb37e8607a`。
+- 标准基座的 `ak-secure-storage` 原生配置/第三方 SDK 不生效提示仍然存在，需自定义基座才能验证 Keychain；本轮没有把该提示当错误，也没有声明安全存储已通过运行时验收。
+- 本轮未执行 Android/Harmony 安装运行、iOS 真机、Release/签名、Keychain 回读、英文切换、动态字体或完整自动化流程；模拟器通过不替代三端真机验收。该次取证阶段尚未 commit、push。
+
 ## 2026-08-07 App 管理与移动认证/法律内容交付报告
 
 ### 交付范围
@@ -1215,6 +1243,6 @@
 ### 未完成项、阻塞与风险
 
 - Docker daemon 无响应，PostgreSQL 18 migration `up → down → up` 未实际运行；静态检查和 Go 测试不能替代数据库验收。
-- HBuilder X iOS 只编译到 28 页，随后卡在 `ak-secure-storage`；没有 UTS 完成、模拟器安装或运行结果，白屏未由模拟器实测关闭。
+- 本次扩展后的 HBuilder X iOS 构建只推进到 28 页，随后卡在 `ak-secure-storage`；没有 UTS 完成、安装或运行结果，因此新增注册、找回和法律页未做模拟器验收。此前 20 页面白屏修复的 iOS 模拟器证据保留在上一节。
 - 未捕获 Admin 真实登录浏览器截图；Admin 构建/测试通过不代表真实登录态视觉验收。
 - OTP 邮件外部通道没有真实凭据，没有发送邮件或进行验证码接收端到端验收。未部署生产；Android/iOS/Harmony 真机、Firefox/Safari 和真实第三方邮件服务均未验证。

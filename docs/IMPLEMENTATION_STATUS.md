@@ -1,6 +1,6 @@
 # AppKernia 实施状态
 
-更新时间：2026-08-04（Asia/Shanghai）
+更新时间：2026-08-08（Asia/Shanghai）
 
 ## 总体状态
 
@@ -8,7 +8,7 @@
 |---|---|---|
 | Backend | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环 | 当前 Admin backlog 已收口；生产 Adapter 联调见风险 |
 | Admin | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁 | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险 |
-| Mobile | Home、Profile 及子页、文章列表/详情、会话/安全存储/刷新策略与内容契约已实现；Android/iOS 最终 compile-only、Harmony 最终未签名 `.hap` 及静态门禁均通过，主题 20/20 问题已修复 | 三端均未安装运行，设备、签名/发布与安全存储回读验收未完成 |
+| Mobile | Home、Profile 及子页、文章列表/详情、会话/安全存储/刷新策略与内容契约已实现；HBuilderX 5.06 的 iOS 18.6 / iPhone 16 Pro 模拟器已验证旧 20 页面登录启动且不再出现 i18n `source.toMap` 白屏；本次注册/找回/法律页及 `X-AppID` 已通过静态门禁 | 本次扩展后的 28 页面未完成 UTS/模拟器验收；Android/Harmony 安装运行、三端真机、签名/发布与安全存储回读仍未完成 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线 | Mobile 三端长英文/运行时视觉验收 |
 
 ## 2026-08-04 HotGo 地区编码初始化数据
@@ -444,6 +444,16 @@
 - 后续类型收紧把阅读时长插值改为 `Map<string, string>`，原框架 verifier 仍检查旧的动态参数写法。本轮同步更新检查片段为 `minutes.toString()`，不改变运行时业务逻辑或可见 UI。
 - Mobile Blueprint、统一 i18n、framework contract、secure-storage contract、refresh policy fake HttpPort 与 `git diff --check` 均退出 0。未重新执行三端 compile、安装或真机验证。
 
+## 2026-08-07 iOS 模拟器国际化启动白屏修复
+
+### 状态：完成（HBuilderX 5.06 + iOS 18.6 / iPhone 16 Pro 模拟器）
+
+- 根因是 `ak-i18n.uts` 把导入的 JSON 仅通过 `as UTSJSONObject` 断言后立即调用 `toMap()`；HBuilderX 5.06 的 iOS app-service 运行时实际得到普通 JavaScript 对象，类型断言不会注入 `UTSJSONObject` 实例方法，因此应用在 Catalog 初始化阶段抛出 `source.toMap is not a function` 并白屏。
+- 移动运行时现改为读取由 `locale/zh-CN.json` 与 `locale/en-US.json` 确定性生成的强类型字符串条目，并在 UTS 内构建 `Map<string, string>`；不再依赖 JSON import 的运行时原型或无界动态类型。
+- 新增 Catalog 漂移门禁并接入 `check-project.sh`；它同时验证两种语言键集合、非空字符串和生成文件内容，使维护语言包后不能遗漏原生运行时 Catalog。
+- HBuilderX 5.06 CLI 已完成 20 页面 iOS UTS compile-only，exit 0；随后对已启动的 iPhone 16 Pro / iOS 18.6 模拟器完成标准基座重签、安装、同步和启动，真实画面进入中文登录页。模拟器日志及生成产物未再出现 `catalogFromJson`、`source.toMap` 或原截图 TypeError。
+- 标准基座仍提示 `ak-secure-storage` 的原生配置/SDK不能生效，这是 DCloud 的预期能力边界；本次仅证明标准基座启动和页面渲染，未验证 Keychain 回读。Android/Harmony 运行、iOS 真机、双语切换、签名 Release 与三端安全存储仍未执行。
+
 ## 2026-08-07 App 管理、移动注册找回与法律单页交付
 
 ### 状态：代码与静态/构建门禁完成；数据库迁移和终端运行验收未完成
@@ -462,6 +472,6 @@
 ### 验证边界
 
 - 已通过的静态、类型、单元和构建门禁见交付报告；这些结果不等同于 PostgreSQL 迁移、Admin 真实登录浏览器或移动模拟器/真机验收。
-- Docker daemon 无响应，PostgreSQL 18 migration `up → down → up` 未实际运行；HBuilder X iOS 仅推进到 28 页后卡在 `ak-secure-storage`，没有 UTS 完成、模拟器安装或运行验收。
+- Docker daemon 无响应，PostgreSQL 18 migration `up → down → up` 未实际运行；本次扩展后的 HBuilder X iOS 构建仅推进到 28 页后卡在 `ak-secure-storage`，没有 UTS 完成、模拟器安装或运行验收，因此新增注册、找回和法律页尚未完成模拟器验收。
 - 未捕获 Admin 真实登录浏览器截图。OTP 外部邮件通道没有真实凭据，未发送邮件或完成验证码接收验收。
-- 本记录不覆盖已有主工作区移动白屏报告；该问题仍需在可用 HBuilder iOS 模拟器环境中单独验证。
+- 本次 App 扩展不重新声明白屏修复验收；既有 iOS 模拟器证据保留在上一节，新 28 页面仍需另行运行验证。
