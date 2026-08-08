@@ -50,6 +50,9 @@ func TestNotificationLifecycleTemplatesAndDeliveryRetryAreTenantScopedAndAudited
 	if _, err = pool.Exec(ctx, `INSERT INTO iam.tenant_members(tenant_id,user_id,status) VALUES($1,$2,'active')`, tenant.ID, secondID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err = pool.Exec(ctx, `INSERT INTO app.user_memberships(app_id,tenant_id,user_id,source,status) VALUES($1,$2,$3,'admin_created','active')`, appID, tenant.ID, secondID); err != nil {
+		t.Fatal(err)
+	}
 	session, err := db.New(pool).CreateSession(ctx, db.CreateSessionParams{UserID: user.ID, TenantID: &tenant.ID, Audience: "ak-admin", AbsoluteExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(time.Hour), Valid: true}, IdleExpiresAt: pgtype.Timestamptz{Time: time.Now().Add(30 * time.Minute), Valid: true}})
 	if err != nil {
 		t.Fatal(err)
