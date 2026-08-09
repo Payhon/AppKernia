@@ -33,10 +33,9 @@ type ProductSliderProps = {
 
 const PRODUCT_COPY = {
   'zh-CN': {
-    eyebrow: 'PRODUCT TOUR',
-    heading: '从 Web 管理端到移动端，看看这套工程真正运行起来的样子',
-    lead: '使用左右按钮、圆点或键盘方向键浏览。全部画面来自仓库对应的本机隔离测试环境，不使用概念稿替代运行证据。',
-    note: 'Admin 截图来自本机 Docker/API 环境；Mobile 截图来自 iPhone 16 Pro、iOS 18.6 模拟器。本展示不等同于生产部署或 iOS、Android、HarmonyOS 真机验收。',
+    eyebrow: 'PRODUCT, END TO END',
+    heading: '从运营后台到用户手机，围绕同一份业务继续生长',
+    lead: '在 Admin 中管理应用、内容、版本与存储，在 Mobile 中承接登录、通知、阅读与账户体验。两端通过同一套 API 和业务规则自然衔接。',
     slider: {
       previous: '上一张',
       next: '下一张',
@@ -49,7 +48,7 @@ const PRODUCT_COPY = {
         src: '/screenshots/admin-applications.png',
         alt: 'AppKernia React 管理端应用管理页面',
         title: '应用管理',
-        detail: '以租户和权限边界组织应用配置与运营入口。',
+        detail: '从一个工作台组织应用配置、团队权限与日常运营。',
       },
       {
         src: '/screenshots/admin-content-management.png',
@@ -67,41 +66,40 @@ const PRODUCT_COPY = {
         src: '/screenshots/admin-cloud-storage.jpg',
         alt: 'AppKernia React 管理端云存储配置页面',
         title: '云存储配置',
-        detail: '以受控配置管理对象存储能力与供应商边界。',
+        detail: '通过统一配置接入对象存储，并为业务提供稳定的文件能力。',
       },
     ],
     mobileSlides: [
       {
         src: '/screenshots/mobile-login-ios.png',
-        alt: 'AppKernia 在 iOS 18.6 模拟器中的登录页面',
+        alt: 'AppKernia Mobile 登录页面',
         title: '安全登录',
         detail: '登录、会话和语言能力从移动端入口开始协同。',
       },
       {
         src: '/screenshots/mobile-notifications-ios.png',
-        alt: 'AppKernia 在 iOS 18.6 模拟器中的通知页面',
+        alt: 'AppKernia Mobile 通知页面',
         title: '通知中心',
-        detail: '面向真实 App 场景组织通知列表与已读状态。',
+        detail: '把消息、已读状态和用户操作组织成清晰的通知体验。',
       },
       {
         src: '/screenshots/mobile-articles-ios.png',
-        alt: 'AppKernia 在 iOS 18.6 模拟器中的文章页面',
+        alt: 'AppKernia Mobile 文章页面',
         title: '内容阅读',
         detail: '内容模型与服务端发布链路在移动端自然落地。',
       },
       {
         src: '/screenshots/mobile-profile-ios.png',
-        alt: 'AppKernia 在 iOS 18.6 模拟器中的个人中心',
+        alt: 'AppKernia Mobile 个人中心',
         title: '个人中心',
         detail: '账户、设置与用户能力保持清晰的信息层级。',
       },
     ],
   },
   'en-US': {
-    eyebrow: 'PRODUCT TOUR',
-    heading: 'See the system running—from the Web console to the mobile app',
-    lead: 'Browse with the arrow buttons, dots, or keyboard arrow keys. Every screen comes from the repository in an isolated local test environment, never from a concept mockup.',
-    note: 'Admin images come from a local Docker/API environment. Mobile images come from an iPhone 16 Pro iOS 18.6 simulator. This gallery is not production or iOS, Android, or HarmonyOS physical-device acceptance.',
+    eyebrow: 'PRODUCT, END TO END',
+    heading: 'From the operations console to the phone, grow one product across every surface',
+    lead: 'Manage applications, content, releases, and storage in Admin, then carry sign-in, notifications, reading, and account experiences into Mobile. Both surfaces meet through the same API and product rules.',
     slider: {
       previous: 'Previous slide',
       next: 'Next slide',
@@ -114,8 +112,7 @@ const PRODUCT_COPY = {
         src: '/screenshots/admin-applications.png',
         alt: 'Applications page in AppKernia React Admin',
         title: 'Applications',
-        detail:
-          'Organize app configuration and operations around tenant and permission boundaries.',
+        detail: 'Organize application settings, team access, and daily operations in one place.',
       },
       {
         src: '/screenshots/admin-content-management.png',
@@ -134,31 +131,32 @@ const PRODUCT_COPY = {
         alt: 'Cloud storage settings in AppKernia React Admin',
         title: 'Cloud storage',
         detail:
-          'Control object-storage capabilities and provider boundaries through safe configuration.',
+          'Connect object storage once and offer a consistent file capability to the product.',
       },
     ],
     mobileSlides: [
       {
         src: '/screenshots/mobile-login-ios.png',
-        alt: 'AppKernia sign-in screen on an iOS 18.6 simulator',
+        alt: 'AppKernia Mobile sign-in screen',
         title: 'Secure sign-in',
         detail: 'Identity, sessions, and locale start working together at the mobile entry point.',
       },
       {
         src: '/screenshots/mobile-notifications-ios.png',
-        alt: 'AppKernia notifications on an iOS 18.6 simulator',
+        alt: 'AppKernia Mobile notifications screen',
         title: 'Notifications',
-        detail: 'Notification lists and read state designed for a real application workflow.',
+        detail:
+          'Bring messages, read state, and user actions into one clear notification experience.',
       },
       {
         src: '/screenshots/mobile-articles-ios.png',
-        alt: 'AppKernia articles on an iOS 18.6 simulator',
+        alt: 'AppKernia Mobile articles screen',
         title: 'Content reading',
         detail: 'Server-side content and publishing contracts land naturally in the app.',
       },
       {
         src: '/screenshots/mobile-profile-ios.png',
-        alt: 'AppKernia profile on an iOS 18.6 simulator',
+        alt: 'AppKernia Mobile profile screen',
         title: 'Profile',
         detail: 'Account, settings, and user capabilities keep a clear information hierarchy.',
       },
@@ -170,7 +168,6 @@ const PRODUCT_COPY = {
     eyebrow: string;
     heading: string;
     lead: string;
-    note: string;
     slider: Omit<SliderCopy, 'label'>;
     adminLabel: string;
     mobileLabel: string;
@@ -181,9 +178,9 @@ const PRODUCT_COPY = {
 
 const TECH_COPY = {
   'zh-CN': {
-    eyebrow: 'TECHNOLOGY STACK',
-    heading: '选择成熟、透明、能长期维护的技术栈',
-    lead: '不是为了罗列 Logo，而是让每一层都使用适合其职责的工具：移动端面向原生能力，Web 端重视类型与交互，服务端坚持契约和数据边界。',
+    eyebrow: 'BUILT ON PROVEN TOOLS',
+    heading: '一套技术栈，各做自己最擅长的事',
+    lead: 'uni-app x 连接移动平台，React 组织管理体验，Go 与 PostgreSQL 承载业务和数据，OpenAPI 让三端始终说同一种语言。',
     label: 'AppKernia 技术栈',
     roles: {
       mobile: '移动端',
@@ -196,9 +193,9 @@ const TECH_COPY = {
     },
   },
   'en-US': {
-    eyebrow: 'TECHNOLOGY STACK',
-    heading: 'Built on mature, transparent technology that teams can maintain',
-    lead: 'The logos are not a checklist. Each layer uses tools that fit its job: native capability on mobile, typed interaction on the Web, and explicit contracts and data boundaries on the server.',
+    eyebrow: 'BUILT ON PROVEN TOOLS',
+    heading: 'One stack, with every tool doing what it does best',
+    lead: 'uni-app x connects mobile platforms, React shapes the operations experience, Go and PostgreSQL carry the business and its data, and OpenAPI keeps every surface speaking the same language.',
     label: 'AppKernia technology stack',
     roles: {
       mobile: 'Mobile',
@@ -375,7 +372,6 @@ export function HomeProductShowcase({ locale }: { locale: HomeLocale }) {
           slides={copy.mobileSlides}
         />
       </div>
-      <p className="ak-proof-note">{copy.note}</p>
     </section>
   );
 }

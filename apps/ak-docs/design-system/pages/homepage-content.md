@@ -1,24 +1,27 @@
-# AKDOCS-004 — Homepage content, sliders, and technology stack
+# AKDOCS-005 — Author voice and connected-grid homepage
 
 ## Page intent
 
-- Make the existing long-form homepage content visible instead of stopping
-  after the Hero.
-- Give visitors three kinds of evidence in sequence: explicit capabilities,
-  recognizable implementation technologies, and authentic product surfaces.
-- Keep the marketing layer honest: no fake metrics, customer logos, reviews,
-  auto-playing media, or unsupported platform claims.
+- Speak as the author to developers: explain the problem, the product benefit,
+  the path to start, and the invitation to contribute.
+- Remove `HONEST MATURITY` and all delivery-report language from public copy.
+  Version and adoption guidance may remain when it helps a developer make a
+  decision, but it must be written as guidance rather than acceptance evidence.
+- Preserve the existing feature, technology, product-tour, quick-start, FAQ,
+  and community content while tightening hierarchy and repetition.
 
 ## Layout
 
-- `HomeLayout` places the Hero and MDX content in one main landmark and retains
-  Rspress extension points and footer behavior.
-- Six feature links use a 3/2/1-column grid with a single border and a 3 px
-  brand marker. Cards change color and shadow on hover/focus without moving.
-- Nine technology cards use three columns on desktop, two on tablets, and one
-  below 420 px so names and marks remain readable.
-- The product tour gives the wider Admin slider approximately 1.48 shares and
-  the Mobile slider 0.52 shares on desktop; they stack below 1100 px.
+- The homepage content rail is 1240 px wide with continuous left/right rules
+  and one border between sections.
+- Desktop sections use 12 columns: the small label sits in columns 1–3 and the
+  headline/lead begin at column 4. Below 768 px the section becomes one column.
+- Value, belief, surface, feature, technology, step, FAQ, and slider groups use
+  one outer border with 1 px internal grid lines. They have no floating shadow,
+  gradient top marker, or independent rounded shell.
+- Product screenshot devices may retain modest depth because the shadow
+  belongs to the mock device, not the page layout. Admin and Mobile sliders
+  stack below 1100 px.
 
 ## Slider interaction
 
@@ -29,12 +32,10 @@
 - Motion is limited to existing 180 ms state transitions and is removed by the
   global reduced-motion rule.
 
-## Evidence and logo boundaries
+## Copy and asset boundaries
 
-- Admin slides are repository screenshots from the isolated local Docker/API
-  environment. Mobile slides are iPhone 16 Pro / iOS 18.6 simulator evidence.
-- The gallery does not claim production, iOS hardware, Android runtime, or
-  HarmonyOS runtime acceptance.
+- Public captions describe product capability and workflow; they do not read
+  like a test report. Runtime provenance remains in the AKDOCS evidence folder.
 - DCloud's official uni-app image is self-hosted; the remaining marks come from
   `simple-icons@16.27.0`. Technology marks identify dependencies and do not
   imply endorsement.

@@ -16,7 +16,7 @@ from playwright.async_api import (
 
 
 ROOT = Path(__file__).resolve().parents[3]
-EVIDENCE_ID = os.environ.get("AK_DOCS_EVIDENCE_ID", "AKDOCS-004")
+EVIDENCE_ID = os.environ.get("AK_DOCS_EVIDENCE_ID", "AKDOCS-005")
 EVIDENCE = ROOT / f"apps/ak-docs/artifacts/ui-ux-pro-max/{EVIDENCE_ID}/screenshots"
 AXE_PATH = ROOT / "apps/ak-admin/node_modules/axe-core/axe.min.js"
 BASE_URL = os.environ.get("AK_DOCS_PREVIEW_URL", "http://127.0.0.1:4175/AppKernia").rstrip("/")
@@ -170,11 +170,13 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
             featureCards: document.querySelectorAll('.ak-feature-card').length,
             technologyCards: document.querySelectorAll('.ak-tech-logo-card').length,
             productSliders: document.querySelectorAll('.ak-product-slider').length,
+            maturitySections: document.querySelectorAll('#maturity-title, .ak-maturity-grid').length,
           };
         }
         """
     )
     slider_interactions = None
+    delivery_copy_hits: list[str] = []
     if route in {"/", "/en-US/"}:
         sliders = page.locator(".ak-product-slider")
         admin_slider = sliders.nth(0)
@@ -274,8 +276,10 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
     if "what-is-appkernia" in route and metrics["galleryImages"] != 8:
         errors.append(f"expected 8 product gallery images, got {metrics['galleryImages']}")
     if route in {"/", "/en-US/"}:
-        if metrics["homeSections"] < 10:
-            errors.append(f"expected at least 10 home sections, got {metrics['homeSections']}")
+        if metrics["homeSections"] != 9:
+            errors.append(f"expected 9 home sections, got {metrics['homeSections']}")
+        if metrics["maturitySections"]:
+            errors.append(f"maturity section remains: {metrics['maturitySections']}")
         if metrics["featureCards"] != 6:
             errors.append(f"expected 6 feature cards, got {metrics['featureCards']}")
         if metrics["technologyCards"] != 9:
@@ -290,6 +294,22 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
             errors.append(f"slider interaction failed: {slider_interactions}")
         if not slider_interactions or slider_interactions["liveRegions"] != 2:
             errors.append(f"expected 2 slider live regions: {slider_interactions}")
+        home_text = (await page.locator(".ak-home-main").inner_text()).lower()
+        delivery_phrases = (
+            "honest maturity",
+            "本机隔离",
+            "运行证据",
+            "验收",
+            "不等同",
+            "不代表",
+            "local test environment",
+            "physical-device acceptance",
+            "platform evidence",
+            "separate delivery from aspiration",
+        )
+        delivery_copy_hits = [phrase for phrase in delivery_phrases if phrase.lower() in home_text]
+        if delivery_copy_hits:
+            errors.append(f"delivery-report copy remains: {delivery_copy_hits}")
     if console_errors:
         errors.append(f"console errors: {console_errors}")
     if failed_responses:
@@ -321,6 +341,7 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
         "metrics": metrics,
         "axeSeriousCritical": axe,
         "sliderInteractions": slider_interactions,
+        "deliveryCopyHits": delivery_copy_hits,
         "abortedRequests": failed_requests,
         "navigations": navigations,
         "errors": errors,

@@ -1,0 +1,373 @@
+[
+  {
+    "name": "home.zh-CN.light.375",
+    "url": "http://127.0.0.1:4175/AppKernia/",
+    "status": 200,
+    "theme": "light",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 375,
+      "scrollWidth": 375,
+      "brokenImages": [],
+      "overflowElements": [
+        {
+          "selector": ".ak-capability-table",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 353.0625,
+          "right": 566,
+          "width": 212.9375
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 353.0625,
+          "right": 566,
+          "width": 212.9375
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 353.0625,
+          "right": 566,
+          "width": 212.9375
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        }
+      ],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/AppKernia/", "http://127.0.0.1:4175/AppKernia/"],
+    "errors": []
+  },
+  {
+    "name": "home.zh-CN.light.768",
+    "url": "http://127.0.0.1:4175/AppKernia/",
+    "status": 200,
+    "theme": "light",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 768,
+      "scrollWidth": 768,
+      "brokenImages": [],
+      "overflowElements": [
+        {
+          "selector": ".ak-capability-table",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        }
+      ],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/AppKernia/", "http://127.0.0.1:4175/AppKernia/"],
+    "errors": []
+  },
+  {
+    "name": "home.zh-CN.light.1024",
+    "url": "http://127.0.0.1:4175/AppKernia/",
+    "status": 200,
+    "theme": "light",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "brokenImages": [],
+      "overflowElements": [],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/AppKernia/", "http://127.0.0.1:4175/AppKernia/"],
+    "errors": []
+  },
+  {
+    "name": "home.zh-CN.light.1440",
+    "url": "http://127.0.0.1:4175/AppKernia/",
+    "status": 200,
+    "theme": "light",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
+      "brokenImages": [],
+      "overflowElements": [],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/AppKernia/", "http://127.0.0.1:4175/AppKernia/"],
+    "errors": []
+  },
+  {
+    "name": "home.zh-CN.light.1920",
+    "url": "http://127.0.0.1:4175/AppKernia/",
+    "status": 200,
+    "theme": "light",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 1920,
+      "scrollWidth": 1920,
+      "brokenImages": [],
+      "overflowElements": [],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/AppKernia/", "http://127.0.0.1:4175/AppKernia/"],
+    "errors": []
+  },
+  {
+    "name": "home.en-US.dark.1440",
+    "url": "http://127.0.0.1:4175/AppKernia/en-US/",
+    "status": 200,
+    "theme": "dark",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
+      "brokenImages": [],
+      "overflowElements": [],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": [
+      "http://127.0.0.1:4175/AppKernia/en-US/",
+      "http://127.0.0.1:4175/AppKernia/en-US/"
+    ],
+    "errors": []
+  }
+]

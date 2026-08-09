@@ -1526,3 +1526,35 @@
 - GitHub Pages API 实查为 `build_type=workflow`、`https_enforced=true`、`cname=null`；中英文首页、uni-app Logo、Admin 图片和 Mobile 图片的 curl 请求均退出 0 并返回 HTTP 200。
 - 线上 Python Playwright + Chromium 退出 0：`zh-CN` / `en-US` 首页均为单一 H1、10 个首页内容区、6 张特性卡、9 张技术栈卡和 2 个 Slider；点击与键盘切换成功且 1.2 秒内无自动轮播，无页面级横向溢出、破图、console/page error、失败响应或 axe serious/critical 问题。
 - 公开地址为 `https://payhon.github.io/AppKernia/`。由于 Pages API 仍为 `cname=null`，本次不声明 `appkernia.com` 已绑定或可访问。
+
+## 2026-08-09 AKDOCS-005 首页作者叙事与横向版式交付报告
+
+### 任务目标与交付内容
+
+- 删除中英文首页 `HONEST MATURITY`，保留对开发者真正有用的选型、上手、能力与贡献信息。
+- 从作者身份重写 Hero、初心、三端价值、核心能力、技术栈、源码运行、产品展示、FAQ 和社区 CTA；公开页面不再出现面向项目所有者的验收、证据或交差措辞。
+- 以内容优先的 1240px / 12 列连续网格重排首页横向区块，统一浅色白、深色黑、1px 分隔线、单一蓝色强调和无位移交互；这是对 Vercel 通用信息层级原则的借鉴，不复制其视觉资产。
+- 保留现有 Admin/Mobile 双 Slider、9 项技术栈、6 张特性卡、路由、搜索、语言切换、暗色模式和 GitHub Pages Base Path。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `python3 tools/validate_blueprint.py`（`blueprint/backend`） | 0 | 16 对 migration、74 张表，0 errors / 0 warnings。 |
+| Admin / Mobile blueprint validators | 0 / 0 | Admin 45 菜单/55 路由；Mobile 38 路由/33 组件，0 errors / 0 warnings。 |
+| i18n validator / UI Skill check | 0 / 0 | `zh-CN`、`en-US` 与三端 reference pack 一致；仓库 UI Skill 可用且已执行。 |
+| `python3 -m py_compile apps/ak-docs/scripts/visual-check.py` | 0 | 首页验收脚本语法通过。 |
+| 文档全量 check（首轮） | 1 | 仅新生成的 `AKDOCS-005/screenshots/results.json` 未经过 Prettier；内容、类型与 lint 已通过。 |
+| 格式化后 `DOCS_ORIGIN=https://payhon.github.io DOCS_BASE=/AppKernia pnpm --dir apps/ak-docs check` | 0 | 113 个 API 引用、RSLint 12 文件、TypeScript strict、Prettier、66 页构建、语言 parity 与 Sitemap 全部通过。 |
+| `AK_DOCS_SAMPLE=home ... visual-check.py` | 0 | 375/768/1024/1440/1920 中文浅色及 1440 英文深色共 6 个状态通过；9 区块、6 特性卡、9 技术卡、2 Slider、0 maturity。 |
+
+### 纠正记录
+
+- 第一次使用普通 Rspress preview 时，站点未在本机挂载 `/AppKernia`，而构建 HTML 正确引用 Pages Base Path，导致图片请求与 Slider 断言失败；改用只读 Base Path 映射服务器复测后，全部资源、交互与页面断言通过。该问题只属于本地预览挂载方式，没有修改或弱化生产 Base Path。
+- 最终视觉结果中 375/768 的能力矩阵保留在自身横向滚动容器内，页面 `scrollWidth` 与 viewport 相等；1024/1440/1920 无溢出元素。
+
+### 设计证据与发布状态
+
+- [AKDOCS-005 decisions](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-005/decisions.md)、[review checklist](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-005/review-checklist.md)、[screenshots and results](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-005/screenshots/INDEX.md)。
+- Admin/Mobile 产品图沿用仓库已有验收素材；本轮没有重新运行 Admin、API 或 Mobile 业务环境，也不把文档视觉回归描述为新的终端运行验收。
+- GitHub Pages 发布、远端 SHA、Workflow 和线上页面将在提交后实查；`appkernia.com` 只有在 DNS、验证记录与 Pages Custom Domain 真实生效后才声明可访问。

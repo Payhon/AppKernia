@@ -1,14 +1,17 @@
 # AppKernia Docs Design System
 
 > Source: `ui-ux-pro-max` persisted output for `AppKernia Docs`, refreshed for
-> `AKDOCS-004` on 2026-08-09.
+> `AKDOCS-005` on 2026-08-09.
 
 ## Product direction
 
 - Product: open-source framework website and developer documentation.
 - Voice: precise, generous, credible, optimistic, community-first.
 - Style: Minimalism / Swiss grid with a restrained developer-tool atmosphere.
-- Homepage pattern: product story, architecture proof, real screenshots, adoption path, community CTA.
+- Homepage pattern: author-led product story, connected capability grid, product screenshots, adoption path, community CTA.
+- Public copy speaks from the project author to developers. Build logs, acceptance
+  boundaries, screenshot provenance, and delivery-report language belong in
+  internal evidence artifacts rather than the landing-page narrative.
 
 ## Color
 
@@ -43,7 +46,13 @@
   collapses, and below 768 px the sidebar uses the Rspress drawer.
 - At 1920 px, the left and right outer margins of the three-column shell must
   differ by no more than 2 CSS px.
-- Home sections use 12-column responsive grid and 72–112 px vertical rhythm.
+- Home sections use a 1240 px, 12-column responsive grid and 80–112 px vertical
+  rhythm. Eyebrows occupy columns 1–3 while the heading and lead begin at
+  column 4 on desktop, then collapse to one reading column below 768 px.
+- Homepage sections form one continuous bordered rail: neutral white/black
+  surfaces, 1 px dividers, square outer edges, minimal shadow, and one blue
+  accent. This follows the restrained grid logic of developer platforms such
+  as Vercel without copying their assets or product identity.
 - The custom home layout must render the authored MDX body after the Hero;
   frontmatter-only output is not an acceptable homepage implementation.
 - Breakpoints are verified at 375, 768, 1024, 1440, and 1920 px.
@@ -62,9 +71,9 @@
   stacks the browser and phones; mobile shows the Admin window and one phone.
 - No emoji icons, guessed brand logos, fake metrics, customer logos, star counts, or testimonials.
 - Every image has meaningful alt text; decorative layers are hidden from assistive technology.
-- Product galleries use repository acceptance screenshots only. Each caption
-  identifies the verified runtime and avoids implying coverage for another
-  platform, device, locale, or deployment environment.
+- Product galleries use repository screenshots only. Public captions explain
+  what a developer can do; runtime provenance and test boundaries remain in
+  the corresponding internal screenshot index.
 - Homepage product tours use two manual sliders: one Admin/Web and one Mobile.
   They never auto-advance, support buttons, dots, and keyboard arrow keys, and
   announce slide changes without adding visible duplicate captions.
@@ -87,10 +96,12 @@
 ## Cards
 
 - Homepage value cards are semantic links, not the Rspress `features` widget.
-- Each card has one 1 px border and one lightweight brand-color top marker.
+- Card groups share one outer border and 1 px internal dividers instead of
+  floating rounded rectangles. Cards use flat surfaces, square edges, no
+  decorative shadow, and a quiet background change on hover/focus.
 - Core-feature cards use a six-card grid at desktop, two columns at tablet, and
-  one column on narrow screens. Technology cards use a quieter three-column
-  logo grid and preserve each mark's recognizable brand color.
+  one column on narrow screens. Technology cards use the same connected
+  three-column grid and preserve each mark's recognizable brand color.
 - Do not add nested outlines, duplicated frames, tilt, shine, or moving hover
   geometry. Hover and keyboard focus may change color and shadow only.
 

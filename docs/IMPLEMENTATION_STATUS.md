@@ -562,3 +562,14 @@
 - `AKDOCS-004` 保存 request、Skill 输出、决策、页面 override、10 张截图与机器可读结果。功能提交 `dcc3a30` 已推送 `origin/main`，Docs Pages run `31294828773` 的 build/deploy 均为 success。
 - GitHub Pages 默认域名的中英文首页、uni-app Logo、Admin/Mobile 图片均返回 HTTP 200；线上 Chromium 复核两种语言均为 10 个内容区、6 张特性卡、9 项技术栈、2 个 Slider，交互、overflow、图片、console、请求与 axe serious/critical 全部通过。
 - 本轮没有重新运行 Admin/Mobile 业务环境，不声称生产业务环境、iOS 真机、Android 或 HarmonyOS 运行验收；Pages API 仍为 `cname=null`，因此只声明 `https://payhon.github.io/AppKernia/` 已更新。
+
+## 2026-08-09 文档站首页作者叙事与横向版式优化
+
+### 状态：本地完成，待 GitHub Pages 发布
+
+- 中英文首页删除 `HONEST MATURITY` 区块，并逐段移除面向项目所有者的验收、证据与交付口吻；公开文案统一为作者面向开发者的第一人称项目叙事、产品能力说明与贡献邀请。
+- 首页改为 1240px 内容轨道与桌面 12 列网格：区块通过连续 1px 分隔线形成统一横向节奏，标题、说明、卡片、能力矩阵、三步运行、产品 Slider、FAQ 与社区 CTA 使用同一视觉骨架。设计只借鉴 Vercel 的内容优先和结构化网格原则，不复制其品牌资产。
+- 卡片取消浮层阴影、渐变顶线和位移 hover，改为共享边界、单一强调色与背景色反馈；浅色主页为中性白，深色主页为中性黑，移动端在 768px 以下切换为单列连续结构。
+- `AKDOCS-005` 保存 UI Skill request/output、设计决策、页面规范、review checklist、10 张响应式截图与机器可读结果；6 个 Chromium 状态均为 HTTP 200、单一 H1、无页面级横向溢出或破图，axe serious/critical 为 0。
+- Slider 点击、键盘切换、2 个 live region 与不自动轮播断言全部通过；公开首页未发现 `HONEST MATURITY` 或面向验收交差的禁用词组。
+- 文档全量 check、113 个 API 引用、66 页双语构建、Backend/Admin/Mobile 蓝图、跨端 i18n、UI Skill 与 Python 语法校验均已通过；线上状态将在 Docs Pages Workflow 与实际页面核验后收口。
