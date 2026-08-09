@@ -8,11 +8,15 @@ import json
 import os
 from pathlib import Path
 
-from playwright.async_api import BrowserContext, async_playwright
+from playwright.async_api import (
+    BrowserContext,
+    TimeoutError as PlaywrightTimeoutError,
+    async_playwright,
+)
 
 
 ROOT = Path(__file__).resolve().parents[3]
-EVIDENCE = ROOT / "apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-002/screenshots"
+EVIDENCE = ROOT / "apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-003/screenshots"
 AXE_PATH = ROOT / "apps/ak-admin/node_modules/axe-core/axe.min.js"
 BASE_URL = os.environ.get("AK_DOCS_PREVIEW_URL", "http://127.0.0.1:4175/AppKernia").rstrip("/")
 
@@ -23,9 +27,40 @@ SAMPLES = (
     ("home.zh-CN.light.1440", "/", 1440, 900, "light"),
     ("home.zh-CN.light.1920", "/", 1920, 1080, "light"),
     ("home.en-US.dark.1440", "/en-US/", 1440, 900, "dark"),
-    ("concepts.en-US.light.1920", "/en-US/concepts/", 1920, 1080, "light"),
-    ("guide.en-US.dark.1440", "/en-US/guide/", 1440, 900, "dark"),
+    ("what-is-appkernia.zh-CN.light.1440", "/guide/what-is-appkernia", 1440, 1000, "light"),
+    ("what-is-appkernia.en-US.dark.375", "/en-US/guide/what-is-appkernia", 375, 812, "dark"),
+    ("architecture.zh-CN.light.1920", "/concepts/architecture", 1920, 1080, "light"),
+    ("architecture.en-US.dark.1024", "/en-US/concepts/architecture", 1024, 900, "dark"),
+    ("authentication.zh-CN.light.768", "/concepts/authentication", 768, 1024, "light"),
+    ("concepts-index.zh-CN.light.1440", "/concepts/", 1440, 900, "light"),
+    ("concepts-index.en-US.dark.1440", "/en-US/concepts/", 1440, 900, "dark"),
+    ("authentication.en-US.dark.1440", "/en-US/concepts/authentication", 1440, 900, "dark"),
+    ("permissions-tenancy.zh-CN.light.1440", "/concepts/permissions-tenancy", 1440, 900, "light"),
+    ("permissions-tenancy.en-US.dark.1440", "/en-US/concepts/permissions-tenancy", 1440, 900, "dark"),
+    ("internationalization.zh-CN.light.1440", "/concepts/internationalization", 1440, 900, "light"),
+    ("internationalization.en-US.dark.1440", "/en-US/concepts/internationalization", 1440, 900, "dark"),
+    ("api-index.zh-CN.light.1440", "/api/", 1440, 900, "light"),
+    ("api-index.en-US.dark.1440", "/en-US/api/", 1440, 900, "dark"),
+    ("mobile-components-index.zh-CN.light.1440", "/mobile-components/", 1440, 900, "light"),
+    ("mobile-components-index.en-US.dark.1440", "/en-US/mobile-components/", 1440, 900, "dark"),
 )
+
+EXPECTED_DIAGRAMS = {
+    "/concepts/": 2,
+    "/en-US/concepts/": 2,
+    "/concepts/architecture": 4,
+    "/en-US/concepts/architecture": 4,
+    "/concepts/authentication": 3,
+    "/en-US/concepts/authentication": 3,
+    "/concepts/permissions-tenancy": 1,
+    "/en-US/concepts/permissions-tenancy": 1,
+    "/concepts/internationalization": 1,
+    "/en-US/concepts/internationalization": 1,
+    "/api/": 1,
+    "/en-US/api/": 1,
+    "/mobile-components/": 1,
+    "/en-US/mobile-components/": 1,
+}
 
 
 async def configure_theme(context: BrowserContext, theme: str) -> None:
@@ -76,6 +111,19 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
     # Rspress loads the local search index after hydration. Let that request
     # settle before assertions so closing the isolated context cannot cancel it.
     await page.wait_for_timeout(1000)
+    diagram_render_timeout = False
+    diagram_shells = await page.locator(".ak-diagram").count()
+    if diagram_shells:
+        try:
+            await page.wait_for_function(
+                """
+                expected => document.querySelectorAll('.ak-diagram svg').length === expected
+                """,
+                arg=diagram_shells,
+                timeout=15000,
+            )
+        except PlaywrightTimeoutError:
+            diagram_render_timeout = True
     status = response.status if response else 0
     metrics = await page.evaluate(
         """
@@ -111,6 +159,12 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
               width: outlineRect.right - sidebarRect.left,
             } : null,
             paragraphWidth: paragraph?.getBoundingClientRect().width ?? null,
+            diagramShells: document.querySelectorAll('.ak-diagram').length,
+            diagramSvgs: document.querySelectorAll('.ak-diagram svg').length,
+            diagramTitles: document.querySelectorAll('.ak-diagram svg title').length,
+            diagramDescriptions: document.querySelectorAll('.ak-diagram svg desc').length,
+            rawMermaidBlocks: document.querySelectorAll('pre code.language-mermaid, .language-mermaid').length,
+            galleryImages: document.querySelectorAll('.ak-product-gallery img').length,
           };
         }
         """
@@ -147,6 +201,32 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
         errors.append(f"horizontal overflow {metrics['scrollWidth']} > {metrics['viewportWidth']}")
     if metrics["brokenImages"]:
         errors.append(f"broken images: {metrics['brokenImages']}")
+    if diagram_render_timeout:
+        errors.append(
+            f"Mermaid render timeout: {metrics['diagramSvgs']} of {metrics['diagramShells']} diagrams"
+        )
+    if metrics["diagramShells"] != metrics["diagramSvgs"]:
+        errors.append(
+            f"expected one SVG per diagram shell: {metrics['diagramSvgs']} of {metrics['diagramShells']}"
+        )
+    if metrics["diagramSvgs"]:
+        if metrics["diagramTitles"] != metrics["diagramSvgs"]:
+            errors.append(
+                f"diagram titles missing: {metrics['diagramTitles']} of {metrics['diagramSvgs']}"
+            )
+        if metrics["diagramDescriptions"] != metrics["diagramSvgs"]:
+            errors.append(
+                f"diagram descriptions missing: {metrics['diagramDescriptions']} of {metrics['diagramSvgs']}"
+            )
+    if metrics["rawMermaidBlocks"]:
+        errors.append(f"raw Mermaid source blocks remain: {metrics['rawMermaidBlocks']}")
+    expected_diagrams = EXPECTED_DIAGRAMS.get(route)
+    if expected_diagrams is not None and metrics["diagramShells"] != expected_diagrams:
+        errors.append(
+            f"expected {expected_diagrams} diagram shells, got {metrics['diagramShells']}"
+        )
+    if "what-is-appkernia" in route and metrics["galleryImages"] != 8:
+        errors.append(f"expected 8 product gallery images, got {metrics['galleryImages']}")
     if console_errors:
         errors.append(f"console errors: {console_errors}")
     if failed_responses:
@@ -200,7 +280,11 @@ async def main() -> int:
             results.append(await inspect_sample(browser, *sample))
         await browser.close()
 
-    print(json.dumps(results, indent=2, ensure_ascii=False))
+    serialized_results = json.dumps(results, indent=2, ensure_ascii=False)
+    (EVIDENCE / "results.json").write_text(
+        f"{serialized_results}\n", encoding="utf-8"
+    )
+    print(serialized_results)
     return 1 if any(result["errors"] for result in results) else 0
 
 

@@ -798,6 +798,191 @@ html.dark .rp-home-background {
   color: var(--ak-ink);
 }
 
+.ak-diagram {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 28px 0 14px;
+  border: 1px solid var(--ak-line);
+  border-radius: 20px;
+  padding: clamp(20px, 3vw, 32px);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--ak-brand) 4%, transparent), transparent 44%),
+    var(--ak-surface);
+  scrollbar-color: color-mix(in srgb, var(--ak-brand) 38%, var(--ak-line)) transparent;
+}
+
+.ak-diagram > div {
+  width: 100%;
+  min-width: 680px;
+}
+
+.ak-diagram svg {
+  display: block;
+  width: 100% !important;
+  max-width: none !important;
+  height: auto !important;
+  margin: 0 auto;
+}
+
+.ak-diagram svg .node rect,
+.ak-diagram svg .node circle,
+.ak-diagram svg .node ellipse,
+.ak-diagram svg .node polygon,
+.ak-diagram svg .actor,
+.ak-diagram svg .labelBox {
+  fill: color-mix(in srgb, var(--ak-brand) 8%, var(--ak-surface)) !important;
+  stroke: color-mix(in srgb, var(--ak-brand) 56%, var(--ak-line)) !important;
+}
+
+.ak-diagram svg .cluster rect {
+  fill: color-mix(in srgb, var(--ak-cyan) 5%, var(--ak-surface)) !important;
+  stroke: var(--ak-line) !important;
+}
+
+.ak-diagram svg text,
+.ak-diagram svg .nodeLabel,
+.ak-diagram svg .labelText,
+.ak-diagram svg .messageText,
+.ak-diagram svg .loopText {
+  fill: var(--ak-ink) !important;
+  color: var(--ak-ink) !important;
+}
+
+.ak-diagram svg .edgePath path,
+.ak-diagram svg .flowchart-link,
+.ak-diagram svg .messageLine0,
+.ak-diagram svg .messageLine1,
+.ak-diagram svg .actor-line {
+  stroke: color-mix(in srgb, var(--ak-brand) 52%, var(--ak-muted)) !important;
+}
+
+.ak-diagram svg marker path {
+  fill: color-mix(in srgb, var(--ak-brand) 52%, var(--ak-muted)) !important;
+  stroke: color-mix(in srgb, var(--ak-brand) 52%, var(--ak-muted)) !important;
+}
+
+.ak-diagram-summary,
+.ak-evidence-note {
+  max-width: 72ch;
+  margin: 0 0 28px;
+  color: var(--ak-muted);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.ak-diagram-summary::before {
+  margin-right: 8px;
+  color: var(--ak-brand-strong);
+  content: '—';
+}
+
+.ak-name-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 100%;
+  margin: 28px 0 32px;
+  gap: 14px;
+}
+
+.ak-name-grid > div {
+  display: grid;
+  min-height: 150px;
+  align-content: start;
+  border: 1px solid var(--ak-line);
+  border-radius: 18px;
+  padding: 24px;
+  background: var(--ak-surface);
+}
+
+.ak-name-grid strong {
+  color: var(--ak-brand-strong);
+  font-family: var(--rp-font-family-mono);
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.ak-name-grid span {
+  margin-top: 13px;
+  color: var(--ak-muted);
+  line-height: 1.72;
+}
+
+.ak-product-gallery {
+  display: grid;
+  max-width: 100%;
+  margin: 30px 0 34px;
+  gap: 18px;
+}
+
+.ak-product-gallery--admin {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ak-product-gallery--mobile {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ak-product-gallery figure {
+  overflow: hidden;
+  min-width: 0;
+  margin: 0;
+  border: 1px solid var(--ak-line);
+  border-radius: 18px;
+  background: var(--ak-surface);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.ak-product-gallery figure > p {
+  max-width: none;
+  margin: 0;
+}
+
+.ak-product-gallery img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: var(--ak-surface-soft);
+}
+
+.ak-product-gallery--admin img {
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  object-position: top left;
+}
+
+.ak-product-gallery--mobile img {
+  aspect-ratio: 1206 / 2622;
+  object-fit: contain;
+  object-position: top;
+}
+
+.ak-product-gallery figcaption {
+  display: grid;
+  min-height: 112px;
+  align-content: start;
+  border-top: 1px solid var(--ak-line);
+  padding: 18px 19px 20px;
+  gap: 7px;
+}
+
+.ak-product-gallery figcaption strong {
+  color: var(--ak-ink);
+  font-size: 15px;
+}
+
+.ak-product-gallery figcaption span {
+  color: var(--ak-muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.ak-evidence-note {
+  border-left: 3px solid var(--ak-cyan);
+  padding-left: 16px;
+}
+
 .ak-endpoint {
   display: inline-flex;
   align-items: center;
@@ -1005,6 +1190,32 @@ html.dark .ak-endpoint--delete {
 
   .ak-community-panel {
     border-radius: 18px;
+  }
+
+  .ak-diagram {
+    margin-inline: 0;
+    border-radius: 16px;
+    padding: 18px;
+  }
+
+  .ak-name-grid,
+  .ak-product-gallery--admin {
+    grid-template-columns: 1fr;
+  }
+
+  .ak-product-gallery--mobile {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 520px) {
+  .ak-product-gallery--mobile {
+    grid-template-columns: 1fr;
+  }
+
+  .ak-product-gallery--mobile figure {
+    max-width: 320px;
+    margin-inline: auto;
   }
 }
 

@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { defineConfig, type UserConfig } from '@rspress/core';
 import { pluginSitemap } from '@rspress/plugin-sitemap';
+import pluginMermaid from 'rspress-plugin-mermaid';
 import { rehypeA11y } from './plugins/rehype-a11y';
 
 const siteOrigin = process.env.DOCS_ORIGIN?.trim() || 'https://appkernia.com';
@@ -42,6 +43,20 @@ const config: UserConfig = {
     enabled: true,
   },
   plugins: [
+    pluginMermaid({
+      mermaidConfig: {
+        securityLevel: 'strict',
+        fontFamily:
+          'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',
+        flowchart: {
+          htmlLabels: false,
+          useMaxWidth: true,
+        },
+        sequence: {
+          useMaxWidth: true,
+        },
+      },
+    }),
     pluginSitemap({
       defaultChangeFreq: 'weekly',
       defaultPriority: '0.7',

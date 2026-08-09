@@ -7,13 +7,26 @@ description: Real ak-* components currently available in AppKernia Mobile.
 
 Business pages use components exported by `apps/ak-mobile/components/ak-ui`. AK UI isolates tokens, platform compatibility, touch sizing, event types, and the underlying uView or native implementation.
 
-```text
-Feature Page
-    ↓
-AK UI (ak-*)
-    ↓
-uView Ultra (up-*) / uni native / platform adapter
+<div className="ak-diagram" role="group" aria-label="AK Mobile component adapter layer">
+
+```mermaid
+flowchart TD
+  accTitle: AK Mobile component adapter layer
+  accDescr: Feature pages depend only on the public ak-* layer; AK UI normalizes semantic properties, events, state, and tokens before selecting uView Ultra, a uni native component, or a platform adapter.
+  Page["Feature page<br/>business state and translated copy"] --> Public["AK UI · ak-*<br/>stable props / events / slots"]
+  Public --> State["Loading / empty / error / disabled"]
+  Public --> Token["Design tokens / touch / accessibility"]
+  Public --> UView["uView Ultra · up-*"]
+  Public --> Native["uni native component"]
+  Public --> Adapter["Platform adapter"]
+  UView --> Platforms["Android / iOS / HarmonyOS"]
+  Native --> Platforms
+  Adapter --> Platforms
 ```
+
+</div>
+
+<p className="ak-diagram-summary">Pages see only the stable semantic `ak-*` contract, while underlying libraries and platform differences stay in the adapter layer. Compatibility fixes do not require every business page to change.</p>
 
 <div class="ak-doc-callout"><strong>Scope</strong>This reference only documents components that exist in the current source. Conditional or not-yet-implemented entries such as AkPicker, AkDatePicker, and AkTabs are not presented as available.</div>
 

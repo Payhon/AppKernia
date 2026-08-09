@@ -1435,3 +1435,37 @@
 
 - `main` 的文档路径变更会触发既有 `Docs Pages` Workflow；远端 run、head SHA、GitHub Pages 页面与静态资源由提交后实查收口。
 - `appkernia.com` 只有在 A/AAAA/CNAME、GitHub 域名验证和 Pages Custom Domain 真实生效后才可声明上线；在此之前继续以 `https://payhon.github.io/AppKernia/` 为公开地址。
+
+## 2026-08-09 AKDOCS-003 项目叙事与架构图交付报告
+
+### 交付内容
+
+- 在向导中新增中英文“什么是 AppKernia?”，补全项目由来、开发者初心、品牌命名解释、技术选型、当前边界、未来方向、贡献阶梯与 Star 引导。
+- 使用仓库可追溯验收素材增加 4 张 Admin 与 4 张 Mobile 功能截图，覆盖应用、内容、移动发布、存储、文章、通知、登录与个人中心；图片和说明不包含凭据、Token 或生产个人数据。
+- 引入固定版本的 Mermaid Rspress 社区插件，将核心契约、受保护请求、总体/三端架构、登录、Refresh Rotation、会话失效、多租户、语言解析、API 与 AK UI 适配流程渲染为可访问 SVG。
+- 新增主题级图表、产品画廊和证据边界样式，并用 Layout 包装器让 Rspress 表格和图表的可滚动区域可经键盘聚焦。
+- `AKDOCS-003` 保存 Skill request/output/decisions/checklist、22 张验收截图、索引和机器可读 `results.json`。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `python3 tools/validate_blueprint.py`（`blueprint/backend`） | 0 | 16 对 migration、74 张表，0 errors / 0 warnings。 |
+| Admin / Mobile blueprint validators | 0 / 0 | Admin 45 菜单/55 路由；Mobile 38 路由/33 组件，0 errors / 0 warnings。 |
+| i18n validator / UI Skill check | 0 / 0 | `zh-CN`、`en-US` 和三端 reference pack 一致；Skill 脚本存在。 |
+| Node 24.18.1 `pnpm --dir apps/ak-docs check` | 0 | 113 个 API 引用、RSLint 10 文件、TypeScript、Prettier、66 页构建与语言 parity 全部通过。 |
+| `apps/ak-docs/scripts/visual-check.py` | 0 | 22 个 Chromium 状态、14 个中英文图表路由、26 张 Mermaid SVG；HTTP/H1/overflow/图片/console/资源/axe 均通过。 |
+| GitHub Pages Base Path 静态检查 | 0 | 5 个代表 HTML 与 58 个引用/产品资源存在，未发现误用根路径 `/static`。 |
+| `python3 -m py_compile apps/ak-docs/scripts/visual-check.py` / `git diff --check` | 0 / 0 | 验收脚本语法与最终文本补丁通过。 |
+
+### 纠正记录
+
+- 首次 `mise exec -- pnpm ...` 因 mise 尝试联网安装已固定的 pnpm，遇到 GitHub API 403 rate limit 后退出 1；改为把本机已安装的 Node 24.18.1 放入 PATH 并复用 pnpm 11.18.0，最终全量 check 退出 0。
+- Node 24 首轮格式检查发现新截图索引与 `results.json` 未按 Prettier 排版，退出 1；格式化后重跑全量 check 退出 0，未隐藏首轮失败。
+
+### 设计、截图与验证边界
+
+- [AKDOCS-003 decisions](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-003/decisions.md)、[review checklist](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-003/review-checklist.md)、[screenshots and results](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-003/screenshots/INDEX.md)。
+- Admin 图来自仓库记录的本地 API/Admin Chromium 验收；Mobile 图来自仓库记录的 iPhone 16 Pro / iOS 18.6 模拟器验收。本轮没有重新执行 Admin/Mobile 业务运行，不把文档构建或历史素材复用描述为新的应用运行结果。
+- Mobile 素材继续受标准基座数据容器刷新边界约束，不代表 HBuilderX 一键同步、自定义基座安全存储、iOS 真机、Android、HarmonyOS、Release 签名或上架验收。
+- 本节记录提交前本地闭环；Git commit、远端 SHA、Pages Workflow 和线上 URL 将在真实发布后追加记录。

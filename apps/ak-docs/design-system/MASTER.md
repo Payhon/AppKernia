@@ -1,7 +1,7 @@
 # AppKernia Docs Design System
 
 > Source: `ui-ux-pro-max` persisted output for `AppKernia Docs`, refreshed for
-> `AKDOCS-002` on 2026-08-09.
+> `AKDOCS-003` on 2026-08-09.
 
 ## Product direction
 
@@ -60,6 +60,22 @@
   stacks the browser and phones; mobile shows the Admin window and one phone.
 - No emoji icons, guessed brand logos, fake metrics, customer logos, star counts, or testimonials.
 - Every image has meaningful alt text; decorative layers are hidden from assistive technology.
+- Product galleries use repository acceptance screenshots only. Each caption
+  identifies the verified runtime and avoids implying coverage for another
+  platform, device, locale, or deployment environment.
+
+## Technical diagrams
+
+- Render flowcharts and sequence diagrams with the Rspress-compatible Mermaid
+  plugin; never publish Mermaid source as the primary reading experience.
+- Every diagram supplies an accessible title and description plus a concise
+  prose summary that remains useful when SVG rendering is unavailable.
+- Architecture diagrams use a left-to-right flow on desktop, readable labels,
+  no decorative animation, and horizontal containment on narrow screens.
+- Use one visual question per diagram. Separate the overall system, Admin,
+  Server, and Mobile diagrams instead of forcing every layer into one canvas.
+- Diagrams must react to Rspress light/dark mode, keep text contrast at WCAG AA,
+  and preserve keyboard and page-level horizontal-scroll behavior.
 
 ## Cards
 

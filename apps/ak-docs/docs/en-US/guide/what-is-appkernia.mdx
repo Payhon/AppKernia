@@ -1,0 +1,165 @@
+---
+title: What is AppKernia?
+description: Learn the origin, name, integrated architecture, technology choices, and future of AppKernia.
+---
+
+# What is AppKernia?
+
+AppKernia is an open-source foundation for real application projects. It places Mobile, Admin, and Server under one set of contracts for identity, authorization, security, internationalization, and engineering quality, so developers can begin from a running system instead of rebuilding sign-in, users, tenants, files, notifications, and an operations console every time.
+
+It is neither an Admin template with a mobile shell nor a cross-platform UI kit alone. AppKernia addresses a longer journey: from the first app launch, through an operator's Admin workflow, to the API, Worker, and PostgreSQL safely completing the business operation.
+
+<div className="ak-doc-callout">
+  <strong>In one sentence</strong>Mobile owns the user experience, Admin owns operations workflows,
+  Server owns trusted business facts, and shared OpenAPI, permissions, and data contracts keep all
+  three aligned.
+</div>
+
+## Why this project exists
+
+By 2026, the maintainer kept meeting the same gap while building apps. Mobile frameworks are plentiful, as are Admin starters and backend templates. But when one product needs an App, an operations console, authentication and sessions, multi-tenancy, internationalization, and especially a serious HarmonyOS path, developers still end up joining several systems that were never designed to agree.
+
+The expensive work is often not the first business screen. It is the foundation every product needs but few teams can afford to get wrong: where tokens live, how Admin and Mobile identities stay isolated, how permissions reach SQL, how two languages cross API and UI boundaries, how components contain platform differences, and how a contract change avoids drifting across three clients.
+
+AppKernia begins with that frustration. It does not decide a product's domain for its developers; it aims to build the repetitive, fragile, important groundwork together. An independent developer or a small team can then spend more time on the product that makes their work unique instead of rebuilding infrastructure for the first month.
+
+## What the name means
+
+The project's intended naming story has three parts:
+
+<div className="ak-name-grid">
+  <div>
+    <strong>App</strong>
+    <span>
+      Start from the application in a user's hand, including installation, sessions, notifications,
+      and platform experience.
+    </span>
+  </div>
+  <div>
+    <strong>Kern</strong>
+    <span>
+      Express the kernel or core: identity, contracts, authorization, data, and quality become a
+      reusable foundation.
+    </span>
+  </div>
+  <div>
+    <strong>-ia</strong>
+    <span>
+      Suggest a place that can grow, where different products build their own domain on a shared
+      core.
+    </span>
+  </div>
+  <div>
+    <strong>AK</strong>
+    <span>
+      A compact engineering name used across `ak-api`, `ak-admin`, `ak-mobile`, and the `ak-*` UI
+      layer.
+    </span>
+  </div>
+</div>
+
+This is the product's own brand interpretation. AppKernia is not intended to lock every domain into one enormous platform; it aims to be a trustworthy, open application kernel that teams can extend.
+
+## Why these technologies
+
+The stack follows long-term boundaries and maintainability rather than a popularity checklist.
+
+| Surface              | Core choices                                         | Why                                                                                                                                                                                    |
+| -------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Mobile               | uni-app x, UTS/UVue, VDOM, AK UI                     | Address Android, iOS, and HarmonyOS from one business layer while containing platform differences behind ports and adapters. Availability still requires real evidence on each target. |
+| Admin                | React, strict TypeScript, Vite, TanStack, Ant Design | Fit a type-safe operations SPA with complex forms and testable data workflows. Static routes stay separate from dynamic menus so unknown code is never executed.                       |
+| Server               | GoFrame, pgx/v5, sqlc, PostgreSQL 18                 | Keep Go boundaries explicit and use PostgreSQL transactions and constraints without hiding tenant filters, locks, or critical SQL behind an ORM.                                       |
+| Contract             | OpenAPI 3.1, generated clients, bilingual contract   | Make fields, error codes, audiences, and language rules shared facts instead of verbal agreements.                                                                                     |
+| Async and operations | River, transactional outbox, OpenTelemetry           | Separate internal jobs from external events and preserve retry, audit, and observability boundaries from the start.                                                                    |
+
+Read [Architecture](../concepts/architecture) to see how these parts connect, or go directly to [Run from source](./quick-start) if you want to try the system first.
+
+## Real Admin features
+
+These images come from recorded local Chromium acceptance with a local Go API and an isolated PostgreSQL database. They contain no production account, customer data, or real secret.
+
+<div className="ak-product-gallery ak-product-gallery--admin">
+  <figure>
+
+![AppKernia Admin application management with a local acceptance app, registration settings, and active status](/screenshots/admin-applications.png)
+
+  <figcaption><strong>Application management</strong><span>Maintain public capabilities, registration modes, and activation boundaries for each mobile app.</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia Admin article management with filters, status, and publishing actions](/screenshots/admin-content-management.png)
+
+  <figcaption><strong>Content management</strong><span>Articles, categories, bilingual content, and publishing state share one operations workflow.</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia Admin mobile release policy with platform version and minimum supported version](/screenshots/admin-mobile-releases.png)
+
+  <figcaption><strong>Mobile release policy</strong><span>Maintain current and minimum versions, release notes, and upgrade entry points by platform.</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia Admin cloud storage configuration with secret values kept out of the interface](/screenshots/admin-cloud-storage.jpg)
+
+  <figcaption><strong>System and storage configuration</strong><span>Configuration catalogs, tenant overrides, and protected editing share a controlled model.</span></figcaption>
+  </figure>
+</div>
+
+## Real Mobile features
+
+These images show HBuilderX 5.06 compiled resources running in an iPhone 16 Pro simulator on iOS 18.6. They prove rendering and interaction in that named simulator, not an iOS device, Android, HarmonyOS, or a production release.
+
+<div className="ak-product-gallery ak-product-gallery--mobile">
+  <figure>
+
+![AppKernia iOS simulator sign-in with email, password, recovery, registration, and legal-document links](/screenshots/mobile-login-ios.png)
+
+  <figcaption><strong>Sign-in and legal entry points</strong><span>Authentication, recovery, registration, and privacy consent begin at one security boundary.</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia iOS simulator notifications empty state and bottom navigation](/screenshots/mobile-notifications-ios.png)
+
+  <figcaption><strong>Notifications and states</strong><span>Messages, unread state, and retry paths use reusable AK UI status components.</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia iOS simulator article list with search, category, and empty state](/screenshots/mobile-articles-ios.png)
+
+  <figcaption><strong>Content consumption</strong><span>Search, categories, empty state, and safe back navigation form a real feature surface.</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia iOS simulator profile with personal data, security center, devices, notifications, and appearance entries](/screenshots/mobile-profile-ios.png)
+
+  <figcaption><strong>Profile and security</strong><span>Profile, session devices, notifications, language, and appearance meet in one account hub.</span></figcaption>
+  </figure>
+</div>
+
+<p className="ak-evidence-note">
+  The Mobile acceptance run encountered a stalled HBuilderX resource-sync phase, so the repository's
+  recorded standard-base data-container refresh loaded the newly compiled resources. The source
+  evidence documents that boundary; it does not prove one-click sync, a custom base, secure-storage
+  runtime behavior, or any physical device.
+</p>
+
+## Where it is going
+
+AppKernia is still moving toward its first stable Core release. The priority is not to accumulate more screens, but to close the loop across code, OpenAPI, database, two languages, and tests for identity, users, tenants, authorization, files, notifications, content, configuration, and the essential Mobile experience.
+
+Development follows three directions:
+
+1. **Stabilize the core:** finish critical security and concurrency paths, versioned migrations, generated clients, and repeatable local and CI acceptance.
+2. **Prove each platform:** continue collecting Android, iOS, and HarmonyOS build and real-device evidence instead of treating theoretical support as a runtime result.
+3. **Make the ecosystem contributable:** provide fuller example domains, a component gallery, module generators, extension ports, and approachable tasks for contributors.
+
+The roadmap communicates direction, not guaranteed dates. Capability status follows repository implementation, tests, and platform evidence. See the [Roadmap](./roadmap) and [implementation status](https://github.com/Payhon/AppKernia/blob/main/docs/IMPLEMENTATION_STATUS.md).
+
+## Join from here
+
+You do not need to understand the whole stack first. Correcting one sentence, adding a failed-path test, reproducing a platform issue, or improving one `ak-*` component are all useful contributions.
+
+- Try it first with the [quick start](./quick-start).
+- Understand the boundaries through [Core concepts](../concepts/) and the [Server API](../api/).
+- Choose a contribution level in the [contribution guide](../community/contributing).
+- If this direction solves a problem you also feel, [Star AppKernia on GitHub](https://github.com/Payhon/AppKernia) so more developers can find it earlier.

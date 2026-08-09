@@ -19,17 +19,29 @@ Admin and Mobile tokens are not interchangeable. `X-AppID` selects a public acti
 
 ## Authentication flow
 
-```text
-Sign in / register
-    ↓
-Server verifies identity + audience + app membership
-    ↓
-Short-lived access token + rotating refresh token
-    ↓
-Protected calls → explicit refresh flow on expiry
-    ↓
-Successful refresh revokes the old chain; sign-out or risk revokes the session
+<div className="ak-diagram" role="group" aria-label="AppKernia API authentication and refresh flow">
+
+```mermaid
+flowchart TD
+  accTitle: AppKernia API authentication and refresh flow
+  accDescr: After sign-in or registration the server verifies identity, audience, and app membership, issues short-lived access and rotating refresh credentials, uses explicit refresh on access expiry, and revokes the session on sign-out or risk.
+  Start["Sign in / register"] --> Verify["Verify identity + audience + app membership"]
+  Verify --> Issue["Issue short-lived access + one-time refresh"]
+  Issue --> Protected["Protected request"]
+  Protected -->|"Access valid"| Success["Return business response"]
+  Protected -->|"401 / access expired"| Refresh["Single-flight refresh"]
+  Refresh -->|"Rotation succeeds"| Rotate["Consume old hash + create new hash"]
+  Rotate --> Protected
+  Refresh -->|"Replay / revoked / expired"| Revoke["Revoke session family"]
+  Success --> Risk{"Sign-out or risk event?"}
+  Risk -->|"No"| Protected
+  Risk -->|"Yes"| Revoke
+  Revoke --> SignIn["Clear client identity and sign in again"]
 ```
+
+</div>
+
+<p className="ak-diagram-summary">Admin and Mobile use separate entry points and audiences. Refresh is a controlled one-time session rotation, not an automatic replay mechanism for arbitrary failed requests.</p>
 
 Admin and Mobile have separate entry points and audiences. A client must not blindly replay a failed write; automatic retry is allowed only when the endpoint has explicit idempotency semantics described in [conventions](./conventions).
 

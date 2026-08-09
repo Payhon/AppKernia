@@ -21,17 +21,29 @@ Admin 与 Mobile Token 不能互换。`X-AppID` 只选择一个公开、启用�
 
 ## 认证流程
 
-```text
-登录 / 注册
-    ↓
-服务端验证身份 + Audience + App membership
-    ↓
-Access Token（短期） + Refresh Token（轮换）
-    ↓
-受保护请求 → 过期时仅通过明确刷新流程恢复
-    ↓
-刷新成功撤销旧链；退出或风险事件撤销 Session
+<div className="ak-diagram" role="group" aria-label="AppKernia API 认证与刷新流程">
+
+```mermaid
+flowchart TD
+  accTitle: AppKernia API 认证与刷新流程
+  accDescr: 登录或注册后服务端验证身份、Audience 与 App membership，签发短期访问令牌和轮换刷新令牌；访问令牌过期时只走明确刷新，退出或风险事件撤销会话。
+  Start["登录 / 注册"] --> Verify["验证身份 + Audience + App membership"]
+  Verify --> Issue["签发短期 Access + 一次性 Refresh"]
+  Issue --> Protected["受保护请求"]
+  Protected -->|"Access 仍有效"| Success["返回业务响应"]
+  Protected -->|"401 / Access 过期"| Refresh["single-flight Refresh"]
+  Refresh -->|"轮换成功"| Rotate["消费旧 Hash + 创建新 Hash"]
+  Rotate --> Protected
+  Refresh -->|"重放 / 撤销 / 过期"| Revoke["撤销 Session Family"]
+  Success --> Risk{"退出或风险事件？"}
+  Risk -->|"否"| Protected
+  Risk -->|"是"| Revoke
+  Revoke --> SignIn["清理客户端身份并重新登录"]
 ```
+
+</div>
+
+<p className="ak-diagram-summary">Admin 与 Mobile 使用不同入口和 Audience；刷新是受控的单次会话轮换，不是对任意失败请求的自动重放。</p>
 
 Admin 和 Mobile 使用不同入口与 Audience。客户端不能把一次失败写请求盲目重放；只有接口明确具备幂等语义并满足[幂等约定](./conventions)时才可自动重试。
 

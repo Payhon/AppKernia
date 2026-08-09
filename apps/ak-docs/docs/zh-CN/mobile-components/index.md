@@ -7,13 +7,26 @@ description: AppKernia 移动端真实可用的 ak-* 组件与使用规则。
 
 业务页面只能使用 `apps/ak-mobile/components/ak-ui` 暴露的 `ak-*` 组件。AK UI 隔离视觉 Token、平台兼容、触控尺寸、事件类型和底层 uView / uni 原生实现。
 
-```text
-Feature Page
-    ↓
-AK UI (ak-*)
-    ↓
-uView Ultra (up-*) / uni native / platform adapter
+<div className="ak-diagram" role="group" aria-label="AK Mobile 组件适配层">
+
+```mermaid
+flowchart TD
+  accTitle: AK Mobile 组件适配层
+  accDescr: 业务页面只依赖 ak-* 公共组件，AK UI 统一语义属性、事件、状态和 Token，再按能力落到 uView Ultra、uni 原生组件或平台 Adapter。
+  Page["Feature Page<br/>业务状态与翻译文案"] --> Public["AK UI · ak-*<br/>稳定 Props / Event / Slot"]
+  Public --> State["Loading / Empty / Error / Disabled"]
+  Public --> Token["Design Token / 触控 / 可访问性"]
+  Public --> UView["uView Ultra · up-*"]
+  Public --> Native["uni native component"]
+  Public --> Adapter["platform adapter"]
+  UView --> Platforms["Android / iOS / HarmonyOS"]
+  Native --> Platforms
+  Adapter --> Platforms
 ```
+
+</div>
+
+<p className="ak-diagram-summary">页面只看到 `ak-*` 的稳定语义契约，底层库和平台差异留在适配层；因此替换实现或修复兼容性时不需要重写每个业务页面。</p>
 
 <div class="ak-doc-callout"><strong>文档范围</strong>本节只记录当前源码中真实存在的组件。兼容矩阵里尚未实现或仍为 conditional 的 AkPicker、AkDatePicker、AkTabs 等，不会在这里写成可直接使用。</div>
 

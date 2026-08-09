@@ -1,0 +1,150 @@
+---
+title: 什么是 AppKernia？
+description: 了解 AppKernia 的由来、名字、三端一体理念、技术选择与未来方向。
+---
+
+# 什么是 AppKernia？
+
+AppKernia 是一套面向真实 App 项目的开源开发基座：它把移动端、后台管理端和服务端放进同一套契约、权限、安全、国际化与工程流程里，让开发者可以从一个能运行的起点出发，而不是每次都重新拼装登录、用户、租户、文件、通知和管理后台。
+
+它不是一个套上移动端外壳的 Admin 模板，也不是只提供 UI 的跨端组件库。AppKernia 想解决的是更长的一段路：从用户第一次打开 App，到运营人员在后台管理数据，再到 API、Worker 和 PostgreSQL 安全地完成业务。
+
+<div className="ak-doc-callout">
+  <strong>一句话理解</strong>Mobile 负责用户体验，Admin 负责运营工作流，Server
+  负责可信业务事实；OpenAPI、权限与数据契约让三者持续对齐。
+</div>
+
+## 为什么会有这个项目
+
+时间来到 2026 年，作者在一次次开发 App 项目时仍然遇到同一个问题：移动端框架很多，Admin 脚手架也很多，服务端模板同样不少，但当一个项目需要同时覆盖 App、运营后台、认证会话、多租户、国际化，尤其还要认真面对 HarmonyOS 时，开发者往往只能自己把几套彼此陌生的系统接在一起。
+
+真正消耗人的，常常不是第一张业务页面，而是那些每个项目都必须做、却很难一次做对的基础工作：Token 应该存在哪里，Admin 和 Mobile 的身份如何隔离，权限怎样落到 SQL，双语如何贯穿 API 和界面，组件怎样在多个平台保持边界，接口变化又如何避免三端漂移。
+
+AppKernia 就从这个遗憾出发。它不试图替开发者决定业务，而是希望把重复、脆弱又重要的地基一起做好。这样，一个独立开发者或小团队也能把更多时间留给真正有价值的产品，而不是把第一个月都花在重新搭建脚手架上。
+
+## 名字的意义
+
+`AppKernia` 的命名叙事由三部分组成：
+
+<div className="ak-name-grid">
+  <div>
+    <strong>App</strong>
+    <span>从用户手中的应用出发，关注真实的安装、会话、通知与跨平台体验。</span>
+  </div>
+  <div>
+    <strong>Kern</strong>
+    <span>表达“内核”与“核心”：认证、契约、权限、数据和工程质量应成为可复用的稳定底座。</span>
+  </div>
+  <div>
+    <strong>-ia</strong>
+    <span>代表一个可以生长的空间：不同业务在共同核心之上形成自己的产品与生态。</span>
+  </div>
+  <div>
+    <strong>AK</strong>
+    <span>简短的工程代号，贯穿 `ak-api`、`ak-admin`、`ak-mobile` 与 `ak-*` UI 组件。</span>
+  </div>
+</div>
+
+这是一种项目自身的品牌解释：AppKernia 不是要成为一个把所有业务锁死的“大而全平台”，而是要做一颗可信、开放、可以被继续扩展的应用内核。
+
+## 为什么选择这套技术
+
+技术选择服务于边界和长期维护，而不是追逐一张热门技术清单。
+
+| 产品面      | 核心选择                                             | 选择原因                                                                                                         |
+| ----------- | ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Mobile      | uni-app x、UTS/UVue、VDOM、AK UI                     | 以同一业务层面向 Android、iOS 与 HarmonyOS，同时把平台差异关进 Port 与 Adapter；是否可用仍以各平台真实证据为准。 |
+| Admin       | React、TypeScript strict、Vite、TanStack、Ant Design | 适合类型安全的运营 SPA、复杂表单和可测试的数据工作流；静态路由与动态菜单分开，避免运行时执行未知代码。           |
+| Server      | GoFrame、pgx/v5、sqlc、PostgreSQL 18                 | 保留 Go 的显式边界与 PostgreSQL 的事务/约束能力，不用 ORM 隐藏租户过滤、锁和关键 SQL。                           |
+| Contract    | OpenAPI 3.1、生成客户端、双语契约                    | 让接口字段、错误码、Audience 与语言规则成为三端共同事实，而不是靠口头约定。                                      |
+| Async & ops | River、Transactional Outbox、OpenTelemetry           | 内部任务与外部事件职责分开，并从一开始保留可观测性、重试和审计边界。                                             |
+
+如果你想先理解这些部分如何连接，请继续阅读[总体架构](../concepts/architecture)；如果你只想把项目跑起来，可以直接进入[从源码开始](./quick-start)。
+
+## 真实的 Admin 功能
+
+下面的画面来自仓库记录的本地 Chromium 验收：使用本地 Go API 和隔离的 PostgreSQL 数据库，不包含生产账号、客户数据或真实密钥。
+
+<div className="ak-product-gallery ak-product-gallery--admin">
+  <figure>
+
+![AppKernia 后台应用管理页，显示本地验收应用、注册配置与启用状态](/screenshots/admin-applications.png)
+
+  <figcaption><strong>应用管理</strong><span>为不同移动应用维护公开能力、注册方式与启用边界。</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia 后台文章管理页，显示筛选、状态和发布操作](/screenshots/admin-content-management.png)
+
+  <figcaption><strong>内容管理</strong><span>文章、分类、双语内容与发布状态在同一运营工作流中管理。</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia 后台移动端发布策略页，显示平台版本和最低支持版本](/screenshots/admin-mobile-releases.png)
+
+  <figcaption><strong>移动发布策略</strong><span>按平台维护当前版本、最低版本、更新说明与升级入口。</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia 后台云存储配置页，敏感值未在界面中显示](/screenshots/admin-cloud-storage.jpg)
+
+  <figcaption><strong>系统与存储配置</strong><span>配置目录、租户覆盖和安全编辑策略共享同一套受控模型。</span></figcaption>
+  </figure>
+</div>
+
+## 真实的 Mobile 功能
+
+下面的画面来自 HBuilderX 5.06 编译资源在 iPhone 16 Pro、iOS 18.6 模拟器中的验收。它证明这些页面资源在该模拟器中渲染并可交互，不等同于 iOS 真机、Android、HarmonyOS 或生产发布验收。
+
+<div className="ak-product-gallery ak-product-gallery--mobile">
+  <figure>
+
+![AppKernia iOS 模拟器登录页，包含邮箱、密码、找回、注册和法律文档入口](/screenshots/mobile-login-ios.png)
+
+  <figcaption><strong>登录与法律入口</strong><span>认证、账号恢复、注册和隐私同意从同一安全边界开始。</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia iOS 模拟器消息页的空状态与底部导航](/screenshots/mobile-notifications-ios.png)
+
+  <figcaption><strong>消息与状态</strong><span>消息、未读状态与重试路径使用可复用的 AK UI 状态组件。</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia iOS 模拟器文章列表页，显示搜索、分类和空状态](/screenshots/mobile-articles-ios.png)
+
+  <figcaption><strong>内容消费</strong><span>搜索、分类、空状态和返回导航组成真实业务页面的基础形态。</span></figcaption>
+  </figure>
+  <figure>
+
+![AppKernia iOS 模拟器个人中心，显示资料、安全中心、设备、通知和外观入口](/screenshots/mobile-profile-ios.png)
+
+  <figcaption><strong>个人与安全</strong><span>资料、会话设备、通知、语言和外观集中在清晰的账户入口。</span></figcaption>
+  </figure>
+</div>
+
+<p className="ak-evidence-note">
+  移动端验收曾遇到 HBuilderX
+  资源同步停滞，因此使用仓库记录的标准基座数据容器刷新方案加载本次新编译资源。详细边界保留在原始截图索引中；此处不据此声称一键同步、自定义基座、安全存储运行时或任何真机通过。
+</p>
+
+## 现在与未来
+
+AppKernia 仍处于走向首个稳定 Core 版本的阶段。当前重点不是堆叠更多页面，而是让认证、用户、租户、权限、文件、通知、内容、配置和移动端基础体验在代码、OpenAPI、数据库、双语与测试之间真正闭环。
+
+接下来会沿着三条主线推进：
+
+1. **把核心做稳**：完成关键安全与并发路径、版本化迁移、生成客户端和可重复的本地/CI 验收。
+2. **把平台做实**：持续补齐 Android、iOS、HarmonyOS 的构建与真实设备证据，不用“理论支持”替代运行结果。
+3. **让生态可参与**：提供更完整的示例业务、组件画廊、模块生成器、扩展 Port 与贡献者友好的任务入口。
+
+路线图表达方向而不是承诺日期。每项能力是否完成，以仓库中的实现状态、测试和对应平台证据为准。你可以查看[路线图](./roadmap)和[项目实施状态](https://github.com/Payhon/AppKernia/blob/main/docs/IMPLEMENTATION_STATUS.md)。
+
+## 从这里加入
+
+你不需要先成为整个栈的专家：修正一句文档、补一个失败用例、复现一个平台问题、完善一个 `ak-*` 组件，都是有价值的贡献。
+
+- 想先体验：按[快速开始](./quick-start)完成第一次本地运行。
+- 想理解边界：阅读[核心概念](../concepts/)与[服务端 API](../api/)。
+- 想提交改动：从[贡献指南](../community/contributing)选择适合自己的贡献阶梯。
+- 如果这个方向也解决了你的痛点，欢迎在 [GitHub 为 AppKernia 点亮 Star](https://github.com/Payhon/AppKernia)，让更多开发者更早看到它。

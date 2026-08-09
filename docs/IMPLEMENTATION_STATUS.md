@@ -536,3 +536,14 @@
 - 使用公开注册接口创建本地测试用户；隔离验收库完成邮箱激活后，模拟器真实登录成功。重启应用仍恢复会话并进入 Home，证明本地自定义模拟器基座中的安全存储可读写。
 - 本地测试 API、隔离数据库和已登录模拟器保留运行，方便后续手工复测。账号凭据只在对话交付，不写入源码、文档或 fixture。
 - iOS 模拟器运行使用包含 `ak-secure-storage` 原生模块的本地重建基座；未执行 iOS 真机、Android/HarmonyOS 运行、真实 OTP 邮件收发或生产环境测试。
+
+## 2026-08-09 文档站项目叙事与架构可视化增强
+
+### 状态：本地交付与验收完成，等待 GitHub Pages 发布收口
+
+- 向导新增中英文“什么是 AppKernia?”，说明 2026 年项目由来、方便开发者的初心、品牌名的项目内解释、三端技术选型、当前阶段与未来方向，并提供贡献和 Star 路径。
+- 使用可追溯仓库证据扩展产品画廊：4 张 Admin 本地 Chromium 界面与 4 张 iPhone 16 Pro / iOS 18.6 模拟器界面；文案明确不等同于生产、iOS 真机、Android 或 HarmonyOS 运行验收。
+- Rspress 接入固定版本 `rspress-plugin-mermaid@1.0.1`，核心概念、总体架构、Admin/Web、Server、Mobile、认证会话、多租户、国际化、API 与 AK UI 流程均改为可访问 SVG 图，不再把流程源码直接展示给读者。
+- 中英文 14 个图表路由共渲染 26 张 SVG；每张均有标题、描述与紧邻的文字摘要。表格和图表滚动区支持键盘聚焦，配色覆盖明暗主题。
+- 最终 production-preview 门禁覆盖 22 个中英文/明暗/多视口状态，HTTP、单 H1、页面级 overflow、图片、console、失败资源、Mermaid 数量与 axe serious/critical 全部通过。
+- Backend、Admin、Mobile、跨端 i18n 与 UI Skill 五项校验通过；Node 24.18.1 文档全量 check、113 个 API 引用、66 页构建、GitHub `/AppKernia/` Base Path 静态资源核对及 `git diff --check` 通过。
