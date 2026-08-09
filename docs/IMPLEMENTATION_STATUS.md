@@ -9,7 +9,7 @@
 | Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环                                                                    | 当前 Admin backlog 已收口；生产 Adapter 联调见风险                                                        |
 | Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁                                                                                                                                                     | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险                                                        |
 | Mobile              | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证                        | Android/Harmony 安装运行、三端真机、签名/发布仍未完成                                                     |
-| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：66 个静态页面、零门槛向导、核心 API、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31299398867` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
+| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：66 个静态页面、零门槛向导、核心 API、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31299540867` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
 
 ## 2026-08-09 文档站品牌、实景 Hero 与内容优化
@@ -574,4 +574,5 @@
 - Slider 点击、键盘切换、2 个 live region 与不自动轮播断言全部通过；公开首页未发现 `HONEST MATURITY` 或面向验收交差的禁用词组。
 - 文档全量 check、113 个 API 引用、66 页双语构建、Backend/Admin/Mobile 蓝图、跨端 i18n、UI Skill 与 Python 语法校验均已通过。
 - 功能提交 `f730916` 已推送 `origin/main`；Docs Pages run `31299398867` 的 build/deploy 分别用时 45/10 秒并成功。线上中英文首页及 3 项静态资源均为 HTTP 200，Chromium 复核 3 个代表视口的结构、交互、文案、资源、console、网络与 axe serious/critical 全部通过。
+- 完整验收清单随记录提交 `6b1e4bf` 推送后，最终 Docs Pages run `31299540867` 再次通过，build/deploy 分别用时 50/8 秒；最终 Pages artifact 与清单均处于已发布状态。
 - Pages API 仍为 `build_type=workflow`、`https_enforced=true`、`cname=null`；当前公开地址为 `https://payhon.github.io/AppKernia/`，不声明 `appkernia.com` 已绑定。
