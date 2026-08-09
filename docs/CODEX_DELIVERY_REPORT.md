@@ -1517,4 +1517,12 @@
 
 - Admin 图来自仓库已有的本机 Docker/API Chromium 验收；Mobile 图来自已有的 iPhone 16 Pro / iOS 18.6 模拟器验收。本轮没有重新运行两个业务项目。
 - 不声称生产部署、iOS 真机、Android 或 HarmonyOS 运行通过；技术 Logo 不代表相关厂商背书。
-- 本轮未 commit、未 push、未触发 GitHub Pages；线上站点仍是上一发布版本。
+- 本轮未重新运行 Admin/Mobile 业务项目；发布事实与线上验收记录如下。
+
+### GitHub Pages 发布收口
+
+- `git commit -m "feat(docs): enrich homepage showcase"` 与 `git push origin main` 均退出 0；功能提交 `dcc3a30bfca1268322f6249f60e5fe3b8460cd99` 已推送 `origin/main`，发布时 `git ls-remote` 与本地 SHA 一致。
+- [Docs Pages run 31294828773](https://github.com/Payhon/AppKernia/actions/runs/31294828773) 的 `gh run watch --exit-status` 退出 0：build job `93198105500` 用时 45 秒，deploy job `93198175593` 用时 8 秒，artifact head SHA 为 `dcc3a30bfca1268322f6249f60e5fe3b8460cd99`。
+- GitHub Pages API 实查为 `build_type=workflow`、`https_enforced=true`、`cname=null`；中英文首页、uni-app Logo、Admin 图片和 Mobile 图片的 curl 请求均退出 0 并返回 HTTP 200。
+- 线上 Python Playwright + Chromium 退出 0：`zh-CN` / `en-US` 首页均为单一 H1、10 个首页内容区、6 张特性卡、9 张技术栈卡和 2 个 Slider；点击与键盘切换成功且 1.2 秒内无自动轮播，无页面级横向溢出、破图、console/page error、失败响应或 axe serious/critical 问题。
+- 公开地址为 `https://payhon.github.io/AppKernia/`。由于 Pages API 仍为 `cname=null`，本次不声明 `appkernia.com` 已绑定或可访问。
