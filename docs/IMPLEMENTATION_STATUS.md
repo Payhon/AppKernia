@@ -9,7 +9,7 @@
 | Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环                                                                    | 当前 Admin backlog 已收口；生产 Adapter 联调见风险                                                        |
 | Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁                                                                                                                                                     | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险                                                        |
 | Mobile              | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证                        | Android/Harmony 安装运行、三端真机、签名/发布仍未完成                                                     |
-| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：66 个静态页面、零门槛向导、核心 API、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页已包含 10 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31294828773` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
+| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：66 个静态页面、零门槛向导、核心 API、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31299398867` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
 
 ## 2026-08-09 文档站品牌、实景 Hero 与内容优化
@@ -565,11 +565,13 @@
 
 ## 2026-08-09 文档站首页作者叙事与横向版式优化
 
-### 状态：本地完成，待 GitHub Pages 发布
+### 状态：完成并发布（GitHub Pages artifact `f730916`）
 
 - 中英文首页删除 `HONEST MATURITY` 区块，并逐段移除面向项目所有者的验收、证据与交付口吻；公开文案统一为作者面向开发者的第一人称项目叙事、产品能力说明与贡献邀请。
 - 首页改为 1240px 内容轨道与桌面 12 列网格：区块通过连续 1px 分隔线形成统一横向节奏，标题、说明、卡片、能力矩阵、三步运行、产品 Slider、FAQ 与社区 CTA 使用同一视觉骨架。设计只借鉴 Vercel 的内容优先和结构化网格原则，不复制其品牌资产。
 - 卡片取消浮层阴影、渐变顶线和位移 hover，改为共享边界、单一强调色与背景色反馈；浅色主页为中性白，深色主页为中性黑，移动端在 768px 以下切换为单列连续结构。
 - `AKDOCS-005` 保存 UI Skill request/output、设计决策、页面规范、review checklist、10 张响应式截图与机器可读结果；6 个 Chromium 状态均为 HTTP 200、单一 H1、无页面级横向溢出或破图，axe serious/critical 为 0。
 - Slider 点击、键盘切换、2 个 live region 与不自动轮播断言全部通过；公开首页未发现 `HONEST MATURITY` 或面向验收交差的禁用词组。
-- 文档全量 check、113 个 API 引用、66 页双语构建、Backend/Admin/Mobile 蓝图、跨端 i18n、UI Skill 与 Python 语法校验均已通过；线上状态将在 Docs Pages Workflow 与实际页面核验后收口。
+- 文档全量 check、113 个 API 引用、66 页双语构建、Backend/Admin/Mobile 蓝图、跨端 i18n、UI Skill 与 Python 语法校验均已通过。
+- 功能提交 `f730916` 已推送 `origin/main`；Docs Pages run `31299398867` 的 build/deploy 分别用时 45/10 秒并成功。线上中英文首页及 3 项静态资源均为 HTTP 200，Chromium 复核 3 个代表视口的结构、交互、文案、资源、console、网络与 axe serious/critical 全部通过。
+- Pages API 仍为 `build_type=workflow`、`https_enforced=true`、`cname=null`；当前公开地址为 `https://payhon.github.io/AppKernia/`，不声明 `appkernia.com` 已绑定。

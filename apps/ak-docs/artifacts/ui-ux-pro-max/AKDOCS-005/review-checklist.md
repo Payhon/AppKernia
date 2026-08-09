@@ -9,4 +9,4 @@
 - [x] 375 / 768 / 1024 / 1440 / 1920 light/dark visual checks pass.
 - [x] Slider click, keyboard, live-region, and no-autoplay checks pass.
 - [x] Docs and blueprint/i18n gates pass.
-- [ ] GitHub Pages deployment and online verification pass.
+- [x] GitHub Pages deployment and online verification pass.

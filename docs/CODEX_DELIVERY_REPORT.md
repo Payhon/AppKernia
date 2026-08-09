@@ -1552,9 +1552,14 @@
 
 - 第一次使用普通 Rspress preview 时，站点未在本机挂载 `/AppKernia`，而构建 HTML 正确引用 Pages Base Path，导致图片请求与 Slider 断言失败；改用只读 Base Path 映射服务器复测后，全部资源、交互与页面断言通过。该问题只属于本地预览挂载方式，没有修改或弱化生产 Base Path。
 - 最终视觉结果中 375/768 的能力矩阵保留在自身横向滚动容器内，页面 `scrollWidth` 与 viewport 相等；1024/1440/1920 无溢出元素。
+- 首轮线上内联 Chromium 审计脚本重复读取已 `pop` 的文本字段，因 `KeyError: 'text'` 退出 1；修正审计脚本后原样重跑退出 0，未修改站点代码或降低断言。
 
-### 设计证据与发布状态
+### 设计证据与发布收口
 
 - [AKDOCS-005 decisions](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-005/decisions.md)、[review checklist](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-005/review-checklist.md)、[screenshots and results](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-005/screenshots/INDEX.md)。
 - Admin/Mobile 产品图沿用仓库已有验收素材；本轮没有重新运行 Admin、API 或 Mobile 业务环境，也不把文档视觉回归描述为新的终端运行验收。
-- GitHub Pages 发布、远端 SHA、Workflow 和线上页面将在提交后实查；`appkernia.com` 只有在 DNS、验证记录与 Pages Custom Domain 真实生效后才声明可访问。
+- `git commit -m "feat(docs): refine homepage voice and layout"` 与 `git push origin main` 均退出 0；功能提交 `f73091635a18ecc6a200279855907157cd8c28dc` 已推送 `origin/main`，发布时本地与远端 SHA 一致。
+- [Docs Pages run 31299398867](https://github.com/Payhon/AppKernia/actions/runs/31299398867) 的 `gh run watch --exit-status` 退出 0：build job `93209633691` 用时 45 秒，deploy job `93209706012` 用时 10 秒，head SHA 为 `f73091635a18ecc6a200279855907157cd8c28dc`。
+- Pages API 为 `build_type=workflow`、`https_enforced=true`、`cname=null`；中英文首页、Admin 图片、uni-app Logo 与 Sitemap 共 5 个 URL 均为 HTTP 200。
+- 线上 Python Playwright + Chromium 退出 0：中文 375/1440 与英文深色 1440 均为单一 H1、9 个首页区块、6 张特性卡、9 张技术卡、2 个 Slider、0 个 maturity 区块；交互、overflow、图片、禁用文案、console、请求与 axe serious/critical 全部通过。
+- 当前公开地址为 `https://payhon.github.io/AppKernia/`。由于 Pages API 仍为 `cname=null`，不声明 `appkernia.com` 已绑定或可访问。
