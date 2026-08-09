@@ -1468,4 +1468,12 @@
 - [AKDOCS-003 decisions](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-003/decisions.md)、[review checklist](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-003/review-checklist.md)、[screenshots and results](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-003/screenshots/INDEX.md)。
 - Admin 图来自仓库记录的本地 API/Admin Chromium 验收；Mobile 图来自仓库记录的 iPhone 16 Pro / iOS 18.6 模拟器验收。本轮没有重新执行 Admin/Mobile 业务运行，不把文档构建或历史素材复用描述为新的应用运行结果。
 - Mobile 素材继续受标准基座数据容器刷新边界约束，不代表 HBuilderX 一键同步、自定义基座安全存储、iOS 真机、Android、HarmonyOS、Release 签名或上架验收。
-- 本节记录提交前本地闭环；Git commit、远端 SHA、Pages Workflow 和线上 URL 将在真实发布后追加记录。
+
+### GitHub Pages 发布收口
+
+- 功能提交 `1f33598a9225f1325bbfeb9b5dd2acb704a9314d`（`feat(docs): enrich architecture and project story`）已推送 `origin/main`；发布前本地与远端 SHA 完全一致。
+- [Docs Pages run 31292063763](https://github.com/Payhon/AppKernia/actions/runs/31292063763) 为 `success`：build job `93190822016` 用时 45 秒，deploy job `93190887264` 用时 10 秒，artifact head SHA 为 `1f33598a9225f1325bbfeb9b5dd2acb704a9314d`。
+- GitHub Pages API 实查为 `build_type=workflow`、`https_enforced=true`、`cname=null`，公开地址为 `https://payhon.github.io/AppKernia/`。
+- curl 实查首页、中英文“什么是 AppKernia?”、中英文架构/认证页、Admin/Mobile 产品图片和 Sitemap 共 8 个 URL，全部 HTTP 200。
+- 线上 Python Playwright + Chromium 复核 7 个代表路由：每页单一 H1、无页面级横向溢出、破图、console error 或失败资源；项目介绍各加载 8 张产品图，架构 4 张 SVG、认证 3 张 SVG，其余抽样流程图均按预期渲染；axe serious/critical 为 0。
+- `appkernia.com` 当前仍无 A/AAAA，`www.appkernia.com` 无 CNAME，GitHub Pages 验证 TXT 未配置，HTTPS 连接失败；因此本次只声明 GitHub Pages 默认域名上线。

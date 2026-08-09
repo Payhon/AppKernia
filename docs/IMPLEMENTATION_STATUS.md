@@ -539,7 +539,7 @@
 
 ## 2026-08-09 文档站项目叙事与架构可视化增强
 
-### 状态：本地交付与验收完成，等待 GitHub Pages 发布收口
+### 状态：完成并发布（GitHub Pages artifact `1f33598`）
 
 - 向导新增中英文“什么是 AppKernia?”，说明 2026 年项目由来、方便开发者的初心、品牌名的项目内解释、三端技术选型、当前阶段与未来方向，并提供贡献和 Star 路径。
 - 使用可追溯仓库证据扩展产品画廊：4 张 Admin 本地 Chromium 界面与 4 张 iPhone 16 Pro / iOS 18.6 模拟器界面；文案明确不等同于生产、iOS 真机、Android 或 HarmonyOS 运行验收。
@@ -547,3 +547,5 @@
 - 中英文 14 个图表路由共渲染 26 张 SVG；每张均有标题、描述与紧邻的文字摘要。表格和图表滚动区支持键盘聚焦，配色覆盖明暗主题。
 - 最终 production-preview 门禁覆盖 22 个中英文/明暗/多视口状态，HTTP、单 H1、页面级 overflow、图片、console、失败资源、Mermaid 数量与 axe serious/critical 全部通过。
 - Backend、Admin、Mobile、跨端 i18n 与 UI Skill 五项校验通过；Node 24.18.1 文档全量 check、113 个 API 引用、66 页构建、GitHub `/AppKernia/` Base Path 静态资源核对及 `git diff --check` 通过。
+- Docs Pages run `31292063763` 的 build/deploy 均为 success；线上首页、中英文项目介绍、架构/认证页、产品图片与 Sitemap 均返回 HTTP 200，7 个 Chromium 代表页面无严重/关键可访问性或运行错误。
+- 公开地址为 `https://payhon.github.io/AppKernia/`。`appkernia.com` 尚无 A/AAAA、`www` CNAME 或 GitHub Pages 验证 TXT，当前不声明自定义域名可访问。
