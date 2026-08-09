@@ -1,6 +1,6 @@
 # AppKernia 实施状态
 
-更新时间：2026-08-08（Asia/Shanghai）
+更新时间：2026-08-09（Asia/Shanghai）
 
 ## 总体状态
 
@@ -9,8 +9,18 @@
 | Backend | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环 | 当前 Admin backlog 已收口；生产 Adapter 联调见风险 |
 | Admin | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁 | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险 |
 | Mobile | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证 | Android/Harmony 安装运行、三端真机、签名/发布仍未完成 |
-| Docs / Website | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站并发布至 `https://payhon.github.io/AppKernia/`：64 个静态页面、零门槛向导、核心 API、AK Mobile 组件、社区治理、搜索、SEO、暗色与响应式体验已通过本地及线上验收 | GitHub Pages HTTPS 已启用；`appkernia.com` 尚待 DNS、域名验证和 Custom Domain 绑定 |
+| Docs / Website | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站并发布至 `https://payhon.github.io/AppKernia/`：品牌已与 Admin 统一，首页使用重新运行后取得的 Admin/iOS 模拟器实景，64 个静态页面、零门槛向导、核心 API、AK Mobile 组件、搜索、暗色与响应式体验通过门禁 | GitHub Pages HTTPS 已启用；`appkernia.com` 尚待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线 | Mobile 三端长英文/运行时视觉验收 |
+
+## 2026-08-09 文档站品牌、实景 Hero 与内容优化
+
+- 文档站 Logo、favicon、Apple Touch Icon 与 Manifest 图标统一取自 `apps/ak-admin/public/brand`；删除旧文档 SVG 标志与 AI 生态 Hero，并从最终首页重新生成 `1200×630` 社交分享图。
+- 宽屏文档外壳固定为 `280 + 960 + 248 = 1488px` 并居中，正文内边距为 56px、普通段落限制为 72ch。Chromium 在 1920px 实测左右外边距均为 216px，正文样本宽 725.625px；1280–1535px 流式布局、低于 1280px 大纲折叠和低于 768px 侧栏抽屉保持兼容。
+- 首页 Hero 采用隔离本地 Docker 环境加载完成的 Admin Dashboard，以及重新编译并登录后的 iPhone 16 Pro / iOS 18.6 模拟器 Home、Profile。图片只含合成测试身份；该证据不代表 iOS 真机、Android 或 HarmonyOS 运行验收。
+- 首页移除 Rspress `features` 双层框，改为单边框语义链接卡片；补齐项目初心、三端架构、能力矩阵、三步运行、产品实景、成熟度边界、FAQ、贡献与 Star 引导。Guide、Concepts、Server API、Mobile Components、Community 五个入口同步扩充 `zh-CN` / `en-US`。
+- `AKDOCS-002` production preview 共 8 个样本，覆盖 375/768/1024/1440/1920、双语和明暗主题；全部 HTTP 200、单一 H1、无页面横向溢出/破图/console error，axe serious/critical 为 0。
+- Docs 完整门禁、Backend/Admin/Mobile 三蓝图与 i18n validator、113 个 API 文档路径引用及 `git diff --check` 均退出 0；站点仍构建 64 个静态页面。发布后状态以 `Docs Pages` Workflow 和线上 URL 实查为最终事实源。
+
 
 ## 2026-08-09 GitHub Pages 正式发布
 

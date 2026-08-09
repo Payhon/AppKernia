@@ -17,6 +17,33 @@ AppKernia describes its server contract with OpenAPI 3.1. These pages explain co
 
 Admin and Mobile tokens are not interchangeable. `X-AppID` selects a public active app; tenant and user scope still come from the verified session.
 
+## Authentication flow
+
+```text
+Sign in / register
+    ↓
+Server verifies identity + audience + app membership
+    ↓
+Short-lived access token + rotating refresh token
+    ↓
+Protected calls → explicit refresh flow on expiry
+    ↓
+Successful refresh revokes the old chain; sign-out or risk revokes the session
+```
+
+Admin and Mobile have separate entry points and audiences. A client must not blindly replay a failed write; automatic retry is allowed only when the endpoint has explicit idempotency semantics described in [conventions](./conventions).
+
+## API families
+
+| Family          | Typical resources                                  | Start here                             |
+| --------------- | -------------------------------------------------- | -------------------------------------- |
+| Public App      | Config, regions, dictionaries, version, legal      | [Mobile resources](./mobile-resources) |
+| Mobile identity | Sign-in, refresh, sign-out, recovery, registration | [Mobile authentication](./mobile-auth) |
+| Mobile user     | Profile, preferences, notifications, sessions      | [Mobile resources](./mobile-resources) |
+| Admin identity  | Sign-in, refresh, MFA, sessions                    | [Admin authentication](./admin-auth)   |
+| Admin business  | Users, org, access, content, files, jobs           | [Admin core resources](./admin-core)   |
+| Internal        | Live, ready, metrics                               | Deployment network only                |
+
 ```http
 Accept: application/json
 Accept-Language: en-US
@@ -24,6 +51,29 @@ X-Request-ID: 019…
 X-AppID: 01900000-0000-7000-8000-000000000001
 Authorization: Bearer YOUR_ACCESS_TOKEN
 ```
+
+## First request without authentication
+
+After the local API starts, request public config with the development App ID from the repository manifest:
+
+```bash
+curl --fail-with-body \
+  -H 'Accept: application/json' \
+  -H 'Accept-Language: en-US' \
+  -H 'X-AppID: 00000000-0000-4000-8000-000000000001' \
+  http://127.0.0.1:8080/api/v1/public/config
+```
+
+A successful response has a 2xx status, a stable `code`, matching `Content-Language`, and no server secret.
+
+## Integration checklist
+
+- Generate clients from OpenAPI and verify the schema hash in CI.
+- Mobile calls only `/api/v1`; Admin calls only `/admin-api/v1`.
+- Send `Accept-Language` on every request; preserve Request IDs without logging tokens.
+- Cover denied paths with backend authorization tests—menus and buttons are not evidence.
+- Define idempotency keys, retry limits, and audit behavior for writes.
+- Validate SQL isolation with integration data from two tenants.
 
 Start with [conventions](./conventions), [Mobile authentication](./mobile-auth), [Mobile resources](./mobile-resources), [Admin authentication](./admin-auth), or [Admin core resources](./admin-core).
 

@@ -5,7 +5,7 @@ pageType: home
 hero:
   name: MIT 开源 · 面向真实 App 工程
   text: 让跨端开发，终于是一件完整的事
-  tagline: 从 Android、iOS 与 HarmonyOS，到 React Admin、Go API 与 PostgreSQL。AppKernia 把一个现代 App 真正需要的基础能力放进同一套可审计、可扩展的工程里。
+  tagline: 从 Android、iOS 与 HarmonyOS，到 React Admin、Go API 与 PostgreSQL。AppKernia 把现代 App 真正需要的基础能力放进同一套可审计、可扩展的工程里。
   actions:
     - theme: brand
       text: 从源码运行
@@ -13,21 +13,40 @@ hero:
     - theme: alt
       text: 查看 GitHub
       link: https://github.com/Payhon/AppKernia
-  image:
-    src: /hero-ecosystem.png
-    alt: 连接移动应用、管理平台与服务端基础设施的 AppKernia 生态示意图
 
-features:
-  - title: 三端移动，不留鸿蒙空白
-    details: 以 uni-app x、UTS/UVue 与 AK UI 为基础，统一面向 Android、iOS 和 HarmonyOS NEXT。
-    link: /concepts/architecture
-  - title: Admin 与 API 一起交付
-    details: React 管理端和 Go 服务端不是外接拼图；OpenAPI、权限、租户、审计与数据模型从一开始就协同设计。
-    link: /api/
-  - title: 安全与国际化先于业务
-    details: Token 轮换、受控权限、PostgreSQL 多租户、zh-CN/en-US 与隐私边界都属于底座，而不是上线前的补丁。
-    link: /concepts/security
+heroShowcase:
+  admin:
+    src: /screenshots/admin-dashboard.png
+    alt: AppKernia 本地测试环境中已完成数据加载的 React 管理端 Dashboard
+  mobile:
+    - src: /screenshots/mobile-home-ios.png
+      alt: AppKernia 在 iPhone 16 Pro iOS 18.6 模拟器中的已登录首页
+    - src: /screenshots/mobile-profile-ios.png
+      alt: AppKernia 在 iPhone 16 Pro iOS 18.6 模拟器中的个人中心
 ---
+
+<section className="ak-value-section" aria-labelledby="value-title">
+  <h2 id="value-title" className="ak-visually-hidden">
+    AppKernia 核心价值
+  </h2>
+  <nav className="ak-value-grid" aria-label="AppKernia 核心入口">
+    <a className="ak-value-card" href="./concepts/architecture">
+      <h2>三端移动，不留鸿蒙空白</h2>
+      <p>以 uni-app x、UTS/UVue 与 AK UI 为基础，统一面向 Android、iOS 和 HarmonyOS NEXT。</p>
+      <span>理解总体架构 →</span>
+    </a>
+    <a className="ak-value-card" href="./api/">
+      <h2>Admin 与 API 一起交付</h2>
+      <p>OpenAPI、权限、租户、审计与数据模型从一开始就与 React 管理端协同设计。</p>
+      <span>浏览服务端 API →</span>
+    </a>
+    <a className="ak-value-card" href="./concepts/security">
+      <h2>安全与国际化先于业务</h2>
+      <p>Token 轮换、服务端授权、PostgreSQL 多租户与 zh-CN/en-US 都是底座能力。</p>
+      <span>查看安全边界 →</span>
+    </a>
+  </nav>
+</section>
 
 <section className="ak-home-section" aria-labelledby="origin-title">
   <p className="ak-home-eyebrow">WHY APPKERNIA</p>
@@ -41,7 +60,7 @@ features:
     时，开发者依然要独自把所有断层补起来。
   </p>
   <p className="ak-home-lead">
-    AppKernia 就从这个遗憾出发。它不是为了再造一个更大的“万能框架”，而是想把那些每个认真做 App
+    AppKernia 就从这个遗憾出发。它不是为了再造一个更大的“万能框架”，而是想把每个认真做 App
     的团队都会遇见、却总被留给开发者重复承受的工作，沉淀成一条可以理解、可以验证、也可以共同改进的路。
   </p>
   <div className="ak-belief-grid">
@@ -68,6 +87,9 @@ features:
   <h2 id="surfaces-title" className="ak-home-heading">
     一个仓库，覆盖 App 从用户界面到数据边界的完整路径
   </h2>
+  <p className="ak-home-lead">
+    三端不是三个松散模板：路由、身份、语言、权限和错误码沿同一份契约流动，各自只承担应由自己负责的工作。
+  </p>
   <div className="ak-surface-grid">
     <article className="ak-surface-card">
       <span className="ak-card-index">M</span>
@@ -96,31 +118,190 @@ features:
   </div>
 </section>
 
+<section className="ak-home-section" aria-labelledby="capabilities-title">
+  <p className="ak-home-eyebrow">CAPABILITY MATRIX</p>
+  <h2 id="capabilities-title" className="ak-home-heading">
+    基础能力不再散落在三个项目里
+  </h2>
+  <p className="ak-home-lead">
+    同一项能力在不同端有不同职责，但契约、状态和安全边界必须能够对得上。
+  </p>
+  <div className="ak-capability-wrap">
+    <table className="ak-capability-table">
+      <thead>
+        <tr>
+          <th>能力</th>
+          <th>Mobile</th>
+          <th>Admin</th>
+          <th>Server</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>身份与会话</td>
+          <td>设备标识、安全存储、刷新协调</td>
+          <td>安全 Cookie、会话与 MFA 管理</td>
+          <td>Audience 隔离、轮换与撤销</td>
+        </tr>
+        <tr>
+          <td>权限与租户</td>
+          <td>能力门禁与稳定错误码</td>
+          <td>菜单、按钮和数据范围体验</td>
+          <td>后端授权与 SQL 层租户过滤</td>
+        </tr>
+        <tr>
+          <td>内容与运营</td>
+          <td>文章、通知、版本与个人中心</td>
+          <td>内容、文件、任务、配置与审计</td>
+          <td>版本化内容、对象存储和 Worker</td>
+        </tr>
+        <tr>
+          <td>国际化</td>
+          <td>AkI18n、导航栏与系统格式</td>
+          <td>i18next、Ant Design、Day.js</td>
+          <td>LocaleResolver 与嵌入式 Catalog</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="ak-home-section" aria-labelledby="start-title">
+  <p className="ak-home-eyebrow">RUN FROM SOURCE</p>
+  <h2 id="start-title" className="ak-home-heading">
+    三步从仓库到可访问的本地系统
+  </h2>
+  <p className="ak-home-lead">
+    向导从环境检查开始，给出成功判定和常见故障路径；第一次运行不要求你先理解全部实现。
+  </p>
+  <div className="ak-step-grid">
+    <article className="ak-step-card">
+      <span className="ak-card-index">1</span>
+      <h3>获取源码</h3>
+      <p>克隆仓库并进入 AppKernia 根目录。</p>
+      <code>git clone https://github.com/Payhon/AppKernia.git</code>
+    </article>
+    <article className="ak-step-card">
+      <span className="ak-card-index">2</span>
+      <h3>启动完整后端</h3>
+      <p>Docker 负责 PostgreSQL、迁移、Seed、API 与 Admin。</p>
+      <code>docker compose up --build -d</code>
+    </article>
+    <article className="ak-step-card">
+      <span className="ak-card-index">3</span>
+      <h3>确认成功</h3>
+      <p>探活、登录 Admin，再按目标平台进入 Mobile 开发。</p>
+      <code>curl http://localhost:4173/healthz</code>
+    </article>
+  </div>
+  <div className="ak-community-actions">
+    <a href="./guide/quick-start">打开零门槛向导</a>
+    <a href="./guide/troubleshooting">排查启动问题</a>
+  </div>
+</section>
+
 <section className="ak-home-section" aria-labelledby="proof-title">
-  <p className="ak-home-eyebrow">BUILT IN THE OPEN</p>
+  <p className="ak-home-eyebrow">REAL PRODUCT SURFACES</p>
   <h2 id="proof-title" className="ak-home-heading">
     不是一张架构图，而是一套正在被认真完成的工程
   </h2>
   <p className="ak-home-lead">
-    官网展示的界面来自当前仓库与真实测试环境。平台编译、模拟器与真机验收在文档中分别标注，绝不混为一谈。
+    以下界面来自当前仓库与本机隔离测试环境。平台编译、模拟器与真机验收在文档中分别标注，绝不混为一谈。
   </p>
   <div className="ak-proof-grid">
     <figure className="ak-proof-card">
-      <img src="/screenshots/admin-dashboard.png" alt="AppKernia React 管理平台登录界面" />
+      <img
+        src="/screenshots/admin-dashboard.png"
+        alt="AppKernia 本地隔离测试环境中加载完成的 React Admin Dashboard"
+      />
     </figure>
     <div className="ak-phone-stack">
       <figure className="ak-phone-frame">
-        <img src="/screenshots/mobile-home-ios.png" alt="AppKernia 在 iOS 模拟器中的首页" />
+        <img
+          src="/screenshots/mobile-home-ios.png"
+          alt="AppKernia 在 iPhone 16 Pro iOS 18.6 模拟器中的已登录首页"
+        />
       </figure>
       <figure className="ak-phone-frame">
-        <img src="/screenshots/mobile-login-ios.png" alt="AppKernia 在 iOS 模拟器中的登录页" />
+        <img
+          src="/screenshots/mobile-profile-ios.png"
+          alt="AppKernia 在 iPhone 16 Pro iOS 18.6 模拟器中的个人中心"
+        />
       </figure>
     </div>
   </div>
   <p className="ak-proof-note">
-    截图不含生产凭据或个人数据。Mobile 图片为 iOS 模拟器验收结果，不代表 Android、HarmonyOS
-    真机已经由本页复验。
+    截图只包含合成的本机测试身份，不含生产凭据、Token 或真实个人数据。Mobile 图片是 iOS 18.6
+    模拟器证据，不代表 iOS 真机、Android 或 HarmonyOS 真机已由本次官网改版复验。
   </p>
+</section>
+
+<section className="ak-home-section" aria-labelledby="maturity-title">
+  <p className="ak-home-eyebrow">HONEST MATURITY</p>
+  <h2 id="maturity-title" className="ak-home-heading">
+    把已经做到的和仍需验证的都写清楚
+  </h2>
+  <div className="ak-maturity-grid">
+    <article className="ak-maturity-card">
+      <span className="ak-card-index">✓</span>
+      <h3>当前可验证</h3>
+      <p>
+        仓库已有 Go API/Worker、React Admin、uni-app x
+        Mobile、OpenAPI、迁移与双语文档，并有对应静态检查、测试或本机运行证据。
+      </p>
+      <ul>
+        <li>Admin 与 API 可在本机 Docker 环境运行</li>
+        <li>iOS 18.6 模拟器可编译与运行</li>
+        <li>文档同时维护 zh-CN 与 en-US</li>
+      </ul>
+    </article>
+    <article className="ak-maturity-card">
+      <span className="ak-card-index">…</span>
+      <h3>仍需你的环境验证</h3>
+      <p>
+        项目尚未发布稳定版本；生产部署和各移动平台必须在你的目标版本、设备与安全策略下重新验收。
+      </p>
+      <ul>
+        <li>本轮没有声称 iOS、Android 或 HarmonyOS 真机通过</li>
+        <li>第三方存储、通知与 OAuth 依赖真实凭据</li>
+        <li>API、Migration 与组件契约仍可能演进</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<section className="ak-home-section" aria-labelledby="faq-title">
+  <p className="ak-home-eyebrow">FAQ</p>
+  <h2 id="faq-title" className="ak-home-heading">
+    开始之前，你可能会问
+  </h2>
+  <div className="ak-faq-grid">
+    <details>
+      <summary>AppKernia 是一个低代码平台吗？</summary>
+      <p>不是。它提供可审计、可扩展的工程基座和契约，业务仍由开发者用 Go、React、UTS/UVue 实现。</p>
+    </details>
+    <details>
+      <summary>现在可以直接用于生产吗？</summary>
+      <p>
+        项目仍处于 0.x
+        阶段。可以评估、学习和参与，但生产前必须完成自己的安全、性能、备份、升级与真实设备验收。
+      </p>
+    </details>
+    <details>
+      <summary>为什么特别强调 HarmonyOS？</summary>
+      <p>
+        跨端框架常把鸿蒙留在能力矩阵的边缘。AppKernia
+        从架构上把它纳入同一移动端边界，但每项能力仍以真实构建和设备证据为准。
+      </p>
+    </details>
+    <details>
+      <summary>不会 Go 或 UTS 也能贡献吗？</summary>
+      <p>
+        可以。Issue
+        复现、文档、设计审查、测试、平台验证和翻译都很重要，社区页提供从轻量到代码贡献的路径。
+      </p>
+    </details>
+  </div>
 </section>
 
 <section className="ak-home-section" aria-labelledby="community-title">
@@ -136,8 +317,8 @@ features:
     </p>
     <div className="ak-community-actions">
       <a href="https://github.com/Payhon/AppKernia">在 GitHub Star</a>
-      <a href="/community/contributing">开始贡献</a>
-      <a href="/guide/roadmap">查看路线图</a>
+      <a href="./community/contributing">开始贡献</a>
+      <a href="./guide/roadmap">查看路线图</a>
     </div>
   </div>
 </section>

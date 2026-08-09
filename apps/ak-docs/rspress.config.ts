@@ -16,10 +16,10 @@ const config: UserConfig = {
   lang: 'zh-CN',
   siteOrigin,
   base,
-  icon: '/brand/favicon.svg',
+  icon: '/brand/favicon-32.png',
   logo: {
-    light: '/brand/logo.svg',
-    dark: '/brand/logo-dark.svg',
+    light: '/brand/appkernia-icon-64.png',
+    dark: '/brand/appkernia-icon-64.png',
   },
   logoText: 'AppKernia',
   locales: [
@@ -68,10 +68,13 @@ const config: UserConfig = {
   },
   head: [
     ['meta', { name: 'theme-color', content: '#07111f' }],
+    ['link', { rel: 'apple-touch-icon', href: `${base}brand/apple-touch-icon.png` }],
+    ['link', { rel: 'manifest', href: `${base}site.webmanifest` }],
     ['meta', { name: 'author', content: 'AppKernia contributors' }],
     ['meta', { property: 'og:type', content: 'website' }],
     ['meta', { property: 'og:site_name', content: 'AppKernia' }],
-    ['meta', { property: 'og:image', content: `${siteBaseUrl}/hero-ecosystem.png` }],
+    ['meta', { property: 'og:image', content: `${siteBaseUrl}/social-preview.png` }],
+    ['meta', { name: 'twitter:image', content: `${siteBaseUrl}/social-preview.png` }],
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
   ],
   themeConfig: {

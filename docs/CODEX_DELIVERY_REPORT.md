@@ -1396,3 +1396,42 @@
 - `appkernia.com` 当前没有 A/AAAA 记录，`www.appkernia.com` 没有 CNAME，GitHub Pages 域名验证 TXT 也未配置；本轮没有把可用的 Pages 地址重定向到不可达域名。
 - DNS 就绪后需要将 Pages Custom Domain 设置为 `appkernia.com`，等待证书签发并再次验证 HTTPS；现阶段已完成的是 GitHub Pages 默认域名发布，不声明 `appkernia.com` 已上线。
 - `playwright` Skill 包装脚本仍因本机 `@playwright/mcp@0.0.79` 不提供 `playwright-cli` 而退出 127；线上验收继续使用已安装 Python Playwright 驱动真实 Chromium，未伪报包装脚本通过。
+
+## 2026-08-09 文档站品牌、实景 Hero 与内容优化交付报告
+
+### 交付内容
+
+- 文档导航、favicon、Apple Touch Icon 与 Web Manifest 全部改用 Admin 品牌资产；移除旧文档 SVG Logo、AI 生态 Hero 和过时登录截图，最终首页生成新的 `1200×630` 社交分享图。
+- 新增内部 `HeroShowcase` 类型：一个必需 Admin 对象和两个 Mobile 对象，每项均要求 `src` 与双语 `alt`。桌面使用浏览器主体与双手机交叠，平板改为网格排列，手机仅保留 Admin 与一台手机。
+- 修复 Rspress 后加载变量覆盖导致的宽屏偏左：1920px 下形成 1488px 三栏壳与两侧 216px 等距边界；正文 56px 内边距、72ch 行长和中小屏折叠规则已落地。
+- 用单层 1px 边框、品牌色顶部标记和稳定 focus/hover 的语义链接卡片替换默认 `features`；补齐首页九类信息区块及中英文五个核心入口页，不虚构 Star 数、用户量、评分或客户背书。
+- 新增 Admin 截图脚本、社交图截图脚本和可重复的 Python Playwright production-preview 门禁；`AKDOCS-002` 保存 request、skill output、decisions、review checklist、原始产品截图和响应式截图索引。
+
+### 真实素材与验证边界
+
+- Admin：隔离 `appkernia-acceptance` PostgreSQL/Docker API/Admin，合成 `.example.test` 管理员和验收租户；等待 Dashboard skeleton 消失后截取 1440×900，不含密码、Token、生产数据或个人信息。
+- Mobile：`apps/ak-mobile/scripts/build-platform.sh ios` 两次退出 0；HBuilderX 5.06 产物运行于 iPhone 16 Pro / iOS 18.6 模拟器，并通过本地 API 使用合成测试账号登录后截取 Home 与 Profile。
+- Mobile 结果只证明本轮 iOS 模拟器编译资源与登录页面，不等同于 iOS 真机、Android、HarmonyOS、Release 签名或上架验收。当前真实素材充足，本轮未调用 imagegen。
+
+### 实际命令与退出码
+
+| 命令 / 阶段                                                                                     |      Exit | 真实结果                                                                                                            |
+| ----------------------------------------------------------------------------------------------- | --------: | ------------------------------------------------------------------------------------------------------------------- |
+| `apps/ak-mobile/scripts/build-platform.sh ios`                                                  |         0 | HBuilderX 5.06 iOS UTS/UVue 编译完成；执行两次均成功。                                                              |
+| `capture-admin-screenshot.py` / Simulator capture                                               |  0 / 通过 | Admin 1440×900 加载态截图与两张 1206×2622 iOS 模拟器登录态截图保存为原始证据。                                      |
+| `DOCS_ORIGIN=https://payhon.github.io DOCS_BASE=/AppKernia pnpm --filter @appkernia/docs check` |         0 | API 文档、RSLint、TypeScript strict、Prettier、双语 parity、64 页 production build 与 Sitemap 全部通过。            |
+| `scripts/visual-check.py`                                                                       |         0 | 8 个 Chromium 样本覆盖 375/768/1024/1440/1920、双语、明暗和普通文档页；HTTP/H1/图片/overflow/console/axe 全部通过。 |
+| Backend / Admin / Mobile blueprint validators                                                   | 0 / 0 / 0 | 16 组 migration/74 表、45 菜单/55 路由、38 Mobile 路由/33 组件均为 0 error/warning。                                |
+| `python3 blueprint/scripts/validate_i18n_contract.py`                                           |         0 | `zh-CN`、`en-US`、默认/回退与三端 reference packs 通过。                                                            |
+| `node scripts/check-api-docs.mjs`                                                               |         0 | 113 个文档 API path 引用与 OpenAPI 一致。                                                                           |
+| `git diff --check`                                                                              |         0 | 最终文本补丁无空白错误。                                                                                            |
+
+### 设计与截图证据
+
+- [AKDOCS-002 decisions](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-002/decisions.md)、[review checklist](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-002/review-checklist.md)、[screenshots](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-002/screenshots/INDEX.md)。
+- 1920px 普通文档页实测三栏宽 1488px、左右各 216px；抽样正文 725.625px。8 个 axe 样本 serious/critical 均为 0。
+
+### 发布边界
+
+- `main` 的文档路径变更会触发既有 `Docs Pages` Workflow；远端 run、head SHA、GitHub Pages 页面与静态资源由提交后实查收口。
+- `appkernia.com` 只有在 A/AAAA/CNAME、GitHub 域名验证和 Pages Custom Domain 真实生效后才可声明上线；在此之前继续以 `https://payhon.github.io/AppKernia/` 为公开地址。

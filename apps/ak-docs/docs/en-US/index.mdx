@@ -13,21 +13,48 @@ hero:
     - theme: alt
       text: View on GitHub
       link: https://github.com/Payhon/AppKernia
-  image:
-    src: /hero-ecosystem.png
-    alt: AppKernia ecosystem connecting mobile apps, an admin console, and server infrastructure
 
-features:
-  - title: Three mobile platforms, including HarmonyOS
-    details: A uni-app x, UTS/UVue, and AK UI foundation designed for Android, iOS, and HarmonyOS NEXT.
-    link: /concepts/architecture
-  - title: Admin and API ship together
-    details: React Admin and the Go backend are not add-ons. OpenAPI, authorization, tenancy, audit, and data models are designed as one system.
-    link: /api/
-  - title: Security and i18n from day one
-    details: Token rotation, scoped authorization, PostgreSQL tenancy, zh-CN/en-US, and privacy boundaries belong in the foundation—not in a pre-launch patch.
-    link: /concepts/security
+heroShowcase:
+  admin:
+    src: /screenshots/admin-dashboard.png
+    alt: AppKernia React Admin dashboard after data loaded in a local test environment
+  mobile:
+    - src: /screenshots/mobile-home-ios.png
+      alt: Signed-in AppKernia home screen on an iPhone 16 Pro iOS 18.6 simulator
+    - src: /screenshots/mobile-profile-ios.png
+      alt: AppKernia profile screen on an iPhone 16 Pro iOS 18.6 simulator
 ---
+
+<section className="ak-value-section" aria-labelledby="value-title">
+  <h2 id="value-title" className="ak-visually-hidden">
+    AppKernia core value
+  </h2>
+  <nav className="ak-value-grid" aria-label="AppKernia core entry points">
+    <a className="ak-value-card" href="./concepts/architecture">
+      <h2>Three mobile platforms, including HarmonyOS</h2>
+      <p>
+        A uni-app x, UTS/UVue, and AK UI foundation designed for Android, iOS, and HarmonyOS NEXT.
+      </p>
+      <span>Understand the architecture →</span>
+    </a>
+    <a className="ak-value-card" href="./api/">
+      <h2>Admin and API ship together</h2>
+      <p>
+        OpenAPI, authorization, tenancy, audit, and data models are designed alongside the React
+        Admin.
+      </p>
+      <span>Browse the server API →</span>
+    </a>
+    <a className="ak-value-card" href="./concepts/security">
+      <h2>Security and i18n from day one</h2>
+      <p>
+        Token rotation, server authorization, PostgreSQL tenancy, and zh-CN/en-US belong in the
+        foundation.
+      </p>
+      <span>Review the security boundary →</span>
+    </a>
+  </nav>
+</section>
 
 <section className="ak-home-section" aria-labelledby="origin-title">
   <p className="ak-home-eyebrow">WHY APPKERNIA</p>
@@ -51,7 +78,7 @@ features:
       <h3>Complete, not piled up</h3>
       <p>
         Mobile, admin, and server share contracts and boundaries. Every layer has a clear reason to
-        exist and a clear way to cooperate.
+        exist and cooperate.
       </p>
     </article>
     <article className="ak-belief-card">
@@ -78,6 +105,10 @@ features:
   <h2 id="surfaces-title" className="ak-home-heading">
     One repository, spanning the complete path from app interface to data boundary
   </h2>
+  <p className="ak-home-lead">
+    These are not three loose templates. Routes, identity, locale, permissions, and error codes move
+    through shared contracts while each surface keeps a clear responsibility.
+  </p>
   <div className="ak-surface-grid">
     <article className="ak-surface-card">
       <span className="ak-card-index">M</span>
@@ -109,41 +140,200 @@ features:
   </div>
 </section>
 
+<section className="ak-home-section" aria-labelledby="capabilities-title">
+  <p className="ak-home-eyebrow">CAPABILITY MATRIX</p>
+  <h2 id="capabilities-title" className="ak-home-heading">
+    Foundation capabilities no longer live in three disconnected projects
+  </h2>
+  <p className="ak-home-lead">
+    Each capability has different responsibilities on each surface, but contracts, states, and
+    security boundaries must line up.
+  </p>
+  <div className="ak-capability-wrap">
+    <table className="ak-capability-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>Mobile</th>
+          <th>Admin</th>
+          <th>Server</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Identity and sessions</td>
+          <td>Device identity, secure storage, refresh coordination</td>
+          <td>Secure cookies, session and MFA management</td>
+          <td>Audience isolation, rotation, revocation</td>
+        </tr>
+        <tr>
+          <td>Authorization and tenancy</td>
+          <td>Capability gates and stable error codes</td>
+          <td>Menu, action, and data-scope UX</td>
+          <td>Server authorization and SQL tenant filters</td>
+        </tr>
+        <tr>
+          <td>Content and operations</td>
+          <td>Articles, notifications, versions, profile</td>
+          <td>Content, files, jobs, settings, audit</td>
+          <td>Versioned content, object storage, workers</td>
+        </tr>
+        <tr>
+          <td>Internationalization</td>
+          <td>AkI18n, navigation, system formats</td>
+          <td>i18next, Ant Design, Day.js</td>
+          <td>LocaleResolver and embedded catalogs</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section className="ak-home-section" aria-labelledby="start-title">
+  <p className="ak-home-eyebrow">RUN FROM SOURCE</p>
+  <h2 id="start-title" className="ak-home-heading">
+    Three steps from repository to a reachable local system
+  </h2>
+  <p className="ak-home-lead">
+    The guide begins with environment checks and gives concrete success signals and troubleshooting
+    paths. You do not need to understand every implementation before your first run.
+  </p>
+  <div className="ak-step-grid">
+    <article className="ak-step-card">
+      <span className="ak-card-index">1</span>
+      <h3>Get the source</h3>
+      <p>Clone the repository and enter the AppKernia root.</p>
+      <code>git clone https://github.com/Payhon/AppKernia.git</code>
+    </article>
+    <article className="ak-step-card">
+      <span className="ak-card-index">2</span>
+      <h3>Start the stack</h3>
+      <p>Docker runs PostgreSQL, migrations, seed, API, and Admin.</p>
+      <code>docker compose up --build -d</code>
+    </article>
+    <article className="ak-step-card">
+      <span className="ak-card-index">3</span>
+      <h3>Verify success</h3>
+      <p>Check health, sign in to Admin, then enter Mobile development.</p>
+      <code>curl http://localhost:4173/healthz</code>
+    </article>
+  </div>
+  <div className="ak-community-actions">
+    <a href="./guide/quick-start">Open the zero-barrier guide</a>
+    <a href="./guide/troubleshooting">Troubleshoot startup</a>
+  </div>
+</section>
+
 <section className="ak-home-section" aria-labelledby="proof-title">
-  <p className="ak-home-eyebrow">BUILT IN THE OPEN</p>
+  <p className="ak-home-eyebrow">REAL PRODUCT SURFACES</p>
   <h2 id="proof-title" className="ak-home-heading">
     More than an architecture diagram: an engineering system being completed with care
   </h2>
   <p className="ak-home-lead">
-    The interfaces shown here come from the current repository and real test environments.
+    These interfaces come from the current repository and an isolated local test environment.
     Compilation, simulator checks, and physical-device acceptance are reported separately.
   </p>
   <div className="ak-proof-grid">
     <figure className="ak-proof-card">
       <img
         src="/screenshots/admin-dashboard.png"
-        alt="AppKernia React administration sign-in screen"
+        alt="Loaded AppKernia React Admin dashboard in an isolated local test environment"
       />
     </figure>
     <div className="ak-phone-stack">
       <figure className="ak-phone-frame">
         <img
           src="/screenshots/mobile-home-ios.png"
-          alt="AppKernia home screen in an iOS simulator"
+          alt="Signed-in AppKernia home screen on an iPhone 16 Pro iOS 18.6 simulator"
         />
       </figure>
       <figure className="ak-phone-frame">
         <img
-          src="/screenshots/mobile-login-ios.png"
-          alt="AppKernia login screen in an iOS simulator"
+          src="/screenshots/mobile-profile-ios.png"
+          alt="AppKernia profile screen on an iPhone 16 Pro iOS 18.6 simulator"
         />
       </figure>
     </div>
   </div>
   <p className="ak-proof-note">
-    Screenshots contain no production credentials or personal data. Mobile images are iOS simulator
-    evidence and do not claim Android or HarmonyOS physical-device acceptance in this site build.
+    The images contain only a synthetic local test identity—no production credentials, tokens, or
+    real personal data. Mobile images are iOS 18.6 simulator evidence; this site revision does not
+    claim iOS, Android, or HarmonyOS physical-device acceptance.
   </p>
+</section>
+
+<section className="ak-home-section" aria-labelledby="maturity-title">
+  <p className="ak-home-eyebrow">HONEST MATURITY</p>
+  <h2 id="maturity-title" className="ak-home-heading">
+    State what works today—and what still needs your environment
+  </h2>
+  <div className="ak-maturity-grid">
+    <article className="ak-maturity-card">
+      <span className="ak-card-index">✓</span>
+      <h3>Verifiable today</h3>
+      <p>
+        The repository includes a Go API/Worker, React Admin, uni-app x Mobile, OpenAPI, migrations,
+        and bilingual documentation with matching static, test, or local runtime evidence.
+      </p>
+      <ul>
+        <li>Admin and API run in a local Docker environment</li>
+        <li>iOS 18.6 simulator compilation and runtime evidence</li>
+        <li>Paired zh-CN and en-US documentation</li>
+      </ul>
+    </article>
+    <article className="ak-maturity-card">
+      <span className="ak-card-index">…</span>
+      <h3>Still requires your acceptance</h3>
+      <p>
+        There is no stable release yet. Production and mobile platforms must be retested against
+        your target versions, devices, infrastructure, and security policy.
+      </p>
+      <ul>
+        <li>No iOS, Android, or HarmonyOS physical-device claim in this revision</li>
+        <li>External storage, notification, and OAuth adapters need real credentials</li>
+        <li>APIs, migrations, and component contracts may evolve</li>
+      </ul>
+    </article>
+  </div>
+</section>
+
+<section className="ak-home-section" aria-labelledby="faq-title">
+  <p className="ak-home-eyebrow">FAQ</p>
+  <h2 id="faq-title" className="ak-home-heading">
+    Questions before you begin
+  </h2>
+  <div className="ak-faq-grid">
+    <details>
+      <summary>Is AppKernia a low-code platform?</summary>
+      <p>
+        No. It is an auditable, extensible engineering foundation and contract system. Product
+        behavior is still implemented in Go, React, and UTS/UVue.
+      </p>
+    </details>
+    <details>
+      <summary>Can it go directly to production?</summary>
+      <p>
+        The project is still in the 0.x stage. Evaluate, learn, and contribute now, but complete
+        your own security, performance, backup, upgrade, and physical-device acceptance before
+        production.
+      </p>
+    </details>
+    <details>
+      <summary>Why call out HarmonyOS?</summary>
+      <p>
+        Cross-platform systems often leave HarmonyOS at the edge of the matrix. AppKernia includes
+        it in the shared mobile boundary, while every capability still requires real build and
+        device evidence.
+      </p>
+    </details>
+    <details>
+      <summary>Can I contribute without Go or UTS expertise?</summary>
+      <p>
+        Yes. Reproductions, docs, design review, tests, platform checks, and translations all
+        matter. The community guide offers paths from small fixes to code changes.
+      </p>
+    </details>
+  </div>
 </section>
 
 <section className="ak-home-section" aria-labelledby="community-title">
@@ -159,8 +349,8 @@ features:
     </p>
     <div className="ak-community-actions">
       <a href="https://github.com/Payhon/AppKernia">Star on GitHub</a>
-      <a href="/community/contributing">Start contributing</a>
-      <a href="/guide/roadmap">View the roadmap</a>
+      <a href="./community/contributing">Start contributing</a>
+      <a href="./guide/roadmap">View the roadmap</a>
     </div>
   </div>
 </section>

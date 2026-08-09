@@ -2,9 +2,20 @@
   "name": "AppKernia",
   "short_name": "AppKernia",
   "description": "A modern cross-platform application foundation spanning mobile, admin, and server.",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#07111f",
   "theme_color": "#07111f",
-  "icons": []
+  "icons": [
+    {
+      "src": "brand/appkernia-icon-64.png",
+      "sizes": "64x64",
+      "type": "image/png"
+    },
+    {
+      "src": "brand/appkernia-logo-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
