@@ -1477,3 +1477,44 @@
 - curl 实查首页、中英文“什么是 AppKernia?”、中英文架构/认证页、Admin/Mobile 产品图片和 Sitemap 共 8 个 URL，全部 HTTP 200。
 - 线上 Python Playwright + Chromium 复核 7 个代表路由：每页单一 H1、无页面级横向溢出、破图、console error 或失败资源；项目介绍各加载 8 张产品图，架构 4 张 SVG、认证 3 张 SVG，其余抽样流程图均按预期渲染；axe serious/critical 为 0。
 - `appkernia.com` 当前仍无 A/AAAA，`www.appkernia.com` 无 CNAME，GitHub Pages 验证 TXT 未配置，HTTPS 连接失败；因此本次只声明 GitHub Pages 默认域名上线。
+
+## 2026-08-09 AKDOCS-004 首页内容、产品 Slider 与技术栈交付报告
+
+### 任务目标与交付内容
+
+- 修复首页只有 Hero 的实际渲染问题，并让已编写的完整 MDX 正文进入 Rspress 首页与 Markdown 导出。
+- 中英文同步新增 6 张核心能力卡和 9 项技术栈 Logo，包含用户指定的 uni-app x、React 与 Go。
+- 使用仓库现有真实截图交付 Admin/Web 与 Mobile 双 Slider；每组 4 张，支持按钮、圆点、键盘左右键和 live region，且不会自动播放。
+- 未修改 Go API、OpenAPI、数据库、Admin Client 或 Mobile 公共组件 API。
+
+### 关键实现
+
+- `theme/HomeLayout.tsx` 在保留 Rspress Hero、Footer 与主题扩展点的前提下渲染 `Content`；`SSG_MD` 路径同样输出首页正文。
+- `theme/HomeLanding.tsx` 维护双语 Slider 数据、技术栈数据和可访问交互；`index.css` 提供 3/2/1 特性卡、3/2/1 Logo 卡与桌面并排/窄屏堆叠的 Slider 布局。
+- 首页 MDX 的 JSX 文本改为显式表达式，最终静态 HTML 中 `heading > p` 和 `p > p` 非法嵌套计数均为 0。
+- DCloud 官方 uni-app 图片以本地 SVG 包装资产发布；另外 8 个品牌 mark 来自锁定的 `simple-icons@16.27.0`。来源与非背书说明保存在 `docs/public/tech/README.md`。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `DOCS_ORIGIN=https://payhon.github.io DOCS_BASE=/AppKernia pnpm --dir apps/ak-docs check`（首轮） | 1 | RSLint 发现 Slider region 的 2 条 `jsx-a11y` 错误；未隐藏失败。 |
+| 同一文档全量 check（修复后） | 0 | 113 个 API 引用、RSLint 12 文件、TypeScript strict、Prettier、66 页 production build、语言 parity 与 Sitemap 全部通过。 |
+| Backend / Admin / Mobile blueprint validators | 0 / 0 / 0 | Backend 16 对 migration/74 表；Admin 45 菜单/55 路由；Mobile 38 路由/33 组件，均为 0 error/warning。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN`、`en-US`、默认/回退和三端 reference pack 通过。 |
+| `bash blueprint/admin-frontend/scripts/check_ui_skill.sh` | 0 | 找到并使用仓库 `ui-ux-pro-max` Skill。 |
+| `AK_DOCS_SAMPLE=home python3 apps/ak-docs/scripts/visual-check.py` | 0 | 6 个最终 Chromium 状态全部通过；每页 10 区块、6 特性卡、9 Logo 卡、2 Slider。 |
+| `python3 -m py_compile apps/ak-docs/scripts/visual-check.py` | 0 | 验收脚本语法通过。 |
+| 首轮 Prettier 文件清单 / 去除 `.prettierignore` 后重跑 | 2 / 0 | 首轮仅因 Prettier 无法推断 `.prettierignore` parser 退出 2，其余文件已格式化；去除该非源码文件后完整清单通过。 |
+| GitHub Pages Base Path 静态资源核对 / `git diff --check` | 0 / 0 | `/AppKernia/` 引用及本地技术 Logo 资源存在；最终文本补丁无空白错误。 |
+
+### 设计与截图证据
+
+- [AKDOCS-004 decisions](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-004/decisions.md)、[review checklist](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-004/review-checklist.md)、[screenshots and results](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-004/screenshots/INDEX.md)。
+- 6 个视口状态的 H1、overflow、图片、资源、console 与 axe serious/critical 均通过；Slider 点击、键盘切换、不自动轮播和 2 个 live region 均由脚本断言。
+
+### 验证边界与发布状态
+
+- Admin 图来自仓库已有的本机 Docker/API Chromium 验收；Mobile 图来自已有的 iPhone 16 Pro / iOS 18.6 模拟器验收。本轮没有重新运行两个业务项目。
+- 不声称生产部署、iOS 真机、Android 或 HarmonyOS 运行通过；技术 Logo 不代表相关厂商背书。
+- 本轮未 commit、未 push、未触发 GitHub Pages；线上站点仍是上一发布版本。

@@ -16,7 +16,8 @@ from playwright.async_api import (
 
 
 ROOT = Path(__file__).resolve().parents[3]
-EVIDENCE = ROOT / "apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-003/screenshots"
+EVIDENCE_ID = os.environ.get("AK_DOCS_EVIDENCE_ID", "AKDOCS-004")
+EVIDENCE = ROOT / f"apps/ak-docs/artifacts/ui-ux-pro-max/{EVIDENCE_ID}/screenshots"
 AXE_PATH = ROOT / "apps/ak-admin/node_modules/axe-core/axe.min.js"
 BASE_URL = os.environ.get("AK_DOCS_PREVIEW_URL", "http://127.0.0.1:4175/AppKernia").rstrip("/")
 
@@ -165,10 +166,44 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
             diagramDescriptions: document.querySelectorAll('.ak-diagram svg desc').length,
             rawMermaidBlocks: document.querySelectorAll('pre code.language-mermaid, .language-mermaid').length,
             galleryImages: document.querySelectorAll('.ak-product-gallery img').length,
+            homeSections: document.querySelectorAll('.ak-home-section').length,
+            featureCards: document.querySelectorAll('.ak-feature-card').length,
+            technologyCards: document.querySelectorAll('.ak-tech-logo-card').length,
+            productSliders: document.querySelectorAll('.ak-product-slider').length,
           };
         }
         """
     )
+    slider_interactions = None
+    if route in {"/", "/en-US/"}:
+        sliders = page.locator(".ak-product-slider")
+        admin_slider = sliders.nth(0)
+        mobile_slider = sliders.nth(1)
+        admin_initial = await admin_slider.locator(".ak-product-slider__viewport img").get_attribute("alt")
+        mobile_initial = await mobile_slider.locator(".ak-product-slider__viewport img").get_attribute("alt")
+        await admin_slider.locator(".ak-product-slider__controls > button").last.click()
+        admin_after_click = await admin_slider.locator(".ak-product-slider__viewport img").get_attribute("alt")
+        mobile_keyboard_control = mobile_slider.locator(
+            ".ak-product-slider__controls > button"
+        ).first
+        await mobile_keyboard_control.focus()
+        await mobile_keyboard_control.press("ArrowRight")
+        mobile_after_key = await mobile_slider.locator(".ak-product-slider__viewport img").get_attribute("alt")
+        stable_admin = admin_after_click
+        stable_mobile = mobile_after_key
+        await page.wait_for_timeout(1200)
+        slider_interactions = {
+            "adminChangedAfterClick": admin_initial != admin_after_click,
+            "mobileChangedAfterKeyboard": mobile_initial != mobile_after_key,
+            "noAutomaticAdvance": stable_admin
+            == await admin_slider.locator(".ak-product-slider__viewport img").get_attribute("alt")
+            and stable_mobile
+            == await mobile_slider.locator(".ak-product-slider__viewport img").get_attribute("alt"),
+            "liveRegions": await page.locator(".ak-product-slider [aria-live='polite']").count(),
+        }
+        await page.evaluate(
+            "document.activeElement instanceof HTMLElement && document.activeElement.blur()"
+        )
     await page.add_script_tag(path=str(AXE_PATH))
     axe = await page.evaluate(
         """
@@ -191,7 +226,18 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
         """
     )
 
-    await page.screenshot(path=str(EVIDENCE / f"{name}.png"), full_page=False)
+    await page.screenshot(
+        path=str(EVIDENCE / f"{name}.png"),
+        full_page=route in {"/", "/en-US/"},
+    )
+    if route in {"/", "/en-US/"} and width == 1440:
+        await page.add_style_tag(content=".rp-nav { display: none !important; }")
+        await page.locator(".ak-tech-stack-section").screenshot(
+            path=str(EVIDENCE / f"{name}.technology.png")
+        )
+        await page.locator(".ak-product-tour").screenshot(
+            path=str(EVIDENCE / f"{name}.product-tour.png")
+        )
     errors: list[str] = []
     if status >= 400 or status == 0:
         errors.append(f"navigation status {status}")
@@ -227,6 +273,23 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
         )
     if "what-is-appkernia" in route and metrics["galleryImages"] != 8:
         errors.append(f"expected 8 product gallery images, got {metrics['galleryImages']}")
+    if route in {"/", "/en-US/"}:
+        if metrics["homeSections"] < 10:
+            errors.append(f"expected at least 10 home sections, got {metrics['homeSections']}")
+        if metrics["featureCards"] != 6:
+            errors.append(f"expected 6 feature cards, got {metrics['featureCards']}")
+        if metrics["technologyCards"] != 9:
+            errors.append(f"expected 9 technology cards, got {metrics['technologyCards']}")
+        if metrics["productSliders"] != 2:
+            errors.append(f"expected 2 product sliders, got {metrics['productSliders']}")
+        if not slider_interactions or not all(
+            value is True
+            for key, value in slider_interactions.items()
+            if key != "liveRegions"
+        ):
+            errors.append(f"slider interaction failed: {slider_interactions}")
+        if not slider_interactions or slider_interactions["liveRegions"] != 2:
+            errors.append(f"expected 2 slider live regions: {slider_interactions}")
     if console_errors:
         errors.append(f"console errors: {console_errors}")
     if failed_responses:
@@ -257,6 +320,7 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
         "theme": theme,
         "metrics": metrics,
         "axeSeriousCritical": axe,
+        "sliderInteractions": slider_interactions,
         "abortedRequests": failed_requests,
         "navigations": navigations,
         "errors": errors,

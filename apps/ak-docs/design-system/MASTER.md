@@ -1,7 +1,7 @@
 # AppKernia Docs Design System
 
 > Source: `ui-ux-pro-max` persisted output for `AppKernia Docs`, refreshed for
-> `AKDOCS-003` on 2026-08-09.
+> `AKDOCS-004` on 2026-08-09.
 
 ## Product direction
 
@@ -44,6 +44,8 @@
 - At 1920 px, the left and right outer margins of the three-column shell must
   differ by no more than 2 CSS px.
 - Home sections use 12-column responsive grid and 72–112 px vertical rhythm.
+- The custom home layout must render the authored MDX body after the Hero;
+  frontmatter-only output is not an acceptable homepage implementation.
 - Breakpoints are verified at 375, 768, 1024, 1440, and 1920 px.
 - All links and buttons show visible hover and `:focus-visible` states without layout shift.
 - Motion lasts 150–250 ms and is disabled by `prefers-reduced-motion`.
@@ -63,6 +65,11 @@
 - Product galleries use repository acceptance screenshots only. Each caption
   identifies the verified runtime and avoids implying coverage for another
   platform, device, locale, or deployment environment.
+- Homepage product tours use two manual sliders: one Admin/Web and one Mobile.
+  They never auto-advance, support buttons, dots, and keyboard arrow keys, and
+  announce slide changes without adding visible duplicate captions.
+- Technology marks use official or version-locked SVG sources, are self-hosted
+  in the production output, and do not imply vendor endorsement.
 
 ## Technical diagrams
 
@@ -81,6 +88,9 @@
 
 - Homepage value cards are semantic links, not the Rspress `features` widget.
 - Each card has one 1 px border and one lightweight brand-color top marker.
+- Core-feature cards use a six-card grid at desktop, two columns at tablet, and
+  one column on narrow screens. Technology cards use a quieter three-column
+  logo grid and preserve each mark's recognizable brand color.
 - Do not add nested outlines, duplicated frames, tilt, shine, or moving hover
   geometry. Hover and keyboard focus may change color and shadow only.
 

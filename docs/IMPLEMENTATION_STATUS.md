@@ -4,13 +4,13 @@
 
 ## 总体状态
 
-| Surface | 当前可交付状态 | 下一依赖 |
-|---|---|---|
-| Backend | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环 | 当前 Admin backlog 已收口；生产 Adapter 联调见风险 |
-| Admin | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁 | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险 |
-| Mobile | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证 | Android/Harmony 安装运行、三端真机、签名/发布仍未完成 |
-| Docs / Website | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站并发布至 `https://payhon.github.io/AppKernia/`：品牌已与 Admin 统一，首页使用重新运行后取得的 Admin/iOS 模拟器实景，64 个静态页面、零门槛向导、核心 API、AK Mobile 组件、搜索、暗色与响应式体验通过门禁 | GitHub Pages HTTPS 已启用；`appkernia.com` 尚待 DNS、域名验证和 Custom Domain 绑定 |
-| Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线 | Mobile 三端长英文/运行时视觉验收 |
+| Surface             | 当前可交付状态                                                                                                                                                                                                         | 下一依赖                                                                                                  |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环                                                                    | 当前 Admin backlog 已收口；生产 Adapter 联调见风险                                                        |
+| Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁                                                                                                                                                     | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险                                                        |
+| Mobile              | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证                        | Android/Harmony 安装运行、三端真机、签名/发布仍未完成                                                     |
+| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：66 个静态页面、零门槛向导、核心 API、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；本地源码首页已补齐 10 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | 线上仍为上一发布版本；本轮首页优化尚未提交或推送，`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
+| Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
 
 ## 2026-08-09 文档站品牌、实景 Hero 与内容优化
 
@@ -20,7 +20,6 @@
 - 首页移除 Rspress `features` 双层框，改为单边框语义链接卡片；补齐项目初心、三端架构、能力矩阵、三步运行、产品实景、成熟度边界、FAQ、贡献与 Star 引导。Guide、Concepts、Server API、Mobile Components、Community 五个入口同步扩充 `zh-CN` / `en-US`。
 - `AKDOCS-002` production preview 共 8 个样本，覆盖 375/768/1024/1440/1920、双语和明暗主题；全部 HTTP 200、单一 H1、无页面横向溢出/破图/console error，axe serious/critical 为 0。
 - Docs 完整门禁、Backend/Admin/Mobile 三蓝图与 i18n validator、113 个 API 文档路径引用及 `git diff --check` 均退出 0；站点仍构建 64 个静态页面。发布后状态以 `Docs Pages` Workflow 和线上 URL 实查为最终事实源。
-
 
 ## 2026-08-09 GitHub Pages 正式发布
 
@@ -549,3 +548,15 @@
 - Backend、Admin、Mobile、跨端 i18n 与 UI Skill 五项校验通过；Node 24.18.1 文档全量 check、113 个 API 引用、66 页构建、GitHub `/AppKernia/` Base Path 静态资源核对及 `git diff --check` 通过。
 - Docs Pages run `31292063763` 的 build/deploy 均为 success；线上首页、中英文项目介绍、架构/认证页、产品图片与 Sitemap 均返回 HTTP 200，7 个 Chromium 代表页面无严重/关键可访问性或运行错误。
 - 公开地址为 `https://payhon.github.io/AppKernia/`。`appkernia.com` 尚无 A/AAAA、`www` CNAME 或 GitHub Pages 验证 TXT，当前不声明自定义域名可访问。
+
+## 2026-08-09 文档站首页内容、产品 Slider 与技术栈
+
+### 状态：本地完成（未提交、未发布）
+
+- 根因不是正文缺失，而是 Rspress 2.0.19 默认 `HomeLayout` 只渲染 Hero/Features，不渲染首页 MDX body；新增主题 HomeLayout 后，既有初心、三端架构、能力矩阵、源码运行、成熟度、FAQ 与社区内容均进入页面和 SSG Markdown 输出。
+- 中英文首页新增 6 张核心特性链接卡，覆盖会话、权限/多租户、国际化、OpenAPI、AK UI 与工程证据；卡片保持单层边框、品牌色顶线和无位移 hover/focus。
+- 新增 9 项技术栈：uni-app x、React、TypeScript、Vite、Go、PostgreSQL、OpenAPI、Docker、Ant Design。DCloud 官方 uni-app 图自托管，其余使用锁定的 `simple-icons@16.27.0` SVG 源；不依赖运行时 Logo CDN。
+- 新增 Admin/Web 与 Mobile 两个四图 Slider，复用仓库验收截图，支持前后按钮、圆点和键盘左右键，不自动轮播；每张图有双语 alt、caption、计数和 live region。
+- 最终 production preview 覆盖 `375/768/1024/1440/1920` 中文浅色与 1440 英文深色：6/6 HTTP 200、单一 H1、无页面级 overflow/破图/console/失败资源，axe serious/critical 为 0；两个 Slider 的点击、键盘与不自动轮播断言全部通过。
+- Node 24.18.1 文档全量 check、113 个 API 引用、66 页双语构建、Backend/Admin/Mobile 蓝图、跨端 i18n、UI Skill、Python 语法与 `git diff --check` 均通过。首轮 docs check 曾因 Slider region 直接使用 `tabIndex/onKeyDown` 触发 2 条 JSX a11y lint，已把键盘处理移到真实 button 控件并重跑通过。
+- `AKDOCS-004` 保存 request、Skill 输出、决策、页面 override、10 张截图与机器可读结果。本轮没有重新运行 Admin/Mobile 业务环境，也未执行生产、真机、commit、push 或 GitHub Pages 发布。

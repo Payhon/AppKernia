@@ -21,7 +21,8 @@
   "dependencies": {
     "@rspress/core": "2.0.19",
     "@rspress/plugin-sitemap": "2.0.19",
-    "rspress-plugin-mermaid": "1.0.1"
+    "rspress-plugin-mermaid": "1.0.1",
+    "simple-icons": "16.27.0"
   },
   "devDependencies": {
     "@rslint/core": "^0.5.3",

@@ -96,6 +96,19 @@ body {
   outline-offset: 3px;
 }
 
+.ak-visually-hidden {
+  position: absolute !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  border: 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+}
+
 .rp-nav {
   border-bottom-color: color-mix(in srgb, var(--ak-line) 76%, transparent);
   background: color-mix(in srgb, var(--ak-page) 90%, transparent);
@@ -196,6 +209,17 @@ html.dark .rp-home-background {
     radial-gradient(circle at 13% 7%, rgba(77, 163, 255, 0.18), transparent 32%),
     radial-gradient(circle at 88% 14%, rgba(53, 211, 211, 0.13), transparent 32%),
     linear-gradient(180deg, #07111f, #081828 64%, #07111f);
+}
+
+.ak-home-main,
+.ak-home-content {
+  position: relative;
+}
+
+.ak-home-main {
+  z-index: 1;
+  max-width: 100vw;
+  overflow-x: clip;
 }
 
 .rp-home-hero {
@@ -454,6 +478,7 @@ html.dark .rp-home-background {
   width: min(1200px, calc(100% - 40px));
   margin: 0 auto;
   padding: 96px 0;
+  scroll-margin-top: 84px;
 }
 
 .ak-home-section + .ak-home-section {
@@ -574,6 +599,147 @@ html.dark .rp-home-background {
   line-height: 1.6;
 }
 
+.ak-tech-logo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 44px 0 0;
+  padding: 0;
+  gap: 14px;
+  list-style: none;
+}
+
+.ak-tech-logo-card {
+  display: flex;
+  min-width: 0;
+  min-height: 104px;
+  align-items: center;
+  border: 1px solid var(--ak-line);
+  border-radius: 18px;
+  padding: 19px 20px;
+  gap: 16px;
+  background: var(--ak-surface);
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.ak-tech-logo-card:hover {
+  border-color: color-mix(in srgb, var(--ak-brand) 38%, var(--ak-line));
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.07);
+}
+
+.ak-tech-logo-card__mark {
+  display: grid;
+  width: 72px;
+  min-width: 72px;
+  height: 58px;
+  place-items: center;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--ak-surface-soft) 90%, var(--ak-brand) 10%);
+}
+
+.ak-tech-brand-mark {
+  display: block;
+  width: 38px;
+  height: 38px;
+  background: currentColor;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  mask-size: contain;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+}
+
+.ak-tech-logo-card__mark img {
+  display: block;
+  width: 62px;
+  max-height: 42px;
+  object-fit: contain;
+}
+
+.ak-tech-logo-card > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.ak-tech-logo-card strong {
+  overflow: hidden;
+  color: var(--ak-ink);
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ak-tech-logo-card small {
+  color: var(--ak-muted);
+  font-family: var(--rp-font-family-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ak-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 44px;
+  gap: 16px;
+}
+
+.ak-feature-card {
+  position: relative;
+  display: flex;
+  min-height: 276px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ak-line);
+  border-radius: 20px;
+  padding: 26px;
+  color: inherit;
+  background: var(--ak-surface);
+  text-decoration: none;
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.ak-feature-card::before {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 3px;
+  background: var(--ak-gradient);
+  content: '';
+}
+
+.ak-feature-card:hover {
+  border-color: color-mix(in srgb, var(--ak-brand) 42%, var(--ak-line));
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.09);
+}
+
+.ak-feature-card h3 {
+  margin: 22px 0 8px;
+  color: var(--ak-ink);
+  font-size: 20px;
+  letter-spacing: -0.025em;
+}
+
+.ak-feature-card p {
+  margin: 0;
+  color: var(--ak-muted);
+  line-height: 1.72;
+}
+
+.ak-feature-card__link {
+  margin-top: auto;
+  padding-top: 20px;
+  color: var(--ak-brand-strong);
+  font-size: 14px;
+  font-weight: 680;
+}
+
 .ak-capability-wrap {
   overflow-x: auto;
   margin-top: 44px;
@@ -611,50 +777,235 @@ html.dark .rp-home-background {
   border-bottom: 0;
 }
 
-.ak-proof-grid {
-  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 0.72fr);
+.ak-product-slider-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.48fr) minmax(320px, 0.52fr);
   align-items: stretch;
+  margin-top: 44px;
+  gap: 18px;
 }
 
-.ak-proof-card {
+.ak-product-slider {
+  display: grid;
+  min-width: 0;
+  grid-template-rows: minmax(0, 1fr) auto auto;
   overflow: hidden;
-  margin: 0;
   border: 1px solid var(--ak-line);
-  border-radius: 20px;
+  border-radius: 22px;
   background: var(--ak-surface);
-  box-shadow: var(--ak-shadow);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08);
 }
 
-.ak-proof-card img {
+.ak-product-slider__viewport {
+  display: grid;
+  min-width: 0;
+  place-items: center;
+  padding: clamp(18px, 3vw, 32px);
+  background:
+    radial-gradient(
+      circle at 78% 18%,
+      color-mix(in srgb, var(--ak-cyan) 12%, transparent),
+      transparent 34%
+    ),
+    color-mix(in srgb, var(--ak-surface-soft) 94%, var(--ak-brand) 6%);
+}
+
+.ak-slider-browser {
+  overflow: hidden;
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--ak-line) 82%, #8ab8da);
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 22px 54px rgba(15, 23, 42, 0.17);
+}
+
+.ak-slider-browser__bar {
+  display: flex;
+  height: 32px;
+  align-items: center;
+  border-bottom: 1px solid #dde5ed;
+  padding: 0 12px;
+  gap: 6px;
+  color: #526174;
+  background: #f6f8fa;
+}
+
+.ak-slider-browser__bar span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #bcc7d1;
+}
+
+.ak-slider-browser__bar span:nth-child(1) {
+  background: #ff6b5f;
+}
+
+.ak-slider-browser__bar span:nth-child(2) {
+  background: #ffc14d;
+}
+
+.ak-slider-browser__bar span:nth-child(3) {
+  background: #37c96b;
+}
+
+.ak-slider-browser__bar strong {
+  margin-left: 6px;
+  font-family: var(--rp-font-family-mono);
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.ak-slider-browser img {
   display: block;
   width: 100%;
-  height: 100%;
-  min-height: 420px;
+  aspect-ratio: 16 / 10;
   object-fit: cover;
   object-position: top left;
 }
 
-.ak-phone-stack {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+.ak-product-slider--mobile .ak-product-slider__viewport {
+  min-height: 560px;
 }
 
-.ak-phone-frame {
+.ak-slider-phone {
+  position: relative;
   overflow: hidden;
-  margin: 0;
-  border: 1px solid var(--ak-line);
-  border-radius: 24px;
-  background: #0b1220;
-  box-shadow: 0 18px 44px rgba(2, 8, 23, 0.18);
+  width: min(260px, 82%);
+  border: 6px solid #101722;
+  border-radius: 34px;
+  background: #101722;
+  box-shadow: 0 22px 54px rgba(2, 8, 23, 0.24);
 }
 
-.ak-phone-frame img {
+.ak-slider-phone__sensor {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  left: 50%;
+  width: 32%;
+  height: 8px;
+  border-radius: 999px;
+  background: #080b10;
+  transform: translateX(-50%);
+}
+
+.ak-slider-phone img {
   display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: top;
+  height: auto;
+  border-radius: 27px;
+}
+
+.ak-product-slider__caption {
+  display: flex;
+  min-height: 112px;
+  align-items: start;
+  justify-content: space-between;
+  border-top: 1px solid var(--ak-line);
+  padding: 20px 22px 16px;
+  gap: 20px;
+}
+
+.ak-product-slider__caption > div {
+  min-width: 0;
+}
+
+.ak-product-slider__caption p {
+  margin: 0;
+  color: var(--ak-ink);
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ak-product-slider__caption span {
+  display: block;
+  margin-top: 6px;
+  color: var(--ak-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.ak-product-slider__caption strong {
+  flex: none;
+  color: var(--ak-brand-strong);
+  font-family: var(--rp-font-family-mono);
+  font-size: 12px;
+}
+
+.ak-product-slider__controls {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid color-mix(in srgb, var(--ak-line) 78%, transparent);
+  padding: 8px 14px;
+  gap: 10px;
+}
+
+.ak-product-slider__controls > button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--ak-line);
+  border-radius: 11px;
+  color: var(--ak-ink);
+  background: var(--ak-surface);
+  cursor: pointer;
+  transition:
+    border-color 180ms ease,
+    color 180ms ease,
+    background-color 180ms ease;
+}
+
+.ak-product-slider__controls > button:hover {
+  border-color: var(--ak-brand);
+  color: var(--ak-brand-strong);
+  background: color-mix(in srgb, var(--ak-brand) 7%, var(--ak-surface));
+}
+
+.ak-product-slider__controls > button svg {
+  width: 20px;
+  height: 20px;
+}
+
+.ak-product-slider__dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.ak-product-slider__dots button {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ak-product-slider__dots button::before {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ak-muted) 44%, transparent);
+  content: '';
+  transform: translate(-50%, -50%);
+  transition:
+    width 180ms ease,
+    background-color 180ms ease;
+}
+
+.ak-product-slider__dots button.is-active::before {
+  width: 20px;
+  background: var(--ak-brand);
 }
 
 .ak-proof-note {
@@ -780,6 +1131,11 @@ html.dark .rp-home-background {
 .ak-home-section > .ak-community-actions a:first-child:hover {
   color: #ffffff;
   background: var(--ak-brand-strong);
+}
+
+html.dark .ak-home-section > .ak-community-actions a:first-child,
+html.dark .ak-home-section > .ak-community-actions a:first-child:hover {
+  color: #07111f;
 }
 
 .ak-doc-callout {
@@ -1093,12 +1449,16 @@ html.dark .ak-endpoint--delete {
     grid-template-columns: 1fr;
   }
 
-  .ak-proof-grid {
+  .ak-feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ak-product-slider-grid {
     grid-template-columns: 1fr;
   }
 
-  .ak-proof-card img {
-    min-height: 0;
+  .ak-product-slider--mobile .ak-product-slider__viewport {
+    min-height: 520px;
   }
 }
 
@@ -1163,6 +1523,14 @@ html.dark .ak-endpoint--delete {
     grid-template-columns: 1fr;
   }
 
+  .ak-feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ak-tech-logo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .ak-value-card {
     min-height: 0;
     padding: 25px;
@@ -1175,10 +1543,6 @@ html.dark .ak-endpoint--delete {
 
   .ak-home-lead {
     font-size: 16px;
-  }
-
-  .ak-phone-stack {
-    grid-template-columns: 1fr 1fr;
   }
 
   .ak-belief-card,
@@ -1209,6 +1573,39 @@ html.dark .ak-endpoint--delete {
 }
 
 @media (width <= 520px) {
+  .ak-tech-logo-card {
+    min-height: 96px;
+    padding: 15px;
+    gap: 12px;
+  }
+
+  .ak-tech-logo-card__mark {
+    width: 54px;
+    min-width: 54px;
+    height: 52px;
+  }
+
+  .ak-tech-brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ak-tech-logo-card__mark img {
+    width: 48px;
+  }
+
+  .ak-product-slider__viewport {
+    padding: 16px;
+  }
+
+  .ak-product-slider--mobile .ak-product-slider__viewport {
+    min-height: 470px;
+  }
+
+  .ak-slider-phone {
+    width: min(230px, 84%);
+  }
+
   .ak-product-gallery--mobile {
     grid-template-columns: 1fr;
   }
@@ -1220,12 +1617,12 @@ html.dark .ak-endpoint--delete {
 }
 
 @media (width <= 420px) {
-  .ak-phone-stack {
-    gap: 8px;
+  .ak-tech-logo-grid {
+    grid-template-columns: 1fr;
   }
 
-  .ak-phone-frame {
-    border-radius: 16px;
+  .ak-product-slider__caption {
+    min-height: 126px;
   }
 }
 
