@@ -60,6 +60,8 @@ make docker-bootstrap-admin
 
 按照终端提示输入至少 12 位的密码。密码只从交互终端读取，不会写入 Git 或命令历史。默认开发邮箱来自 `.env` 中的 `AK_BOOTSTRAP_EMAIL`，你可以在执行前改成自己的本地测试邮箱。
 
+Core Seed 不内置管理员固定密码。重复执行 `make docker-bootstrap-admin` 会补齐已有管理员的角色、权限和菜单，但**不会覆盖已有密码**，因此不能把它当作密码重置命令。Docker 构建上下文也会排除 `.secrets/`；需要使用密码文件完成可重复的本地初始化时，请按[源码开发模式](./source-development)中的开发专用方法操作。
+
 ## 6. 打开系统
 
 - Admin：<http://localhost:4174>

@@ -3,16 +3,17 @@ package seed
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 
 	db "github.com/appkernia/appkernia/server/internal/infrastructure/db"
 	"github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	"github.com/appkernia/appkernia/server/internal/modules/iam/domain"
-	"github.com/appkernia/appkernia/server/internal/modules/iam/repository"
 	"github.com/appkernia/appkernia/server/internal/platform/buildinfo"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -674,24 +675,81 @@ func BootstrapAdmin(ctx context.Context, pool *pgxpool.Pool, input BootstrapAdmi
 			return domain.User{}, domain.Tenant{}, 0, 0, err
 		}
 	}
-	passwordHash, err := application.HashPassword(input.Password)
-	if err != nil {
-		return domain.User{}, domain.Tenant{}, 0, 0, err
-	}
-	postgresRepository := repository.NewPostgres(pool)
-	user, tenant, err := postgresRepository.CreateIdentity(ctx, domain.CreateIdentity{
+	normalized := domain.CreateIdentity{
 		TenantCode: input.TenantCode, TenantName: input.TenantName, Email: input.Email,
-		DisplayName: input.DisplayName, Locale: input.Locale, PasswordHash: passwordHash,
-	})
-	if err != nil {
-		return domain.User{}, domain.Tenant{}, 0, 0, err
+		DisplayName: input.DisplayName, Locale: input.Locale,
+	}.Normalize()
+	if normalized.TenantCode == "" || normalized.TenantName == "" || normalized.Email == "" ||
+		normalized.DisplayName == "" || (normalized.Locale != "zh-CN" && normalized.Locale != "en-US") {
+		return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("bootstrap administrator identity is incomplete")
 	}
 	tx, err := pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
-		return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("begin bootstrap role transaction: %w", err)
+		return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("begin bootstrap administrator transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	queries := db.New(tx)
+
+	tenantRow, err := queries.GetActiveTenantByCode(ctx, normalized.TenantCode)
+	if errors.Is(err, pgx.ErrNoRows) {
+		tenantRow, err = queries.CreateTenant(ctx, db.CreateTenantParams{
+			Code: normalized.TenantCode, Name: normalized.TenantName,
+			Status: "active", Settings: json.RawMessage(`{}`),
+		})
+	}
+	if err != nil {
+		return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("resolve bootstrap tenant: %w", err)
+	}
+
+	email := normalized.Email
+	userRow, err := queries.GetUserByEmail(ctx, &email)
+	if errors.Is(err, pgx.ErrNoRows) {
+		passwordHash, hashErr := application.HashPassword(input.Password)
+		if hashErr != nil {
+			return domain.User{}, domain.Tenant{}, 0, 0, hashErr
+		}
+		userRow, err = queries.CreateUser(ctx, db.CreateUserParams{
+			Email: &email, DisplayName: normalized.DisplayName, Locale: normalized.Locale,
+			TimeZone: "UTC", Status: "active", Metadata: json.RawMessage(`{}`),
+		})
+		if err == nil {
+			_, err = queries.CreateUserCredential(ctx, db.CreateUserCredentialParams{
+				UserID: userRow.ID, PasswordHash: passwordHash,
+			})
+		}
+		if err == nil {
+			_, err = queries.CreateTenantMember(ctx, db.CreateTenantMemberParams{
+				TenantID: tenantRow.ID, UserID: userRow.ID,
+				DisplayName: &normalized.DisplayName, Status: "active",
+			})
+		}
+		if err != nil {
+			return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("create bootstrap identity: %w", err)
+		}
+	} else if err != nil {
+		return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("resolve bootstrap user: %w", err)
+	} else {
+		if userRow.Status != "active" {
+			return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("bootstrap user is not active")
+		}
+		if _, credentialErr := queries.GetCredentialByEmail(ctx, &email); credentialErr != nil {
+			return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("bootstrap user credential is unavailable: %w", credentialErr)
+		}
+		if _, memberErr := queries.GetActiveTenantMember(ctx, db.GetActiveTenantMemberParams{
+			TenantID: tenantRow.ID, UserID: userRow.ID,
+		}); memberErr != nil {
+			return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("bootstrap user is not an active member of the target tenant: %w", memberErr)
+		}
+	}
+
+	user := domain.User{
+		ID: userRow.ID, Email: email, DisplayName: userRow.DisplayName,
+		Locale: userRow.Locale, TimeZone: userRow.TimeZone, Status: userRow.Status,
+		AvatarFileID: userRow.AvatarFileID,
+	}
+	tenant := domain.Tenant{
+		ID: tenantRow.ID, Code: strings.ToLower(tenantRow.Code), Name: tenantRow.Name, Status: tenantRow.Status,
+	}
 	roleID, err := queries.UpsertSystemAdminRole(ctx, tenant.ID)
 	if err != nil {
 		return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("upsert bootstrap role: %w", err)
@@ -717,7 +775,7 @@ func BootstrapAdmin(ctx context.Context, pool *pgxpool.Pool, input BootstrapAdmi
 		return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("grant bootstrap menus: %w", err)
 	}
 	if err = tx.Commit(ctx); err != nil {
-		return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("commit bootstrap role: %w", err)
+		return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("commit bootstrap administrator: %w", err)
 	}
 	return user, tenant, granted, grantedMenus, nil
 }

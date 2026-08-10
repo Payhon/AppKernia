@@ -3,6 +3,27 @@
 日期：2026-08-04  
 范围：Backend + Admin frontend 完成性与 GitHub 开源开发体验；未自动 commit、push 或部署。
 
+## 2026-08-10 本地管理员与安全 Seed 引导
+
+- 在当前 `appkernia-acceptance` 数据库既有 `local` 租户中创建 `admin@appkernia.local`，赋予 active `super-admin` 关系；密码只通过终端 stdin 进入 Argon2id 哈希流程，没有写入 Git、命令参数、环境变量、日志或本文档。
+- 修复 `bootstrap-admin` 遇到既有 tenant code 时直接违反 `uq_tenants_code` 的问题。身份、凭据、成员、角色、权限、菜单和租户配置现由同一 Serializable 事务编排；重复 bootstrap 复用 user/tenant 且保持原密码。
+- `seed core` 支持可选的 development-only 管理员初始化：`AK_SEED_ADMIN_EMAIL` 默认 `admin@appkernia.local`，密码必须来自 `AK_SEED_ADMIN_PASSWORD_FILE`；生产环境 fail closed，不内置固定密码。`.secrets/` 已加入 Git/Docker ignore。
+
+| 命令/验收 | 退出码 | 结果 |
+|---|---:|---|
+| `make -C server sqlc-generate` | 0 | 新增 active tenant member 查询并同步 sqlc 生成代码 |
+| `go test ./cmd/ak-cli ./internal/seed -count=1` | 0 | CLI 密码文件边界与 Seed 单元测试通过 |
+| `go test -tags=integration ./internal/seed -run ... -count=1 -v` | 0 | 3/3 PostgreSQL 18 集成测试通过：既有租户复用、重复执行保留凭据、跨租户同邮箱 fail closed、模块目录幂等 |
+| 交互式 `bootstrap-admin` | 0 | 本地管理员创建成功；未输出密码 |
+| 完整 `seed core`，密码文件使用 `/dev/stdin` | 0 | `development_admin=true`；144 permissions、46 menus、8 modules、3,663 regions、66 dictionaries 同步成功 |
+| 两次真实 `POST /admin-api/v1/auth/login` | 0 | 创建后及重复 Seed 后均 HTTP 200、`code=OK`、Access Token 存在；Token 值未输出 |
+| `make -C server check` + `go test -json ./...` 统计 | 0 | gofmt、go vet、后端全量默认测试通过；133 tests passed / 0 failed |
+| `go test -race ./cmd/ak-cli ./internal/seed -count=1` | 0 | CLI 与 Seed 专项 race 通过 |
+| Backend/Admin/Mobile blueprint + i18n validators | 0 | Backend 17 组迁移静态校验及三端契约均通过 |
+| `git diff --check` | 0 | 当前混合工作树无补丁格式错误 |
+
+验证边界：这是本机 development 数据库与源码 API 的真实登录闭环，不代表生产账号、生产部署或外部身份系统验收；本轮没有修改 Migration、OpenAPI、权限码或 Admin UI。
+
 ## 2026-08-08 Mobile Apple UI refresh
 
 - 使用仓库 `ui-ux-pro-max`，并从 skills.sh 安装/读取框架无关的 `ios-hig-design`，形成 Apple HIG 启发但不复制 Apple 资产的视觉方向；request、skill output、decisions、checklist 与截图已保存。
@@ -1591,3 +1612,149 @@
 - 纯 Python/Markdown Skill 不涉及应用构建、设备或可见 UI；截图索引不适用。未执行 GLM5 或 Claude Code 的真实会话验收，两份提示词仅完成内容与脚本契约验证。
 - `auto` 根据源码目录、构建清单或 `.git` 保守判定已有项目；无法准确表达用户意图时应显式指定 `new` 或 `existing`。
 - `--force` 会覆盖脚本管理的同名文档，只能在用户明确授权且检查差异后使用；自动生成的已有项目基线只是目录级盘点，不是完整架构审计。
+
+## 2026-08-10 APP 管理与 App 升级中心交付报告
+
+### 交付内容
+
+- PostgreSQL migration `000017_app_upgrade_center` 完成 App manifest 身份、描述资料、所有者/团队、文件资产、渠道和应用市场关系化；Down 会在 WGT、多平台、内部包或其他旧模型不可表达数据存在时显式中止。
+- `sys.mobile_releases` 成为新旧发布入口共用的版本事实源；实现草稿、上线、部分上线、下线、历史冻结、SemVer 单调发布、native 单平台和 WGT 多平台发布指针。
+- Backend 同步应用 CRUD/批量软删除、版本 CRUD/批量删除/发布/下线、跨租户约束、文件类型与扫描校验、操作审计、短期签名下载、Public API 兼容字段和 Public Config manifest 字段。
+- Admin 同步新菜单/路由、应用列表和长表单、升级中心选择器/筛选/发布下拉/native 与 WGT Drawer、权限分支、URL Search Params、移动卡片与双语文案；旧系统路由继续挂载同一页面。
+- OpenAPI、生成 TypeScript Client、Mobile UTS DTO、权限/菜单种子、Backend/Admin 蓝图和统一 i18n 契约同步完成。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `make -C server sqlc-generate` | 0 | sqlc 生成文件与当前查询一致。 |
+| `make -C server check` / `make -C server test-race` / `make -C server build` | 0 / 0 / 0 | Go fmt/vet/test、race 与 API/Worker/CLI build 通过；JSON 复核 130 个通过测试事件、34 个通过包。 |
+| PostgreSQL 18 `migration-down → migration-up → seed-core` | 0 | 最终 migration `17 dirty=false`；核心种子为 144 permissions、46 menus、8 modules。 |
+| 集成测试后首次 `migration-down` | 2 | Down 按设计拒绝测试残留的新模型关系，并把迁移元数据标为 dirty；修正 fixture 清理、确认 v17 表/列仍在后，将元数据恢复为 `17/clean`，最终 `Down → Up` 退出 0。 |
+| `go test -count=1 -tags=integration ./internal/modules/appmanagement/application ./internal/modules/mobileprofile/repository ./internal/modules/storageadmin/repository` | 0 | 三个相关 PostgreSQL integration 包通过；覆盖 App 身份不可变、默认保护、批量原子软删、IDOR，以及 WGT 三平台发布、部分上线、冻结、单调版本、下线/重发和文件关系。 |
+| `make -C server test-integration` / 串行 integration 重跑 | 2 / 非零 | 全仓组合在 IAM/jobadmin 的 PostgreSQL `40001` serialization failure；未标记通过。 |
+| `pnpm --filter @appkernia/admin check` | 0 | API/i18n/route 生成、ESLint、TypeScript、24 文件/94 测试、production build、bundle 和 Admin blueprint 通过。 |
+| `python3 apps/ak-admin/scripts/e2e_mobile_releases.py` | 0 | 12 个 Chromium 状态，双语、375/768/1024/1440、应用/版本/Drawer/409；axe serious/critical=0，无 overflow 和意外 console error。 |
+| `bash apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile blueprint、i18n Catalog 和静态项目契约通过；不等同于三端编译。 |
+| `make check` | 0 | Backend、Admin、Mobile、Docs 与全部蓝图/i18n 聚合门禁通过。 |
+| `git diff --check` | 0 | 最终文本补丁无空白错误。 |
+
+### 设计与截图证据
+
+- [App 管理 Skill 决策](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/decisions.md)、[检查清单](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/review-checklist.md)、[截图索引](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/screenshot-index.md)。
+- [升级中心 Skill 决策](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-mobile-releases/decisions.md)、[检查清单](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-mobile-releases/review-checklist.md)、[截图索引](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-mobile-releases/screenshot-index.md)。
+- UI Skill 的通用鲜艳方案未覆盖 AK 设计系统；实现继续使用既有 Ant Design semantic tokens、系统字体、高密度桌面表格和窄屏卡片。Playwright/axe 检查促成了表单可访问名称、可聚焦滚动区和窄屏完整动作的修复。
+
+### 纠正记录
+
+- 新增 App 生命周期 PostgreSQL integration 首轮暴露批量删除审计 INSERT 对同一参数推断出 varchar/text 冲突；对资源 ID 与路径拼接增加显式 text cast 后复测通过。
+- integration fixture 最初仅删除 tenant，但受 tenant membership RESTRICT 和保留内容页删除保护影响，遗留团队/渠道/市场关系并触发 Down 的防丢失保护。清理逻辑改为按测试 tenant 依次删除发布关系、将待删保留页转为测试用 custom、删除 App、membership、tenant 和测试用户；复测残留计数均为 0。
+
+### 未完成项与风险
+
+- 全仓 integration 组合仍受 IAM/jobadmin 的 `40001` 阻塞；相关模块定向 integration 已通过，但二者不能互相替代。
+- 浏览器使用 mock-authenticated 本地 production preview，不代表生产部署或真实后端登录链路。Admin 当前无暗色主题，深色系统偏好截图只验证兼容性。
+- 未实现真实 App Store、ABM、应用市场或 `uni-stat` 同步；外链由客户端直连。Mobile 不下载、验证或执行 WGT，避免引入在线可执行包能力。
+- 未执行 Android/iOS/HarmonyOS compile、模拟器、真机、安装包安装、签名发行或商店上架验收；本轮未 commit、未 push。
+- Admin/Docs 检查使用本机 Node 26.5.0，仓库要求 Node 24，存在 engine warning；检查结果为退出 0，但本轮未补做 Node 24 运行时复核。
+
+## 2026-08-10 App 范围页面全局选择器优化交付报告
+
+### 交付内容
+
+- 新增共享 `GlobalAppSelector`，由 `AppShell` 根据路由决定是否渲染，并固定在全屏按钮左侧；覆盖 `/app/users`、`/app/upgrade-center`、`/app/content/*` 与兼容入口 `/system/mobile/releases`，不在 `/app/applications` 等非范围页面显示。
+- 新增共享 `AppSelectionRequiredState`。没有 `app_id` 时，App 用户、文章/分类、单页和版本中心的数据 Card 只显示最小高度、水平/垂直居中的灰色提示，不挂载筛选器、表格、移动卡片或它们的 Loading。
+- 未选择 App 时隐藏新增用户、创建内容和发布新版等范围动作；选择 App 后保留 URL 筛选参数并重置已有分页。App 内容文章/分类的 URL 同步补齐 `app_id`，避免切换筛选或 Tab 后丢失范围。
+- 使用 Zustand 保存非敏感的 `tenant UUID → App UUID` 工作区偏好。URL 显式 App 优先并在当前租户 App 列表确认后刷新记忆；没有 URL 参数的范围页面自动恢复并回写，清空或不存在的 App 同步清理当前租户值。
+- 提示、选择器和禁用状态继续使用 `zh-CN` / `en-US` 翻译键；同步 Admin design system、App 管理/升级中心 override、页面规格和独立 UI Skill 证据目录。
+- 扩展升级中心 Chromium E2E，断言 5 个范围入口的无选择状态、选择器与全屏按钮几何顺序、最小高度、文字居中、无旧 Alert、无 spinner/table/filter 及无页面级横向溢出。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run src/features/apps/scope.test.ts src/components/AppSelectionRequiredState.test.tsx` | 0 | 2 文件、15 项路由/helper/共享占位测试通过。 |
+| `pnpm --filter @appkernia/admin check`（首轮） | 1 | ESLint 正确拦截 Ant Design 6 已弃用的顶层 `optionFilterProp` 与 `||` 空值规则；改为 `showSearch.optionFilterProp` 和 `??`。 |
+| Admin 完整 check（第二轮） | 1 | 生成阶段从 blueprint i18n 恢复旧提示，新增测试因此失败；确认并修正 `blueprint/i18n/admin` 事实源后由生成器同步语言分片。 |
+| `pnpm --filter @appkernia/admin check`（最终，Node 24.18.1） | 0 | API/i18n/route 生成、ESLint、strict TypeScript、26 文件/109 测试、Vite production build、bundle budget 和 Admin blueprint 全部通过。 |
+| `python3 apps/ak-admin/scripts/e2e_mobile_releases.py` | 0 | Chromium 13 个 axe 状态覆盖双语、375/768/1024/1440、浅色/深色偏好、选中/未选中/Drawer/409；serious/critical=0，无 overflow 和意外 console error。 |
+| 真实本地 API 浏览器链路 | 0 | 从 Git 忽略的密码文件读取 seed 管理员凭据；登录、未选提示、选择默认 App、版本表加载、应用清单隐藏选择器全部通过，失败 Admin 响应与 console error 均为 0。 |
+| 持久化 follow-up 纯函数测试 | 0 | `scope` 与 `selection-store` 共 19 项通过；覆盖 URL 优先、租户隔离、读取/写入、清空和损坏存储降级。 |
+| 持久化 follow-up 首轮 Admin check | 1 | ESLint 拦截清空映射时未使用的解构绑定；改为无副作用键过滤后重新执行完整门禁。 |
+| 持久化 follow-up 最终 Admin check（Node 24.18.1） | 0 | 27 个 Vitest 文件、114 项测试、production build、bundle budget 和 Admin blueprint 全部通过。 |
+| 持久化 follow-up Chromium E2E | 0 | 真实点击选择器后，不带参数进入 App 用户页自动恢复；新开 Admin 页面并重新登录后仍从 localStorage 恢复并回写 URL。 |
+| 持久化 follow-up 真实本地 API | 0 | 选择 App、跨页面、移除 URL 后刷新/重新登录、再次进入无参数 App 用户页均恢复同一 App；失败 Admin 响应和 console error 为 0。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | 两种语言、默认/回退和 Backend/Admin/Mobile reference pack 通过。 |
+| `pnpm --filter @appkernia/admin check:ui-skill` / `git diff --check` | 0 / 0 | 仓库 UI Skill 可用；最终文本补丁无空白错误。 |
+
+### 设计与截图证据
+
+- [全局 App 选择器决策与检查清单](../apps/ak-admin/artifacts/ui-ux-pro-max/app-context-selection/decisions.md)、[截图索引](../apps/ak-admin/artifacts/ui-ux-pro-max/app-context-selection/screenshot-index.md)。
+- 人工查看 `en-US` 1440/768/375 未选择态及 375 已选择态；全局选择器在桌面保留标签，在窄屏只收起次要标签/状态装饰，控件本身和可访问名称仍保留。
+- 人工查看新页面恢复后的中文 1440 App 用户页，以及真实本地刷新/重新登录后的 1440 用户列表；顶部选择器、URL 和表格上下文一致。
+- UI Skill 返回的通用鲜艳品牌方案与 AK 已批准的中性 Ant Design token 不一致，因此仅采用其上下文可发现性、前置状态、键盘和响应式建议，没有覆盖现有字体或配色。
+
+### 纠正记录与验证边界
+
+- Playwright Skill 的 CLI wrapper 前置检查发现 `npx` 可用，但 wrapper 解析后缺少 `playwright-cli`；改用仓库现有 Python Playwright + Chromium 运行时，未新增替代测试框架。
+- 第一次真实 API 浏览器脚本用硬导航造成内存访问会话丢失并回到登录页；改用与菜单点击一致的 SPA 路由切换后原样重测通过，这不是选择器产品缺陷。
+- 当前本地硬刷新会先回登录且登录成功后进入 Dashboard，不自动回原 redirect；持久化验收因此在重新登录后进入无 `app_id` 的用户管理页，确认从浏览器 UUID 记忆恢复。该认证 redirect 行为不在本次 App 选择器范围内。
+- 本轮只修改 Admin UI、Admin i18n/规范、E2E 与交付文档；没有 Backend、Migration、OpenAPI 或 Mobile 行为变化，不代表生产部署或移动端设备验收。
+- 本轮未 commit、未 push；本地 API 8080 与 Vite Admin 4173 仅作为本机验收环境。
+
+## 2026-08-10 管理员初始化文档交付报告
+
+### 交付内容
+
+- 在文档站“快速开始”“源码开发模式”“故障排查”的中英文正文中补齐管理员密码初始化方法与安全注意事项。
+- 文档区分 Docker 交互初始化和源码开发专用密码文件 Seed；明确无固定密码、仅 development 可用、密码文件权限、幂等不改密、已有账号/租户约束及 CORS/数据库实例排查边界。
+- 未把本机测试密码、Token、Cookie 或其他 Secret 写入文档或生成产物。
+
+### 实际命令与退出码
+
+| 命令 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/docs format:check` | 0 | 六份中英文 Markdown 均符合 Prettier 格式。 |
+| `pnpm --filter @appkernia/docs check` | 0 | 113 个 API 引用、lint、TypeScript、Prettier、Rspress 66 页双语构建、语言 parity 与 Sitemap 全部通过。 |
+| `git diff --check -- apps/ak-docs` | 0 | 文档站补丁无空白错误。 |
+
+### 验证边界
+
+- 本轮只修改文档正文，没有改动数据库、CLI、API、Admin 或 Mobile 业务实现，也没有部署 GitHub Pages。
+- 完整文档构建在本机 Node 26.5.0 完成；pnpm 对 Admin workspace 的 Node 24 声明产生 warning，但文档包声明支持 Node 24 至 26，命令实际退出 0。
+
+## 2026-08-10 多语言表单 Tab 统一优化交付报告
+
+### 交付内容
+
+- `system.language` 进入核心字典事实源，使用 internal + fixed 策略和锁定全局记录；两种语言分别保存本地化标签，按 sort order 返回，`zh-CN` 为唯一默认项。
+- 新增共享语言查询/严格解析 Hook 和 `AkLocalizedFormTabs`。当前 Admin 语言优先激活；Tab 不销毁已访问字段，字典异常显示可重试错误并禁用保存，语言错误具有图标、危险色和可访问名称。
+- 原生 App/WGT、内容文章/分类和 App 单页编辑器全部接入共享组件；单值 locale 选择器保持原实现。提交结构、OpenAPI、数据库翻译约束和 `SupportedLocale` 仍为 `zh-CN | en-US`。
+- 系统字典页按翻译键展示内置类型名称、说明和 System 分类；Admin/Backend 蓝图、Design System、页面 override、UI Skill request/output/decisions/checklist 与截图索引已同步。
+
+### 实际命令与退出码
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `make -C server seed-core` | 0 | 本地 PostgreSQL 18 幂等初始化：144 permissions、46 menus、8 modules、71 dictionary locale records；`development_admin=false`。 |
+| `go test ./internal/seed` / `go test -tags=integration ./internal/seed` | 0 / 0 | 核心字典 Catalog、fixed/internal 策略、双语标签与顺序测试通过；无 `AK_TEST_DATABASE_URL` 时 tagged DB 用例按测试约定跳过。 |
+| 本地登录后 GET `/admin-api/v1/dictionaries/system.language` | 0 | 真实 API 返回 `fixed`、`zh-CN → en-US`、中文标签及唯一默认 `zh-CN`；凭据和 Token 未输出或写入产物。 |
+| `pnpm check:ui-skill` | 0 | 仓库 UI Skill 可用；已保存本任务 request、skill output、decisions、checklist 和截图索引。 |
+| `pnpm --filter @appkernia/admin check`（最终，Node 24.14.0） | 0 | API/i18n/route 生成、ESLint、strict TypeScript、29 文件/118 测试、Vite production build、bundle budget 和 Admin blueprint 通过。 |
+| `make check` | 0 | Backend vet/test、Admin、Mobile 静态检查、Docs build 及全部蓝图/i18n 聚合门禁通过；其后可访问名称增量由最终 Admin check 再次覆盖。 |
+| Chromium 多语言表单验收 | 0 | 5 个状态覆盖 native/WGT、文章、分类、App 单页，`zh-CN/en-US`、375/768/1440、light/preferred-dark；Tab 切换保值、首错定位、无 overflow，axe serious/critical=0，console error=0。 |
+| `python3 -m py_compile ...e2e_content_management.py ...e2e_mobile_releases.py` | 0 | 扩展后的既有 Python E2E 脚本语法通过；本机 Python 无 Playwright 模块，未把语法检查描述为脚本运行通过。 |
+| `git diff --check` | 0 | 最终源码与文档补丁无空白错误。 |
+
+### 设计与截图证据
+
+- [共享多语言 Tab 决策](../apps/ak-admin/artifacts/ui-ux-pro-max/localized-form-tabs/decisions.md)、[检查清单](../apps/ak-admin/artifacts/ui-ux-pro-max/localized-form-tabs/review-checklist.md)、[截图索引](../apps/ak-admin/artifacts/ui-ux-pro-max/localized-form-tabs/screenshot-index.md)。
+- 截图覆盖 WGT 保值、原生包双语错误、文章、分类和英文 App 单页；机器可读结果为 `output/playwright/localized-form-tabs/e2e-results.json`。
+
+### 纠正记录与验证边界
+
+- 首次 i18n 生成从蓝图事实源覆盖了直接编辑的 namespace 文件；改为先更新 `blueprint/i18n/admin` 后重新生成 24 个命名空间，并通过统一 i18n 校验。
+- Playwright Skill 的 CLI wrapper 因当前 `@playwright/mcp` 不再暴露 `playwright-cli` 而无法启动；系统 Python 与 Codex Python 也没有 Playwright 模块。最终使用 Codex 工作区自带 Node Playwright + Chromium 完成真实浏览器验收，没有修改项目依赖锁文件。
+- 首轮 axe 暴露内容抽屉既有控件缺少可访问名称；补齐后原样重跑，5 个场景全部为 0 serious/critical。
+- 浏览器业务数据使用网络 Mock 以稳定覆盖表单状态；字典 Seed 和 API 返回另用本地 PostgreSQL 18 + 真实管理员会话验证。二者不等同于生产部署、外部发布服务或移动端设备验收。
+- Admin 目前没有独立暗色主题，`preferred-dark` 仅验证深色系统偏好下的兼容性；本轮未执行 Android/iOS/HarmonyOS 编译、模拟器或真机。

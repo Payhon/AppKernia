@@ -281,6 +281,36 @@ func (q *Queries) GetActiveTenantByCode(ctx context.Context, code string) (IamTe
 	return i, err
 }
 
+const getActiveTenantMember = `-- name: GetActiveTenantMember :one
+SELECT tenant_id, user_id, member_number, display_name, status, invited_by, invited_at, joined_at, left_at, created_at, updated_at
+FROM iam.tenant_members
+WHERE tenant_id = $1 AND user_id = $2 AND status = 'active'
+`
+
+type GetActiveTenantMemberParams struct {
+	TenantID uuid.UUID `json:"tenant_id"`
+	UserID   uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) GetActiveTenantMember(ctx context.Context, arg GetActiveTenantMemberParams) (IamTenantMember, error) {
+	row := q.db.QueryRow(ctx, getActiveTenantMember, arg.TenantID, arg.UserID)
+	var i IamTenantMember
+	err := row.Scan(
+		&i.TenantID,
+		&i.UserID,
+		&i.MemberNumber,
+		&i.DisplayName,
+		&i.Status,
+		&i.InvitedBy,
+		&i.InvitedAt,
+		&i.JoinedAt,
+		&i.LeftAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getCredentialByEmail = `-- name: GetCredentialByEmail :one
 SELECT u.id AS user_id,
        u.email,

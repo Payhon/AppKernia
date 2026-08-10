@@ -27,15 +27,20 @@ make db-setup
 
 ## 无法登录
 
-Core Seed 不创建固定密码。请运行：
+Core Seed 不内置固定密码。Docker 模式请运行：
 
 ```bash
-make -C server bootstrap-admin
-# Docker 模式
 make docker-bootstrap-admin
 ```
 
-不要从 Issue、示例或截图中寻找“默认密码”。
+源码模式可以运行 `make -C server bootstrap-admin` 交互创建管理员，或按[源码开发模式](./source-development)中的步骤设置 `AK_SEED_ADMIN_PASSWORD_FILE` 后重新执行 Core Seed。
+
+排查时注意：
+
+- Seed 输出 `development_admin=false` 表示没有提供密码文件，因此没有执行开发管理员初始化。
+- 重复运行 Seed 或 bootstrap 命令不会重置已有账号密码。不要从 Issue、示例或截图中寻找“默认密码”；应使用已有密码修改/找回流程。
+- 源码 Admin 应通过 <http://localhost:4173> 的同源 `/admin-api` 代理访问 API。不要把开发前端临时改为跨域直连 `localhost:8080` 后误判为密码错误；浏览器控制台中的 CORS 错误说明请求尚未进入登录校验。
+- 确认操作的是当前 Compose project 和 PostgreSQL volume；对另一个数据库执行 Seed 不会改变当前登录入口使用的账号。
 
 ## Node / pnpm 版本不符
 

@@ -5,6 +5,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+.secrets/
 docs/LOCAL_TEST_ACCESS.md
 node_modules/
 .pnpm-store/

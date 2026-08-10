@@ -29,10 +29,47 @@ make toolchain
 ```bash
 cp .env.example .env
 make setup
-make -C server bootstrap-admin
 ```
 
 `make setup` 安装冻结的 pnpm 依赖、启动 PostgreSQL、执行迁移并写入核心种子。
+
+### 交互式创建管理员
+
+首次人工初始化推荐使用交互式命令：
+
+```bash
+make -C server bootstrap-admin
+```
+
+邮箱、租户、显示名称和语言分别读取 `.env` 中的 `AK_BOOTSTRAP_EMAIL`、`AK_BOOTSTRAP_TENANT_CODE`、`AK_BOOTSTRAP_TENANT_NAME`、`AK_BOOTSTRAP_DISPLAY_NAME` 和 `AK_BOOTSTRAP_LOCALE`。密码至少 12 位，只从当前终端读取，不会出现在命令参数或 Shell 历史中。
+
+### 使用密码文件随 Core Seed 初始化（仅开发环境）
+
+需要反复重建本地开发库时，可以让 `seed core` 从受保护的本地文件读取初始密码。下面的命令不会把密码本身放入环境变量、命令参数或终端输出：
+
+```bash
+mkdir -p .secrets
+chmod 700 .secrets
+printf 'Seed administrator password: '
+read -r -s AK_LOCAL_SEED_PASSWORD; printf '\n'
+printf '%s\n' "$AK_LOCAL_SEED_PASSWORD" > .secrets/seed-admin-password
+unset AK_LOCAL_SEED_PASSWORD
+chmod 600 .secrets/seed-admin-password
+
+AK_SEED_ADMIN_PASSWORD_FILE="$PWD/.secrets/seed-admin-password" \
+  make -C server seed-core
+```
+
+邮箱默认是 `admin@appkernia.local`，可以在同一条命令前通过 `AK_SEED_ADMIN_EMAIL` 覆盖。成功输出中的 `development_admin=true` 表示管理员初始化分支已经执行；未设置 `AK_SEED_ADMIN_PASSWORD_FILE` 时，Core Seed 仍会正常写入权限、菜单、字典和配置，但显示 `development_admin=false`，也不会创建管理员。
+
+使用密码文件时必须注意：
+
+- 只允许在 `AK_ENV=development` 中使用；其他环境会直接拒绝，生产环境应由受控运维终端交互初始化。
+- `.secrets/` 已被 Git 和 Docker 构建上下文忽略，但仍应保持目录 `0700`、文件 `0600`，且不得把内容复制到 `.env`、Issue、日志、截图或聊天记录。
+- 密码文件只用于创建缺失的账号。管理员已存在时，重复执行会幂等补齐角色、权限和菜单，**不会修改已有密码**。
+- 已存在账号必须处于 active 状态、具有可用密码凭据，并且是目标租户的 active 成员；否则 Seed 会失败，不会跨租户提权。
+- 初始化完成后，如不再需要自动重建本地管理员，应删除本机密码文件；保留时需继续按 Secret 管理并限制备份、同步和读取权限。
+- Docker 模式不要把密码文件复制进镜像；使用 `make docker-bootstrap-admin` 交互初始化。
 
 ## 启动
 

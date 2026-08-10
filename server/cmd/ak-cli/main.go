@@ -184,8 +184,58 @@ func seedCorePermissions(args []string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("seeded core permissions=%d menus=%d modules=%d tenant_configs=%d regions=%d dictionaries=%d build_version=%s\n", permissionCount, menuCount, moduleCount, configCount, regionCount, dictionaryCount, buildinfo.Version)
+	adminSeeded, err := seedDevelopmentAdmin(context.Background(), pool, cfg.Environment)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("seeded core permissions=%d menus=%d modules=%d tenant_configs=%d regions=%d dictionaries=%d development_admin=%t build_version=%s\n", permissionCount, menuCount, moduleCount, configCount, regionCount, dictionaryCount, adminSeeded, buildinfo.Version)
 	return nil
+}
+
+func seedDevelopmentAdmin(ctx context.Context, pool *pgxpool.Pool, environment string) (bool, error) {
+	passwordFile := strings.TrimSpace(os.Getenv("AK_SEED_ADMIN_PASSWORD_FILE"))
+	if passwordFile == "" {
+		return false, nil
+	}
+	if environment != "development" {
+		return false, errorsForSeedAdmin("AK_SEED_ADMIN_PASSWORD_FILE is allowed only in development")
+	}
+	passwordBytes, err := os.ReadFile(passwordFile)
+	if err != nil {
+		return false, fmt.Errorf("read seed administrator password file: %w", err)
+	}
+	defer func() {
+		for index := range passwordBytes {
+			passwordBytes[index] = 0
+		}
+	}()
+	password := strings.TrimSpace(string(passwordBytes))
+	if password == "" {
+		return false, errorsForSeedAdmin("seed administrator password file is empty")
+	}
+	valueOrDefault := func(name, fallback string) string {
+		if value := strings.TrimSpace(os.Getenv(name)); value != "" {
+			return value
+		}
+		return fallback
+	}
+	_, _, _, _, err = seed.BootstrapAdmin(ctx, pool, seed.BootstrapAdminInput{
+		TenantCode:        valueOrDefault("AK_BOOTSTRAP_TENANT_CODE", "local"),
+		TenantName:        valueOrDefault("AK_BOOTSTRAP_TENANT_NAME", "Local Workspace"),
+		Email:             valueOrDefault("AK_SEED_ADMIN_EMAIL", "admin@appkernia.local"),
+		DisplayName:       valueOrDefault("AK_BOOTSTRAP_DISPLAY_NAME", "Local Admin"),
+		Locale:            valueOrDefault("AK_BOOTSTRAP_LOCALE", "zh-CN"),
+		Password:          password,
+		ConfigCatalogPath: "../blueprint/backend/spec/core-configs.json",
+	})
+	if err != nil {
+		return false, fmt.Errorf("seed development administrator: %w", err)
+	}
+	return true, nil
+}
+
+func errorsForSeedAdmin(message string) error {
+	return fmt.Errorf("%s; omit AK_SEED_ADMIN_PASSWORD_FILE and use bootstrap-admin interactively outside local development", message)
 }
 
 func bootstrapAdmin(args []string) error {

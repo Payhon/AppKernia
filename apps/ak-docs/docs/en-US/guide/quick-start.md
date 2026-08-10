@@ -53,6 +53,8 @@ make docker-bootstrap-admin
 
 Enter a password of at least 12 characters when prompted. The password is read from the interactive terminal and is not written to Git or shell history. The development email comes from `AK_BOOTSTRAP_EMAIL` in `.env`.
 
+Core Seed does not contain a fixed administrator password. Running `make docker-bootstrap-admin` again reconciles the existing administrator's role, permissions, and menus, but **does not overwrite the existing password**, so it is not a password-reset command. The Docker build context also excludes `.secrets/`. For repeatable local initialization from a password file, use the development-only procedure in [source development](./source-development).
+
 ## 6. Open the system
 
 - Admin: <http://localhost:4174>

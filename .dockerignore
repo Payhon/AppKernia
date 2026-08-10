@@ -9,3 +9,4 @@ artifacts
 *.log
 .env
 .env.*.local
+.secrets

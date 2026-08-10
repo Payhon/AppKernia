@@ -264,6 +264,11 @@ INSERT INTO iam.tenant_members (tenant_id, user_id, member_number, display_name,
 VALUES ($1, $2, $3, $4, $5)
 RETURNING *;
 
+-- name: GetActiveTenantMember :one
+SELECT *
+FROM iam.tenant_members
+WHERE tenant_id = $1 AND user_id = $2 AND status = 'active';
+
 -- name: ListUserTenants :many
 SELECT t.id, t.code, t.name, tm.status, tm.joined_at
 FROM iam.tenant_members tm

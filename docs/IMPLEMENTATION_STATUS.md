@@ -1,6 +1,6 @@
 # AppKernia 实施状态
 
-更新时间：2026-08-09（Asia/Shanghai）
+更新时间：2026-08-10（Asia/Shanghai）
 
 ## 总体状态
 
@@ -11,6 +11,24 @@
 | Mobile              | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证                        | Android/Harmony 安装运行、三端真机、签名/发布仍未完成                                                     |
 | Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：66 个静态页面、零门槛向导、核心 API、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31299540867` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
+
+## 2026-08-10 App 范围页面全局选择器与前置状态
+
+- App 用户、文章、分类、单页、升级中心及兼容移动发布入口统一使用 `AppShell` 右上角、全屏按钮左侧的全局 App 选择器；应用清单和其他非 App 范围路由不显示该控件。
+- 删除旧的页内 App context Card 与 info Alert。未选择 App 时，筛选器、表格、移动卡片和创建/发布动作均不渲染，改用共享的最小高度居中灰色提示，因此禁用查询的 pending 状态不会再表现为持续 Loading。
+- 选择仍以 UUID `app_id` 写入 URL；切换 App 保留已有查询参数并把已存在的分页重置为第 1 页，内容管理的文章/分类 URL 同步不再丢失 `app_id`。
+- 当前 App 额外以 `tenant_id → app_id` UUID 映射保存为非敏感 Zustand 工作区偏好。显式且属于当前租户的 URL 值优先；跨页面缺少参数时自动恢复并回写 URL，清空选择同步清除当前租户记忆，损坏或已不存在的值 fail closed。
+- `zh-CN` / `en-US` 提示明确指向页面右上角；设计系统、页面 override、UI Skill request/output/decisions/checklist 和截图索引已同步。
+- Node 24.18.1 下 Admin 完整 check 通过：27 个 Vitest 文件、114 项测试、production build、bundle budget 与 Admin blueprint 均退出 0。Chromium E2E 覆盖 5 个未选择入口、跨页面/新页面恢复、375/768/1024/1440、双语和明暗偏好，13 个 axe 状态 serious/critical 为 0、无页面溢出或意外 console error。
+- 当前真实本地 API 与 seed 管理员完成登录、选择默认 App、跨到用户管理、移除 URL 参数后刷新/重新登录、再次进入用户管理并从浏览器记忆恢复的链路；Admin API 失败响应与 console error 均为 0。本轮未修改 Backend、数据库或 Mobile，未 commit、未 push。
+
+## 2026-08-10 本地管理员与安全 Seed 引导
+
+- 当前 `appkernia-acceptance` PostgreSQL 18 的既有 `local` 租户已创建 `admin@appkernia.local`，状态、成员关系和 `super-admin` 角色均为 active；维护者提供的本机密码仅经终端 stdin 输入，没有写入源码、环境变量、日志或交付文档。
+- `BootstrapAdmin` 改为单个 Serializable 事务：复用既有 active 租户，首次创建身份/Argon2id 凭据/成员/系统管理员角色，重复执行只补齐角色、权限、菜单和租户配置，不重置已有密码；已存在但不属于目标租户的同邮箱身份会 fail closed。
+- `ak-cli seed core` 新增 development-only 管理员引导：默认邮箱为 `admin@appkernia.local`，仅在显式设置 `AK_SEED_ADMIN_PASSWORD_FILE` 时启用；非 development、空文件或缺失文件均拒绝，不存在固定密码回退。
+- `.secrets/` 同时从 Git 与 Docker 构建上下文排除，README 提供不进入 shell history 的交互式密码文件创建流程。完整 Seed 实测输出 `development_admin=true`，随后真实 Admin 登录仍返回 HTTP 200，证明重复 Seed 保留原凭据。
+- `make -C server check`（133 tests passed / 0 failed）、CLI/Seed 专项 race、3 个 PostgreSQL Seed integration、Backend/Admin/Mobile 蓝图、统一 i18n 和 `git diff --check` 均退出 0；本轮无 Migration、OpenAPI、权限码或可视 UI 变更。
 
 ## 2026-08-09 文档站品牌、实景 Hero 与内容优化
 
@@ -586,3 +604,42 @@
 - 两份独立提示词覆盖从 0 开始的新项目，以及已有代码但尚无文档规范的项目；均适用于 Codex、GLM5、Claude Code 等编码智能体。
 - 隔离回归 3/3 通过，覆盖新项目预览/创建/检查/幂等、已有项目自动识别和旧内容保留、损坏受管标记的写入前失败。
 - 本轮未运行该 Skill 改写 AppKernia 当前 `docs/` 或根 `AGENTS.md`，未修改业务代码、API、数据库、Admin 或 Mobile；没有 UI、构建平台、模拟器、真机或生产验证。
+
+## 2026-08-10 APP 管理与 App 升级中心
+
+### 状态：功能完成（本机 PostgreSQL 18 + Go + Chromium）；全仓 integration 组合仍有非本模块 `40001`
+
+- 新增 `000017_app_upgrade_center` 可逆迁移：`app.applications` 增加 manifest AppID、App 类型、描述/简介/备注、创建者、所有者、软删除和图标引用；团队、资产、渠道、应用市场均落为 tenant 约束的 PostgreSQL 关系表。UUID 继续作为内部关联和 Mobile `X-AppID`，默认 App 回填 `__UNI__APPKERNIA`，其余历史 App 保持待配置。
+- `sys.mobile_releases` 扩展为版本历史唯一事实源，新增包类型、目标平台、双语标题/内容、文件或 HTTPS 外链、应用市场和当前发布指针。草稿可编辑/删除，曾发布记录永久冻结；发布、下线、部分上线、多平台 WGT 原子替换及 SemVer 单调校验均在事务中完成。
+- 新增应用软删除/批量删除和版本详情、草稿编辑、发布、下线、删除/批量删除 API；全部按 tenant 在 SQL 层过滤。旧 `/admin-api/v1/mobile/releases` 与 `/api/v1/public/app-version` 路径保留，Public Config 和版本 DTO 以加法方式暴露 `appid`、`app_type`、包类型、标题和更新标记。
+- 内部安装包只引用 `storage.files`；发布前校验同租户、`ready`、扫描状态、扩展名、MIME 与 ZIP-family 文件头。下载使用绑定 App/版本/文件/有效期的短期签名，外链只接受 HTTPS 且服务端不抓取。
+- Admin 菜单增加 `/app/upgrade-center`，与旧系统发布入口复用同一页面和数据。应用页支持 URL 搜索/筛选、移动卡片、桌面表格、多选删除、长 Drawer、文件资产和深链；升级中心支持应用选择、发布下拉、native/WGT 表单、双语内容、内部文件/外链、发布状态和冻结操作。
+- 权限、菜单、OpenAPI、生成客户端、Admin/Mobile 契约、蓝图 schema/API/page 映射和 `zh-CN/en-US` 事实源已同步。团队关系仅保存管理资料，不扩大现有 tenant + RBAC 授权。
+
+### 验证与边界
+
+- 根 `make check`、Backend race、Admin 24 文件/94 测试、Mobile `check-project.sh`、全部蓝图/i18n 校验、PostgreSQL 18 `Down → Up → seed`、相关 repository integration、`git diff --check` 均退出 0；Go JSON 复核为 130 个通过测试事件、34 个通过包。
+- Chromium mock-authenticated production preview 覆盖 `zh-CN/en-US × 375/768/1024/1440`、12 个页面状态、列表/Drawer/WGT/409 保留输入；axe serious/critical 为 0、页面无横向溢出、无意外 console error。截图与 JSON 证据见 [App 管理索引](../apps/ak-admin/artifacts/ui-ux-pro-max/app-management/screenshot-index.md) 和 [升级中心索引](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-mobile-releases/screenshot-index.md)。
+- `make -C server test-integration` 及串行重跑仍在未改动的 IAM/jobadmin integration 出现 PostgreSQL `40001` serialization failure，退出 2；本模块 `appmanagement/application`、`mobileprofile/repository` 与文件 repository 的定向 integration 退出 0，不能据此宣称全仓 integration 已通过。
+- Admin 当前只有固定视觉主题；已验证深色系统偏好环境下可用，但不声称实现了暗色主题。未部署生产，未做真实 App Store/ABM/应用市场/uni-stat 同步，未在 Mobile 下载或执行 WGT，也未执行 Android/iOS/HarmonyOS 编译、模拟器或真机验收。
+- Admin/Docs 检查运行于本机 Node 26.5.0，仓库声明范围为 Node 24；命令虽退出 0，但产生 engine warning，本轮没有用 Node 24 重复同一组检查。
+
+## 2026-08-10 管理员初始化文档
+
+### 状态：完成（中英文文档站全量检查通过）
+
+- 快速开始明确 Docker 管理员通过交互终端初始化，Core Seed 不内置固定密码，重复 bootstrap 不会重置已有密码。
+- 源码开发正文新增开发专用的 `.secrets/seed-admin-password` 操作流程、`AK_SEED_ADMIN_PASSWORD_FILE`/`AK_SEED_ADMIN_EMAIL` 用法、权限要求、幂等语义、跨租户拒绝和生产环境边界。
+- 故障排查新增 `development_admin` 输出、已有密码不覆盖、Vite 同源代理、Compose project 与 PostgreSQL volume 的检查提示；中英文内容同步。
+- 文档站全量 check 退出 0：113 个 API 引用、lint、TypeScript、Prettier、66 页双语构建、语言 parity 和 Sitemap 均通过。运行时 Node 26.5.0 高于 Admin 声明的 Node 24，出现 engine warning；文档包自身允许 Node 24 至 26。
+
+## 2026-08-10 多语言表单 Tab 统一优化
+
+### 状态：完成（本地 PostgreSQL 18 Seed + Admin 全量检查 + Chromium）
+
+- 核心字典新增只读 `system.language`，固定包含 `zh-CN`、`en-US`，由字典排序、默认项和当前 Admin 语言共同决定 Tab 顺序、标题与首个激活语言；协议支持范围未扩大。
+- 新增共享 `useSystemLanguages` 与 `AkLocalizedFormTabs`。字典加载失败、空值、非 fixed、缺少/重复/未知语言和默认项异常均进入可重试错误态并禁用保存，不静默回退到前端静态列表。
+- 原生/WGT 发布、系统与 App 范围的文章/分类，以及 App 单页表单统一使用共享 Tab；切换后保留 RHF 值，校验错误显示在对应语言 Tab，并按字典顺序定位首个错误语言。
+- 字典管理页新增系统分类与内置类型的双语名称/说明展示；内容表单补齐本次 axe 发现的 Slug、分类、阅读分钟、精选、排序和状态控件可访问名称。
+- 本地 core seed 实际输出 `dictionaries=71`；使用本地管理员会话读取真实 `/admin-api/v1/dictionaries/system.language`，返回 fixed、`zh-CN → en-US` 和唯一默认 `zh-CN`。
+- Chromium 覆盖 `zh-CN/en-US`、375/768/1440、浅色和深色系统偏好，共 5 个表单状态；axe serious/critical、console error 与页面级横向溢出均为 0。Admin 当前仍是固定视觉主题，深色系统偏好不等同于独立暗色主题。

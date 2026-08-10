@@ -66,7 +66,22 @@ npm run build
 make -C server bootstrap-admin
 ```
 
-出于开源安全考虑，数据库 Migration 和 Core Seed **不会创建固定账号或固定密码**。管理员密码至少 12 位；本机若由维护者准备了临时测试账号，其凭据只记录在 Git 忽略的 `docs/LOCAL_TEST_ACCESS.md`，不得复制到提交、Issue、日志或截图。需要为自己的环境创建账号时，始终使用上述交互式命令。
+开发环境也可以让 `seed core` 幂等创建或补齐管理员授权。邮箱默认是
+`admin@appkernia.local`，密码只能从 Git 和 Docker 构建上下文均忽略的文件读取：
+
+```bash
+mkdir -p .secrets
+chmod 700 .secrets
+printf 'Seed administrator password: '
+read -r -s AK_LOCAL_SEED_PASSWORD; printf '\n'
+printf '%s\n' "$AK_LOCAL_SEED_PASSWORD" > .secrets/seed-admin-password
+unset AK_LOCAL_SEED_PASSWORD
+chmod 600 .secrets/seed-admin-password
+AK_SEED_ADMIN_PASSWORD_FILE="$PWD/.secrets/seed-admin-password" make -C server seed-core
+```
+
+出于开源安全考虑，数据库 Migration、源码和 Core Seed **不会内置固定密码**；未设置
+`AK_SEED_ADMIN_PASSWORD_FILE` 时 Core Seed 不创建账号，非开发环境则拒绝该选项。管理员密码至少 12 位；本机若由维护者准备了临时测试账号，其凭据只记录在 Git 忽略的位置，不得复制到提交、Issue、日志或截图。
 
 默认访问地址：
 

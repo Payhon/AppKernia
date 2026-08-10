@@ -27,15 +27,20 @@ make db-setup
 
 ## Cannot sign in
 
-Core Seed never creates a fixed password:
+Core Seed does not contain a fixed password. In Docker mode, run:
 
 ```bash
-make -C server bootstrap-admin
-# Docker mode
 make docker-bootstrap-admin
 ```
 
-Do not look for a default password in issues, examples, or screenshots.
+In source mode, run `make -C server bootstrap-admin` for interactive creation, or follow the `AK_SEED_ADMIN_PASSWORD_FILE` procedure in [source development](./source-development) before running Core Seed again.
+
+When diagnosing a failed sign-in:
+
+- `development_admin=false` in Seed output means no password file was supplied, so the development administrator branch did not run.
+- Re-running Seed or bootstrap does not reset an existing account's password. Do not look for a default password in issues, examples, or screenshots; use the existing password-change or recovery flow.
+- Source Admin should reach the API through the same-origin `/admin-api` proxy at <http://localhost:4173>. A browser CORS error after pointing the frontend directly at `localhost:8080` means the request did not reach credential validation.
+- Confirm the active Compose project and PostgreSQL volume. Seeding a different database does not change the account used by the current login endpoint.
 
 ## Wrong Node or pnpm version
 
