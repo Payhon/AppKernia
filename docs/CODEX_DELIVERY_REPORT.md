@@ -1564,3 +1564,30 @@
 - Pages API 为 `build_type=workflow`、`https_enforced=true`、`cname=null`；中英文首页、Admin 图片、uni-app Logo 与 Sitemap 共 5 个 URL 均为 HTTP 200。
 - 线上 Python Playwright + Chromium 退出 0：中文 375/1440 与英文深色 1440 均为单一 H1、9 个首页区块、6 张特性卡、9 张技术卡、2 个 Slider、0 个 maturity 区块；交互、overflow、图片、禁用文案、console、请求与 axe serious/critical 全部通过。
 - 当前公开地址为 `https://payhon.github.io/AppKernia/`。由于 Pages API 仍为 `cname=null`，不声明 `appkernia.com` 已绑定或可访问。
+
+## 2026-08-10 项目文档治理 Skill 交付报告
+
+### 交付内容
+
+- 新增 `.agents/skills/project-docs-governance/`：`SKILL.md`、Codex UI metadata、可执行初始化脚本、隔离回归脚本，以及新项目/已有项目两份完整提示词。
+- 生成框架覆盖 `docs/00-governance` 至 `docs/08-archive`，包含治理原则、工作流、分类层级、命名版本、状态生命周期、七类模板、产品/架构/开发/看板/质量/运维/参考/归档入口。
+- 每个工作项使用 `00-feature-spec` 至 `05-release-and-handoff` 六文档闭环；看板包含 Backlog、Ready、In Progress、Review、Blocked、Done。
+- `AGENTS.md` 采用 `DOCS_GOVERNANCE` 受管标记块，固化开发前、开发中、开发后、文档新增/更新/归档、DoD、真实性边界和 PR/提交检查项；默认不覆盖已有文件。
+
+### 实际命令与退出码
+
+| 命令 | Exit | 真实结果 |
+|---|---:|---|
+| `quick_validate.py .agents/skills/project-docs-governance` | 0 | Skill frontmatter、命名和目录结构有效。 |
+| `python3 .../test_bootstrap_project_docs.py -v` | 0 | 3/3 隔离回归通过：新项目、已有项目、损坏受管标记。 |
+| `python3 .../bootstrap_project_docs.py --help` | 0 | `auto/new/existing`、`dry-run/check/force` 等参数可用。 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 38 路由、33 组件、26 任务、3 平台，0 error / warning。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN`、`en-US` 与三端 reference pack 通过。 |
+| `git diff --check` | 0 | 补丁无空白错误。 |
+
+### 验证边界、未完成项与风险
+
+- 本轮测试对象为临时隔离目录，证明脚本生成、保留和幂等行为；未在 AppKernia 根目录运行初始化，因此没有覆盖或迁移当前项目文档。
+- 纯 Python/Markdown Skill 不涉及应用构建、设备或可见 UI；截图索引不适用。未执行 GLM5 或 Claude Code 的真实会话验收，两份提示词仅完成内容与脚本契约验证。
+- `auto` 根据源码目录、构建清单或 `.git` 保守判定已有项目；无法准确表达用户意图时应显式指定 `new` 或 `existing`。
+- `--force` 会覆盖脚本管理的同名文档，只能在用户明确授权且检查差异后使用；自动生成的已有项目基线只是目录级盘点，不是完整架构审计。

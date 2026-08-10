@@ -576,3 +576,13 @@
 - 功能提交 `f730916` 已推送 `origin/main`；Docs Pages run `31299398867` 的 build/deploy 分别用时 45/10 秒并成功。线上中英文首页及 3 项静态资源均为 HTTP 200，Chromium 复核 3 个代表视口的结构、交互、文案、资源、console、网络与 axe serious/critical 全部通过。
 - 完整验收清单随记录提交 `6b1e4bf` 推送后，最终 Docs Pages run `31299540867` 再次通过，build/deploy 分别用时 50/8 秒；最终 Pages artifact 与清单均处于已发布状态。
 - Pages API 仍为 `build_type=workflow`、`https_enforced=true`、`cname=null`；当前公开地址为 `https://payhon.github.io/AppKernia/`，不声明 `appkernia.com` 已绑定。
+
+## 2026-08-10 项目文档治理 Skill
+
+### 状态：完成（Skill 与隔离脚本回归通过；未对 AppKernia 执行初始化）
+
+- 新增项目级 `.agents/skills/project-docs-governance/`，可在目标项目内建立分层 `docs/`、工作项六文档闭环、全项目 Kanban 看板、质量/运维/归档入口，并以唯一受管块增量写入 `AGENTS.md`。
+- 同时支持 `new`、`existing`、`auto` 三种模式以及 `--dry-run`、`--check`、`--force`；默认仅创建缺失文件，保留既有文档和 `AGENTS.md` 非受管内容。受管标记损坏时会在任何写入前失败。
+- 两份独立提示词覆盖从 0 开始的新项目，以及已有代码但尚无文档规范的项目；均适用于 Codex、GLM5、Claude Code 等编码智能体。
+- 隔离回归 3/3 通过，覆盖新项目预览/创建/检查/幂等、已有项目自动识别和旧内容保留、损坏受管标记的写入前失败。
+- 本轮未运行该 Skill 改写 AppKernia 当前 `docs/` 或根 `AGENTS.md`，未修改业务代码、API、数据库、Admin 或 Mobile；没有 UI、构建平台、模拟器、真机或生产验证。

@@ -1,0 +1,4 @@
+interface:
+  display_name: "项目文档治理初始化"
+  short_description: "为新项目或现有项目建立完整且可追踪的文档优先治理体系"
+  default_prompt: "使用 $project-docs-governance 在当前项目初始化或补齐 docs 文档治理、项目看板与 AGENTS.md 强制约束。"
