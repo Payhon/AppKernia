@@ -199,7 +199,7 @@ WHERE tenant_id = $1 AND module_code = 'storage' AND config_group = 'cloud'
 		MaxImageBytes:   boundedInt64(values, "storage.max_image_bytes", domain.MaxAvatarBytes, domain.MaxAvatarBytes),
 		MaxFileBytes:    boundedInt64(values, "storage.max_file_bytes", domain.MaxFileBytes, domain.MaxFileBytes),
 		ImageMediaTypes: stringSlice(values, "storage.image_media_types", []string{"image/jpeg", "image/png", "image/webp"}),
-		FileMediaTypes:  stringSlice(values, "storage.file_media_types", []string{"application/pdf", "application/json", "application/zip", "application/octet-stream", "text/plain", "text/csv", "image/jpeg", "image/png", "image/webp"}),
+		FileMediaTypes:  stringSlice(values, "storage.file_media_types", []string{"application/pdf", "application/json", "application/zip", "application/x-zip-compressed", "application/vnd.android.package-archive", "application/octet-stream", "text/plain", "text/csv", "image/jpeg", "image/png", "image/webp"}),
 	}, Region: stringValue(values, "storage.region", ""), UseSSL: boolValue(values, "storage.use_ssl", true), ForcePathStyle: boolValue(values, "storage.force_path_style", false), AccessKeyID: secrets["storage.access_key_id"], SecretAccessKey: secrets["storage.secret_access_key"], SessionToken: secrets["storage.session_token"]}
 	driver, err := store.resolveDriver(ctx, tenantID, profile.Provider)
 	if err != nil {

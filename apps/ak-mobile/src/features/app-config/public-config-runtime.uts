@@ -4,6 +4,8 @@ import { AkHttpPort, HttpCancellation, HttpRequest } from '../../core/network/ht
 
 export type AppPublicConfig = {
   readonly appId: string
+  readonly appid: string
+  readonly appType: string
   readonly name: string
   readonly defaultLocale: string
   readonly registrationEnabled: boolean
@@ -12,6 +14,8 @@ export type AppPublicConfig = {
 
 type PublicConfigWire = {
   readonly app_id: string
+  readonly appid: string
+  readonly app_type: string
   readonly name: string
   readonly default_locale: string
   readonly registration_enabled: boolean
@@ -23,7 +27,7 @@ class HttpPublicConfigRepository {
   constructor(http: AkHttpPort) { this.http = http }
   get(ok: (value: AppPublicConfig) => void, fail: (error: AkError) => void): HttpCancellation {
     const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/public/config', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
-    return this.http.execute<UTSJSONObject, PublicConfigWire>(request, response => ok({ appId: response.data.app_id, name: response.data.name, defaultLocale: response.data.default_locale, registrationEnabled: response.data.registration_enabled, registrationVerificationMode: response.data.registration_verification_mode }), fail)
+    return this.http.execute<UTSJSONObject, PublicConfigWire>(request, response => ok({ appId: response.data.app_id, appid: response.data.appid, appType: response.data.app_type, name: response.data.name, defaultLocale: response.data.default_locale, registrationEnabled: response.data.registration_enabled, registrationVerificationMode: response.data.registration_verification_mode }), fail)
   }
 }
 

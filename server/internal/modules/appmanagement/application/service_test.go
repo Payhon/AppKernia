@@ -6,6 +6,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -60,6 +61,24 @@ func TestAdminListFilterBoundsAndStatus(t *testing.T) {
 		if _, err := normalizedAdminListFilter(invalid, "active", "disabled"); !errors.Is(err, ErrInvalidInput) {
 			t.Fatalf("invalid filter %#v error=%v, want ErrInvalidInput", invalid, err)
 		}
+	}
+}
+
+func TestAdminApplicationInputRequiresManifestIdentityAndStableEnums(t *testing.T) {
+	ownerID := uuid.New()
+	base := AdminAppInput{AppID: "__UNI__MOBILE", AppType: "uni_app_x", Code: "mobile-app", Name: "Mobile", DefaultLocale: "zh-CN", RegistrationVerification: "email_otp", OwnerType: "tenant", OwnerID: &ownerID}
+	if err := validAppInput(base, false); err != nil {
+		t.Fatalf("valid application input rejected: %v", err)
+	}
+	invalidAppID := base
+	invalidAppID.AppID = "mobile-app"
+	if !errors.Is(validAppInput(invalidAppID, false), ErrInvalidInput) {
+		t.Fatal("non-manifest AppID accepted")
+	}
+	invalidType := base
+	invalidType.AppType = "flutter"
+	if !errors.Is(validAppInput(invalidType, false), ErrInvalidInput) {
+		t.Fatal("unsupported App type accepted")
 	}
 }
 

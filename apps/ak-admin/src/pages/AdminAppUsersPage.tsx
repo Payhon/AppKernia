@@ -2,6 +2,7 @@ import { Alert, Button, Card, Drawer, Form, Grid, Input, Modal, Select, Space, T
 import { Controller, useForm } from "react-hook-form";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AppSelectionRequiredState } from "../components/AppSelectionRequiredState";
 import { useAuthStore } from "../features/auth/store";
 import { useAppMembers, useApplicationMutations } from "../features/apps/hooks";
 import { appMemberCreateInputSchema, appMemberPasswordResetSchema, appMemberUpdateInputSchema, type AppMember, type AppMemberCreateInput, type AppMemberPasswordResetInput, type AppMemberUpdateInput } from "../features/apps/model";
@@ -55,9 +56,9 @@ function AppUsersContents({ scope }: { scope: AppScope }) {
   return <div className="ak-page-container">
     <header className="ak-page-heading"><div><Typography.Title level={1}>{t("apps.users.title")}</Typography.Title><Typography.Paragraph type="secondary">{t("apps.users.description")}</Typography.Paragraph></div>{scope.appId && !scope.disabled && permissions.has("app.user.create") ? <Button type="primary" onClick={() => { open("new"); }}>{t("apps.users.actions.create")}</Button> : null}</header>
     {feedback ? <Alert showIcon type={feedback.error ? "error" : "success"} title={t(feedback.key)} /> : null}
-    <Card><div className="ak-content-filters" role="search" aria-label={t("apps.users.filters.landmark")}><Input.Search allowClear aria-label={t("apps.users.filters.q")} disabled={!scope.appId} onChange={(event) => { setQ(event.target.value); }} placeholder={t("apps.users.filters.q")} value={q} /><Select allowClear aria-label={t("apps.users.filters.status")} disabled={!scope.appId} onChange={(value) => { setStatus(value ?? ""); }} options={["pending_verification", "active", "disabled"].map((value) => ({ value, label: t(`apps.membership.${value}`) }))} placeholder={t("apps.users.filters.status")} value={status === "" ? undefined : status} /></div>
+    <Card>{scope.appId ? <><div className="ak-content-filters" role="search" aria-label={t("apps.users.filters.landmark")}><Input.Search allowClear aria-label={t("apps.users.filters.q")} onChange={(event) => { setQ(event.target.value); }} placeholder={t("apps.users.filters.q")} value={q} /><Select allowClear aria-label={t("apps.users.filters.status")} onChange={(value) => { setStatus(value ?? ""); }} options={["pending_verification", "active", "disabled"].map((value) => ({ value, label: t(`apps.membership.${value}`) }))} placeholder={t("apps.users.filters.status")} value={status === "" ? undefined : status} /></div>
       {members.isError ? <Alert showIcon type="error" title={t("apps.feedback.load_error")} action={<Button onClick={() => void members.refetch()}>{t("common.actions.retry")}</Button>} /> : null}
-      <div className="ak-table-scroll"><Table columns={columns} dataSource={members.data?.items ?? []} loading={members.isPending} locale={{ emptyText: scope.appId ? t("apps.users.empty") : t("apps.scope.required") }} pagination={false} rowKey="id" scroll={{ x: 1000 }} /></div>
+      <div className="ak-table-scroll"><Table columns={columns} dataSource={members.data?.items ?? []} loading={members.isPending} locale={{ emptyText: t("apps.users.empty") }} pagination={false} rowKey="id" scroll={{ x: 1000 }} /></div></> : <AppSelectionRequiredState />}
     </Card>
     <AppUserDrawer editor={editor} form={form} fullScreen={!screens.md} saving={mutations.createMember.isPending || mutations.updateMember.isPending} onClose={() => { setEditor(null); }} onSave={() => void save()} />
     <PasswordResetModal form={passwordResetForm} loading={mutations.resetMemberPassword.isPending} member={resetTarget} onCancel={() => { passwordResetForm.reset(); setResetTarget(null); }} onSave={() => void resetPassword()} />

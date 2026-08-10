@@ -88,7 +88,7 @@ func (h *Handler) PublicConfig(r *ghttp.Request) {
 	}
 	r.Response.Header().Set("Cache-Control", "public, max-age=60")
 	r.Response.WriteJsonExit(httpx.Success[map[string]any]{Code: "OK", Message: "OK", RequestID: httpx.RequestID(r), Data: map[string]any{
-		"app_id": a.ID.String(), "name": a.Name, "default_locale": a.DefaultLocale,
+		"app_id": a.ID.String(), "appid": a.AppID, "app_type": a.AppType, "name": a.Name, "default_locale": a.DefaultLocale,
 		"registration_enabled": a.RegistrationEnabled, "registration_verification_mode": a.RegistrationVerification,
 	}})
 }
@@ -291,13 +291,26 @@ func (h *Handler) LegalConsent(r *ghttp.Request) {
 }
 
 type adminAppRequest struct {
-	Code                          string `json:"code"`
-	Name                          string `json:"name"`
-	DefaultLocale                 string `json:"default_locale"`
-	RegistrationEnabled           bool   `json:"registration_enabled"`
-	RegistrationVerification      string `json:"registration_verification_mode"`
-	RegistrationVerificationAlias string `json:"registration_verification"`
-	LockVersion                   int32  `json:"lock_version"`
+	AppID                         string                        `json:"appid"`
+	AppType                       string                        `json:"app_type"`
+	Code                          string                        `json:"code"`
+	Name                          string                        `json:"name"`
+	Description                   string                        `json:"description"`
+	Introduction                  string                        `json:"introduction"`
+	Remark                        string                        `json:"remark"`
+	DefaultLocale                 string                        `json:"default_locale"`
+	RegistrationEnabled           bool                          `json:"registration_enabled"`
+	RegistrationVerification      string                        `json:"registration_verification_mode"`
+	RegistrationVerificationAlias string                        `json:"registration_verification"`
+	OwnerType                     string                        `json:"owner_type"`
+	OwnerID                       *uuid.UUID                    `json:"owner_id"`
+	IconFileID                    *uuid.UUID                    `json:"icon_file_id"`
+	Managers                      []uuid.UUID                   `json:"managers"`
+	Members                       []uuid.UUID                   `json:"members"`
+	ScreenshotFileIDs             []uuid.UUID                   `json:"screenshot_file_ids"`
+	Channels                      []app.ApplicationChannel      `json:"channels"`
+	StoreListings                 []app.ApplicationStoreListing `json:"store_listings"`
+	LockVersion                   int32                         `json:"lock_version"`
 }
 
 func (x adminAppRequest) input() app.AdminAppInput {
@@ -305,7 +318,11 @@ func (x adminAppRequest) input() app.AdminAppInput {
 	if verification == "" {
 		verification = x.RegistrationVerificationAlias
 	}
-	return app.AdminAppInput{Code: x.Code, Name: x.Name, DefaultLocale: x.DefaultLocale, RegistrationEnabled: x.RegistrationEnabled, RegistrationVerification: verification, LockVersion: x.LockVersion}
+	return app.AdminAppInput{AppID: x.AppID, AppType: x.AppType, Code: x.Code, Name: x.Name, Description: x.Description,
+		Introduction: x.Introduction, Remark: x.Remark, DefaultLocale: x.DefaultLocale,
+		RegistrationEnabled: x.RegistrationEnabled, RegistrationVerification: verification, OwnerType: x.OwnerType,
+		OwnerID: x.OwnerID, IconFileID: x.IconFileID, Managers: x.Managers, Members: x.Members,
+		ScreenshotFileIDs: x.ScreenshotFileIDs, Channels: x.Channels, StoreListings: x.StoreListings, LockVersion: x.LockVersion}
 }
 func (h *Handler) AdminApps(r *ghttp.Request) {
 	if r.Method == http.MethodGet {
@@ -350,6 +367,13 @@ func (h *Handler) AdminApp(r *ghttp.Request) {
 		r.Response.WriteJsonExit(httpx.Success[app.Application]{Code: "OK", Message: "OK", Data: item, RequestID: httpx.RequestID(r)})
 		return
 	}
+	if r.Method == http.MethodDelete {
+		if h.adminFailure(r, h.service.DeleteAdminApps(r.Context(), bearer(r), []uuid.UUID{id}, httpx.RequestID(r))) {
+			return
+		}
+		r.Response.WriteJsonExit(httpx.Success[map[string]bool]{Code: "OK", Message: "OK", Data: map[string]bool{"deleted": true}, RequestID: httpx.RequestID(r)})
+		return
+	}
 	var body adminAppRequest
 	if !decode(r, &body) {
 		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
@@ -360,6 +384,20 @@ func (h *Handler) AdminApp(r *ghttp.Request) {
 		return
 	}
 	r.Response.WriteJsonExit(httpx.Success[app.Application]{Code: "OK", Message: "OK", Data: item, RequestID: httpx.RequestID(r)})
+}
+
+func (h *Handler) AdminBatchDeleteApps(r *ghttp.Request) {
+	var body struct {
+		IDs []uuid.UUID `json:"ids"`
+	}
+	if !decode(r, &body) {
+		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	if h.adminFailure(r, h.service.DeleteAdminApps(r.Context(), bearer(r), body.IDs, httpx.RequestID(r))) {
+		return
+	}
+	r.Response.WriteJsonExit(httpx.Success[map[string]int]{Code: "OK", Message: "OK", Data: map[string]int{"deleted_count": len(body.IDs)}, RequestID: httpx.RequestID(r)})
 }
 func (h *Handler) AdminAppStatus(r *ghttp.Request, status string) {
 	id, err := uuid.Parse(r.Get("app_id").String())
@@ -652,7 +690,7 @@ func (h *Handler) AdminEnableUser(r *ghttp.Request)  { h.AdminUserStatus(r, "act
 func (h *Handler) AdminDisableUser(r *ghttp.Request) { h.AdminUserStatus(r, "disabled") }
 
 func adminListFilter(r *ghttp.Request, statuses ...string) (app.AdminListFilter, bool) {
-	filter := app.AdminListFilter{Query: strings.TrimSpace(r.GetQuery("q").String()), Status: strings.TrimSpace(r.GetQuery("status").String()), Page: 1, PageSize: 20}
+	filter := app.AdminListFilter{Query: strings.TrimSpace(r.GetQuery("q").String()), Status: strings.TrimSpace(r.GetQuery("status").String()), AppType: strings.TrimSpace(r.GetQuery("app_type").String()), Page: 1, PageSize: 20}
 	if len([]rune(filter.Query)) > 160 {
 		return filter, false
 	}
@@ -681,6 +719,9 @@ func adminListFilter(r *ghttp.Request, statuses ...string) (app.AdminListFilter,
 		if !valid {
 			return filter, false
 		}
+	}
+	if filter.AppType != "" && filter.AppType != "uni_app" && filter.AppType != "uni_app_x" {
+		return filter, false
 	}
 	return filter, true
 }

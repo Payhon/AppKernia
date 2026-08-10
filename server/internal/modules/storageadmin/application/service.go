@@ -322,6 +322,12 @@ func mediaCompatible(expected, actual string) bool {
 	if expected == "application/octet-stream" {
 		return true
 	}
+	archiveMedia := func(value string) bool {
+		return value == "application/zip" || value == "application/x-zip-compressed" || value == "application/vnd.android.package-archive"
+	}
+	if archiveMedia(expected) && archiveMedia(actual) {
+		return true
+	}
 	return (expected == "text/csv" || expected == "application/json") && actual == "text/plain"
 }
 func oneOf(value string, candidates ...string) bool {

@@ -1,0 +1,38 @@
+{
+  "upgrade.wgt-tabs.zh-CN.light.1440": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "upgrade.native-validation.zh-CN.preferred-dark.768": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "content.article-tabs.zh-CN.light.1440": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "content.category-tabs.zh-CN.light.768": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "app-page-tabs.en-US.light.375": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "console_errors": [],
+  "coverage": {
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ],
+    "viewports": [
+      375,
+      768,
+      1440
+    ],
+    "color_schemes": [
+      "light",
+      "preferred-dark"
+    ]
+  }
+}

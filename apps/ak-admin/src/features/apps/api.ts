@@ -9,7 +9,7 @@ async function data<T>(path: `/${string}`, init?: RequestInit): Promise<T> {
 }
 function query(filters: object) {
   const params = new URLSearchParams();
-  Object.entries(filters).forEach(([key, value]) => { if (value !== "") params.set(key, String(value)); });
+  Object.entries(filters).forEach(([key, value]) => { if (value !== "" && value !== undefined && value !== null) params.set(key, String(value)); });
   return params.size ? `?${params.toString()}` : "";
 }
 const json = (method: "POST" | "PATCH", body: unknown): RequestInit => ({ method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -19,6 +19,8 @@ export const appAdminApi = {
   list: (filters: AppListFilters) => data<Paginated<ManagedApplication>>(`/apps${query(filters)}`),
   create: (input: ApplicationInput) => data<ManagedApplication>("/apps", json("POST", input)),
   update: (id: string, input: ApplicationInput) => data<ManagedApplication>(`/apps/${encodeURIComponent(id)}`, json("PATCH", input)),
+  delete: (id: string) => data<{ deleted: boolean }>(`/apps/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  batchDelete: (ids: string[]) => data<{ deleted_count: number }>("/apps/batch-delete", json("POST", { ids })),
   setStatus: (id: string, action: "enable" | "disable", lockVersion: number) => data<ManagedApplication>(`/apps/${encodeURIComponent(id)}/${action}`, json("POST", { lock_version: lockVersion })),
   members: (appId: string, filters: MemberListFilters) => data<Paginated<AppMember>>(appPath(appId, `/users${query(filters)}`)),
   createMember: (appId: string, input: AppMemberCreateInput) => data<AppMember>(appPath(appId, "/users"), json("POST", input)),

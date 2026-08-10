@@ -1110,6 +1110,24 @@
       "status": "active"
     },
     {
+      "code": "mobile.release.publish",
+      "name": "发布或下线移动端版本",
+      "module_code": "mobile",
+      "resource_name": "release",
+      "action_name": "publish",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "mobile.release.delete",
+      "name": "删除移动端版本草稿",
+      "module_code": "mobile",
+      "resource_name": "release",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
       "code": "content.article.archive",
       "name": "归档文章",
       "module_code": "content",
@@ -1151,6 +1169,15 @@
       "module_code": "app",
       "resource_name": "application",
       "action_name": "disable",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.application.delete",
+      "name": "删除应用",
+      "module_code": "app",
+      "resource_name": "application",
+      "action_name": "delete",
       "permission_kind": "api",
       "status": "active"
     },

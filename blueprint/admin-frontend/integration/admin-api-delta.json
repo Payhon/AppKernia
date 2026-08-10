@@ -48,38 +48,6 @@
     },
     {
       "method": "GET",
-      "path": "/admin-api/v1/mobile/releases"
-    },
-    {
-      "method": "POST",
-      "path": "/admin-api/v1/mobile/releases"
-    },
-    {
-      "method": "PATCH",
-      "path": "/admin-api/v1/mobile/releases/{id}"
-    },
-    {
-      "method": "GET",
-      "path": "/admin-api/v1/apps"
-    },
-    {
-      "method": "POST",
-      "path": "/admin-api/v1/apps"
-    },
-    {
-      "method": "PATCH",
-      "path": "/admin-api/v1/apps/{app_id}"
-    },
-    {
-      "method": "POST",
-      "path": "/admin-api/v1/apps/{app_id}/enable"
-    },
-    {
-      "method": "POST",
-      "path": "/admin-api/v1/apps/{app_id}/disable"
-    },
-    {
-      "method": "GET",
       "path": "/admin-api/v1/apps/{app_id}/content/pages"
     },
     {

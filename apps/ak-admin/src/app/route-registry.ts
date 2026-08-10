@@ -42,6 +42,7 @@ const implementedComponentKeys = new Set([
   "system.content.categories",
   "system.mobile.releases",
   "app.applications",
+  "app.upgrade-center",
   "app.users",
   "app.content.articles",
   "app.content.categories",

@@ -642,6 +642,102 @@
     {
       "method": "POST",
       "path": "/admin-api/v1/me/mfa/recovery-codes/rotate"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/batch-delete"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/apps/{app_id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/apps/{app_id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/enable"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/disable"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/mobile/releases"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/mobile/releases"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/mobile/releases/batch-delete"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/mobile/releases/{id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/mobile/releases/{id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/mobile/releases/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/mobile/releases/{id}/publish"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/mobile/releases/{id}/unpublish"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/mobile/releases"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/mobile/releases"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/mobile/releases/batch-delete"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/mobile/releases/{id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/apps/{app_id}/mobile/releases/{id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/apps/{app_id}/mobile/releases/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/mobile/releases/{id}/publish"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/mobile/releases/{id}/unpublish"
     }
   ]
 }

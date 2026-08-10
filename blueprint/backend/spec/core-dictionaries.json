@@ -1,12 +1,18 @@
 {
   "version": 1,
   "types": [
+    {"code":"system.language","name":"Supported language","name_key":"settings.dictionaries.types.systemLanguage.name","description":"Supported localized content languages.","description_key":"settings.dictionaries.types.systemLanguage.description","visibility":"internal","extension_policy":"fixed","status":"active"},
     {"code":"storage.driver","name":"Storage driver","name_key":"settings.dictionaries.types.storageDriver.name","description":"Available object storage adapters.","description_key":"settings.dictionaries.types.storageDriver.description","visibility":"internal","extension_policy":"s3_compatible","status":"active"},
     {"code":"sms.provider","name":"SMS provider","name_key":"settings.dictionaries.types.smsProvider.name","description":"Compiled SMS provider adapters.","description_key":"settings.dictionaries.types.smsProvider.description","visibility":"internal","extension_policy":"registered","status":"active"},
     {"code":"notification.sms.template_event","name":"SMS template event","name_key":"settings.dictionaries.types.smsTemplateEvent.name","description":"Logical SMS template purposes.","description_key":"settings.dictionaries.types.smsTemplateEvent.description","visibility":"internal","extension_policy":"open","status":"active"},
     {"code":"notification.email.template_event","name":"Email template event","name_key":"settings.dictionaries.types.emailTemplateEvent.name","description":"Logical email template purposes.","description_key":"settings.dictionaries.types.emailTemplateEvent.description","visibility":"internal","extension_policy":"open","status":"active"}
   ],
   "items": [
+    {"type_code":"system.language","value":"zh-CN","locale":"zh-CN","label":"简体中文","sort_order":10,"is_default":true},
+    {"type_code":"system.language","value":"zh-CN","locale":"en-US","label":"Simplified Chinese","sort_order":10,"is_default":true},
+    {"type_code":"system.language","value":"en-US","locale":"zh-CN","label":"English","sort_order":20},
+    {"type_code":"system.language","value":"en-US","locale":"en-US","label":"English","sort_order":20},
+
     {"type_code":"storage.driver","value":"local","locale":"zh-CN","label":"本地存储","sort_order":10,"is_default":true,"extra":{"adapter":"local"}},
     {"type_code":"storage.driver","value":"local","locale":"en-US","label":"Local storage","sort_order":10,"is_default":true,"extra":{"adapter":"local"}},
     {"type_code":"storage.driver","value":"s3","locale":"zh-CN","label":"通用 S3","sort_order":20,"extra":{"adapter":"s3_compatible","provider":"s3"}},

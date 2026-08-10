@@ -4,7 +4,7 @@ const { adminRequest } = vi.hoisted(() => ({ adminRequest: vi.fn() }));
 vi.mock("../auth/store", () => ({ authSession: { adminRequest } }));
 
 import { appAdminApi } from "./api";
-import type { AppPageInput } from "./model";
+import type { ApplicationInput, AppPageInput } from "./model";
 
 const response = () => new Response(JSON.stringify({ data: {} }), { status: 200, headers: { "Content-Type": "application/json" } });
 const requestCalls = (): [string, string | undefined][] => adminRequest.mock.calls.map((call: unknown[]) => [String(call[0]), (call[1] as RequestInit | undefined)?.method]);
@@ -18,9 +18,15 @@ describe("App management admin API requests", () => {
   beforeEach(() => { adminRequest.mockReset(); adminRequest.mockImplementation(() => Promise.resolve(response())); });
 
   it("uses the application list, create, update, and status contracts", async () => {
+    const input = {
+      appid: "__UNI__ALPHA", app_type: "uni_app_x", name: "Alpha", description: "", introduction: "", remark: "",
+      default_locale: "zh-CN", registration_enabled: true, registration_verification_mode: "email_otp",
+      owner_type: "tenant", owner_id: "123e4567-e89b-12d3-a456-426614174000", icon_file_id: null,
+      managers: [], members: [], screenshot_file_ids: [], channels: [], store_listings: [],
+    } satisfies ApplicationInput;
     await appAdminApi.list({ q: "alpha", page: 2, page_size: 20 });
-    await appAdminApi.create({ name: "Alpha", default_locale: "zh-CN", registration_enabled: true, registration_verification_mode: "email_otp" });
-    await appAdminApi.update("app/a", { name: "Alpha", default_locale: "en-US", registration_enabled: false, registration_verification_mode: "none", lock_version: 3 });
+    await appAdminApi.create(input);
+    await appAdminApi.update("app/a", { ...input, default_locale: "en-US", registration_enabled: false, registration_verification_mode: "none", lock_version: 3 });
     await appAdminApi.setStatus("app/a", "disable", 4);
     expect(requestCalls()).toEqual([
       ["/apps?q=alpha&page=2&page_size=20", undefined], ["/apps", "POST"], ["/apps/app%2Fa", "PATCH"], ["/apps/app%2Fa/disable", "POST"],

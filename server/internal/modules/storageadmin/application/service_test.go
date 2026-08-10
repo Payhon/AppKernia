@@ -146,4 +146,7 @@ func TestMediaCompatibleAllowsUnknownBrowserTypeButRejectsMismatch(t *testing.T)
 	if mediaCompatible("image/png", "text/plain") {
 		t.Fatal("specific mismatched media types must be rejected")
 	}
+	if !mediaCompatible("application/vnd.android.package-archive", "application/zip") {
+		t.Fatal("APK browser MIME should accept the server-detected ZIP container")
+	}
 }

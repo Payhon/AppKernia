@@ -47,12 +47,25 @@
       "phase": "P2"
     },
     {
+      "code": "app.upgrade-center",
+      "i18n_key": "menu.app.upgrade_center",
+      "title": "App升级中心",
+      "type": "page",
+      "path": "/app/upgrade-center",
+      "sort": 20,
+      "parent": "app",
+      "component_key": "app.upgrade-center",
+      "icon": "CloudUploadOutlined",
+      "permission": "mobile.release.read",
+      "phase": "P2"
+    },
+    {
       "code": "app.users",
       "i18n_key": "menu.app.users",
       "title": "用户管理",
       "type": "page",
       "path": "/app/users",
-      "sort": 20,
+      "sort": 30,
       "parent": "app",
       "component_key": "app.users",
       "icon": "TeamOutlined",
@@ -65,7 +78,7 @@
       "title": "内容管理",
       "type": "directory",
       "path": "/app/content",
-      "sort": 30,
+      "sort": 40,
       "parent": "app",
       "icon": "ReadOutlined",
       "phase": "P2"

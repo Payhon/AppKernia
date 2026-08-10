@@ -459,6 +459,20 @@
       "backend_status": "delta_required"
     },
     {
+      "component_key": "app.upgrade-center",
+      "path": "/app/upgrade-center",
+      "file": "src/routes/app.upgrade-center.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": ["mobile.release.read"],
+      "title_key": "routes.app.upgrade_center.title",
+      "menu_code": "app.upgrade-center",
+      "active_menu_code": "app.upgrade-center",
+      "backend_status": "existing"
+    },
+    {
       "component_key": "app.users",
       "path": "/app/users",
       "file": "src/routes/app.users.tsx",

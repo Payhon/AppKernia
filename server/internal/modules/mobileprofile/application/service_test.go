@@ -48,6 +48,42 @@ func TestValidReleaseEnforcesComparableVersionsAndHTTPS(t *testing.T) {
 	}
 }
 
+func TestValidReleaseEnforcesNativeAndWGTTargetRules(t *testing.T) {
+	httpsURL := "https://example.test/download"
+	base := profile.Release{PackageType: "native_app", Platforms: []string{"android"}, Version: "2.0.0", ExternalURL: &httpsURL, Active: true, Titles: map[string]string{"zh-CN": "更新", "en-US": "Update"}, Contents: map[string]string{"zh-CN": "说明", "en-US": "Notes"}}
+	if err := validRelease(base, false); err != nil {
+		t.Fatalf("valid native release rejected: %v", err)
+	}
+	invalidNative := base
+	invalidNative.Platforms = []string{"android", "ios"}
+	if !errors.Is(validRelease(invalidNative, false), ErrInvalidRelease) {
+		t.Fatal("multi-platform native release accepted")
+	}
+	wgt := base
+	wgt.PackageType = "wgt"
+	wgt.Platforms = []string{"android", "ios", "harmony"}
+	minimum := "1.0.0"
+	wgt.MinimumNativeVersion = &minimum
+	if err := validRelease(wgt, false); err != nil {
+		t.Fatalf("valid multi-platform WGT release rejected: %v", err)
+	}
+	wgt.MinimumNativeVersion = nil
+	if !errors.Is(validRelease(wgt, false), ErrInvalidRelease) {
+		t.Fatal("WGT without minimum native version accepted")
+	}
+}
+
+func TestDraftMayBeIncompleteButImmediatePublishRequiresBilingualContent(t *testing.T) {
+	draft := profile.Release{PackageType: "native_app", Version: "1.2.3", Platforms: []string{"android"}}
+	if err := validRelease(draft, false); err != nil {
+		t.Fatalf("incomplete draft rejected: %v", err)
+	}
+	draft.Active = true
+	if !errors.Is(validRelease(draft, false), ErrInvalidRelease) {
+		t.Fatal("immediate publish accepted without bilingual content and source")
+	}
+}
+
 func TestParseSemverComparesNumericSegments(t *testing.T) {
 	left, ok := parseSemver("1.10.0")
 	if !ok {
@@ -59,5 +95,35 @@ func TestParseSemverComparesNumericSegments(t *testing.T) {
 	}
 	if compareSemver(left, right) <= 0 {
 		t.Fatal("numeric semver comparison is incorrect")
+	}
+}
+
+func TestPackageArchiveHeaderRejectsTypeSpoofing(t *testing.T) {
+	for _, header := range [][]byte{{'P', 'K', 3, 4}, {'P', 'K', 5, 6}, {'P', 'K', 7, 8}} {
+		if !isZipArchiveHeader(header) {
+			t.Fatalf("valid ZIP signature rejected: %v", header)
+		}
+	}
+	for _, header := range [][]byte{nil, {'P', 'K'}, {'N', 'O', 'P', 'E'}, {'P', 'K', 1, 2}} {
+		if isZipArchiveHeader(header) {
+			t.Fatalf("non-ZIP signature accepted: %v", header)
+		}
+	}
+}
+
+func TestPackageDownloadSignatureBindsIdentifiersAndExpiry(t *testing.T) {
+	key := []byte("test-signing-key-with-sufficient-entropy")
+	appID, releaseID, fileID := uuid.New(), uuid.New(), uuid.New()
+	now := int64(1_800_000_000)
+	expires := now + 300
+	signature := signPackageDownload(key, appID, releaseID, fileID, expires)
+	if !validPackageDownloadSignature(key, appID, releaseID, fileID, expires, now, signature) {
+		t.Fatal("valid package signature rejected")
+	}
+	if validPackageDownloadSignature(key, uuid.New(), releaseID, fileID, expires, now, signature) ||
+		validPackageDownloadSignature(key, appID, releaseID, fileID, expires, expires+1, signature) ||
+		validPackageDownloadSignature(key, appID, releaseID, fileID, now+601, now, signature) ||
+		validPackageDownloadSignature(key, appID, releaseID, fileID, expires, now, signature+"x") {
+		t.Fatal("tampered or expired package signature accepted")
 	}
 }

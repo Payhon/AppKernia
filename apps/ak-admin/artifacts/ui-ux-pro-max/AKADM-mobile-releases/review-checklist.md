@@ -2,12 +2,13 @@
 
 - [x] Actual ui-ux-pro-max design-system, UX, and React searches executed.
 - [x] Existing Admin Master retained without overwrite.
-- [x] View/action permission mapping and runtime gates reviewed; authenticated E2E exercises read/create/update.
-- [x] Loading, empty, error, stale, save, and validation implementations reviewed; 409 conflict is exercised at runtime.
-- [x] URL platform filter restores after leaving the route and using browser Back. A hard refresh returns to login because the access token is intentionally memory-only.
-- [x] Both release-note locales are required.
-- [x] Core SemVer ordering, HTTPS URL, active URL, PATCH lock-version, and response mapping are covered by unit tests.
-- [x] 1440 px zh-CN list and Drawer screenshots reviewed.
-- [x] 375 px en-US card layout reviewed with no page overflow or clipped action.
-- [x] axe serious/critical violations equal zero for all three required views.
-- [x] Typecheck, lint, 62 tests, build, bundle budget, blueprint, i18n, and diff checks pass.
+- [x] View/create/update/publish/delete permission mappings and UI gates are represented.
+- [x] Loading, empty, error, save and 409-preservation implementations are represented.
+- [x] App, query, package type, platform, status and pagination are URL-backed.
+- [x] Both title/content locales are required by the model and backend.
+- [x] Strict SemVer, HTTPS source, native/WGT platform rules and lock version are represented.
+- [x] Desktop table and mobile card rendering share the same query data.
+- [x] Mock-authenticated production-preview screenshots are recorded at 1440/1024/768/375 in both locales and light/dark OS-preference environments.
+- [x] Axe found no serious/critical issues; primary actions and table/card controls are keyboard focusable.
+- [x] Browser checks found no page-level horizontal overflow or unexpected console errors; the expected mocked 409 keeps the typed version.
+- [x] Final repository checks are recorded with the current 24 Admin test files / 94 tests and PostgreSQL 18 migration evidence.

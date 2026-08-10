@@ -1,25 +1,67 @@
 # 页面功能规格
 
+## App 范围页面公共交互
+
+- `/app/users`、`/app/upgrade-center`、`/app/content/*` 与兼容入口 `/system/mobile/releases` 统一使用框架右上角、全屏按钮左侧的全局 App 选择器；不在页面内容区重复占用一行。
+- 原生/WGT 发布、文章、分类和 App 页面等成组多语言表单统一使用共享 locale Tabs；语言顺序、默认项和标题读取固定系统字典 `system.language`，当前协议仍只允许 `zh-CN`、`en-US`。
+- Locale Tabs 切换不得注销 RHF 字段；校验失败时标记并切换到第一个错误语言。字典加载失败或内容非法时禁止保存并提供重试，不允许页面内静态语言数组降级。
+- 选择器只在需要 App 上下文的页面显示，所选 UUID 同时写入 URL 的 `app_id` 和按活动租户隔离的非敏感工作区偏好；切换范围页面或刷新后自动恢复。
+- 显式且属于当前租户的 URL `app_id` 优先并刷新记忆值；清空选择同时清除 URL 与当前租户记忆，不存在或已删除的记忆值必须丢弃。
+- 未选择 App 时，数据卡片内使用共享的最小高度居中提示替代表格、筛选器和加载态；不发起无范围数据请求，也不显示发布或创建动作。
+
 ## `app.applications` — 应用管理
 
 | 项目 | 定义 |
 |---|---|
 | 阶段 | P2 |
 | View Permission | `app.application.read` |
-| Schema | `app.applications` |
-| 后端状态 | `delta_required` |
+| Schema | `app.applications`, `app.application_team_members`, `app.application_assets`, `app.application_channels`, `app.application_store_listings`, `storage.files`, `storage.file_usages` |
+| 后端状态 | `existing` |
 
 **API**
 
 - `GET /admin-api/v1/apps`
 - `POST /admin-api/v1/apps`
+- `POST /admin-api/v1/apps/batch-delete`
+- `GET /admin-api/v1/apps/{app_id}`
 - `PATCH /admin-api/v1/apps/{app_id}`
+- `DELETE /admin-api/v1/apps/{app_id}`
 - `POST /admin-api/v1/apps/{app_id}/enable`
 - `POST /admin-api/v1/apps/{app_id}/disable`
 
 **页面验收**
 
-- 每租户可管理多个应用，注册开关和验证方式经由服务端授权保存。
+- 每租户可管理多个应用；manifest AppID 设置后不可修改，App 类型创建后不可修改。
+- 图标、截图、渠道、团队和应用市场均保存关系数据；团队资料不改变 RBAC。
+- 仅可软删除已停用的非默认应用，批量删除至多 100 条且全有或全无。
+
+## `app.upgrade-center` — App升级中心
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `mobile.release.read` |
+| Schema | `app.applications`, `app.application_store_listings`, `storage.files`, `storage.file_usages`, `sys.mobile_releases`, `sys.mobile_release_targets`, `sys.mobile_release_translations`, `sys.mobile_release_store_listings`, `sys.mobile_release_publications` |
+| 后端状态 | `existing` |
+
+**API**
+
+- `GET /admin-api/v1/apps`
+- `GET /admin-api/v1/apps/{app_id}/mobile/releases`
+- `POST /admin-api/v1/apps/{app_id}/mobile/releases`
+- `POST /admin-api/v1/apps/{app_id}/mobile/releases/batch-delete`
+- `GET /admin-api/v1/apps/{app_id}/mobile/releases/{id}`
+- `PATCH /admin-api/v1/apps/{app_id}/mobile/releases/{id}`
+- `DELETE /admin-api/v1/apps/{app_id}/mobile/releases/{id}`
+- `POST /admin-api/v1/apps/{app_id}/mobile/releases/{id}/publish`
+- `POST /admin-api/v1/apps/{app_id}/mobile/releases/{id}/unpublish`
+
+**页面验收**
+
+- 全局应用选择器在此 App 范围页面始终可见，筛选、分页与 `app_id` 可从 URL 恢复；未选择时显示共享居中提示而非持续 Loading。
+- 原生包单平台，WGT 支持多平台和最低原生版本；双语内容与唯一包来源在发布时必填。
+- 曾上线版本永久冻结；部分平台被新版本替换后显示“部分上线”。
+- 375px 使用卡片，768px 及以上表格可内部横向滚动，不产生页面级横向溢出。
 
 ## `app.users` — App 用户管理
 
@@ -1071,25 +1113,27 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 |---|---|
 | 阶段 | P2 |
 | View Permission | `mobile.release.read` |
-| Schema | `sys.mobile_releases` |
+| Schema | `app.application_store_listings`, `storage.files`, `storage.file_usages`, `sys.mobile_releases`, `sys.mobile_release_targets`, `sys.mobile_release_translations`, `sys.mobile_release_store_listings`, `sys.mobile_release_publications` |
 
-**筛选**：platform（OpenAPI 列表无查询参数，前端对全局小集合进行 URL 驱动的本地筛选）。
+**筛选**：app_id、q、package_type、platform、publish_status、page、page_size。
 
-**主要动作**：新建、编辑。
+**主要动作**：新建、编辑、发布、下线、删除草稿。
 
 **API**
 
 - `GET /admin-api/v1/mobile/releases`
 - `POST /admin-api/v1/mobile/releases`
+- `POST /admin-api/v1/mobile/releases/batch-delete`
+- `GET /admin-api/v1/mobile/releases/{id}`
 - `PATCH /admin-api/v1/mobile/releases/{id}`
+- `DELETE /admin-api/v1/mobile/releases/{id}`
+- `POST /admin-api/v1/mobile/releases/{id}/publish`
+- `POST /admin-api/v1/mobile/releases/{id}/unpublish`
 
 **页面验收**
 
-- Android、iOS、HarmonyOS 使用稳定协议枚举；平台筛选可从 URL 恢复。
-- 当前版本与最低版本只接受核心 `x.y.z` SemVer，最低版本不得高于当前版本；升级地址只接受 HTTPS，生效策略必须配置升级地址。
-- 两种语言发布说明均为必填，生效状态同时使用文字和语义样式表达。
-- PATCH 携带最新 `lock_version`；409 时保留 Drawer 输入并提示刷新，不静默覆盖。
-- 创建、编辑分别受 `mobile.release.create`、`mobile.release.update` 控制。
+- 此兼容入口与 `app.upgrade-center` 使用同一版本事实源和相同冻结、发布、删除规则。
+- 全局兼容 API 使用 `X-AppID` 选择内部 UUID App，不把 manifest AppID 当授权边界。
 
 ## `auth.reset-password` — 重置密码页
 

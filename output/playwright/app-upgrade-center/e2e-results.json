@@ -1,0 +1,74 @@
+{
+  "applications.zh-CN.light.1440": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "applications.drawer.zh-CN.light.1440": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "applications.zh-CN.light.375": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "applications.zh-CN.light.768": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "applications.zh-CN.light.1024": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "applications.en-US.light.375": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "upgrade.unselected.en-US.light.1440": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "upgrade.en-US.light.375": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "upgrade.wgt-drawer.en-US.light.1440": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "upgrade.en-US.light.768": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "upgrade.en-US.light.1024": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "upgrade.en-US.light.1440": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "upgrade.zh-CN.preferred-dark.1440": {
+    "serious_critical": 0,
+    "violations": []
+  },
+  "console": {
+    "unexpected_errors": [],
+    "expected_conflicts": 1
+  },
+  "coverage": {
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ],
+    "viewports": [
+      375,
+      768,
+      1024,
+      1440
+    ],
+    "color_schemes": [
+      "light",
+      "preferred-dark"
+    ]
+  }
+}

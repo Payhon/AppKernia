@@ -25,21 +25,27 @@ describe("mobile release model", () => {
 
   it("validates core SemVer and rejects a minimum newer than current", () => {
     expect(compareSemver("2.0.0", "1.99.99")).toBeGreaterThan(0);
-    const input = { ...defaultMobileReleaseInput(), current_version: "1.4.0", minimum_version: "1.5.0", release_notes: { "zh-CN": "说明", "en-US": "Notes" } };
+    const input = { ...defaultMobileReleaseInput("wgt"), version: "1.4.0", minimum_native_version: "1.5.0", titles: { "zh-CN": "更新", "en-US": "Update" }, contents: { "zh-CN": "说明", "en-US": "Notes" } };
     expect(mobileReleaseInputSchema.safeParse(input).success).toBe(false);
-    expect(mobileReleaseInputSchema.safeParse({ ...input, current_version: "v1.5.0" }).success).toBe(false);
-    expect(mobileReleaseInputSchema.safeParse({ ...input, current_version: "1.5.0-rc.1" }).success).toBe(false);
-    expect(mobileReleaseInputSchema.safeParse({ ...input, current_version: "1.5.0+build.1" }).success).toBe(false);
-    expect(mobileReleaseInputSchema.safeParse({ ...input, current_version: "1.5.0", upgrade_url: "http://example.test/app" }).success).toBe(false);
-    expect(mobileReleaseInputSchema.safeParse({ ...input, current_version: "1.5.0", active: true, upgrade_url: "" }).success).toBe(false);
+    expect(mobileReleaseInputSchema.safeParse({ ...input, version: "v1.5.0" }).success).toBe(false);
+    expect(mobileReleaseInputSchema.safeParse({ ...input, version: "1.5.0-rc.1" }).success).toBe(false);
+    expect(mobileReleaseInputSchema.safeParse({ ...input, version: "1.5.0+build.1" }).success).toBe(false);
+    expect(mobileReleaseInputSchema.safeParse({ ...input, version: "1.5.0", external_url: "http://example.test/app" }).success).toBe(false);
+    expect(mobileReleaseInputSchema.safeParse({ ...input, version: "1.5.0", publish_now: true, external_url: "" }).success).toBe(false);
+  });
+
+  it("allows an incomplete draft but requires bilingual content for immediate publishing", () => {
+    const draft = defaultMobileReleaseInput();
+    expect(mobileReleaseInputSchema.safeParse(draft).success).toBe(true);
+    expect(mobileReleaseInputSchema.safeParse({ ...draft, publish_now: true, external_url: "https://example.test/app" }).success).toBe(false);
   });
 
   it("sends lock_version when updating and maps the incremented response", async () => {
     const request = vi.spyOn(authSession, "adminRequest").mockResolvedValueOnce(response(5));
-    const input = { ...defaultMobileReleaseInput(), current_version: "2.0.0", minimum_version: "1.5.0", upgrade_url: "https://example.test/app", active: true, lock_version: 4, release_notes: { "zh-CN": "更新说明", "en-US": "Release notes" } };
-    const updated = await mobileReleasesApi.update("123e4567-e89b-12d3-a456-426614174000", input);
+    const input = { ...defaultMobileReleaseInput(), version: "2.0.0", external_url: "https://example.test/app", publish_now: true, lock_version: 4, titles: { "zh-CN": "更新", "en-US": "Update" }, contents: { "zh-CN": "更新说明", "en-US": "Release notes" } };
+    const updated = await mobileReleasesApi.update("123e4567-e89b-12d3-a456-426614174001", "123e4567-e89b-12d3-a456-426614174000", input);
     expect(updated.lock_version).toBe(5);
     const body = request.mock.calls[0]?.[1]?.body;
-    expect(JSON.parse(body as string)).toMatchObject({ lock_version: 4, platform: "android" });
+    expect(JSON.parse(body as string)).toMatchObject({ lock_version: 4, package_type: "native_app", platforms: ["android"] });
   });
 });

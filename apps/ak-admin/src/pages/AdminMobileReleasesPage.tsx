@@ -1,210 +1,165 @@
-import { Alert, Button, Card, Drawer, Form, Grid, Input, Select, Switch, Table, Tag, Typography, type TableColumnsType } from "antd";
-import { useNavigate } from "@tanstack/react-router";
+import { DeleteOutlined, DownOutlined } from "@ant-design/icons";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { Alert, Button, Card, Checkbox, Drawer, Dropdown, Form, Grid, Input, Modal, Radio, Select, Space, Switch, Table, Tag, Typography, type MenuProps, type TableColumnsType } from "antd";
 import { Controller, useForm, type FieldPath } from "react-hook-form";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type Key } from "react";
 import { useTranslation } from "react-i18next";
-import type { AdminMobileRelease } from "../generated/api/types.gen";
+import { AkFilePicker } from "../components/AkFilePicker";
+import { AkLocalizedFormTabs } from "../components/AkLocalizedFormTabs";
+import { AppSelectionRequiredState } from "../components/AppSelectionRequiredState";
+import { useAppScope } from "../features/apps/scope";
+import { useManagedApplications } from "../features/apps/hooks";
 import { useAuthStore } from "../features/auth/store";
 import { useMobileReleaseMutations, useMobileReleases } from "../features/mobile-releases/hooks";
-import { defaultMobileReleaseInput, mobileReleaseInputSchema, mobileReleasePlatforms, type MobileReleaseInput, type MobileReleasePlatform } from "../features/mobile-releases/model";
+import { defaultMobileReleaseInput, mobileReleaseInputSchema, mobileReleasePackageTypes, mobileReleasePlatforms, mobileReleasePublishStatuses, releaseInput, type ManagedMobileRelease, type MobileReleaseFilters, type MobileReleaseInput } from "../features/mobile-releases/model";
+import { findFirstInvalidLanguage, useSystemLanguages, type SystemLanguagesState } from "../features/settings/system-languages";
 import { ApiError } from "../shared/api/error";
+import type { AdminLocale } from "../shared/i18n";
 
-type Editor = AdminMobileRelease | "new" | null;
-type Feedback = { key: string; error: boolean } | null;
+type Editor = ManagedMobileRelease | { kind: "new"; packageType: "native_app" | "wgt" } | null;
 
-function readPlatform(): MobileReleasePlatform | "" {
-  const value = new URLSearchParams(location.search).get("platform");
-  return mobileReleasePlatforms.includes(value as MobileReleasePlatform) ? value as MobileReleasePlatform : "";
-}
-
-function releaseInput(item: AdminMobileRelease): MobileReleaseInput {
-  return {
-    platform: item.platform,
-    current_version: item.current_version,
-    minimum_version: item.minimum_version,
-    upgrade_url: item.upgrade_url ?? "",
-    release_notes: item.release_notes,
-    active: item.active,
-    lock_version: item.lock_version,
-  };
+function filtersFromURL(): MobileReleaseFilters {
+  const params = new URLSearchParams(location.search);
+  const page = Number(params.get("page")); const pageSize = Number(params.get("page_size"));
+  return { q: params.get("q") ?? "", package_type: params.get("package_type") ?? "", platform: params.get("platform") ?? "", publish_status: params.get("publish_status") ?? "", page: Number.isInteger(page) && page > 0 ? page : 1, page_size: Number.isInteger(pageSize) && pageSize > 0 && pageSize <= 100 ? pageSize : 20 };
 }
 
 function errorKey(error: unknown): string {
-  return error instanceof ApiError && error.status === 409
-    ? "mobile_releases.feedback.conflict"
-    : "mobile_releases.feedback.save_error";
+  if (!(error instanceof ApiError)) return "mobile_releases.feedback.save_error";
+  if (error.code === "SYS.MOBILE_RELEASE.VERSION_NOT_INCREASING") return "mobile_releases.feedback.version_conflict";
+  if (error.code === "SYS.MOBILE_RELEASE.FROZEN") return "mobile_releases.feedback.frozen";
+  return error.status === 409 ? "mobile_releases.feedback.conflict" : "mobile_releases.feedback.save_error";
 }
 
 export function AdminMobileReleasesPage() {
+  return <MobileReleaseCenter />;
+}
+
+function MobileReleaseCenter() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-  const screens = Grid.useBreakpoint();
+  const navigate = useNavigate(); const screens = Grid.useBreakpoint();
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const scope = useAppScope();
   const permissions = new Set(useAuthStore((state) => state.context?.permissions ?? []));
-  const [platform, setPlatform] = useState<MobileReleasePlatform | "">(readPlatform);
+  const [filters, setFilters] = useState<MobileReleaseFilters>(filtersFromURL);
   const [editor, setEditor] = useState<Editor>(null);
-  const [feedback, setFeedback] = useState<Feedback>(null);
-  const [editorFeedback, setEditorFeedback] = useState<string | null>(null);
-  const query = useMobileReleases();
-  const mutations = useMobileReleaseMutations();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [selected, setSelected] = useState<Key[]>([]);
+  const [feedback, setFeedback] = useState<{ key: string; error: boolean } | null>(null);
+  const [activeLocale, setActiveLocale] = useState<AdminLocale>("zh-CN");
+  const languages = useSystemLanguages();
+  const query = useMobileReleases(scope.appId, filters);
+  const mutations = useMobileReleaseMutations(scope.appId);
+  const apps = useManagedApplications({ q: "", page: 1, page_size: 100 });
+  const selectedApp = apps.data?.items.find((app) => app.id === scope.appId);
   const form = useForm<MobileReleaseInput>({ defaultValues: defaultMobileReleaseInput() });
   const date = useMemo(() => new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }), [i18n.language]);
-  const items = useMemo(() => (query.data ?? []).filter((item) => !platform || item.platform === platform), [platform, query.data]);
+  const isUpgradeCenter = pathname === "/app/upgrade-center";
 
   useEffect(() => {
-    void navigate({ to: "/system/mobile/releases", search: { platform }, replace: true });
-  }, [navigate, platform]);
+    void navigate({ to: pathname as never, search: { app_id: scope.appId ?? undefined, ...filters } as never, replace: true });
+  }, [filters, navigate, pathname, scope.appId]);
 
-  const openEditor = (value: AdminMobileRelease | "new") => {
-    const defaults = value === "new" ? { ...defaultMobileReleaseInput(), ...(platform ? { platform } : {}) } : releaseInput(value);
-    form.reset(defaults);
-    setEditorFeedback(null);
-    setEditor(value);
-  };
-
+  const updateFilter = (patch: Partial<MobileReleaseFilters>) => { setFilters((current) => ({ ...current, ...patch, page: patch.page ?? 1 })); };
+  const openNew = (packageType: "native_app" | "wgt") => { form.reset(defaultMobileReleaseInput(packageType)); setActiveLocale(languages.preferredLocale); setFeedback(null); setEditor({ kind: "new", packageType }); };
+  const openExisting = (item: ManagedMobileRelease) => { form.reset(releaseInput(item)); setActiveLocale(languages.preferredLocale); setFeedback(null); setEditor(item); };
+  const isNew = editor !== null && "kind" in editor;
+  const frozen = editor !== null && !("kind" in editor) && editor.ever_published_at != null;
   const save = form.handleSubmit(async (values) => {
     form.clearErrors();
     const parsed = mobileReleaseInputSchema.safeParse(values);
     if (!parsed.success) {
-      parsed.error.issues.forEach((issue) => {
-        form.setError(issue.path.join(".") as FieldPath<MobileReleaseInput>, { message: issue.message });
-      });
-      setEditorFeedback("mobile_releases.feedback.validation_error");
-      return;
+      parsed.error.issues.forEach((issue) => { form.setError(issue.path.join(".") as FieldPath<MobileReleaseInput>, { message: issue.message }); });
+      const invalidLocale = findFirstInvalidLanguage(languages.languages, parsed.error.issues);
+      if (invalidLocale) setActiveLocale(invalidLocale);
+      setFeedback({ key: "mobile_releases.feedback.validation_error", error: true }); return;
     }
     try {
-      if (editor === "new") await mutations.create.mutateAsync(parsed.data);
-      else if (editor) await mutations.update.mutateAsync({ id: editor.id, input: parsed.data });
-      setEditor(null);
-      setEditorFeedback(null);
-      setFeedback({ key: "mobile_releases.feedback.saved", error: false });
-    } catch (error) {
-      setEditorFeedback(errorKey(error));
-    }
+      if (isNew) await mutations.create.mutateAsync(parsed.data);
+      else if (editor && !frozen) await mutations.update.mutateAsync({ id: editor.id, input: parsed.data });
+      setEditor(null); setFeedback({ key: "mobile_releases.feedback.saved", error: false });
+    } catch (error) { setFeedback({ key: errorKey(error), error: true }); }
   });
-
-  const columns: TableColumnsType<AdminMobileRelease> = [
-    {
-      title: t("mobile_releases.columns.platform"),
-      dataIndex: "platform",
-      width: 130,
-      render: (value: MobileReleasePlatform) => <Tag>{t(`mobile_releases.platform.${value}`)}</Tag>,
-    },
-    {
-      title: t("mobile_releases.columns.current"),
-      dataIndex: "current_version",
-      width: 145,
-      render: (value: string) => <code className="ak-version-value">{value}</code>,
-    },
-    {
-      title: t("mobile_releases.columns.minimum"),
-      dataIndex: "minimum_version",
-      width: 145,
-      responsive: ["sm"],
-      render: (value: string) => <code className="ak-version-value">{value}</code>,
-    },
-    {
-      title: t("mobile_releases.columns.status"),
-      dataIndex: "active",
-      width: 110,
-      render: (value: boolean) => <Tag className={value ? "ak-status-success" : ""}>{t(value ? "mobile_releases.status.active" : "mobile_releases.status.inactive")}</Tag>,
-    },
-    {
-      title: t("mobile_releases.columns.upgrade_url"),
-      dataIndex: "upgrade_url",
-      responsive: ["lg"],
-      render: (value: string | null | undefined) => value
-        ? <a className="ak-release-url" href={value} target="_blank" rel="noreferrer" aria-label={t("mobile_releases.actions.open_upgrade_url")}>{value}</a>
-        : <span className="ak-table-secondary">{t("mobile_releases.values.none")}</span>,
-    },
-    {
-      title: t("mobile_releases.columns.updated"),
-      dataIndex: "updated_at",
-      width: 190,
-      responsive: ["lg"],
-      render: (value: string) => date.format(new Date(value)),
-    },
-    {
-      title: t("mobile_releases.columns.actions"),
-      width: 100,
-      render: (_, item) => permissions.has("mobile.release.update")
-        ? <Button size="small" onClick={() => { openEditor(item); }}>{t("common.actions.edit")}</Button>
-        : null,
-    },
+  const lifecycle = async (item: ManagedMobileRelease, action: "publish" | "unpublish") => {
+    try {
+      if (action === "publish") await mutations.publish.mutateAsync({ id: item.id, lockVersion: item.lock_version });
+      else await mutations.unpublish.mutateAsync({ id: item.id, lockVersion: item.lock_version });
+      setFeedback({ key: action === "publish" ? "mobile_releases.feedback.published" : "mobile_releases.feedback.unpublished", error: false });
+    } catch (error) { setFeedback({ key: errorKey(error), error: true }); }
+  };
+  const deleteItems = (ids: string[]) => Modal.confirm({ title: t("mobile_releases.delete.title"), content: t("mobile_releases.delete.description", { count: ids.length }), okText: t("common.actions.delete"), okButtonProps: { danger: true }, onOk: async () => {
+    try { if (ids.length === 1) await mutations.delete.mutateAsync(ids[0] ?? ""); else await mutations.batchDelete.mutateAsync(ids); setSelected([]); setFeedback({ key: "mobile_releases.feedback.deleted", error: false }); }
+    catch (error) { setFeedback({ key: errorKey(error), error: true }); }
+  } });
+  const menu: MenuProps["items"] = [{ key: "native_app", label: t("mobile_releases.package_type.native_app") }, { key: "wgt", label: t("mobile_releases.package_type.wgt") }];
+  const releaseActions = (item: ManagedMobileRelease) => <Space wrap size="small">
+    <Button size="small" onClick={() => { openExisting(item); }}>{t(item.publish_status === "draft" ? "common.actions.edit" : "common.actions.view")}</Button>
+    {item.publish_status === "draft" && permissions.has("mobile.release.publish") ? <Button size="small" type="primary" onClick={() => void lifecycle(item, "publish")}>{t("mobile_releases.actions.publish")}</Button> : null}
+    {["online", "partial"].includes(item.publish_status) && permissions.has("mobile.release.publish") ? <Button size="small" onClick={() => void lifecycle(item, "unpublish")}>{t("mobile_releases.actions.unpublish")}</Button> : null}
+    {item.publish_status === "offline" && permissions.has("mobile.release.publish") ? <Button size="small" onClick={() => void lifecycle(item, "publish")}>{t("mobile_releases.actions.republish")}</Button> : null}
+    {item.publish_status === "draft" && permissions.has("mobile.release.delete") ? <Button danger icon={<DeleteOutlined />} size="small" onClick={() => deleteItems([item.id])}>{t("common.actions.delete")}</Button> : null}
+  </Space>;
+  const columns: TableColumnsType<ManagedMobileRelease> = [
+    { title: t("mobile_releases.columns.version"), dataIndex: "version", width: 130, render: (value: string) => <code className="ak-version-value">{value}</code> },
+    { title: t("mobile_releases.columns.package_type"), dataIndex: "package_type", width: 150, render: (value: string) => <Tag>{t(`mobile_releases.package_type.${value}`)}</Tag> },
+    { title: t("mobile_releases.columns.platform"), dataIndex: "platforms", width: 220, render: (values: string[]) => <Space size={[0, 4]} wrap>{values.map((value) => <Tag key={value}>{t(`mobile_releases.platform.${value}`)}</Tag>)}</Space> },
+    { title: t("mobile_releases.columns.title"), responsive: ["md"], render: (_, item) => item.titles[i18n.language === "en-US" ? "en-US" : "zh-CN"] },
+    { title: t("mobile_releases.columns.status"), dataIndex: "publish_status", width: 130, render: (value: string) => <Tag className={value === "online" ? "ak-status-success" : value === "partial" ? "ak-status-warning" : value === "offline" ? "ak-status-error" : ""}>{t(`mobile_releases.publish_status.${value}`)}</Tag> },
+    { title: t("mobile_releases.columns.published_platforms"), dataIndex: "published_platforms", width: 190, responsive: ["lg"], render: (values: string[]) => values.length ? values.map((value) => t(`mobile_releases.platform.${value}`)).join(" / ") : t("mobile_releases.values.none") },
+    { title: t("mobile_releases.columns.created"), dataIndex: "created_at", width: 180, responsive: ["xl"], render: (value: string) => date.format(new Date(value)) },
+    { title: t("mobile_releases.columns.actions"), ...(screens.lg ? { fixed: "right" as const } : {}), width: 230, render: (_, item) => releaseActions(item) },
   ];
 
   return <div className="ak-page-container">
-    <header className="ak-page-heading">
-      <div>
-        <Typography.Title level={1}>{t("mobile_releases.title")}</Typography.Title>
-        <Typography.Paragraph type="secondary">{t("mobile_releases.description")}</Typography.Paragraph>
-      </div>
-      {permissions.has("mobile.release.create") ? <Button type="primary" onClick={() => { openEditor("new"); }}>{t("mobile_releases.actions.create")}</Button> : null}
-    </header>
-    {feedback ? <div className={feedback.error ? "ak-form-error" : "ak-org-feedback"} role={feedback.error ? "alert" : "status"}>{t(feedback.key)}</div> : null}
-    <Card>
+    <header className="ak-page-heading"><div><Typography.Title level={1}>{t(isUpgradeCenter ? "mobile_releases.upgrade_center.title" : "mobile_releases.title")}</Typography.Title><Typography.Paragraph type="secondary">{t(isUpgradeCenter ? "mobile_releases.upgrade_center.description" : "mobile_releases.description")}</Typography.Paragraph></div><Space wrap>
+      {selected.length > 0 && permissions.has("mobile.release.delete") ? <Button danger onClick={() => deleteItems(selected.map(String))}>{t("mobile_releases.actions.batch_delete", { count: selected.length })}</Button> : null}
+      {scope.appId && permissions.has("mobile.release.create") ? <Dropdown menu={{ items: menu, onClick: ({ key }) => { openNew(key as "native_app" | "wgt"); } }}><Button disabled={Boolean(selectedApp?.appid_pending)} type="primary">{t("mobile_releases.actions.release_new")} <DownOutlined /></Button></Dropdown> : null}
+    </Space></header>
+    {selectedApp?.appid_pending ? <Alert showIcon type="warning" title={t("mobile_releases.states.appid_pending")} /> : null}
+    {feedback ? <Alert showIcon type={feedback.error ? "error" : "success"} title={t(feedback.key)} /> : null}
+    <Card>{scope.appId ? <>
       <div className="ak-release-filters" role="search" aria-label={t("mobile_releases.filters.landmark")}>
-        <Select allowClear value={platform || undefined} placeholder={t("mobile_releases.filters.platform")} aria-label={t("mobile_releases.filters.platform")} onChange={(value) => { setPlatform(value ?? ""); }} options={mobileReleasePlatforms.map((value) => ({ value, label: t(`mobile_releases.platform.${value}`) }))} />
+        <Input.Search allowClear value={filters.q} placeholder={t("mobile_releases.filters.query")} onChange={(event) => { updateFilter({ q: event.target.value }); }} />
+        <Select allowClear aria-label={t("mobile_releases.filters.package_type")} value={filters.package_type || undefined} placeholder={t("mobile_releases.filters.package_type")} onChange={(value) => { updateFilter({ package_type: value ?? "" }); }} options={mobileReleasePackageTypes.map((value) => ({ value, label: t(`mobile_releases.package_type.${value}`) }))} />
+        <Select allowClear aria-label={t("mobile_releases.filters.platform")} value={filters.platform || undefined} placeholder={t("mobile_releases.filters.platform")} onChange={(value) => { updateFilter({ platform: value ?? "" }); }} options={mobileReleasePlatforms.map((value) => ({ value, label: t(`mobile_releases.platform.${value}`) }))} />
+        <Select allowClear aria-label={t("mobile_releases.filters.publish_status")} value={filters.publish_status || undefined} placeholder={t("mobile_releases.filters.publish_status")} onChange={(value) => { updateFilter({ publish_status: value ?? "" }); }} options={mobileReleasePublishStatuses.map((value) => ({ value, label: t(`mobile_releases.publish_status.${value}`) }))} />
       </div>
       {query.isError ? <Alert showIcon type="error" title={t("mobile_releases.feedback.load_error")} action={<Button onClick={() => void query.refetch()}>{t("common.actions.retry")}</Button>} /> : null}
-      {screens.md ? <div className="ak-table-scroll">
-        <Table rowKey="id" loading={query.isPending} columns={columns} dataSource={items} pagination={false} locale={{ emptyText: t("mobile_releases.empty") }} scroll={{ x: 980 }} />
-      </div> : <div className="ak-mobile-release-list">
+      {screens.md ? <div aria-label={t("mobile_releases.title")} className="ak-table-scroll" role="region" tabIndex={0}><Table rowKey="id" loading={query.isPending} columns={columns} dataSource={query.data?.items ?? []} locale={{ emptyText: t("mobile_releases.empty") }} {...(permissions.has("mobile.release.delete") ? { rowSelection: { selectedRowKeys: selected, onChange: setSelected, getCheckboxProps: (item: ManagedMobileRelease) => ({ disabled: item.publish_status !== "draft" }) } } : {})} pagination={{ current: filters.page, pageSize: filters.page_size, total: query.data?.total ?? 0, showSizeChanger: true, onChange: (page, pageSize) => { setFilters((current) => ({ ...current, page, page_size: pageSize })); } }} scroll={{ x: 1350 }} /></div> : <div className="ak-mobile-release-list">
         {query.isPending ? <Card loading size="small" /> : null}
-        {!query.isPending && items.length === 0 ? <div className="ak-mobile-release-empty">{t("mobile_releases.empty")}</div> : null}
-        {!query.isPending ? items.map((item) => <Card
-          className="ak-mobile-release-card"
-          key={item.id}
-          size="small"
-          title={<Tag>{t(`mobile_releases.platform.${item.platform}`)}</Tag>}
-          extra={<Tag className={item.active ? "ak-status-success" : ""}>{t(item.active ? "mobile_releases.status.active" : "mobile_releases.status.inactive")}</Tag>}
-        >
-          <dl className="ak-mobile-release-facts">
-            <div><dt>{t("mobile_releases.columns.current")}</dt><dd><code className="ak-version-value">{item.current_version}</code></dd></div>
-            <div><dt>{t("mobile_releases.columns.minimum")}</dt><dd><code className="ak-version-value">{item.minimum_version}</code></dd></div>
-          </dl>
-          {permissions.has("mobile.release.update") ? <Button block onClick={() => { openEditor(item); }}>{t("common.actions.edit")}</Button> : null}
-        </Card>) : null}
-      </div>}
-      {query.isFetching && !query.isPending ? <div className="ak-content-stale" role="status">{t("mobile_releases.states.refreshing")}</div> : null}
+        {!query.isPending && (query.data?.items.length ?? 0) === 0 ? <div className="ak-mobile-release-empty">{t("mobile_releases.empty")}</div> : null}
+        {(query.data?.items ?? []).map((item) => <Card className="ak-mobile-release-card" key={item.id} size="small" title={<Space><code>{item.version}</code><Tag>{t(`mobile_releases.package_type.${item.package_type}`)}</Tag></Space>} extra={<Tag className={item.publish_status === "online" ? "ak-status-success" : item.publish_status === "partial" ? "ak-status-warning" : item.publish_status === "offline" ? "ak-status-error" : ""}>{t(`mobile_releases.publish_status.${item.publish_status}`)}</Tag>}><Typography.Paragraph>{item.platforms.map((value) => t(`mobile_releases.platform.${value}`)).join(" / ")}</Typography.Paragraph>{releaseActions(item)}</Card>)}
+      </div>}</> : <AppSelectionRequiredState />}
     </Card>
-    <MobileReleaseDrawer editor={editor} form={form} open={editor !== null} fullScreen={!screens.md} feedbackKey={editorFeedback} saving={mutations.create.isPending || mutations.update.isPending} onClose={() => { setEditor(null); setEditorFeedback(null); }} onSave={() => void save()} />
+    <ReleaseDrawer activeLocale={activeLocale} editor={editor} form={form} frozen={frozen} fullScreen={!screens.md} languages={languages} stores={selectedApp?.store_listings ?? []} feedback={feedback?.error ? feedback.key : null} saving={mutations.create.isPending || mutations.update.isPending} onActiveLocaleChange={setActiveLocale} onClose={() => { setEditor(null); }} onSave={() => void save()} onPickFile={() => { setPickerOpen(true); }} />
+    <AkFilePicker open={pickerOpen} onClose={() => { setPickerOpen(false); }} onSelect={(file) => { form.setValue("package_file_id", file.id, { shouldDirty: true }); setPickerOpen(false); }} />
   </div>;
 }
 
-function MobileReleaseDrawer({ editor, form, open, fullScreen, feedbackKey, saving, onClose, onSave }: { editor: Editor; form: ReturnType<typeof useForm<MobileReleaseInput>>; open: boolean; fullScreen: boolean; feedbackKey: string | null; saving: boolean; onClose: () => void; onSave: () => void }) {
-  const { t } = useTranslation();
-  const errors = form.formState.errors;
-  const help = (message: string | undefined, fallback: string) => message === "minimum_newer"
-    ? t("mobile_releases.validation.minimum_order")
-    : message === "active_url_required"
-      ? t("mobile_releases.validation.active_https_url")
-      : message ? t(fallback) : undefined;
-  const validation = (message: string | undefined, fallback: string) => message ? { validateStatus: "error" as const, help: help(message, fallback) } : {};
-  return <Drawer open={open} size={fullScreen ? "100%" : "large"} destroyOnHidden title={t(editor === "new" ? "mobile_releases.editor.create" : "mobile_releases.editor.edit")} onClose={onClose} extra={<Button type="primary" loading={saving} onClick={onSave}>{t("common.actions.save")}</Button>}>
-    {feedbackKey ? <Alert className="ak-release-drawer-alert" showIcon type="error" title={t(feedbackKey)} /> : null}
-    <Form layout="vertical">
-      <Form.Item label={t("mobile_releases.fields.platform")} {...validation(errors.platform?.message, "mobile_releases.validation.required")}>
-        <Controller control={form.control} name="platform" render={({ field }) => <Select {...field} aria-label={t("mobile_releases.fields.platform")} disabled={editor !== "new"} options={mobileReleasePlatforms.map((value) => ({ value, label: t(`mobile_releases.platform.${value}`) }))} />} />
-      </Form.Item>
-      <div className="ak-mobile-release-version-grid">
-        <Form.Item label={t("mobile_releases.fields.current_version")} {...validation(errors.current_version?.message, "mobile_releases.validation.semver")}>
-          <Controller control={form.control} name="current_version" render={({ field }) => <Input {...field} aria-label={t("mobile_releases.fields.current_version")} autoComplete="off" placeholder="1.2.3" />} />
-        </Form.Item>
-        <Form.Item label={t("mobile_releases.fields.minimum_version")} {...validation(errors.minimum_version?.message, "mobile_releases.validation.semver")}>
-          <Controller control={form.control} name="minimum_version" render={({ field }) => <Input {...field} aria-label={t("mobile_releases.fields.minimum_version")} autoComplete="off" placeholder="1.0.0" />} />
-        </Form.Item>
-      </div>
-      <Form.Item label={t("mobile_releases.fields.upgrade_url")} {...validation(errors.upgrade_url?.message, "mobile_releases.validation.https_url")}>
-        <Controller control={form.control} name="upgrade_url" render={({ field }) => <Input {...field} aria-label={t("mobile_releases.fields.upgrade_url")} inputMode="url" placeholder="https://" />} />
-      </Form.Item>
-      <Form.Item label={t("mobile_releases.fields.active")} extra={t("mobile_releases.fields.active_hint")}>
-        <Controller control={form.control} name="active" render={({ field }) => <Switch aria-label={t("mobile_releases.fields.active")} checked={field.value} onChange={field.onChange} />} />
-      </Form.Item>
-      {(["zh-CN", "en-US"] as const).map((locale) => <Card className="ak-content-locale-card" key={locale} size="small" title={t(`mobile_releases.locales.${locale}`)}>
-        <Form.Item label={t("mobile_releases.fields.release_notes")} {...validation(errors.release_notes?.[locale]?.message, "mobile_releases.validation.required")}>
-          <Controller control={form.control} name={`release_notes.${locale}`} render={({ field }) => <Input.TextArea {...field} aria-label={`${t(`mobile_releases.locales.${locale}`)} ${t("mobile_releases.fields.release_notes")}`} rows={7} showCount maxLength={10_000} />} />
-        </Form.Item>
-      </Card>)}
+function ReleaseDrawer({ activeLocale, editor, form, frozen, fullScreen, languages, stores, feedback, saving, onActiveLocaleChange, onClose, onSave, onPickFile }: { activeLocale: AdminLocale; editor: Editor; form: ReturnType<typeof useForm<MobileReleaseInput>>; frozen: boolean; fullScreen: boolean; languages: SystemLanguagesState; stores: { id?: string; name: string; enabled: boolean }[]; feedback: string | null; saving: boolean; onActiveLocaleChange: (locale: AdminLocale) => void; onClose: () => void; onSave: () => void; onPickFile: () => void }) {
+  const { t } = useTranslation(); const errors = form.formState.errors; const packageType = form.watch("package_type"); const sourceType = form.watch("source_type");
+  const validation = (message?: string) => message ? { validateStatus: "error" as const, help: t(`mobile_releases.validation.${message}`) } : {};
+  return <Drawer open={editor !== null} size={fullScreen ? "100%" : "large"} destroyOnHidden title={t(editor && "kind" in editor ? `mobile_releases.editor.create_${editor.packageType}` : frozen ? "mobile_releases.editor.detail" : "mobile_releases.editor.edit")} onClose={onClose} extra={!frozen ? <Button disabled={!languages.isReady} type="primary" loading={saving} onClick={onSave}>{t("common.actions.save")}</Button> : null}>
+    {feedback ? <Alert showIcon type="error" title={t(feedback)} /> : null}
+    <Form layout="vertical" disabled={frozen} className="ak-release-form">
+      <div className="ak-form-grid-2"><Form.Item label={t("mobile_releases.fields.package_type")}><Controller control={form.control} name="package_type" render={({ field }) => <Select {...field} aria-label={t("mobile_releases.fields.package_type")} disabled options={mobileReleasePackageTypes.map((value) => ({ value, label: t(`mobile_releases.package_type.${value}`) }))} />} /></Form.Item><Form.Item label={t("mobile_releases.fields.version")} {...validation(errors.version?.message)}><Controller control={form.control} name="version" render={({ field }) => <Input {...field} aria-label={t("mobile_releases.fields.version")} placeholder="1.2.3" />} /></Form.Item></div>
+      <Form.Item label={t("mobile_releases.fields.platforms")} {...validation(errors.platforms?.message)}><Controller control={form.control} name="platforms" render={({ field }) => <Checkbox.Group {...field} aria-label={t("mobile_releases.fields.platforms")} options={mobileReleasePlatforms.map((value) => ({ value, label: t(`mobile_releases.platform.${value}`), disabled: packageType === "native_app" && field.value.length === 1 && !field.value.includes(value) }))} />} /></Form.Item>
+      {packageType === "wgt" ? <Form.Item label={t("mobile_releases.fields.minimum_native_version")} {...validation(errors.minimum_native_version?.message)}><Controller control={form.control} name="minimum_native_version" render={({ field }) => <Input {...field} aria-label={t("mobile_releases.fields.minimum_native_version")} placeholder="1.0.0" />} /></Form.Item> : null}
+      <AkLocalizedFormTabs
+        activeLocale={activeLocale}
+        errorLocales={{
+          "en-US": Boolean(errors.titles?.["en-US"] ?? errors.contents?.["en-US"]),
+          "zh-CN": Boolean(errors.titles?.["zh-CN"] ?? errors.contents?.["zh-CN"]),
+        }}
+        languages={languages}
+        onActiveLocaleChange={onActiveLocaleChange}
+        renderFields={(locale, label) => <><Form.Item label={t("mobile_releases.fields.title")} {...validation(errors.titles?.[locale]?.message)}><Controller control={form.control} name={`titles.${locale}`} render={({ field }) => <Input {...field} aria-label={`${label} ${t("mobile_releases.fields.title")}`} maxLength={200} showCount />} /></Form.Item><Form.Item label={t("mobile_releases.fields.contents")} {...validation(errors.contents?.[locale]?.message)}><Controller control={form.control} name={`contents.${locale}`} render={({ field }) => <Input.TextArea {...field} aria-label={`${label} ${t("mobile_releases.fields.contents")}`} rows={7} maxLength={10_000} showCount />} /></Form.Item></>}
+      />
+      <Form.Item label={t("mobile_releases.fields.source_type")}><Controller control={form.control} name="source_type" render={({ field }) => <Radio.Group {...field} aria-label={t("mobile_releases.fields.source_type")} optionType="button" options={["internal", "external"].map((value) => ({ value, label: t(`mobile_releases.source_type.${value}`) }))} />} /></Form.Item>
+      {sourceType === "internal" ? <Form.Item label={t("mobile_releases.fields.package_file")} {...validation(errors.package_file_id?.message)}><Space wrap><Button onClick={onPickFile}>{t("mobile_releases.actions.choose_file")}</Button>{form.watch("package_file_id") ? <code className="ak-content-slug">{form.watch("package_file_id")}</code> : <Typography.Text type="secondary">{t("mobile_releases.values.none")}</Typography.Text>}</Space></Form.Item> : <Form.Item label={t("mobile_releases.fields.external_url")} {...validation(errors.external_url?.message)}><Controller control={form.control} name="external_url" render={({ field }) => <Input {...field} aria-label={t("mobile_releases.fields.external_url")} placeholder="https://" />} /></Form.Item>}
+      <Form.Item label={t("mobile_releases.fields.store_listings")}><Controller control={form.control} name="store_listing_ids" render={({ field }) => <Select {...field} aria-label={t("mobile_releases.fields.store_listings")} mode="multiple" options={stores.flatMap((store) => store.enabled && store.id ? [{ value: store.id, label: store.name }] : [])} placeholder={t("mobile_releases.fields.store_listings_placeholder")} />} /></Form.Item>
+      <div className="ak-form-grid-2">{packageType === "wgt" ? <Form.Item label={t("mobile_releases.fields.is_silently")}><Controller control={form.control} name="is_silently" render={({ field }) => <Switch aria-label={t("mobile_releases.fields.is_silently")} checked={field.value} onChange={field.onChange} />} /></Form.Item> : <span />}<Form.Item label={t("mobile_releases.fields.is_mandatory")}><Controller control={form.control} name="is_mandatory" render={({ field }) => <Switch aria-label={t("mobile_releases.fields.is_mandatory")} checked={field.value} onChange={field.onChange} />} /></Form.Item></div>
+      {editor && "kind" in editor ? <Form.Item label={t("mobile_releases.fields.publish_now")} extra={t("mobile_releases.fields.publish_now_hint")}><Controller control={form.control} name="publish_now" render={({ field }) => <Switch aria-label={t("mobile_releases.fields.publish_now")} checked={field.value} onChange={field.onChange} />} /></Form.Item> : null}
     </Form>
   </Drawer>;
 }

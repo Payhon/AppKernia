@@ -537,14 +537,26 @@
       "title": "移动端发布策略",
       "phase": "P2",
       "schema": [
+        "app.application_store_listings",
+        "storage.file_usages",
+        "storage.files",
+        "sys.mobile_release_publications",
+        "sys.mobile_release_store_listings",
+        "sys.mobile_release_targets",
+        "sys.mobile_release_translations",
         "sys.mobile_releases"
       ],
       "endpoints": [
         "GET /admin-api/v1/mobile/releases",
         "POST /admin-api/v1/mobile/releases",
-        "PATCH /admin-api/v1/mobile/releases/{id}"
+        "POST /admin-api/v1/mobile/releases/batch-delete",
+        "GET /admin-api/v1/mobile/releases/{id}",
+        "PATCH /admin-api/v1/mobile/releases/{id}",
+        "DELETE /admin-api/v1/mobile/releases/{id}",
+        "POST /admin-api/v1/mobile/releases/{id}/publish",
+        "POST /admin-api/v1/mobile/releases/{id}/unpublish"
       ],
-      "backend_status": "delta_required"
+      "backend_status": "existing"
     },
     {
       "component_key": "profile.connections",
@@ -626,16 +638,53 @@
       "title": "应用管理",
       "phase": "P2",
       "schema": [
-        "app.applications"
+        "app.application_assets",
+        "app.application_channels",
+        "app.application_store_listings",
+        "app.application_team_members",
+        "app.applications",
+        "storage.file_usages",
+        "storage.files"
       ],
       "endpoints": [
         "GET /admin-api/v1/apps",
         "POST /admin-api/v1/apps",
+        "POST /admin-api/v1/apps/batch-delete",
+        "GET /admin-api/v1/apps/{app_id}",
         "PATCH /admin-api/v1/apps/{app_id}",
+        "DELETE /admin-api/v1/apps/{app_id}",
         "POST /admin-api/v1/apps/{app_id}/enable",
         "POST /admin-api/v1/apps/{app_id}/disable"
       ],
-      "backend_status": "delta_required"
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "app.upgrade-center",
+      "title": "App升级中心",
+      "phase": "P2",
+      "schema": [
+        "app.application_store_listings",
+        "app.applications",
+        "storage.file_usages",
+        "storage.files",
+        "sys.mobile_release_publications",
+        "sys.mobile_release_store_listings",
+        "sys.mobile_release_targets",
+        "sys.mobile_release_translations",
+        "sys.mobile_releases"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/apps",
+        "GET /admin-api/v1/apps/{app_id}/mobile/releases",
+        "POST /admin-api/v1/apps/{app_id}/mobile/releases",
+        "POST /admin-api/v1/apps/{app_id}/mobile/releases/batch-delete",
+        "GET /admin-api/v1/apps/{app_id}/mobile/releases/{id}",
+        "PATCH /admin-api/v1/apps/{app_id}/mobile/releases/{id}",
+        "DELETE /admin-api/v1/apps/{app_id}/mobile/releases/{id}",
+        "POST /admin-api/v1/apps/{app_id}/mobile/releases/{id}/publish",
+        "POST /admin-api/v1/apps/{app_id}/mobile/releases/{id}/unpublish"
+      ],
+      "backend_status": "existing"
     },
     {
       "component_key": "app.content.pages",

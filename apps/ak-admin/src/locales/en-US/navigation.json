@@ -153,11 +153,13 @@
   "shell.tenant_switch_success": "Workspace switched",
   "menu.app": "App management",
   "menu.app.applications": "Applications",
+  "menu.app.upgrade_center": "App upgrade center",
   "menu.app.users": "Users",
   "menu.app.content": "Content",
   "menu.app.content.articles": "Articles",
   "menu.app.content.pages": "Single pages",
   "routes.app.applications.title": "Application management",
+  "routes.app.upgrade_center.title": "App upgrade center",
   "routes.app.users.title": "App user management",
   "routes.app.content.articles.title": "App article management",
   "routes.app.content.pages.title": "App single pages"

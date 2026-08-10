@@ -24,6 +24,62 @@ type AppApplication struct {
 	LockVersion              int32              `json:"lock_version"`
 	CreatedAt                pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt                pgtype.Timestamptz `json:"updated_at"`
+	Appid                    *string            `json:"appid"`
+	AppidConfiguredAt        pgtype.Timestamptz `json:"appid_configured_at"`
+	AppType                  string             `json:"app_type"`
+	Description              string             `json:"description"`
+	Introduction             string             `json:"introduction"`
+	Remark                   string             `json:"remark"`
+	CreatorUserID            *uuid.UUID         `json:"creator_user_id"`
+	OwnerType                string             `json:"owner_type"`
+	OwnerUserID              *uuid.UUID         `json:"owner_user_id"`
+	OwnerTenantID            *uuid.UUID         `json:"owner_tenant_id"`
+	IconFileID               *uuid.UUID         `json:"icon_file_id"`
+	DeletedAt                pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type AppApplicationAsset struct {
+	ID        uuid.UUID          `json:"id"`
+	TenantID  uuid.UUID          `json:"tenant_id"`
+	AppID     uuid.UUID          `json:"app_id"`
+	FileID    uuid.UUID          `json:"file_id"`
+	AssetType string             `json:"asset_type"`
+	Position  int32              `json:"position"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type AppApplicationChannel struct {
+	ID           uuid.UUID          `json:"id"`
+	TenantID     uuid.UUID          `json:"tenant_id"`
+	AppID        uuid.UUID          `json:"app_id"`
+	ChannelCode  string             `json:"channel_code"`
+	Name         string             `json:"name"`
+	Url          *string            `json:"url"`
+	AbmUrl       *string            `json:"abm_url"`
+	QrcodeFileID *uuid.UUID         `json:"qrcode_file_id"`
+	Enabled      bool               `json:"enabled"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+type AppApplicationStoreListing struct {
+	ID        uuid.UUID          `json:"id"`
+	TenantID  uuid.UUID          `json:"tenant_id"`
+	AppID     uuid.UUID          `json:"app_id"`
+	Name      string             `json:"name"`
+	Scheme    string             `json:"scheme"`
+	Enabled   bool               `json:"enabled"`
+	Priority  int32              `json:"priority"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type AppApplicationTeamMember struct {
+	TenantID  uuid.UUID          `json:"tenant_id"`
+	AppID     uuid.UUID          `json:"app_id"`
+	UserID    uuid.UUID          `json:"user_id"`
+	Role      string             `json:"role"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
 type AppLegalConsent struct {
@@ -1046,17 +1102,64 @@ type SysMenu struct {
 }
 
 type SysMobileRelease struct {
-	ID             uuid.UUID          `json:"id"`
-	Platform       string             `json:"platform"`
-	CurrentVersion string             `json:"current_version"`
-	MinimumVersion string             `json:"minimum_version"`
-	UpgradeUrl     *string            `json:"upgrade_url"`
-	ReleaseNotes   []byte             `json:"release_notes"`
-	Active         bool               `json:"active"`
-	LockVersion    int32              `json:"lock_version"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	AppID          uuid.UUID          `json:"app_id"`
+	ID                   uuid.UUID          `json:"id"`
+	Platform             string             `json:"platform"`
+	CurrentVersion       string             `json:"current_version"`
+	MinimumVersion       string             `json:"minimum_version"`
+	UpgradeUrl           *string            `json:"upgrade_url"`
+	ReleaseNotes         []byte             `json:"release_notes"`
+	Active               bool               `json:"active"`
+	LockVersion          int32              `json:"lock_version"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
+	AppID                uuid.UUID          `json:"app_id"`
+	TenantID             uuid.UUID          `json:"tenant_id"`
+	PackageType          string             `json:"package_type"`
+	Version              string             `json:"version"`
+	MinimumNativeVersion *string            `json:"minimum_native_version"`
+	PackageFileID        *uuid.UUID         `json:"package_file_id"`
+	ExternalUrl          *string            `json:"external_url"`
+	CreateEnv            string             `json:"create_env"`
+	IsSilently           bool               `json:"is_silently"`
+	IsMandatory          bool               `json:"is_mandatory"`
+	CreatedBy            *uuid.UUID         `json:"created_by"`
+	EverPublishedAt      pgtype.Timestamptz `json:"ever_published_at"`
+	LastPublishedAt      pgtype.Timestamptz `json:"last_published_at"`
+	UnpublishedAt        pgtype.Timestamptz `json:"unpublished_at"`
+	DeletedAt            pgtype.Timestamptz `json:"deleted_at"`
+}
+
+type SysMobileReleasePublication struct {
+	TenantID    uuid.UUID          `json:"tenant_id"`
+	AppID       uuid.UUID          `json:"app_id"`
+	PackageType string             `json:"package_type"`
+	Platform    string             `json:"platform"`
+	ReleaseID   uuid.UUID          `json:"release_id"`
+	PublishedBy *uuid.UUID         `json:"published_by"`
+	PublishedAt pgtype.Timestamptz `json:"published_at"`
+}
+
+type SysMobileReleaseStoreListing struct {
+	TenantID       uuid.UUID `json:"tenant_id"`
+	AppID          uuid.UUID `json:"app_id"`
+	ReleaseID      uuid.UUID `json:"release_id"`
+	StoreListingID uuid.UUID `json:"store_listing_id"`
+}
+
+type SysMobileReleaseTarget struct {
+	TenantID    uuid.UUID          `json:"tenant_id"`
+	AppID       uuid.UUID          `json:"app_id"`
+	ReleaseID   uuid.UUID          `json:"release_id"`
+	PackageType string             `json:"package_type"`
+	Platform    string             `json:"platform"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+}
+
+type SysMobileReleaseTranslation struct {
+	ReleaseID uuid.UUID `json:"release_id"`
+	Locale    string    `json:"locale"`
+	Title     string    `json:"title"`
+	Contents  string    `json:"contents"`
 }
 
 // Compile-time module registry. AK does not load or uninstall arbitrary Go code at runtime.

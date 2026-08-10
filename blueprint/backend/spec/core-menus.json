@@ -290,6 +290,17 @@
       "sort": 10
     },
     {
+      "code": "app.upgrade-center",
+      "parent": "app",
+      "title": "App升级中心",
+      "type": "page",
+      "path": "/app/upgrade-center",
+      "component_key": "app.upgrade-center",
+      "permission": "mobile.release.read",
+      "icon": "CloudUploadOutlined",
+      "sort": 20
+    },
+    {
       "code": "app.users",
       "parent": "app",
       "title": "用户管理",
@@ -297,7 +308,7 @@
       "path": "/app/users",
       "component_key": "app.users",
       "permission": "app.user.read",
-      "sort": 20
+      "sort": 30
     },
     {
       "code": "app.content",
@@ -306,7 +317,7 @@
       "type": "directory",
       "path": "/app/content",
       "icon": "ReadOutlined",
-      "sort": 30
+      "sort": 40
     },
     {
       "code": "app.content.articles",

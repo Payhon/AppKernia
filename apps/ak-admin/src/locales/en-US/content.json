@@ -13,6 +13,8 @@
   "content.article.editor.create": "Create article",
   "content.article.editor.edit": "Edit article",
   "content.article.empty": "No articles match the filters",
+  "content.article.body_format.blocks": "Structured content",
+  "content.article.body_format.markdown": "Markdown",
   "content.article.fields.body": "Body",
   "content.article.fields.body_format": "Body format",
   "content.article.fields.category": "Category",

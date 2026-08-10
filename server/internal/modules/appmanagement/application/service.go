@@ -35,20 +35,60 @@ var (
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 var appCodePattern = regexp.MustCompile(`^[a-z][a-z0-9-]{1,62}$`)
+var manifestAppIDPattern = regexp.MustCompile(`^__UNI__[A-Za-z0-9_]{2,120}$`)
 
 type Application struct {
-	ID                       uuid.UUID `json:"id"`
-	TenantID                 uuid.UUID `json:"tenant_id"`
-	Code                     string    `json:"code"`
-	Name                     string    `json:"name"`
-	Status                   string    `json:"status"`
-	DefaultLocale            string    `json:"default_locale"`
-	RegistrationEnabled      bool      `json:"registration_enabled"`
-	RegistrationVerification string    `json:"registration_verification_mode"`
-	IsDefault                bool      `json:"is_default"`
-	LockVersion              int32     `json:"lock_version"`
-	CreatedAt                time.Time `json:"created_at"`
-	UpdatedAt                time.Time `json:"updated_at"`
+	ID                       uuid.UUID                 `json:"id"`
+	TenantID                 uuid.UUID                 `json:"tenant_id"`
+	AppID                    string                    `json:"appid"`
+	AppIDPending             bool                      `json:"appid_pending"`
+	AppType                  string                    `json:"app_type"`
+	Code                     string                    `json:"code"`
+	Name                     string                    `json:"name"`
+	Description              string                    `json:"description"`
+	Introduction             string                    `json:"introduction"`
+	Remark                   string                    `json:"remark"`
+	Status                   string                    `json:"status"`
+	DefaultLocale            string                    `json:"default_locale"`
+	RegistrationEnabled      bool                      `json:"registration_enabled"`
+	RegistrationVerification string                    `json:"registration_verification_mode"`
+	CreatorUserID            *uuid.UUID                `json:"creator_user_id,omitempty"`
+	OwnerType                string                    `json:"owner_type"`
+	OwnerID                  *uuid.UUID                `json:"owner_id,omitempty"`
+	IconFileID               *uuid.UUID                `json:"icon_file_id,omitempty"`
+	Managers                 []uuid.UUID               `json:"managers"`
+	Members                  []uuid.UUID               `json:"members"`
+	Screenshots              []ApplicationAsset        `json:"screenshots"`
+	Channels                 []ApplicationChannel      `json:"channels"`
+	StoreListings            []ApplicationStoreListing `json:"store_listings"`
+	IsDefault                bool                      `json:"is_default"`
+	LockVersion              int32                     `json:"lock_version"`
+	CreatedAt                time.Time                 `json:"created_at"`
+	UpdatedAt                time.Time                 `json:"updated_at"`
+}
+
+type ApplicationAsset struct {
+	ID       uuid.UUID `json:"id"`
+	FileID   uuid.UUID `json:"file_id"`
+	Position int32     `json:"position"`
+}
+
+type ApplicationChannel struct {
+	ID           uuid.UUID  `json:"id"`
+	ChannelCode  string     `json:"channel_code"`
+	Name         string     `json:"name"`
+	URL          *string    `json:"url,omitempty"`
+	ABMURL       *string    `json:"abm_url,omitempty"`
+	QRCodeFileID *uuid.UUID `json:"qrcode_file_id,omitempty"`
+	Enabled      bool       `json:"enabled"`
+}
+
+type ApplicationStoreListing struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	Scheme   string    `json:"scheme"`
+	Enabled  bool      `json:"enabled"`
+	Priority int32     `json:"priority"`
 }
 
 type PublicPage struct {
@@ -65,8 +105,12 @@ type PublicPage struct {
 
 type Service struct {
 	pool *pgxpool.Pool
-	auth *iamapp.AuthService
+	auth Authenticator
 	otp  OTPNotifier
+}
+
+type Authenticator interface {
+	Authenticate(context.Context, string, string) (iam.AuthenticatedContext, error)
 }
 
 type OTPNotification struct {
@@ -89,7 +133,7 @@ const (
 	emailOTPAttempts = 5
 )
 
-func NewService(pool *pgxpool.Pool, auth *iamapp.AuthService, options ...Option) *Service {
+func NewService(pool *pgxpool.Pool, auth Authenticator, options ...Option) *Service {
 	service := &Service{pool: pool, auth: auth}
 	for _, option := range options {
 		option(service)
@@ -98,14 +142,7 @@ func NewService(pool *pgxpool.Pool, auth *iamapp.AuthService, options ...Option)
 }
 
 func (s *Service) Resolve(ctx context.Context, id uuid.UUID) (Application, error) {
-	var a Application
-	err := s.pool.QueryRow(ctx, `
-SELECT id, tenant_id, code, name, status, default_locale,
-       registration_enabled, registration_verification, is_default, lock_version, created_at, updated_at
-FROM app.applications WHERE id = $1`, id).Scan(
-		&a.ID, &a.TenantID, &a.Code, &a.Name, &a.Status, &a.DefaultLocale,
-		&a.RegistrationEnabled, &a.RegistrationVerification, &a.IsDefault, &a.LockVersion, &a.CreatedAt, &a.UpdatedAt,
-	)
+	a, err := scanAdminApplication(s.pool.QueryRow(ctx, `SELECT `+adminApplicationColumns+` FROM app.applications WHERE id=$1 AND deleted_at IS NULL`, id))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Application{}, ErrAppNotFound
 	}
@@ -464,11 +501,24 @@ func maskedEmail(value string) string {
 }
 
 type AdminAppInput struct {
+	AppID                    string
+	AppType                  string
 	Code                     string
 	Name                     string
+	Description              string
+	Introduction             string
+	Remark                   string
 	DefaultLocale            string
 	RegistrationEnabled      bool
 	RegistrationVerification string
+	OwnerType                string
+	OwnerID                  *uuid.UUID
+	IconFileID               *uuid.UUID
+	Managers                 []uuid.UUID
+	Members                  []uuid.UUID
+	ScreenshotFileIDs        []uuid.UUID
+	Channels                 []ApplicationChannel
+	StoreListings            []ApplicationStoreListing
 	LockVersion              int32
 }
 
@@ -528,6 +578,7 @@ type AdminAppUserInput struct {
 type AdminListFilter struct {
 	Query    string
 	Status   string
+	AppType  string
 	Page     int32
 	PageSize int32
 }
@@ -561,10 +612,98 @@ func normalizedAdminListFilter(filter AdminListFilter, statuses ...string) (Admi
 	if filter.PageSize == 0 {
 		filter.PageSize = 20
 	}
-	if len([]rune(filter.Query)) > 160 || filter.Page < 1 || filter.PageSize < 1 || filter.PageSize > 100 || (filter.Status != "" && !slices.Contains(statuses, filter.Status)) {
+	if len([]rune(filter.Query)) > 160 || filter.Page < 1 || filter.PageSize < 1 || filter.PageSize > 100 ||
+		(filter.Status != "" && !slices.Contains(statuses, filter.Status)) ||
+		(filter.AppType != "" && filter.AppType != "uni_app" && filter.AppType != "uni_app_x") {
 		return filter, ErrInvalidInput
 	}
 	return filter, nil
+}
+
+const adminApplicationColumns = `id, tenant_id, COALESCE(appid::text,''), appid IS NULL, app_type, code, name,
+description, introduction, remark, status, default_locale, registration_enabled, registration_verification,
+creator_user_id, owner_type, owner_user_id, owner_tenant_id, icon_file_id, is_default, lock_version, created_at, updated_at`
+
+type rowScanner interface{ Scan(...any) error }
+
+func scanAdminApplication(row rowScanner) (Application, error) {
+	var item Application
+	var ownerUserID, ownerTenantID *uuid.UUID
+	err := row.Scan(&item.ID, &item.TenantID, &item.AppID, &item.AppIDPending, &item.AppType, &item.Code, &item.Name,
+		&item.Description, &item.Introduction, &item.Remark, &item.Status, &item.DefaultLocale,
+		&item.RegistrationEnabled, &item.RegistrationVerification, &item.CreatorUserID, &item.OwnerType,
+		&ownerUserID, &ownerTenantID, &item.IconFileID, &item.IsDefault, &item.LockVersion, &item.CreatedAt, &item.UpdatedAt)
+	if item.OwnerType == "user" {
+		item.OwnerID = ownerUserID
+	} else {
+		item.OwnerID = ownerTenantID
+	}
+	return item, err
+}
+
+func (s *Service) loadApplicationRelations(ctx context.Context, item *Application) error {
+	item.Managers, item.Members = []uuid.UUID{}, []uuid.UUID{}
+	item.Screenshots = []ApplicationAsset{}
+	item.Channels = []ApplicationChannel{}
+	item.StoreListings = []ApplicationStoreListing{}
+	rows, err := s.pool.Query(ctx, `SELECT user_id,role FROM app.application_team_members WHERE app_id=$1 ORDER BY role,user_id`, item.ID)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var userID uuid.UUID
+		var role string
+		if err = rows.Scan(&userID, &role); err != nil {
+			rows.Close()
+			return err
+		}
+		if role == "manager" {
+			item.Managers = append(item.Managers, userID)
+		} else {
+			item.Members = append(item.Members, userID)
+		}
+	}
+	rows.Close()
+	rows, err = s.pool.Query(ctx, `SELECT id,file_id,position FROM app.application_assets WHERE app_id=$1 AND asset_type='screenshot' ORDER BY position,id`, item.ID)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var asset ApplicationAsset
+		if err = rows.Scan(&asset.ID, &asset.FileID, &asset.Position); err != nil {
+			rows.Close()
+			return err
+		}
+		item.Screenshots = append(item.Screenshots, asset)
+	}
+	rows.Close()
+	rows, err = s.pool.Query(ctx, `SELECT id,channel_code,name,url,abm_url,qrcode_file_id,enabled FROM app.application_channels WHERE app_id=$1 ORDER BY channel_code`, item.ID)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var channel ApplicationChannel
+		if err = rows.Scan(&channel.ID, &channel.ChannelCode, &channel.Name, &channel.URL, &channel.ABMURL, &channel.QRCodeFileID, &channel.Enabled); err != nil {
+			rows.Close()
+			return err
+		}
+		item.Channels = append(item.Channels, channel)
+	}
+	rows.Close()
+	rows, err = s.pool.Query(ctx, `SELECT id,name,scheme,enabled,priority FROM app.application_store_listings WHERE app_id=$1 ORDER BY priority DESC,id`, item.ID)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var store ApplicationStoreListing
+		if err = rows.Scan(&store.ID, &store.Name, &store.Scheme, &store.Enabled, &store.Priority); err != nil {
+			rows.Close()
+			return err
+		}
+		item.StoreListings = append(item.StoreListings, store)
+	}
+	rows.Close()
+	return rows.Err()
 }
 
 func (s *Service) ListAdminApps(ctx context.Context, token string, filter AdminListFilter) (AdminApplicationPage, error) {
@@ -577,24 +716,31 @@ func (s *Service) ListAdminApps(ctx context.Context, token string, filter AdminL
 		return AdminApplicationPage{}, err
 	}
 	var total int
-	if err = s.pool.QueryRow(ctx, `SELECT count(*) FROM app.applications WHERE tenant_id=$1 AND ($2='' OR code ILIKE '%' || $2 || '%' OR name ILIKE '%' || $2 || '%') AND ($3='' OR status=$3)`, p.Tenant.ID, filter.Query, filter.Status).Scan(&total); err != nil {
+	where := `tenant_id=$1 AND deleted_at IS NULL AND ($2='' OR code ILIKE '%' || $2 || '%' OR COALESCE(appid::text,'') ILIKE '%' || $2 || '%' OR name ILIKE '%' || $2 || '%') AND ($3='' OR status=$3) AND ($4='' OR app_type=$4)`
+	if err = s.pool.QueryRow(ctx, `SELECT count(*) FROM app.applications WHERE `+where, p.Tenant.ID, filter.Query, filter.Status, filter.AppType).Scan(&total); err != nil {
 		return AdminApplicationPage{}, fmt.Errorf("count apps: %w", err)
 	}
-	rows, err := s.pool.Query(ctx, `SELECT id, tenant_id, code, name, status, default_locale, registration_enabled, registration_verification, is_default, lock_version, created_at, updated_at FROM app.applications WHERE tenant_id=$1 AND ($2='' OR code ILIKE '%' || $2 || '%' OR name ILIKE '%' || $2 || '%') AND ($3='' OR status=$3) ORDER BY is_default DESC, created_at, id LIMIT $4 OFFSET $5`, p.Tenant.ID, filter.Query, filter.Status, filter.PageSize, (filter.Page-1)*filter.PageSize)
+	rows, err := s.pool.Query(ctx, `SELECT `+adminApplicationColumns+` FROM app.applications WHERE `+where+` ORDER BY is_default DESC, created_at DESC, id LIMIT $5 OFFSET $6`, p.Tenant.ID, filter.Query, filter.Status, filter.AppType, filter.PageSize, (filter.Page-1)*filter.PageSize)
 	if err != nil {
 		return AdminApplicationPage{}, fmt.Errorf("list apps: %w", err)
 	}
 	defer rows.Close()
 	items := make([]Application, 0)
 	for rows.Next() {
-		var item Application
-		if err = rows.Scan(&item.ID, &item.TenantID, &item.Code, &item.Name, &item.Status, &item.DefaultLocale, &item.RegistrationEnabled, &item.RegistrationVerification, &item.IsDefault, &item.LockVersion, &item.CreatedAt, &item.UpdatedAt); err != nil {
-			return AdminApplicationPage{}, fmt.Errorf("scan app: %w", err)
+		item, scanErr := scanAdminApplication(rows)
+		if scanErr != nil {
+			return AdminApplicationPage{}, fmt.Errorf("scan app: %w", scanErr)
 		}
 		items = append(items, item)
 	}
 	if err = rows.Err(); err != nil {
 		return AdminApplicationPage{}, err
+	}
+	rows.Close()
+	for index := range items {
+		if err = s.loadApplicationRelations(ctx, &items[index]); err != nil {
+			return AdminApplicationPage{}, fmt.Errorf("load app relations: %w", err)
+		}
 	}
 	return AdminApplicationPage{Items: items, Total: total}, nil
 }
@@ -608,9 +754,12 @@ func (s *Service) GetAdminApp(ctx context.Context, token string, appID uuid.UUID
 		return Application{}, ErrInvalidInput
 	}
 	var item Application
-	err = s.pool.QueryRow(ctx, `SELECT id, tenant_id, code, name, status, default_locale, registration_enabled, registration_verification, is_default, lock_version, created_at, updated_at FROM app.applications WHERE id=$1 AND tenant_id=$2`, appID, p.Tenant.ID).Scan(&item.ID, &item.TenantID, &item.Code, &item.Name, &item.Status, &item.DefaultLocale, &item.RegistrationEnabled, &item.RegistrationVerification, &item.IsDefault, &item.LockVersion, &item.CreatedAt, &item.UpdatedAt)
+	item, err = scanAdminApplication(s.pool.QueryRow(ctx, `SELECT `+adminApplicationColumns+` FROM app.applications WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL`, appID, p.Tenant.ID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Application{}, ErrAppNotFound
+	}
+	if err == nil {
+		err = s.loadApplicationRelations(ctx, &item)
 	}
 	return item, err
 }
@@ -623,18 +772,43 @@ func (s *Service) CreateAdminApp(ctx context.Context, token string, input AdminA
 	if strings.TrimSpace(input.Code) == "" {
 		input.Code = derivedAppCode(input.Name)
 	}
+	input = normalizeAdminAppInput(input)
+	if input.OwnerType == "" {
+		input.OwnerType, input.OwnerID = "tenant", &p.Tenant.ID
+	}
 	if err = validAppInput(input, false); err != nil {
 		return Application{}, err
 	}
-	var item Application
-	err = s.pool.QueryRow(ctx, `INSERT INTO app.applications (tenant_id, code, name, default_locale, registration_enabled, registration_verification)
-VALUES ($1,$2,$3,$4,$5,$6)
-RETURNING id, tenant_id, code, name, status, default_locale, registration_enabled, registration_verification, is_default, lock_version, created_at, updated_at`,
-		p.Tenant.ID, input.Code, input.Name, input.DefaultLocale, input.RegistrationEnabled, input.RegistrationVerification).Scan(&item.ID, &item.TenantID, &item.Code, &item.Name, &item.Status, &item.DefaultLocale, &item.RegistrationEnabled, &item.RegistrationVerification, &item.IsDefault, &item.LockVersion, &item.CreatedAt, &item.UpdatedAt)
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return Application{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	if err = validateAppReferences(ctx, tx, p.Tenant.ID, input); err != nil {
+		return Application{}, err
+	}
+	ownerUserID, ownerTenantID := ownerReferences(input.OwnerType, input.OwnerID)
+	var id uuid.UUID
+	err = tx.QueryRow(ctx, `INSERT INTO app.applications (
+tenant_id,appid,app_type,code,name,description,introduction,remark,default_locale,registration_enabled,
+registration_verification,creator_user_id,owner_type,owner_user_id,owner_tenant_id,icon_file_id)
+VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
+		p.Tenant.ID, input.AppID, input.AppType, input.Code, input.Name, input.Description, input.Introduction, input.Remark,
+		input.DefaultLocale, input.RegistrationEnabled, input.RegistrationVerification, p.User.ID, input.OwnerType,
+		ownerUserID, ownerTenantID, input.IconFileID).Scan(&id)
 	if err != nil {
 		return Application{}, fmt.Errorf("create app: %w", err)
 	}
-	return item, nil
+	if !slices.Contains(input.Managers, p.User.ID) {
+		input.Managers = append(input.Managers, p.User.ID)
+	}
+	if err = replaceApplicationRelations(ctx, tx, p.Tenant.ID, id, input); err != nil {
+		return Application{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return Application{}, err
+	}
+	return s.GetAdminApp(ctx, token, id)
 }
 
 func (s *Service) UpdateAdminApp(ctx context.Context, token string, id uuid.UUID, input AdminAppInput, status *string) (Application, error) {
@@ -642,22 +816,60 @@ func (s *Service) UpdateAdminApp(ctx context.Context, token string, id uuid.UUID
 	if err != nil {
 		return Application{}, err
 	}
-	if id == uuid.Nil || input.LockVersion < 1 || (status != nil && *status != "active" && *status != "disabled") || validAppInput(input, true) != nil {
+	if id == uuid.Nil || input.LockVersion < 1 || (status != nil && *status != "active" && *status != "disabled") {
 		return Application{}, ErrInvalidInput
 	}
-	var item Application
-	err = s.pool.QueryRow(ctx, `UPDATE app.applications SET name=$3, default_locale=$4, registration_enabled=$5, registration_verification=$6,
- status=COALESCE($7,status), lock_version=lock_version+1
-WHERE id=$1 AND tenant_id=$2 AND lock_version=$8
-RETURNING id, tenant_id, code, name, status, default_locale, registration_enabled, registration_verification, is_default, lock_version, created_at, updated_at`,
-		id, p.Tenant.ID, input.Name, input.DefaultLocale, input.RegistrationEnabled, input.RegistrationVerification, status, input.LockVersion).Scan(&item.ID, &item.TenantID, &item.Code, &item.Name, &item.Status, &item.DefaultLocale, &item.RegistrationEnabled, &item.RegistrationVerification, &item.IsDefault, &item.LockVersion, &item.CreatedAt, &item.UpdatedAt)
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return Application{}, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	existing, err := scanAdminApplication(tx.QueryRow(ctx, `SELECT `+adminApplicationColumns+` FROM app.applications WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL FOR UPDATE`, id, p.Tenant.ID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return Application{}, ErrAppNotFound
 	}
 	if err != nil {
+		return Application{}, err
+	}
+	input = normalizeAdminAppInput(input)
+	if input.AppID == "" {
+		input.AppID = existing.AppID
+	}
+	if input.AppType == "" {
+		input.AppType = existing.AppType
+	}
+	if input.Code == "" {
+		input.Code = existing.Code
+	}
+	if input.OwnerType == "" {
+		input.OwnerType, input.OwnerID = existing.OwnerType, existing.OwnerID
+	}
+	if validAppInput(input, true) != nil || input.AppType != existing.AppType || (existing.AppID != "" && !strings.EqualFold(input.AppID, existing.AppID)) {
+		return Application{}, ErrInvalidInput
+	}
+	if err = validateAppReferences(ctx, tx, p.Tenant.ID, input); err != nil {
+		return Application{}, err
+	}
+	ownerUserID, ownerTenantID := ownerReferences(input.OwnerType, input.OwnerID)
+	command, err := tx.Exec(ctx, `UPDATE app.applications SET appid=$3,name=$4,description=$5,introduction=$6,remark=$7,
+default_locale=$8,registration_enabled=$9,registration_verification=$10,owner_type=$11,owner_user_id=$12,
+owner_tenant_id=$13,icon_file_id=$14,status=COALESCE($15,status),lock_version=lock_version+1
+WHERE id=$1 AND tenant_id=$2 AND lock_version=$16 AND deleted_at IS NULL`, id, p.Tenant.ID, input.AppID, input.Name,
+		input.Description, input.Introduction, input.Remark, input.DefaultLocale, input.RegistrationEnabled,
+		input.RegistrationVerification, input.OwnerType, ownerUserID, ownerTenantID, input.IconFileID, status, input.LockVersion)
+	if err != nil {
 		return Application{}, fmt.Errorf("update app: %w", err)
 	}
-	return item, nil
+	if command.RowsAffected() != 1 {
+		return Application{}, ErrConflict
+	}
+	if err = replaceApplicationRelations(ctx, tx, p.Tenant.ID, id, input); err != nil {
+		return Application{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return Application{}, err
+	}
+	return s.GetAdminApp(ctx, token, id)
 }
 
 // SetAdminAppStatus is intentionally separate from UpdateAdminApp: lifecycle
@@ -672,14 +884,12 @@ func (s *Service) SetAdminAppStatus(ctx context.Context, token string, id uuid.U
 	if id == uuid.Nil || lockVersion < 1 || (status != "active" && status != "disabled") {
 		return Application{}, ErrInvalidInput
 	}
-	var item Application
-	err = s.pool.QueryRow(ctx, `UPDATE app.applications SET status=$3,lock_version=lock_version+1
-WHERE id=$1 AND tenant_id=$2 AND lock_version=$4
-RETURNING id, tenant_id, code, name, status, default_locale, registration_enabled, registration_verification, is_default, lock_version, created_at, updated_at`,
-		id, p.Tenant.ID, status, lockVersion).Scan(&item.ID, &item.TenantID, &item.Code, &item.Name, &item.Status, &item.DefaultLocale, &item.RegistrationEnabled, &item.RegistrationVerification, &item.IsDefault, &item.LockVersion, &item.CreatedAt, &item.UpdatedAt)
+	item, err := scanAdminApplication(s.pool.QueryRow(ctx, `UPDATE app.applications SET status=$3,lock_version=lock_version+1
+WHERE id=$1 AND tenant_id=$2 AND lock_version=$4 AND deleted_at IS NULL
+RETURNING `+adminApplicationColumns, id, p.Tenant.ID, status, lockVersion))
 	if errors.Is(err, pgx.ErrNoRows) {
 		var exists bool
-		if checkErr := s.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM app.applications WHERE id=$1 AND tenant_id=$2)`, id, p.Tenant.ID).Scan(&exists); checkErr != nil {
+		if checkErr := s.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM app.applications WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL)`, id, p.Tenant.ID).Scan(&exists); checkErr != nil {
 			return Application{}, checkErr
 		}
 		if exists {
@@ -690,7 +900,57 @@ RETURNING id, tenant_id, code, name, status, default_locale, registration_enable
 	if err != nil {
 		return Application{}, fmt.Errorf("set app status: %w", err)
 	}
+	if err = s.loadApplicationRelations(ctx, &item); err != nil {
+		return Application{}, err
+	}
 	return item, nil
+}
+
+func (s *Service) DeleteAdminApps(ctx context.Context, token string, ids []uuid.UUID, requestIDs ...string) error {
+	p, err := s.authorizeAdmin(ctx, token, "app.application.delete")
+	if err != nil {
+		return err
+	}
+	requestedCount := len(ids)
+	ids = uniqueUUIDs(ids)
+	if len(ids) < 1 || len(ids) > 100 || len(ids) != requestedCount {
+		return ErrInvalidInput
+	}
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var eligible int
+	if err = tx.QueryRow(ctx, `SELECT count(*) FROM app.applications
+WHERE tenant_id=$1 AND id=ANY($2::uuid[]) AND deleted_at IS NULL AND status='disabled' AND NOT is_default`, p.Tenant.ID, ids).Scan(&eligible); err != nil {
+		return err
+	}
+	if eligible != len(ids) {
+		return ErrConflict
+	}
+	command, err := tx.Exec(ctx, `UPDATE app.applications SET deleted_at=now(),lock_version=lock_version+1
+WHERE tenant_id=$1 AND id=ANY($2::uuid[]) AND deleted_at IS NULL AND status='disabled' AND NOT is_default`, p.Tenant.ID, ids)
+	if err != nil {
+		return err
+	}
+	if command.RowsAffected() != int64(len(ids)) {
+		return ErrConflict
+	}
+	requestID := ""
+	if len(requestIDs) > 0 {
+		requestID = strings.TrimSpace(requestIDs[0])
+	}
+	for _, id := range ids {
+		if _, err = tx.Exec(ctx, `INSERT INTO audit.operation_logs(
+tenant_id,user_id,request_id,module_code,action_name,permission_code,resource_type,resource_id,
+http_method,request_path,after_data,succeeded)
+VALUES($1,$2,NULLIF($3,''),'app','app.application.delete','app.application.delete','app.application',$4::text,
+'DELETE','/admin-api/v1/apps/'||$4::text,$5,true)`, p.Tenant.ID, p.User.ID, requestID, id.String(), []byte(`{"deleted":true}`)); err != nil {
+			return fmt.Errorf("audit app deletion: %w", err)
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 func appStatusPermission(status string) string {
@@ -703,11 +963,213 @@ func appStatusPermission(status string) string {
 func validAppInput(input AdminAppInput, update bool) error {
 	input.Code = strings.TrimSpace(input.Code)
 	input.Name = strings.TrimSpace(input.Name)
-	if (!update && !appCodePattern.MatchString(input.Code)) || len(input.Name) < 1 || len(input.Name) > 120 ||
+	if (!update && !appCodePattern.MatchString(input.Code)) || !manifestAppIDPattern.MatchString(input.AppID) ||
+		(input.AppType != "uni_app" && input.AppType != "uni_app_x") || len(input.Name) < 1 || len(input.Name) > 120 ||
+		len([]rune(input.Description)) > 4000 || len([]rune(input.Introduction)) > 1000 || len([]rune(input.Remark)) > 4000 ||
 		(input.DefaultLocale != "zh-CN" && input.DefaultLocale != "en-US") || (input.RegistrationVerification != "none" && input.RegistrationVerification != "email_otp") {
 		return ErrInvalidInput
 	}
+	if input.OwnerID == nil || (input.OwnerType != "user" && input.OwnerType != "tenant") || len(input.ScreenshotFileIDs) > 20 || len(input.Channels) > 20 || len(input.StoreListings) > 100 || len(input.Managers) > 100 || len(input.Members) > 100 {
+		return ErrInvalidInput
+	}
 	return nil
+}
+
+func normalizeAdminAppInput(input AdminAppInput) AdminAppInput {
+	input.AppID = strings.TrimSpace(input.AppID)
+	input.AppType = strings.TrimSpace(input.AppType)
+	input.Code = strings.TrimSpace(input.Code)
+	input.Name = strings.TrimSpace(input.Name)
+	input.Description = strings.TrimSpace(input.Description)
+	input.Introduction = strings.TrimSpace(input.Introduction)
+	input.Remark = strings.TrimSpace(input.Remark)
+	input.OwnerType = strings.TrimSpace(input.OwnerType)
+	input.Managers = uniqueUUIDs(input.Managers)
+	input.Members = uniqueUUIDs(input.Members)
+	input.ScreenshotFileIDs = uniqueUUIDs(input.ScreenshotFileIDs)
+	for index := range input.Channels {
+		input.Channels[index].ChannelCode = strings.TrimSpace(input.Channels[index].ChannelCode)
+		input.Channels[index].Name = strings.TrimSpace(input.Channels[index].Name)
+		input.Channels[index].URL = trimStringPointer(input.Channels[index].URL)
+		input.Channels[index].ABMURL = trimStringPointer(input.Channels[index].ABMURL)
+	}
+	for index := range input.StoreListings {
+		input.StoreListings[index].Name = strings.TrimSpace(input.StoreListings[index].Name)
+		input.StoreListings[index].Scheme = strings.TrimSpace(input.StoreListings[index].Scheme)
+	}
+	return input
+}
+
+func trimStringPointer(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return nil
+	}
+	return &trimmed
+}
+
+func ownerReferences(ownerType string, ownerID *uuid.UUID) (*uuid.UUID, *uuid.UUID) {
+	if ownerType == "user" {
+		return ownerID, nil
+	}
+	return nil, ownerID
+}
+
+func uniqueUUIDs(values []uuid.UUID) []uuid.UUID {
+	seen := make(map[uuid.UUID]struct{}, len(values))
+	out := make([]uuid.UUID, 0, len(values))
+	for _, value := range values {
+		if value == uuid.Nil {
+			continue
+		}
+		if _, exists := seen[value]; exists {
+			continue
+		}
+		seen[value] = struct{}{}
+		out = append(out, value)
+	}
+	return out
+}
+
+func validateAppReferences(ctx context.Context, tx pgx.Tx, tenantID uuid.UUID, input AdminAppInput) error {
+	if input.OwnerType == "tenant" && (input.OwnerID == nil || *input.OwnerID != tenantID) {
+		return ErrInvalidInput
+	}
+	if input.OwnerType == "user" {
+		var exists bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM iam.tenant_members WHERE tenant_id=$1 AND user_id=$2)`, tenantID, input.OwnerID).Scan(&exists); err != nil || !exists {
+			return ErrInvalidInput
+		}
+	}
+	validChannels := []string{"android", "ios", "harmony", "h5", "quickapp", "mp_weixin", "mp_alipay", "mp_baidu", "mp_toutiao", "mp_qq", "mp_kuaishou", "mp_lark", "mp_jd", "mp_dingtalk"}
+	channelCodes := make(map[string]struct{}, len(input.Channels))
+	fileIDs := append([]uuid.UUID{}, input.ScreenshotFileIDs...)
+	if input.IconFileID != nil {
+		fileIDs = append(fileIDs, *input.IconFileID)
+	}
+	for _, channel := range input.Channels {
+		if !slices.Contains(validChannels, channel.ChannelCode) || len(channel.Name) > 160 {
+			return ErrInvalidInput
+		}
+		if _, duplicate := channelCodes[channel.ChannelCode]; duplicate {
+			return ErrInvalidInput
+		}
+		channelCodes[channel.ChannelCode] = struct{}{}
+		for _, value := range []*string{channel.URL, channel.ABMURL} {
+			if value != nil && !strings.HasPrefix(strings.ToLower(*value), "https://") {
+				return ErrInvalidInput
+			}
+		}
+		if channel.QRCodeFileID != nil {
+			fileIDs = append(fileIDs, *channel.QRCodeFileID)
+		}
+	}
+	fileIDs = uniqueUUIDs(fileIDs)
+	if len(fileIDs) > 0 {
+		var count int
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM storage.files WHERE tenant_id=$1 AND id=ANY($2::uuid[])
+AND deleted_at IS NULL AND status='ready' AND scan_status IN ('clean','skipped') AND media_type LIKE 'image/%'`, tenantID, fileIDs).Scan(&count); err != nil || count != len(fileIDs) {
+			return ErrInvalidInput
+		}
+	}
+	storeNames := make(map[string]struct{}, len(input.StoreListings))
+	for _, store := range input.StoreListings {
+		key := strings.ToLower(store.Name)
+		if store.Name == "" || len([]rune(store.Name)) > 160 || store.Priority < -100000 || store.Priority > 100000 {
+			return ErrInvalidInput
+		}
+		if _, duplicate := storeNames[key]; duplicate {
+			return ErrInvalidInput
+		}
+		storeNames[key] = struct{}{}
+	}
+	return nil
+}
+
+func replaceApplicationRelations(ctx context.Context, tx pgx.Tx, tenantID, appID uuid.UUID, input AdminAppInput) error {
+	if _, err := tx.Exec(ctx, `DELETE FROM storage.file_usages WHERE tenant_id=$1 AND module_code='app' AND entity_type='application' AND entity_id=$2`, tenantID, appID); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM app.application_team_members WHERE app_id=$1`, appID); err != nil {
+		return err
+	}
+	managerSet := make(map[uuid.UUID]struct{}, len(input.Managers))
+	for _, userID := range input.Managers {
+		managerSet[userID] = struct{}{}
+		if _, err := tx.Exec(ctx, `INSERT INTO app.application_team_members(tenant_id,app_id,user_id,role) VALUES($1,$2,$3,'manager')`, tenantID, appID, userID); err != nil {
+			return ErrInvalidInput
+		}
+	}
+	for _, userID := range input.Members {
+		if _, manager := managerSet[userID]; manager {
+			continue
+		}
+		if _, err := tx.Exec(ctx, `INSERT INTO app.application_team_members(tenant_id,app_id,user_id,role) VALUES($1,$2,$3,'member')`, tenantID, appID, userID); err != nil {
+			return ErrInvalidInput
+		}
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM app.application_assets WHERE app_id=$1`, appID); err != nil {
+		return err
+	}
+	for position, fileID := range input.ScreenshotFileIDs {
+		if _, err := tx.Exec(ctx, `INSERT INTO app.application_assets(tenant_id,app_id,file_id,asset_type,position) VALUES($1,$2,$3,'screenshot',$4)`, tenantID, appID, fileID, position); err != nil {
+			return err
+		}
+		if err := addApplicationFileUsage(ctx, tx, tenantID, appID, fileID, "screenshots"); err != nil {
+			return err
+		}
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM app.application_channels WHERE app_id=$1`, appID); err != nil {
+		return err
+	}
+	for _, channel := range input.Channels {
+		if _, err := tx.Exec(ctx, `INSERT INTO app.application_channels(tenant_id,app_id,channel_code,name,url,abm_url,qrcode_file_id,enabled) VALUES($1,$2,$3,$4,$5,$6,$7,$8)`, tenantID, appID, channel.ChannelCode, channel.Name, channel.URL, channel.ABMURL, channel.QRCodeFileID, channel.Enabled); err != nil {
+			return ErrInvalidInput
+		}
+		if channel.QRCodeFileID != nil {
+			if err := addApplicationFileUsage(ctx, tx, tenantID, appID, *channel.QRCodeFileID, "channel_qrcode"); err != nil {
+				return err
+			}
+		}
+	}
+	if input.IconFileID != nil {
+		if err := addApplicationFileUsage(ctx, tx, tenantID, appID, *input.IconFileID, "icon"); err != nil {
+			return err
+		}
+	}
+	keptStoreIDs := make([]uuid.UUID, 0, len(input.StoreListings))
+	for _, store := range input.StoreListings {
+		storeID := store.ID
+		if storeID == uuid.Nil {
+			storeID = uuid.New()
+		}
+		command, err := tx.Exec(ctx, `UPDATE app.application_store_listings SET name=$4,scheme=$5,enabled=$6,priority=$7 WHERE id=$1 AND tenant_id=$2 AND app_id=$3`, storeID, tenantID, appID, store.Name, store.Scheme, store.Enabled, store.Priority)
+		if err != nil {
+			return err
+		}
+		if command.RowsAffected() == 0 {
+			if _, err = tx.Exec(ctx, `INSERT INTO app.application_store_listings(id,tenant_id,app_id,name,scheme,enabled,priority) VALUES($1,$2,$3,$4,$5,$6,$7)`, storeID, tenantID, appID, store.Name, store.Scheme, store.Enabled, store.Priority); err != nil {
+				return ErrInvalidInput
+			}
+		}
+		keptStoreIDs = append(keptStoreIDs, storeID)
+	}
+	if _, err := tx.Exec(ctx, `UPDATE app.application_store_listings s SET enabled=false
+WHERE s.app_id=$1 AND NOT (s.id=ANY($2::uuid[])) AND EXISTS(SELECT 1 FROM sys.mobile_release_store_listings r WHERE r.store_listing_id=s.id)`, appID, keptStoreIDs); err != nil {
+		return err
+	}
+	_, err := tx.Exec(ctx, `DELETE FROM app.application_store_listings s WHERE s.app_id=$1 AND NOT (s.id=ANY($2::uuid[]))
+AND NOT EXISTS(SELECT 1 FROM sys.mobile_release_store_listings r WHERE r.store_listing_id=s.id)`, appID, keptStoreIDs)
+	return err
+}
+
+func addApplicationFileUsage(ctx context.Context, tx pgx.Tx, tenantID, appID, fileID uuid.UUID, field string) error {
+	_, err := tx.Exec(ctx, `INSERT INTO storage.file_usages(file_id,tenant_id,module_code,entity_type,entity_id,field_name)
+VALUES($1,$2,'app','application',$3,$4) ON CONFLICT DO NOTHING`, fileID, tenantID, appID, field)
+	return err
 }
 
 func derivedAppCode(name string) string {

@@ -24,6 +24,8 @@ export type AppPublicConfigResponse = {
     message: string;
     data: {
         app_id: string;
+        appid: string;
+        app_type: 'uni_app' | 'uni_app_x';
         name: string;
         default_locale: SupportedLocale;
         registration_enabled: boolean;
@@ -109,12 +111,27 @@ export type AppAcceptedResponse = {
 export type AdminApp = {
     id: string;
     tenant_id: string;
+    appid: string;
+    appid_pending: boolean;
+    app_type: 'uni_app' | 'uni_app_x';
     code: string;
     name: string;
+    description: string;
+    introduction: string;
+    remark: string;
     status: 'active' | 'disabled';
     default_locale: SupportedLocale;
     registration_enabled: boolean;
     registration_verification_mode: 'none' | 'email_otp';
+    creator_user_id?: string | null;
+    owner_type: 'user' | 'tenant';
+    owner_id?: string | null;
+    icon_file_id?: string | null;
+    managers: Array<string>;
+    members: Array<string>;
+    screenshots: Array<AdminAppAsset>;
+    channels: Array<AdminAppChannel>;
+    store_listings: Array<AdminAppStoreListing>;
     is_default: boolean;
     lock_version: number;
     created_at: string;
@@ -122,12 +139,49 @@ export type AdminApp = {
 };
 
 export type AdminAppRequest = {
+    appid: string;
+    app_type: 'uni_app' | 'uni_app_x';
     code?: string;
     name: string;
+    description?: string;
+    introduction?: string;
+    remark?: string;
     default_locale: SupportedLocale;
     registration_enabled: boolean;
     registration_verification_mode: 'none' | 'email_otp';
+    owner_type?: 'user' | 'tenant';
+    owner_id?: string | null;
+    icon_file_id?: string | null;
+    managers?: Array<string>;
+    members?: Array<string>;
+    screenshot_file_ids?: Array<string>;
+    channels?: Array<AdminAppChannel>;
+    store_listings?: Array<AdminAppStoreListing>;
     lock_version?: number;
+};
+
+export type AdminAppAsset = {
+    id: string;
+    file_id: string;
+    position: number;
+};
+
+export type AdminAppChannel = {
+    id?: string;
+    channel_code: 'android' | 'ios' | 'harmony' | 'h5' | 'quickapp' | 'mp_weixin' | 'mp_alipay' | 'mp_baidu' | 'mp_toutiao' | 'mp_qq' | 'mp_kuaishou' | 'mp_lark' | 'mp_jd' | 'mp_dingtalk';
+    name: string;
+    url?: string | null;
+    abm_url?: string | null;
+    qrcode_file_id?: string | null;
+    enabled: boolean;
+};
+
+export type AdminAppStoreListing = {
+    id?: string;
+    name: string;
+    scheme: string;
+    enabled: boolean;
+    priority: number;
 };
 
 export type AdminAppStatusRequest = {
@@ -2933,10 +2987,15 @@ export type MobileAppVersionResponse = {
 
 export type MobileAppVersion = {
     platform: 'android' | 'ios' | 'harmony';
+    package_type: 'native_app' | 'wgt';
     current_version: string;
     minimum_version: string;
     upgrade_url?: string | null;
+    title: string;
     release_notes: string;
+    is_silently: boolean;
+    is_mandatory: boolean;
+    published_at?: string | null;
 };
 
 export type BooleanSuccessResponse = {
@@ -2971,36 +3030,60 @@ export type MobileNotificationPageResponse = {
 export type AdminMobileRelease = {
     id: string;
     app_id: string;
+    package_type: 'native_app' | 'wgt';
+    platforms: Array<'android' | 'ios' | 'harmony'>;
+    version: string;
+    minimum_native_version?: string | null;
+    titles: LocalizedReleaseText;
+    contents: LocalizedReleaseText;
+    package_file_id?: string | null;
+    external_url?: string | null;
+    store_listing_ids: Array<string>;
+    create_env: 'uni_stat' | 'upgrade_center';
+    is_silently: boolean;
+    is_mandatory: boolean;
+    publish_status: 'draft' | 'online' | 'partial' | 'offline';
+    published_platforms: Array<'android' | 'ios' | 'harmony'>;
+    ever_published_at?: string | null;
+    last_published_at?: string | null;
+    unpublished_at?: string | null;
     platform: 'android' | 'ios' | 'harmony';
     current_version: string;
     minimum_version: string;
     upgrade_url?: string | null;
-    release_notes: {
-        'zh-CN': string;
-        'en-US': string;
-    };
+    release_notes: LocalizedReleaseText;
     active: boolean;
     lock_version: number;
+    created_at: string;
     updated_at: string;
 };
 
-export type AdminMobileReleaseRequest = {
-    /**
-     * Immutable after creation; PATCH must match the stored platform.
-     */
-    platform: 'android' | 'ios' | 'harmony';
-    current_version: string;
-    /**
-     * Must not exceed current_version.
-     */
-    minimum_version: string;
+export type AdminMobileReleaseRequest = unknown & {
+    package_type?: 'native_app' | 'wgt';
+    platforms?: Array<'android' | 'ios' | 'harmony'>;
+    version?: string;
+    minimum_native_version?: string | null;
+    titles?: LocalizedReleaseText;
+    contents?: LocalizedReleaseText;
+    package_file_id?: string | null;
+    external_url?: string | null;
+    store_listing_ids?: Array<string>;
+    create_env?: 'uni_stat' | 'upgrade_center';
+    is_silently?: boolean;
+    is_mandatory?: boolean;
+    publish_now?: boolean;
+    platform?: 'android' | 'ios' | 'harmony';
+    current_version?: string;
+    minimum_version?: string;
     upgrade_url?: string | null;
-    release_notes: {
-        'zh-CN': string;
-        'en-US': string;
-    };
-    active: boolean;
+    release_notes?: LocalizedReleaseText;
+    active?: boolean;
     lock_version?: number;
+};
+
+export type LocalizedReleaseText = {
+    'zh-CN': string;
+    'en-US': string;
 };
 
 export type AdminMobileReleaseResponse = {
@@ -3015,6 +3098,26 @@ export type AdminMobileReleaseListResponse = {
     message: string;
     data: Array<AdminMobileRelease>;
     request_id: string;
+};
+
+export type AdminMobileReleasePageResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AdminMobileRelease>;
+        page: number;
+        page_size: number;
+        total: number;
+    };
+    request_id: string;
+};
+
+export type UuidBatchRequest = {
+    ids: Array<string>;
+};
+
+export type LockVersionRequest = {
+    lock_version: number;
 };
 
 export type AdminUserCreateRequestWritable = {
@@ -3418,6 +3521,7 @@ export type GetMobileAppVersionData = {
     path?: never;
     query: {
         platform: 'android' | 'ios' | 'harmony';
+        package_type?: 'native_app' | 'wgt';
     };
     url: '/api/v1/public/app-version';
 };
@@ -3443,6 +3547,43 @@ export type GetMobileAppVersionResponses = {
 };
 
 export type GetMobileAppVersionResponse = GetMobileAppVersionResponses[keyof GetMobileAppVersionResponses];
+
+export type DownloadMobileAppVersionPackageData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        release_id: string;
+        file_id: string;
+    };
+    query: {
+        expires: number;
+        signature: string;
+    };
+    url: '/api/v1/public/app-version/download/{release_id}/{file_id}';
+};
+
+export type DownloadMobileAppVersionPackageErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type DownloadMobileAppVersionPackageError = DownloadMobileAppVersionPackageErrors[keyof DownloadMobileAppVersionPackageErrors];
+
+export type DownloadMobileAppVersionPackageResponses = {
+    /**
+     * Private package bytes with no-store cache policy.
+     */
+    200: Blob | File;
+};
+
+export type DownloadMobileAppVersionPackageResponse = DownloadMobileAppVersionPackageResponses[keyof DownloadMobileAppVersionPackageResponses];
 
 export type MobilePasswordLoginData = {
     body: MobilePasswordLoginRequest;
@@ -4275,6 +4416,9 @@ export type ListMobileSecurityEventsResponse = ListMobileSecurityEventsResponses
 
 export type ListAdminMobileReleasesData = {
     body?: never;
+    headers: {
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/admin-api/v1/mobile/releases';
@@ -4300,6 +4444,9 @@ export type ListAdminMobileReleasesResponse = ListAdminMobileReleasesResponses[k
 
 export type CreateAdminMobileReleaseData = {
     body: AdminMobileReleaseRequest;
+    headers: {
+        'X-AppID': string;
+    };
     path?: never;
     query?: never;
     url: '/admin-api/v1/mobile/releases';
@@ -4331,8 +4478,79 @@ export type CreateAdminMobileReleaseResponses = {
 
 export type CreateAdminMobileReleaseResponse = CreateAdminMobileReleaseResponses[keyof CreateAdminMobileReleaseResponses];
 
+export type DeleteAdminMobileReleaseData = {
+    body?: never;
+    headers: {
+        'X-AppID': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/mobile/releases/{id}';
+};
+
+export type DeleteAdminMobileReleaseErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminMobileReleaseError = DeleteAdminMobileReleaseErrors[keyof DeleteAdminMobileReleaseErrors];
+
+export type DeleteAdminMobileReleaseResponses = {
+    /**
+     * Draft deleted
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type DeleteAdminMobileReleaseResponse = DeleteAdminMobileReleaseResponses[keyof DeleteAdminMobileReleaseResponses];
+
+export type GetAdminMobileReleaseData = {
+    body?: never;
+    headers: {
+        'X-AppID': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/mobile/releases/{id}';
+};
+
+export type GetAdminMobileReleaseErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminMobileReleaseError = GetAdminMobileReleaseErrors[keyof GetAdminMobileReleaseErrors];
+
+export type GetAdminMobileReleaseResponses = {
+    /**
+     * Release detail
+     */
+    200: AdminMobileReleaseResponse;
+};
+
+export type GetAdminMobileReleaseResponse = GetAdminMobileReleaseResponses[keyof GetAdminMobileReleaseResponses];
+
 export type UpdateAdminMobileReleaseData = {
     body: AdminMobileReleaseRequest;
+    headers: {
+        'X-AppID': string;
+    };
     path: {
         id: string;
     };
@@ -4370,11 +4588,112 @@ export type UpdateAdminMobileReleaseResponses = {
 
 export type UpdateAdminMobileReleaseResponse = UpdateAdminMobileReleaseResponses[keyof UpdateAdminMobileReleaseResponses];
 
+export type BatchDeleteAdminMobileReleasesData = {
+    body: UuidBatchRequest;
+    headers: {
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/mobile/releases/batch-delete';
+};
+
+export type BatchDeleteAdminMobileReleasesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type BatchDeleteAdminMobileReleasesError = BatchDeleteAdminMobileReleasesErrors[keyof BatchDeleteAdminMobileReleasesErrors];
+
+export type BatchDeleteAdminMobileReleasesResponses = {
+    /**
+     * Drafts deleted
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type BatchDeleteAdminMobileReleasesResponse = BatchDeleteAdminMobileReleasesResponses[keyof BatchDeleteAdminMobileReleasesResponses];
+
+export type PublishAdminMobileReleaseData = {
+    body: LockVersionRequest;
+    headers: {
+        'X-AppID': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/mobile/releases/{id}/publish';
+};
+
+export type PublishAdminMobileReleaseErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type PublishAdminMobileReleaseError = PublishAdminMobileReleaseErrors[keyof PublishAdminMobileReleaseErrors];
+
+export type PublishAdminMobileReleaseResponses = {
+    /**
+     * Release published
+     */
+    200: AdminMobileReleaseResponse;
+};
+
+export type PublishAdminMobileReleaseResponse = PublishAdminMobileReleaseResponses[keyof PublishAdminMobileReleaseResponses];
+
+export type UnpublishAdminMobileReleaseData = {
+    body: LockVersionRequest;
+    headers: {
+        'X-AppID': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/mobile/releases/{id}/unpublish';
+};
+
+export type UnpublishAdminMobileReleaseErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UnpublishAdminMobileReleaseError = UnpublishAdminMobileReleaseErrors[keyof UnpublishAdminMobileReleaseErrors];
+
+export type UnpublishAdminMobileReleaseResponses = {
+    /**
+     * Release unpublished
+     */
+    200: AdminMobileReleaseResponse;
+};
+
+export type UnpublishAdminMobileReleaseResponse = UnpublishAdminMobileReleaseResponses[keyof UnpublishAdminMobileReleaseResponses];
+
 export type ListAdminAppsData = {
     body?: never;
     path?: never;
     query?: {
         q?: string;
+        app_type?: 'uni_app' | 'uni_app_x';
         status?: 'active' | 'disabled';
         page?: number;
         page_size?: number;
@@ -4432,6 +4751,41 @@ export type CreateAdminAppResponses = {
 };
 
 export type CreateAdminAppResponse = CreateAdminAppResponses[keyof CreateAdminAppResponses];
+
+export type DeleteAdminAppData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}';
+};
+
+export type DeleteAdminAppErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminAppError = DeleteAdminAppErrors[keyof DeleteAdminAppErrors];
+
+export type DeleteAdminAppResponses = {
+    /**
+     * App soft-deleted.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type DeleteAdminAppResponse = DeleteAdminAppResponses[keyof DeleteAdminAppResponses];
 
 export type GetAdminAppData = {
     body?: never;
@@ -4498,6 +4852,39 @@ export type UpdateAdminAppResponses = {
 };
 
 export type UpdateAdminAppResponse = UpdateAdminAppResponses[keyof UpdateAdminAppResponses];
+
+export type BatchDeleteAdminAppsData = {
+    body: UuidBatchRequest;
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/apps/batch-delete';
+};
+
+export type BatchDeleteAdminAppsErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type BatchDeleteAdminAppsError = BatchDeleteAdminAppsErrors[keyof BatchDeleteAdminAppsErrors];
+
+export type BatchDeleteAdminAppsResponses = {
+    /**
+     * All Apps soft-deleted.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type BatchDeleteAdminAppsResponse = BatchDeleteAdminAppsResponses[keyof BatchDeleteAdminAppsResponses];
 
 export type EnableAdminAppData = {
     body: AdminAppStatusRequest;
@@ -4574,7 +4961,14 @@ export type ListAdminAppMobileReleasesData = {
     path: {
         app_id: string;
     };
-    query?: never;
+    query?: {
+        q?: string;
+        package_type?: 'native_app' | 'wgt';
+        platform?: 'android' | 'ios' | 'harmony';
+        publish_status?: 'draft' | 'online' | 'partial' | 'offline';
+        page?: number;
+        page_size?: number;
+    };
     url: '/admin-api/v1/apps/{app_id}/mobile/releases';
 };
 
@@ -4593,9 +4987,9 @@ export type ListAdminAppMobileReleasesError = ListAdminAppMobileReleasesErrors[k
 
 export type ListAdminAppMobileReleasesResponses = {
     /**
-     * App release policies.
+     * App release version history.
      */
-    200: AdminMobileReleaseListResponse;
+    200: AdminMobileReleasePageResponse;
 };
 
 export type ListAdminAppMobileReleasesResponse = ListAdminAppMobileReleasesResponses[keyof ListAdminAppMobileReleasesResponses];
@@ -4630,6 +5024,74 @@ export type CreateAdminAppMobileReleaseResponses = {
 };
 
 export type CreateAdminAppMobileReleaseResponse = CreateAdminAppMobileReleaseResponses[keyof CreateAdminAppMobileReleaseResponses];
+
+export type DeleteAdminAppMobileReleaseData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/mobile/releases/{id}';
+};
+
+export type DeleteAdminAppMobileReleaseErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminAppMobileReleaseError = DeleteAdminAppMobileReleaseErrors[keyof DeleteAdminAppMobileReleaseErrors];
+
+export type DeleteAdminAppMobileReleaseResponses = {
+    /**
+     * Draft deleted.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type DeleteAdminAppMobileReleaseResponse = DeleteAdminAppMobileReleaseResponses[keyof DeleteAdminAppMobileReleaseResponses];
+
+export type GetAdminAppMobileReleaseData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/mobile/releases/{id}';
+};
+
+export type GetAdminAppMobileReleaseErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppMobileReleaseError = GetAdminAppMobileReleaseErrors[keyof GetAdminAppMobileReleaseErrors];
+
+export type GetAdminAppMobileReleaseResponses = {
+    /**
+     * Release detail.
+     */
+    200: AdminMobileReleaseResponse;
+};
+
+export type GetAdminAppMobileReleaseResponse = GetAdminAppMobileReleaseResponses[keyof GetAdminAppMobileReleaseResponses];
 
 export type UpdateAdminAppMobileReleaseData = {
     body: AdminMobileReleaseRequest;
@@ -4666,6 +5128,101 @@ export type UpdateAdminAppMobileReleaseResponses = {
 };
 
 export type UpdateAdminAppMobileReleaseResponse = UpdateAdminAppMobileReleaseResponses[keyof UpdateAdminAppMobileReleaseResponses];
+
+export type BatchDeleteAdminAppMobileReleasesData = {
+    body: UuidBatchRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/mobile/releases/batch-delete';
+};
+
+export type BatchDeleteAdminAppMobileReleasesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type BatchDeleteAdminAppMobileReleasesError = BatchDeleteAdminAppMobileReleasesErrors[keyof BatchDeleteAdminAppMobileReleasesErrors];
+
+export type BatchDeleteAdminAppMobileReleasesResponses = {
+    /**
+     * Drafts deleted.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type BatchDeleteAdminAppMobileReleasesResponse = BatchDeleteAdminAppMobileReleasesResponses[keyof BatchDeleteAdminAppMobileReleasesResponses];
+
+export type PublishAdminAppMobileReleaseData = {
+    body: LockVersionRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/mobile/releases/{id}/publish';
+};
+
+export type PublishAdminAppMobileReleaseErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type PublishAdminAppMobileReleaseError = PublishAdminAppMobileReleaseErrors[keyof PublishAdminAppMobileReleaseErrors];
+
+export type PublishAdminAppMobileReleaseResponses = {
+    /**
+     * Release published.
+     */
+    200: AdminMobileReleaseResponse;
+};
+
+export type PublishAdminAppMobileReleaseResponse = PublishAdminAppMobileReleaseResponses[keyof PublishAdminAppMobileReleaseResponses];
+
+export type UnpublishAdminAppMobileReleaseData = {
+    body: LockVersionRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/mobile/releases/{id}/unpublish';
+};
+
+export type UnpublishAdminAppMobileReleaseErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UnpublishAdminAppMobileReleaseError = UnpublishAdminAppMobileReleaseErrors[keyof UnpublishAdminAppMobileReleaseErrors];
+
+export type UnpublishAdminAppMobileReleaseResponses = {
+    /**
+     * Release taken offline.
+     */
+    200: AdminMobileReleaseResponse;
+};
+
+export type UnpublishAdminAppMobileReleaseResponse = UnpublishAdminAppMobileReleaseResponses[keyof UnpublishAdminAppMobileReleaseResponses];
 
 export type ListAdminAppNoticesData = {
     body?: never;

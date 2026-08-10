@@ -8,8 +8,10 @@ import { ChevronLeftIcon, ChevronRightIcon, MenuIcon as HamburgerMenuIcon } from
 import { ConfiguredMenuIcon } from '../app/menu-icons'
 import { findMenuAncestorKeys, resolveBackendMenus, type ResolvedMenuItem } from '../app/route-registry'
 import { useSidebarStore } from '../app/sidebar-store'
+import { requiresAppSelection } from '../features/apps/scope'
 import { useAuthStore } from '../features/auth/store'
 import { FullscreenToggle } from './FullscreenToggle'
+import { GlobalAppSelector } from './GlobalAppSelector'
 import { LocaleSwitcher } from './LocaleSwitcher'
 import { UserMenu } from './UserMenu'
 
@@ -22,6 +24,7 @@ export function AppShell({ children }: PropsWithChildren) {
   const [switchingTenant, setSwitchingTenant] = useState(false)
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const showAppSelector = requiresAppSelection(pathname)
   const context = useAuthStore((state) => state.context)
   const logout = useAuthStore((state) => state.logout)
   const switchTenant = useAuthStore((state) => state.switchTenant)
@@ -166,7 +169,7 @@ export function AppShell({ children }: PropsWithChildren) {
       )}
       <Drawer className="ak-mobile-drawer" closable onClose={() => { setMobileOpen(false) }} open={mobileOpen} placement="left" size={280} title={<span className="ak-drawer-brand"><img alt="" aria-hidden="true" height="32" src="/brand/appkernia-icon-64.png" width="32" />{t('app.name')}</span>}>{navigation('ak-mobile-navigation')}</Drawer>
       <Layout>
-        <Header className="ak-shell-header">
+        <Header className={`ak-shell-header${showAppSelector ? ' ak-shell-header-app-scoped' : ''}`}>
           <Button aria-label={t('shell.open_navigation')} className="ak-mobile-menu-button" icon={<HamburgerMenuIcon />} onClick={() => { setMobileOpen(true) }} type="text" />
           <div className="ak-tenant-context">
             <Typography.Text type="secondary">{t('shell.current_tenant')}</Typography.Text>
@@ -193,6 +196,7 @@ export function AppShell({ children }: PropsWithChildren) {
                 />
               </Tooltip>
             ) : null}
+            {showAppSelector ? <GlobalAppSelector /> : null}
             <FullscreenToggle />
             <LocaleSwitcher variant="icon" />
             {context ? <UserMenu onSignOut={signOut} roles={context.roles} user={context.user} /> : null}

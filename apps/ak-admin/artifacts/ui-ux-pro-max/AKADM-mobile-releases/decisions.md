@@ -1,9 +1,9 @@
 # Decisions
 
-- Place the page under a new `system.mobile` directory as `system.mobile.releases`; mobile runtime governance is distinct from editorial content and general configuration.
-- Use a client-side platform filter because the final OpenAPI declares no list query parameters and the endpoint returns a small global array.
+- Keep `system.mobile.releases` as a compatibility route and add `app.upgrade-center`; both render the same page and call App-scoped endpoints.
+- Persist every selector/filter/pagination value in the URL and keep the selected App visible.
 - Treat platform values as protocol enums, not dictionaries, per the repository enumeration policy.
-- Use one Drawer for both create and edit. Editing locks platform and includes the response `lock_version` in PATCH.
+- Use one Drawer with native/WGT variants. Any record with `ever_published_at` is read-only; draft edits include `lock_version`.
 - Keep a 409 conflict visible in the Drawer instead of closing it; offer a list refresh so the operator can reopen current state.
-- Use a responsive table with optional columns hidden at narrow widths; do not convert the page into a separate mobile UI architecture.
+- Use a responsive table from 768px and compact cards below 768px; both expose the same detail action.
 - Preserve the generic Master and save only this page override.

@@ -170,7 +170,6 @@ a,
   gap: 12px;
   margin: 0 0 16px;
 }
-.ak-content-locale-card { margin: 16px 0; }
 .ak-content-slug { margin-top: 3px; color: var(--ak-muted); font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
 .ak-content-stale { margin-top: 10px; color: var(--ak-muted); font-size: 13px; }
 @media (max-width: 991px) { .ak-content-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -662,6 +661,70 @@ a,
   display: flex;
   align-items: center;
   gap: 4px;
+}
+.ak-global-app-context {
+  display: grid;
+  grid-template-rows: auto auto;
+  min-width: 0;
+  margin-right: 8px;
+  padding-right: 12px;
+  border-right: 1px solid var(--ak-hairline);
+  line-height: 1.2;
+}
+.ak-global-app-context-label.ant-typography {
+  margin: 0 0 3px;
+  color: var(--ak-muted);
+  font-size: 11px;
+  line-height: 1;
+}
+.ak-global-app-context-control {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 6px;
+}
+.ak-global-app-select.ant-select {
+  width: 220px;
+  max-width: 28vw;
+}
+.ak-global-app-select .ant-select-selector {
+  border-color: var(--ak-hairline-strong) !important;
+  background: var(--ak-canvas) !important;
+}
+.ak-global-app-status.ant-tag {
+  margin-inline-end: 0;
+  white-space: nowrap;
+}
+.ak-global-app-option {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  padding-block: 2px;
+}
+.ak-global-app-option > span {
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ak-global-app-option > code {
+  overflow: hidden;
+  color: var(--ak-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ak-app-selection-required {
+  display: grid;
+  place-items: center;
+  min-height: clamp(280px, 38vh, 420px);
+  padding: 32px;
+  text-align: center;
+}
+.ak-app-selection-required .ant-typography {
+  color: var(--ak-muted);
+  font-size: 15px;
+  line-height: 1.6;
 }
 .ak-shell-icon-button.ant-btn {
   display: inline-grid;
@@ -1971,9 +2034,76 @@ a,
 
 .ak-release-filters {
   display: grid;
-  grid-template-columns: minmax(220px, 320px);
+  grid-template-columns: minmax(220px, 2fr) repeat(3, minmax(150px, 1fr));
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.ak-app-list-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ak-table-scroll {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  contain: inline-size paint;
+  overflow-x: hidden;
+  border-radius: 8px;
+}
+
+.ak-table-scroll:focus-visible {
+  outline: 3px solid rgb(0 112 243 / 28%);
+  outline-offset: 3px;
+}
+
+.ak-form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.ak-full-width,
+.ak-full-width.ant-space,
+.ak-full-width.ant-input-number {
+  width: 100%;
+}
+
+.ak-application-nested-card {
+  margin-bottom: 12px;
+}
+
+.ak-localized-form-tabs {
+  min-width: 0;
+  margin: 16px 0;
+}
+
+.ak-localized-form-tab-label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.ak-localized-form-tab-error {
+  display: block;
+}
+
+.ak-localized-form-status {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  min-height: 96px;
+}
+
+.ak-application-form,
+.ak-release-form {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .ak-mobile-release-version-grid {
@@ -2003,6 +2133,15 @@ a,
 .ak-mobile-release-list {
   display: grid;
   gap: 12px;
+}
+
+.ak-mobile-application-list {
+  display: grid;
+  gap: 12px;
+}
+
+.ak-mobile-application-card .ant-card-body {
+  min-width: 0;
 }
 
 .ak-mobile-release-empty {
@@ -2067,6 +2206,29 @@ a,
   }
   .ak-shell-header {
     gap: 8px;
+  }
+  .ak-shell-header-app-scoped .ak-tenant-context {
+    display: none;
+  }
+  .ak-shell-header-app-scoped .ak-shell-actions {
+    min-width: 0;
+    margin-left: auto;
+  }
+  .ak-global-app-context {
+    margin-right: 2px;
+    padding-right: 6px;
+  }
+  .ak-global-app-context-label.ant-typography,
+  .ak-global-app-status.ant-tag {
+    display: none;
+  }
+  .ak-global-app-select.ant-select {
+    width: min(148px, 38vw);
+    max-width: none;
+  }
+  .ak-app-selection-required {
+    min-height: 260px;
+    padding: 24px 12px;
   }
   .ak-tenant-context {
     flex: 1;
@@ -2509,7 +2671,9 @@ a,
   }
 
   .ak-release-filters,
-  .ak-mobile-release-version-grid {
+  .ak-app-list-filters,
+  .ak-mobile-release-version-grid,
+  .ak-form-grid-2 {
     grid-template-columns: minmax(0, 1fr);
   }
 }

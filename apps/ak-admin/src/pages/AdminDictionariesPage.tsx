@@ -253,7 +253,16 @@ export function AdminDictionariesPage() {
     notification: t("settings.dictionaries.categories.notification"),
     sms: t("settings.dictionaries.categories.sms"),
     storage: t("settings.dictionaries.categories.storage"),
+    system: t("settings.dictionaries.categories.system"),
   };
+  const dictionaryTypeName = (type: AdminDictionaryType) =>
+    type.name_key
+      ? t(type.name_key, { defaultValue: type.name })
+      : type.name;
+  const dictionaryTypeDescription = (type: AdminDictionaryType) =>
+    type.description_key
+      ? t(type.description_key, { defaultValue: type.description })
+      : type.description;
   const groupedTypes = groupDictionaryTypes(
     types.data?.items ?? [],
     (code) => categoryLabels[code] ?? code,
@@ -729,7 +738,7 @@ export function AdminDictionariesPage() {
                           >
                             <span className="ak-dictionary-type-title">
                               <Space wrap size={[4, 4]}>
-                                <span>{type.name}</span>
+                                <span>{dictionaryTypeName(type)}</span>
                                 {type.is_locked ? (
                                   <Tag>
                                     {t("settings.dictionaries.badges.builtin")}
@@ -780,7 +789,7 @@ export function AdminDictionariesPage() {
         </Card>
         <Card
           className="ak-dictionary-detail"
-          title={selectedType?.name ?? t("settings.dictionaries.select_type")}
+          title={selectedType ? dictionaryTypeName(selectedType) : t("settings.dictionaries.select_type")}
           extra={
             selectedType &&
             canExtendSelected &&
@@ -797,6 +806,9 @@ export function AdminDictionariesPage() {
             </Typography.Paragraph>
           ) : (
             <>
+              <Typography.Paragraph type="secondary">
+                {dictionaryTypeDescription(selectedType)}
+              </Typography.Paragraph>
               {selectedType.is_locked && !canExtendSelected ? (
                 <Alert
                   className="ak-settings-lock-alert"

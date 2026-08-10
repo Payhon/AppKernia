@@ -515,7 +515,7 @@ sys.dictionary.delete
 - 系统类型与系统项不可被租户修改或删除；租户项按 value 覆盖全局项。
 - 消费解析顺序为请求 locale、neutral、`zh-CN`，同级优先租户项；禁用覆盖项会隐藏同 value 的全局项。
 - `fixed/open/registered/s3_compatible` 扩展策略由后端强制执行；驱动字典只绑定编译期能力，不加载动态代码。
-- 核心种子只包含 `storage.driver`、`sms.provider` 与 SMS/Email 模板用途，并提供 `zh-CN`、`en-US` 标签。
+- 核心种子包含固定的 `system.language`、`storage.driver`、`sms.provider` 与 SMS/Email 模板用途，并提供 `zh-CN`、`en-US` 标签；`system.language` 只负责受支持语言的展示顺序和名称，不扩大 `SupportedLocale` 协议。
 - 公开接口只能读取 `visibility=public` 的字典，Admin 消费接口不暴露租户覆盖内部结构。
 
 ### 8.2 配置

@@ -3,7 +3,14 @@ import { appMemberCreateInputSchema, appMemberPasswordResetSchema, appPageInputS
 
 describe("App management schemas", () => {
   it("requires a bounded application configuration", () => {
-    expect(applicationInputSchema.safeParse({ name: "Mobile", default_locale: "zh-CN", registration_enabled: true, registration_verification_mode: "email_otp" }).success).toBe(true);
+    const valid = {
+      appid: "__UNI__MOBILE", app_type: "uni_app_x", name: "Mobile", description: "", introduction: "", remark: "",
+      default_locale: "zh-CN", registration_enabled: true, registration_verification_mode: "email_otp",
+      owner_type: "tenant", owner_id: "123e4567-e89b-12d3-a456-426614174000", icon_file_id: null,
+      managers: [], members: [], screenshot_file_ids: [], channels: [], store_listings: [],
+    };
+    expect(applicationInputSchema.safeParse(valid).success).toBe(true);
+    expect(applicationInputSchema.safeParse({ ...valid, appid: "not-a-manifest-id" }).success).toBe(false);
     expect(applicationInputSchema.safeParse({ name: "", default_locale: "fr-FR", registration_enabled: true, registration_verification_mode: "sms" }).success).toBe(false);
   });
   it("requires App user email and a minimum initial password", () => {

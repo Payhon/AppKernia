@@ -2,6 +2,8 @@ package bootstrap
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
 	"time"
@@ -160,8 +162,6 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	appManagementService := appmanagementapp.NewService(pool, authService, appmanagementapp.WithOTPNotifier(appOTPNotifier))
 	appManagementHandler := appmanagementhttp.NewHandler(appManagementService, catalog)
 	mobileProfileRepository := mobileprofilerepo.NewPostgres(pool)
-	mobileProfileService := mobileprofileapp.NewService(authService, mobileProfileRepository, mobileProfileRepository)
-	mobileProfileHandler := mobileprofilehttp.NewHandler(mobileProfileService, catalog)
 	storageRepository := storagerepo.NewPostgres(pool)
 	var objectStore storagedomain.ObjectStore
 	if cfg.AvatarUploadEnabled || cfg.FileStorageEnabled {
@@ -176,6 +176,16 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 			return nil, fmt.Errorf("create object storage adapter: %w", err)
 		}
 	}
+	downloadKeyMaterial, err := base64.StdEncoding.DecodeString(cfg.LoginProtectionKeyBase64)
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("configure package download signing: %w", err)
+	}
+	downloadKeyDeriver := hmac.New(sha256.New, downloadKeyMaterial)
+	_, _ = downloadKeyDeriver.Write([]byte("appkernia:mobile-release-download:v1"))
+	downloadSigningKey := downloadKeyDeriver.Sum(nil)
+	mobileProfileService := mobileprofileapp.NewService(authService, mobileProfileRepository, mobileProfileRepository, mobileprofileapp.WithPackageDownloads(objectStore, downloadSigningKey))
+	mobileProfileHandler := mobileprofilehttp.NewHandler(mobileProfileService, catalog)
 	storageService := storageapp.NewService(storageRepository, objectStore, cfg.AvatarUploadEnabled)
 	storageHandler := storagehttp.NewHandler(authService, storageService, catalog)
 	storageAdminRepository := storageadminrepo.NewPostgres(pool)
@@ -255,6 +265,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/public/legal/{document_type}", appManagementHandler.Legal)
 		group.GET("/public/pages/{slug}", appManagementHandler.Page)
 		group.GET("/public/app-version", mobileProfileHandler.AppVersion)
+		group.GET("/public/app-version/download/{release_id}/{file_id}", mobileProfileHandler.AppVersionDownload)
 		group.GET("/public/dictionaries/{code}", settingsHandler.PublicDictionary)
 		group.GET("/regions", settingsHandler.PublicRegions)
 		group.POST("/auth/register", appManagementHandler.Register)
@@ -308,11 +319,18 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/apps", appManagementHandler.AdminApps)
 		group.GET("/apps/{app_id}", appManagementHandler.AdminApp)
 		group.PATCH("/apps/{app_id}", appManagementHandler.AdminApp)
+		group.DELETE("/apps/{app_id}", appManagementHandler.AdminApp)
+		group.POST("/apps/batch-delete", appManagementHandler.AdminBatchDeleteApps)
 		group.POST("/apps/{app_id}/enable", appManagementHandler.AdminEnableApp)
 		group.POST("/apps/{app_id}/disable", appManagementHandler.AdminDisableApp)
 		group.GET("/apps/{app_id}/mobile/releases", mobileProfileHandler.AdminReleases)
 		group.POST("/apps/{app_id}/mobile/releases", mobileProfileHandler.AdminCreateRelease)
+		group.POST("/apps/{app_id}/mobile/releases/batch-delete", mobileProfileHandler.AdminBatchDeleteReleases)
+		group.GET("/apps/{app_id}/mobile/releases/{id}", mobileProfileHandler.AdminRelease)
 		group.PATCH("/apps/{app_id}/mobile/releases/{id}", mobileProfileHandler.AdminUpdateRelease)
+		group.DELETE("/apps/{app_id}/mobile/releases/{id}", mobileProfileHandler.AdminRelease)
+		group.POST("/apps/{app_id}/mobile/releases/{id}/publish", mobileProfileHandler.AdminPublishRelease)
+		group.POST("/apps/{app_id}/mobile/releases/{id}/unpublish", mobileProfileHandler.AdminUnpublishRelease)
 		group.GET("/apps/{app_id}/notices", notificationAdminHandler.Notices)
 		group.POST("/apps/{app_id}/notices", notificationAdminHandler.CreateNotice)
 		group.GET("/apps/{app_id}/notices/{id}", notificationAdminHandler.Notice)
@@ -358,7 +376,12 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/apps/{app_id}/users/{user_id}/sessions/revoke", appManagementHandler.AdminRevokeUserSessions)
 		group.GET("/mobile/releases", mobileProfileHandler.AdminReleases)
 		group.POST("/mobile/releases", mobileProfileHandler.AdminCreateRelease)
+		group.POST("/mobile/releases/batch-delete", mobileProfileHandler.AdminBatchDeleteReleases)
+		group.GET("/mobile/releases/{id}", mobileProfileHandler.AdminRelease)
 		group.PATCH("/mobile/releases/{id}", mobileProfileHandler.AdminUpdateRelease)
+		group.DELETE("/mobile/releases/{id}", mobileProfileHandler.AdminRelease)
+		group.POST("/mobile/releases/{id}/publish", mobileProfileHandler.AdminPublishRelease)
+		group.POST("/mobile/releases/{id}/unpublish", mobileProfileHandler.AdminUnpublishRelease)
 		group.GET("/me", authHandler.Me)
 		group.PATCH("/me", authHandler.UpdateMe)
 		group.GET("/me/sessions", authHandler.SelfSessions)

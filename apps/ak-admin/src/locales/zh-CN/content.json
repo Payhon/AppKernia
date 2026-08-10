@@ -13,6 +13,8 @@
   "content.article.editor.create": "新建文章",
   "content.article.editor.edit": "编辑文章",
   "content.article.empty": "暂无匹配文章",
+  "content.article.body_format.blocks": "结构化内容",
+  "content.article.body_format.markdown": "Markdown",
   "content.article.fields.body": "正文",
   "content.article.fields.body_format": "正文格式",
   "content.article.fields.category": "分类",

@@ -1,5 +1,5 @@
 # ui-ux-pro-max output
 
-Executed `python3 .codex/skills/ui-ux-pro-max/scripts/search.py "multi application SaaS admin dashboard content user management accessible responsive" --design-system -p "AppKernia App Management" -f markdown`, followed by UX and React stack searches.
+Executed the repository `ui-ux-pro-max` design-system, UX and React searches again on 2026-08-10 for the expanded application inventory and upgrade-center work.
 
-The applicable recommendations are data-dense dashboard layout, visible active navigation, URL-backed deep linking, labelled fields, live-announced errors, submission feedback, contained horizontal table scrolling, visible focus, and responsive 375/768/1024/1440 layouts. Existing AppKernia Ant Design tokens and system fonts override the generic skill suggestion to introduce purple/orange or web fonts.
+The applicable recommendations were bulk selection/action clarity, explicit submission feedback, labelled controls, contained horizontal table scrolling, visible focus and breakpoint verification. The generated “Enterprise Gateway / Trust & Authority” direction, purple-orange palette and external font suggestion were rejected because `design-system/MASTER.md` and existing Ant Design semantic tokens are authoritative.

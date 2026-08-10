@@ -465,12 +465,16 @@
       ],
       "actions": {
         "create": "mobile.release.create",
-        "update": "mobile.release.update"
+        "update": "mobile.release.update",
+        "publish": "mobile.release.publish",
+        "delete": "mobile.release.delete"
       },
       "permission_status": {
         "mobile.release.read": "existing",
         "mobile.release.create": "existing",
-        "mobile.release.update": "existing"
+        "mobile.release.update": "existing",
+        "mobile.release.publish": "existing",
+        "mobile.release.delete": "existing"
       }
     },
     {
@@ -515,13 +519,34 @@
       "actions": {
         "create": "app.application.create",
         "update": "app.application.update",
-        "disable": "app.application.disable"
+        "disable": "app.application.disable",
+        "delete": "app.application.delete"
       },
       "permission_status": {
         "app.application.read": "existing",
         "app.application.create": "existing",
         "app.application.update": "existing",
-        "app.application.disable": "existing"
+        "app.application.disable": "existing",
+        "app.application.delete": "existing"
+      }
+    },
+    {
+      "component_key": "app.upgrade-center",
+      "view": [
+        "mobile.release.read"
+      ],
+      "actions": {
+        "create": "mobile.release.create",
+        "update": "mobile.release.update",
+        "publish": "mobile.release.publish",
+        "delete": "mobile.release.delete"
+      },
+      "permission_status": {
+        "mobile.release.read": "existing",
+        "mobile.release.create": "existing",
+        "mobile.release.update": "existing",
+        "mobile.release.publish": "existing",
+        "mobile.release.delete": "existing"
       }
     },
     {

@@ -109,8 +109,15 @@ paths:
       summary: Read the public mobile application upgrade policy
       operationId: getMobileAppVersion
       security: []
-      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {$ref: "#/components/parameters/AppID"}, {name: platform, in: query, required: true, schema: {type: string, enum: [android, ios, harmony]}}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {$ref: "#/components/parameters/AppID"}, {name: platform, in: query, required: true, schema: {type: string, enum: [android, ios, harmony]}}, {name: package_type, in: query, schema: {type: string, enum: [native_app, wgt], default: native_app}}]
       responses: {"200": {description: Localized current version and upgrade policy without administrative fields., content: {application/json: {schema: {$ref: "#/components/schemas/MobileAppVersionResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {description: No active release policy exists for this platform., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
+  /api/v1/public/app-version/download/{release_id}/{file_id}:
+    get:
+      summary: Download a published internal package with a short-lived App/version/file-bound signature
+      operationId: downloadMobileAppVersionPackage
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}, {name: release_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: file_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: expires, in: query, required: true, schema: {type: integer, format: int64}}, {name: signature, in: query, required: true, schema: {type: string}}]
+      responses: {"200": {description: Private package bytes with no-store cache policy., content: {application/octet-stream: {schema: {type: string, format: binary}}}}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/auth/login/password:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     post:
@@ -263,6 +270,7 @@ paths:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get: {summary: List current-user security events, operationId: listMobileSecurityEvents, responses: {"200": {description: Security events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSecurityEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
   /admin-api/v1/mobile/releases:
+    parameters: [{name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
     get:
       summary: List administrator-managed mobile release policies
       operationId: listAdminMobileReleases
@@ -273,18 +281,50 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
       responses: {"201": {description: Release policy created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/mobile/releases/{id}:
+    parameters: [{name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
+    get:
+      summary: Read one mobile release through the compatibility entry
+      operationId: getAdminMobileRelease
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Release detail, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update one mobile release policy using optimistic locking
       operationId: updateAdminMobileRelease
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
       responses: {"200": {description: Release policy updated; platform is immutable and must match the stored record., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+    delete:
+      summary: Delete one never-published release draft through the compatibility entry
+      operationId: deleteAdminMobileRelease
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Draft deleted, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/mobile/releases/batch-delete:
+    post:
+      summary: Atomically delete compatibility-entry release drafts
+      operationId: batchDeleteAdminMobileReleases
+      parameters: [{name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/UUIDBatchRequest"}}}}
+      responses: {"200": {description: Drafts deleted, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/mobile/releases/{id}/publish:
+    post:
+      summary: Publish a release through the compatibility entry
+      operationId: publishAdminMobileRelease
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Release published, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/mobile/releases/{id}/unpublish:
+    post:
+      summary: Unpublish a release through the compatibility entry
+      operationId: unpublishAdminMobileRelease
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Release unpublished, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
   /admin-api/v1/apps:
     get:
       summary: List Apps scoped to the authenticated Admin tenant
       operationId: listAdminApps
       security: [{adminBearer: []}]
-      parameters: [{name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      parameters: [{name: q, in: query, schema: {type: string, maxLength: 160}}, {name: app_type, in: query, schema: {type: string, enum: [uni_app, uni_app_x]}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Tenant Apps, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
     post:
       summary: Create a new App and its reserved single-page identities
@@ -306,6 +346,19 @@ paths:
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppRequest"}}}}
       responses: {"200": {description: Updated App, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+    delete:
+      summary: Soft-delete one disabled non-default App
+      operationId: deleteAdminApp
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App soft-deleted., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/batch-delete:
+    post:
+      summary: Atomically soft-delete up to 100 disabled non-default Apps
+      operationId: batchDeleteAdminApps
+      security: [{adminBearer: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/UUIDBatchRequest"}}}}
+      responses: {"200": {description: All Apps soft-deleted., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/apps/{app_id}/enable:
     post:
       summary: Enable an App using an optimistic-lock request body
@@ -327,8 +380,8 @@ paths:
       summary: List mobile release policies owned by the selected App
       operationId: listAdminAppMobileReleases
       security: [{adminBearer: []}]
-      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {"200": {description: App release policies., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: package_type, in: query, schema: {type: string, enum: [native_app, wgt]}}, {name: platform, in: query, schema: {type: string, enum: [android, ios, harmony]}}, {name: publish_status, in: query, schema: {type: string, enum: [draft, online, partial, offline]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: App release version history., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleasePageResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create a mobile release policy for the selected App
       operationId: createAdminAppMobileRelease
@@ -337,6 +390,12 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
       responses: {"201": {description: App release policy created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/apps/{app_id}/mobile/releases/{id}:
+    get:
+      summary: Read one App release version
+      operationId: getAdminAppMobileRelease
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Release detail., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update a mobile release policy owned by the selected App
       operationId: updateAdminAppMobileRelease
@@ -344,6 +403,36 @@ paths:
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
       responses: {"200": {description: Updated App release policy., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+    delete:
+      summary: Delete a never-published release draft
+      operationId: deleteAdminAppMobileRelease
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Draft deleted., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/mobile/releases/batch-delete:
+    post:
+      summary: Atomically delete up to 100 never-published release drafts
+      operationId: batchDeleteAdminAppMobileReleases
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/UUIDBatchRequest"}}}}
+      responses: {"200": {description: Drafts deleted., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/mobile/releases/{id}/publish:
+    post:
+      summary: Atomically publish a release to every target platform
+      operationId: publishAdminAppMobileRelease
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Release published., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/mobile/releases/{id}/unpublish:
+    post:
+      summary: Remove this release from every current publication pointer
+      operationId: unpublishAdminAppMobileRelease
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Release taken offline., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
   /admin-api/v1/apps/{app_id}/notices:
     get:
       summary: List App-scoped announcements
@@ -2932,9 +3021,11 @@ components:
         message: {type: string}
         data:
           type: object
-          required: [app_id, name, default_locale, registration_enabled, registration_verification_mode]
+          required: [app_id, appid, app_type, name, default_locale, registration_enabled, registration_verification_mode]
           properties:
             app_id: {type: string, format: uuid}
+            appid: {type: string}
+            app_type: {type: string, enum: [uni_app, uni_app_x]}
             name: {type: string}
             default_locale: {$ref: "#/components/schemas/SupportedLocale"}
             registration_enabled: {type: boolean}
@@ -3015,16 +3106,31 @@ components:
       properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [accepted], properties: {accepted: {type: boolean}, verification_required: {type: boolean}, retry_after_seconds: {type: integer, minimum: 1}}}, request_id: {type: string}}
     AdminApp:
       type: object
-      required: [id, tenant_id, code, name, status, default_locale, registration_enabled, registration_verification_mode, is_default, lock_version, created_at, updated_at]
+      required: [id, tenant_id, appid, appid_pending, app_type, code, name, description, introduction, remark, status, default_locale, registration_enabled, registration_verification_mode, owner_type, managers, members, screenshots, channels, store_listings, is_default, lock_version, created_at, updated_at]
       properties:
         id: {type: string, format: uuid}
         tenant_id: {type: string, format: uuid}
+        appid: {type: string}
+        appid_pending: {type: boolean}
+        app_type: {type: string, enum: [uni_app, uni_app_x]}
         code: {type: string, pattern: '^[a-z][a-z0-9-]{1,62}$'}
         name: {type: string, minLength: 1, maxLength: 120}
+        description: {type: string, maxLength: 4000}
+        introduction: {type: string, maxLength: 1000}
+        remark: {type: string, maxLength: 4000}
         status: {type: string, enum: [active, disabled]}
         default_locale: {$ref: "#/components/schemas/SupportedLocale"}
         registration_enabled: {type: boolean}
         registration_verification_mode: {type: string, enum: [none, email_otp]}
+        creator_user_id: {type: [string, 'null'], format: uuid}
+        owner_type: {type: string, enum: [user, tenant]}
+        owner_id: {type: [string, 'null'], format: uuid}
+        icon_file_id: {type: [string, 'null'], format: uuid}
+        managers: {type: array, maxItems: 100, items: {type: string, format: uuid}}
+        members: {type: array, maxItems: 100, items: {type: string, format: uuid}}
+        screenshots: {type: array, maxItems: 20, items: {$ref: "#/components/schemas/AdminAppAsset"}}
+        channels: {type: array, maxItems: 20, items: {$ref: "#/components/schemas/AdminAppChannel"}}
+        store_listings: {type: array, maxItems: 100, items: {$ref: "#/components/schemas/AdminAppStoreListing"}}
         is_default: {type: boolean}
         lock_version: {type: integer, minimum: 1}
         created_at: {type: string, format: date-time}
@@ -3032,14 +3138,46 @@ components:
     AdminAppRequest:
       type: object
       additionalProperties: false
-      required: [name, default_locale, registration_enabled, registration_verification_mode]
+      required: [appid, app_type, name, default_locale, registration_enabled, registration_verification_mode]
       properties:
+        appid: {type: string, pattern: '^__UNI__[A-Za-z0-9_]{2,120}$'}
+        app_type: {type: string, enum: [uni_app, uni_app_x]}
         code: {type: string, pattern: '^[a-z][a-z0-9-]{1,62}$'}
         name: {type: string, minLength: 1, maxLength: 120}
+        description: {type: string, maxLength: 4000}
+        introduction: {type: string, maxLength: 1000}
+        remark: {type: string, maxLength: 4000}
         default_locale: {$ref: "#/components/schemas/SupportedLocale"}
         registration_enabled: {type: boolean}
         registration_verification_mode: {type: string, enum: [none, email_otp]}
+        owner_type: {type: string, enum: [user, tenant]}
+        owner_id: {type: [string, 'null'], format: uuid}
+        icon_file_id: {type: [string, 'null'], format: uuid}
+        managers: {type: array, maxItems: 100, items: {type: string, format: uuid}}
+        members: {type: array, maxItems: 100, items: {type: string, format: uuid}}
+        screenshot_file_ids: {type: array, maxItems: 20, items: {type: string, format: uuid}}
+        channels: {type: array, maxItems: 20, items: {$ref: "#/components/schemas/AdminAppChannel"}}
+        store_listings: {type: array, maxItems: 100, items: {$ref: "#/components/schemas/AdminAppStoreListing"}}
         lock_version: {type: integer, minimum: 1}
+    AdminAppAsset:
+      type: object
+      required: [id, file_id, position]
+      properties: {id: {type: string, format: uuid}, file_id: {type: string, format: uuid}, position: {type: integer, minimum: 0}}
+    AdminAppChannel:
+      type: object
+      required: [channel_code, name, enabled]
+      properties:
+        id: {type: string, format: uuid}
+        channel_code: {type: string, enum: [android, ios, harmony, h5, quickapp, mp_weixin, mp_alipay, mp_baidu, mp_toutiao, mp_qq, mp_kuaishou, mp_lark, mp_jd, mp_dingtalk]}
+        name: {type: string, maxLength: 160}
+        url: {type: [string, 'null'], pattern: '^https://'}
+        abm_url: {type: [string, 'null'], pattern: '^https://'}
+        qrcode_file_id: {type: [string, 'null'], format: uuid}
+        enabled: {type: boolean}
+    AdminAppStoreListing:
+      type: object
+      required: [name, scheme, enabled, priority]
+      properties: {id: {type: string, format: uuid}, name: {type: string, minLength: 1, maxLength: 160}, scheme: {type: string, maxLength: 255}, enabled: {type: boolean}, priority: {type: integer, minimum: -100000, maximum: 100000}}
     AdminAppStatusRequest:
       type: object
       additionalProperties: false
@@ -5477,8 +5615,8 @@ components:
     MobileAppVersion:
       type: object
       additionalProperties: false
-      required: [platform, current_version, minimum_version, release_notes]
-      properties: {platform: {type: string, enum: [android, ios, harmony]}, current_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, minimum_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, upgrade_url: {type: [string, 'null'], format: uri}, release_notes: {type: string}}
+      required: [platform, package_type, current_version, minimum_version, title, release_notes, is_silently, is_mandatory]
+      properties: {platform: {type: string, enum: [android, ios, harmony]}, package_type: {type: string, enum: [native_app, wgt]}, current_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, minimum_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, upgrade_url: {type: [string, 'null'], format: uri-reference}, title: {type: string}, release_notes: {type: string}, is_silently: {type: boolean}, is_mandatory: {type: boolean}, published_at: {type: [string, 'null'], format: date-time}}
     BooleanSuccessResponse:
       type: object
       required: [code, message, data, request_id]
@@ -5493,12 +5631,68 @@ components:
       properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/MobileNotification"}}, next_cursor: {type: [string, 'null']}}}, request_id: {type: string}}
     AdminMobileRelease:
       type: object
-      required: [id, app_id, platform, current_version, minimum_version, release_notes, active, lock_version, updated_at]
-      properties: {id: {type: string, format: uuid}, app_id: {type: string, format: uuid}, platform: {type: string, enum: [android, ios, harmony]}, current_version: {type: string}, minimum_version: {type: string}, upgrade_url: {type: [string, 'null'], format: uri}, release_notes: {type: object, required: [zh-CN, en-US], properties: {zh-CN: {type: string}, en-US: {type: string}}}, active: {type: boolean}, lock_version: {type: integer, minimum: 1}, updated_at: {type: string, format: date-time}}
+      required: [id, app_id, package_type, platforms, version, titles, contents, store_listing_ids, create_env, is_silently, is_mandatory, publish_status, published_platforms, platform, current_version, minimum_version, release_notes, active, lock_version, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        app_id: {type: string, format: uuid}
+        package_type: {type: string, enum: [native_app, wgt]}
+        platforms: {type: array, minItems: 1, uniqueItems: true, items: {type: string, enum: [android, ios, harmony]}}
+        version: {type: string, pattern: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$'}
+        minimum_native_version: {type: [string, 'null'], pattern: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$'}
+        titles: {$ref: "#/components/schemas/LocalizedReleaseText"}
+        contents: {$ref: "#/components/schemas/LocalizedReleaseText"}
+        package_file_id: {type: [string, 'null'], format: uuid}
+        external_url: {type: [string, 'null'], pattern: '^https://'}
+        store_listing_ids: {type: array, maxItems: 100, items: {type: string, format: uuid}}
+        create_env: {type: string, enum: [uni_stat, upgrade_center]}
+        is_silently: {type: boolean}
+        is_mandatory: {type: boolean}
+        publish_status: {type: string, enum: [draft, online, partial, offline]}
+        published_platforms: {type: array, items: {type: string, enum: [android, ios, harmony]}}
+        ever_published_at: {type: [string, 'null'], format: date-time}
+        last_published_at: {type: [string, 'null'], format: date-time}
+        unpublished_at: {type: [string, 'null'], format: date-time}
+        platform: {type: string, enum: [android, ios, harmony]}
+        current_version: {type: string}
+        minimum_version: {type: string}
+        upgrade_url: {type: [string, 'null'], format: uri}
+        release_notes: {$ref: "#/components/schemas/LocalizedReleaseText"}
+        active: {type: boolean}
+        lock_version: {type: integer, minimum: 1}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
     AdminMobileReleaseRequest:
       type: object
-      required: [platform, current_version, minimum_version, release_notes, active]
-      properties: {platform: {type: string, enum: [android, ios, harmony], description: Immutable after creation; PATCH must match the stored platform.}, current_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, minimum_version: {type: string, pattern: '^\d+\.\d+\.\d+$', description: Must not exceed current_version.}, upgrade_url: {type: [string, 'null'], pattern: '^https://'}, release_notes: {type: object, required: [zh-CN, en-US], properties: {zh-CN: {type: string, minLength: 1}, en-US: {type: string, minLength: 1}}}, active: {type: boolean}, lock_version: {type: integer, minimum: 1}}
+      additionalProperties: false
+      oneOf:
+        - required: [package_type, platforms, version, titles, contents]
+        - required: [platform, current_version, minimum_version, release_notes, active]
+      properties:
+        package_type: {type: string, enum: [native_app, wgt]}
+        platforms: {type: array, minItems: 1, maxItems: 3, uniqueItems: true, items: {type: string, enum: [android, ios, harmony]}}
+        version: {type: string, pattern: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$'}
+        minimum_native_version: {type: [string, 'null'], pattern: '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$'}
+        titles: {$ref: "#/components/schemas/LocalizedReleaseText"}
+        contents: {$ref: "#/components/schemas/LocalizedReleaseText"}
+        package_file_id: {type: [string, 'null'], format: uuid}
+        external_url: {type: [string, 'null'], pattern: '^https://'}
+        store_listing_ids: {type: array, maxItems: 100, uniqueItems: true, items: {type: string, format: uuid}}
+        create_env: {type: string, enum: [uni_stat, upgrade_center], default: upgrade_center}
+        is_silently: {type: boolean, default: false}
+        is_mandatory: {type: boolean, default: false}
+        publish_now: {type: boolean, default: false}
+        platform: {type: string, enum: [android, ios, harmony]}
+        current_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}
+        minimum_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}
+        upgrade_url: {type: [string, 'null'], pattern: '^https://'}
+        release_notes: {$ref: "#/components/schemas/LocalizedReleaseText"}
+        active: {type: boolean}
+        lock_version: {type: integer, minimum: 1}
+    LocalizedReleaseText:
+      type: object
+      additionalProperties: false
+      required: [zh-CN, en-US]
+      properties: {zh-CN: {type: string, minLength: 1}, en-US: {type: string, minLength: 1}}
     AdminMobileReleaseResponse:
       type: object
       required: [code, message, data, request_id]
@@ -5507,3 +5701,21 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {type: array, items: {$ref: "#/components/schemas/AdminMobileRelease"}}, request_id: {type: string}}
+    AdminMobileReleasePageResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminMobileRelease"}}, page: {type: integer, minimum: 1}, page_size: {type: integer, minimum: 1}, total: {type: integer, minimum: 0}}}
+        request_id: {type: string}
+    UUIDBatchRequest:
+      type: object
+      additionalProperties: false
+      required: [ids]
+      properties: {ids: {type: array, minItems: 1, maxItems: 100, uniqueItems: true, items: {type: string, format: uuid}}}
+    LockVersionRequest:
+      type: object
+      additionalProperties: false
+      required: [lock_version]
+      properties: {lock_version: {type: integer, minimum: 1}}

@@ -2,16 +2,50 @@ import { z } from "zod";
 import type { AdminApp, AdminAppPage, AdminAppUser } from "../../generated/api/types.gen";
 
 export const appStatusSchema = z.enum(["active", "disabled"]);
+export const appTypeSchema = z.enum(["uni_app", "uni_app_x"]);
 export const registrationVerificationSchema = z.enum(["none", "email_otp"]);
 export const appMembershipStatusSchema = z.enum(["pending_verification", "active", "disabled"]);
 
 export type ManagedApplication = AdminApp;
 
-export const applicationInputSchema = z.object({
+const optionalUuid = z.union([z.literal(""), z.uuid()]).transform((value) => value || null);
+const optionalHttps = z.union([z.literal(""), z.url().refine((value) => value.startsWith("https://"))]).transform((value) => value || null);
+export const applicationChannelCodes = ["android", "ios", "harmony", "h5", "quickapp", "mp_weixin", "mp_alipay", "mp_baidu", "mp_toutiao", "mp_qq", "mp_kuaishou", "mp_lark", "mp_jd", "mp_dingtalk"] as const;
+export const applicationChannelSchema = z.object({
+  id: z.uuid().optional(),
+  channel_code: z.enum(applicationChannelCodes),
+  name: z.string().trim().max(160),
+  url: optionalHttps.nullable().optional(),
+  abm_url: optionalHttps.nullable().optional(),
+  qrcode_file_id: optionalUuid.nullable().optional(),
+  enabled: z.boolean(),
+});
+export const applicationStoreListingSchema = z.object({
+  id: z.uuid().optional(),
   name: z.string().trim().min(1).max(160),
+  scheme: z.string().trim().max(255).refine((value) => value === "" || /^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(value)),
+  enabled: z.boolean(),
+  priority: z.number().int().min(-100000).max(100000),
+});
+export const applicationInputSchema = z.object({
+  appid: z.string().trim().regex(/^__UNI__[A-Za-z0-9_]{2,120}$/),
+  app_type: appTypeSchema,
+  code: z.string().trim().regex(/^[a-z][a-z0-9-]{1,62}$/).optional(),
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(4000),
+  introduction: z.string().trim().max(1000),
+  remark: z.string().trim().max(4000),
   default_locale: z.enum(["zh-CN", "en-US"]),
   registration_enabled: z.boolean(),
   registration_verification_mode: registrationVerificationSchema,
+  owner_type: z.enum(["user", "tenant"]),
+  owner_id: z.uuid(),
+  icon_file_id: z.uuid().nullable(),
+  managers: z.array(z.uuid()).max(100),
+  members: z.array(z.uuid()).max(100),
+  screenshot_file_ids: z.array(z.uuid()).max(20),
+  channels: z.array(applicationChannelSchema).max(20),
+  store_listings: z.array(applicationStoreListingSchema).max(100),
   lock_version: z.number().int().positive().optional(),
 });
 export type ApplicationInput = z.infer<typeof applicationInputSchema>;
@@ -114,6 +148,6 @@ export function toAppPageInput(editor: AppPageEditorInput): AppPageInput {
 }
 
 export interface Paginated<T> { items: T[]; total: number; }
-export interface AppListFilters { q: string; page: number; page_size: number; }
+export interface AppListFilters { q: string; status?: string; app_type?: string; page: number; page_size: number; }
 export interface MemberListFilters extends AppListFilters { status: string; }
 export interface PageListFilters extends AppListFilters { q: string; status: string; }

@@ -4,8 +4,46 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
+
+func TestReadDictionaryCatalogIncludesFixedSystemLanguages(t *testing.T) {
+	catalogPath := filepath.Join("..", "..", "..", "blueprint", "backend", "spec", "core-dictionaries.json")
+	catalog, err := readDictionaryCatalog(catalogPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	foundType := false
+	labels := map[string]string{}
+	for _, definition := range catalog.Types {
+		if definition.Code != "system.language" {
+			continue
+		}
+		foundType = true
+		if definition.Visibility != "internal" || definition.ExtensionPolicy != "fixed" || definition.Status != "active" {
+			t.Fatalf("unexpected system language type: %+v", definition)
+		}
+	}
+	for _, item := range catalog.Items {
+		if item.TypeCode == "system.language" {
+			labels[item.Value+"/"+item.Locale] = item.Label
+		}
+	}
+	if !foundType {
+		t.Fatal("system.language type is missing")
+	}
+	want := map[string]string{
+		"zh-CN/zh-CN": "简体中文",
+		"zh-CN/en-US": "Simplified Chinese",
+		"en-US/zh-CN": "English",
+		"en-US/en-US": "English",
+	}
+	if !reflect.DeepEqual(labels, want) {
+		t.Fatalf("system language labels=%v want=%v", labels, want)
+	}
+}
 
 func TestReadModuleCatalogAcceptsExactRepositoryCatalog(t *testing.T) {
 	catalogPath := filepath.Join("..", "..", "..", "blueprint", "backend", "spec", "core-modules.json")

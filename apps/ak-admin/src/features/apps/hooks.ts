@@ -24,6 +24,8 @@ export function useApplicationMutations() {
   return {
     create: useMutation({ mutationFn: (input: ApplicationInput) => appAdminApi.create(input), onSuccess: invalidate }),
     update: useMutation({ mutationFn: ({ id, input }: { id: string; input: ApplicationInput }) => appAdminApi.update(id, input), onSuccess: invalidate }),
+    delete: useMutation({ mutationFn: (id: string) => appAdminApi.delete(id), onSuccess: invalidate }),
+    batchDelete: useMutation({ mutationFn: (ids: string[]) => appAdminApi.batchDelete(ids), onSuccess: invalidate }),
     status: useMutation({ mutationFn: ({ id, action, lockVersion }: { id: string; action: "enable" | "disable"; lockVersion: number }) => appAdminApi.setStatus(id, action, lockVersion), onSuccess: invalidate }),
     createMember: useMutation({ mutationFn: ({ appId, input }: { appId: string; input: AppMemberCreateInput }) => appAdminApi.createMember(appId, input), onSuccess: invalidate }),
     updateMember: useMutation({ mutationFn: ({ appId, memberId, input }: { appId: string; memberId: string; input: AppMemberUpdateInput }) => appAdminApi.updateMember(appId, memberId, input), onSuccess: invalidate }),

@@ -1,6 +1,41 @@
 import { AkError } from '../../../core/errors/ak-error.uts'
 import { akI18n } from '../../../core/i18n/ak-i18n.uts'
 import { AkHttpPort, HttpCancellation, HttpRequest } from '../../../core/network/http-port.uts'
-export type VersionPolicy={readonly current:string;readonly minimum:string;readonly notes:string;readonly upgradeUrl:string|null}
-type Wire={readonly current_version:string;readonly minimum_version:string;readonly release_notes:string;readonly upgrade_url:string|null}
-export class HttpVersionRepository{private h:AkHttpPort;constructor(h:AkHttpPort){this.h=h}get(platform:string,ok:(v:VersionPolicy)=>void,fail:(e:AkError)=>void):HttpCancellation{const q=new Map<string,string>();q.set('platform',platform);const r:HttpRequest<UTSJSONObject>={method:'GET',path:'/public/app-version',query:q,headers:new Map<string,string>(),retryOnUnauthorized:false,body:{} as UTSJSONObject,locale:akI18n.getLocale()};return this.h.execute<UTSJSONObject,Wire>(r,x=>ok(this.value(x.data)),fail)}private value(x:Wire):VersionPolicy{return{current:x.current_version,minimum:x.minimum_version,notes:x.release_notes,upgradeUrl:x.upgrade_url}}}
+
+export type VersionPolicy = {
+  readonly packageType: string
+  readonly current: string
+  readonly minimum: string
+  readonly title: string
+  readonly notes: string
+  readonly upgradeUrl: string | null
+  readonly silently: boolean
+  readonly mandatory: boolean
+  readonly publishedAt: string | null
+}
+
+type Wire = {
+  readonly package_type: string
+  readonly current_version: string
+  readonly minimum_version: string
+  readonly title: string
+  readonly release_notes: string
+  readonly upgrade_url: string | null
+  readonly is_silently: boolean
+  readonly is_mandatory: boolean
+  readonly published_at: string | null
+}
+
+export class HttpVersionRepository {
+  private readonly http: AkHttpPort
+  constructor(http: AkHttpPort) { this.http = http }
+  get(platform: string, ok: (value: VersionPolicy) => void, fail: (error: AkError) => void): HttpCancellation {
+    const query = new Map<string, string>()
+    query.set('platform', platform)
+    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/public/app-version', query, headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
+    return this.http.execute<UTSJSONObject, Wire>(request, response => ok(this.value(response.data)), fail)
+  }
+  private value(wire: Wire): VersionPolicy {
+    return { packageType: wire.package_type, current: wire.current_version, minimum: wire.minimum_version, title: wire.title, notes: wire.release_notes, upgradeUrl: wire.upgrade_url, silently: wire.is_silently, mandatory: wire.is_mandatory, publishedAt: wire.published_at }
+  }
+}

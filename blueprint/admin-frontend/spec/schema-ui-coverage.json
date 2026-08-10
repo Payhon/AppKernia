@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "AK 核心 53 张 PostgreSQL 表的 UI 覆盖分类。不是每张基础设施表都应暴露 CRUD；所有表必须明确归类。",
+  "description": "AK 核心 PostgreSQL 表的 UI 覆盖分类。不是每张基础设施表都应暴露 CRUD；所有表必须明确归类。",
   "coverage_types": {
     "page_backed": "页面直接读取、管理或聚合展示",
     "indirect_aggregate": "页面仅展示脱敏聚合信息，不暴露原始记录或 Secret",
@@ -445,9 +445,46 @@
       "table": "sys.mobile_releases",
       "coverage": "page_backed",
       "pages": [
+        "app.upgrade-center",
         "system.mobile.releases"
       ],
-      "reason": "移动端发布策略页面管理各平台版本、升级地址、双语说明和生效状态。"
+      "reason": "兼容发布入口与 App 升级中心共同管理版本历史。"
+    },
+    {
+      "table": "sys.mobile_release_targets",
+      "coverage": "page_backed",
+      "pages": [
+        "app.upgrade-center",
+        "system.mobile.releases"
+      ],
+      "reason": "版本表单和历史列表直接管理目标平台。"
+    },
+    {
+      "table": "sys.mobile_release_translations",
+      "coverage": "page_backed",
+      "pages": [
+        "app.upgrade-center",
+        "system.mobile.releases"
+      ],
+      "reason": "版本表单直接维护中英文标题与更新内容。"
+    },
+    {
+      "table": "sys.mobile_release_store_listings",
+      "coverage": "page_backed",
+      "pages": [
+        "app.upgrade-center",
+        "system.mobile.releases"
+      ],
+      "reason": "版本表单选择应用已配置的市场关系。"
+    },
+    {
+      "table": "sys.mobile_release_publications",
+      "coverage": "page_backed",
+      "pages": [
+        "app.upgrade-center",
+        "system.mobile.releases"
+      ],
+      "reason": "版本中心展示并切换每个平台的当前发布指针。"
     },
     {
       "table": "sys.role_menus",
@@ -524,11 +561,46 @@
       "coverage": "page_backed",
       "pages": [
         "app.applications",
+        "app.upgrade-center",
         "app.content.pages",
         "app.users",
         "app.content.articles"
       ],
       "reason": "App 管理范围与受保护内容的后端数据边界。"
+    },
+    {
+      "table": "app.application_team_members",
+      "coverage": "page_backed",
+      "pages": [
+        "app.applications"
+      ],
+      "reason": "应用编辑表单维护管理员与团队成员资料，不改变 RBAC。"
+    },
+    {
+      "table": "app.application_assets",
+      "coverage": "page_backed",
+      "pages": [
+        "app.applications"
+      ],
+      "reason": "应用编辑表单维护有序截图文件引用。"
+    },
+    {
+      "table": "app.application_channels",
+      "coverage": "page_backed",
+      "pages": [
+        "app.applications"
+      ],
+      "reason": "应用编辑表单维护各发布渠道元数据和二维码引用。"
+    },
+    {
+      "table": "app.application_store_listings",
+      "coverage": "page_backed",
+      "pages": [
+        "app.applications",
+        "app.upgrade-center",
+        "system.mobile.releases"
+      ],
+      "reason": "应用表单维护可扩展市场，版本表单引用启用市场。"
     },
     {
       "table": "app.user_memberships",

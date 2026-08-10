@@ -1,10 +1,12 @@
 # Review checklist
 
-- [ ] Application context is visible before every App-scoped operation.
-- [ ] `app_id` persists in URL for scoped tables and routes.
-- [ ] Both locales contain every UI key and placeholder set matches.
-- [ ] Tables are contained and keyboard-focusable on narrow layouts.
-- [ ] Inputs have labels; async/error feedback has a programmatic announcement.
-- [ ] No icon-only action lacks an accessible name.
-- [ ] Disabled, pending and enabled states have text as well as color.
-- [ ] Reserved legal pages cannot expose a delete action.
+- [x] Manifest AppID, App type, descriptions, status and creation time are represented in the list.
+- [x] Create/edit Drawer covers basic, assets, team, channels and stores.
+- [x] `app_id` deep links target content and upgrade-center routes.
+- [x] Single and batch delete controls exclude active/default applications.
+- [x] Both locale source catalogs contain the new UI keys.
+- [x] Tables contain horizontal overflow and mobile form grids stack.
+- [x] Inputs have labels and async/error feedback uses visible Alert components.
+- [x] Mock-authenticated production-preview screenshots are recorded at 375/768/1024/1440 in both locales.
+- [x] Axe found no serious/critical issues; primary actions and table/card controls are keyboard focusable.
+- [x] Browser checks found no page-level horizontal overflow or unexpected console errors.

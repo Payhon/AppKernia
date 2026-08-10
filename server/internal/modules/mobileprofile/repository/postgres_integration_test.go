@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/appkernia/appkernia/server/internal/modules/mobileprofile/domain"
@@ -34,9 +35,16 @@ func TestPostgresMobileReleaseAndNotificationTenantScope(t *testing.T) {
 	if err = pool.QueryRow(ctx, `SELECT id FROM app.applications WHERE tenant_id=$1 AND is_default`, tenantID).Scan(&appID); err != nil {
 		t.Fatal(err)
 	}
+	if _, err = pool.Exec(ctx, `UPDATE app.applications SET appid=$2 WHERE id=$1`, appID, "__UNI__TEST"+strings.ReplaceAll(suffix, "-", "")); err != nil {
+		t.Fatal(err)
+	}
 	if err = pool.QueryRow(ctx, `SELECT id FROM app.applications WHERE tenant_id=$1 AND is_default`, otherTenantID).Scan(&otherAppID); err != nil {
 		t.Fatal(err)
 	}
+	defer func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM sys.mobile_release_publications WHERE app_id IN ($1,$2)`, appID, otherAppID)
+		_, _ = pool.Exec(ctx, `DELETE FROM sys.mobile_releases WHERE app_id IN ($1,$2)`, appID, otherAppID)
+	}()
 	if err = pool.QueryRow(ctx, `INSERT INTO iam.users(email,display_name,status) VALUES($1,'Mobile User','active') RETURNING id`, "mobile-"+suffix+"@example.test").Scan(&userID); err != nil {
 		t.Fatal(err)
 	}
@@ -90,21 +98,110 @@ func TestPostgresMobileReleaseAndNotificationTenantScope(t *testing.T) {
 	if _, err = repo.ActiveRelease(ctx, appID, "harmony"); !errors.Is(err, domain.ErrReleaseNotFound) {
 		t.Fatalf("missing release error=%v", err)
 	}
+
+	minimumNative := "1.0.0"
+	wgtURL := "https://example.test/app.wgt"
+	wgt, err := repo.CreateDraft(ctx, tenantID, appID, domain.Release{
+		PackageType:          "wgt",
+		Platforms:            []string{"android", "ios", "harmony"},
+		Version:              "3.0.0",
+		MinimumNativeVersion: &minimumNative,
+		Titles:               map[string]string{"zh-CN": "WGT 更新", "en-US": "WGT update"},
+		Contents:             map[string]string{"zh-CN": "三平台资源更新", "en-US": "Resource update for three platforms"},
+		ExternalURL:          &wgtURL,
+	}, userID, "integration-wgt-create")
+	if err != nil || wgt.PublishStatus != "draft" {
+		t.Fatalf("create WGT draft=%#v err=%v", wgt, err)
+	}
+	wgt, err = repo.Publish(ctx, tenantID, appID, wgt.ID, wgt.LockVersion, userID, "integration-wgt-publish")
+	if err != nil || wgt.PublishStatus != "online" || len(wgt.PublishedPlatforms) != 3 {
+		t.Fatalf("publish WGT=%#v err=%v", wgt, err)
+	}
+	if _, err = repo.UpdateDraft(ctx, tenantID, appID, wgt, userID, "integration-frozen-update"); !errors.Is(err, domain.ErrReleaseFrozen) {
+		t.Fatalf("published WGT update error=%v", err)
+	}
+	if err = repo.Delete(ctx, tenantID, appID, []uuid.UUID{wgt.ID}, userID, "integration-frozen-delete"); !errors.Is(err, domain.ErrReleaseDeleteForbidden) {
+		t.Fatalf("published WGT delete error=%v", err)
+	}
+
+	androidURL := "https://example.test/android.wgt"
+	androidWGT, err := repo.CreateDraft(ctx, tenantID, appID, domain.Release{
+		PackageType:          "wgt",
+		Platforms:            []string{"android"},
+		Version:              "4.0.0",
+		MinimumNativeVersion: &minimumNative,
+		Titles:               map[string]string{"zh-CN": "Android 更新", "en-US": "Android update"},
+		Contents:             map[string]string{"zh-CN": "仅替换 Android", "en-US": "Replace Android only"},
+		ExternalURL:          &androidURL,
+	}, userID, "integration-partial-create")
+	if err != nil {
+		t.Fatal(err)
+	}
+	androidWGT, err = repo.Publish(ctx, tenantID, appID, androidWGT.ID, androidWGT.LockVersion, userID, "integration-partial-publish")
+	if err != nil || androidWGT.PublishStatus != "online" {
+		t.Fatalf("publish Android WGT=%#v err=%v", androidWGT, err)
+	}
+	wgt, err = repo.GetRelease(ctx, tenantID, appID, wgt.ID)
+	if err != nil || wgt.PublishStatus != "partial" || len(wgt.PublishedPlatforms) != 2 {
+		t.Fatalf("previous WGT partial state=%#v err=%v", wgt, err)
+	}
+	if _, err = repo.GetRelease(ctx, otherTenantID, otherAppID, wgt.ID); !errors.Is(err, domain.ErrReleaseNotFound) {
+		t.Fatalf("cross-tenant release read error=%v", err)
+	}
+
+	lowerURL := "https://example.test/lower.wgt"
+	lower, err := repo.CreateDraft(ctx, tenantID, appID, domain.Release{
+		PackageType:          "wgt",
+		Platforms:            []string{"android"},
+		Version:              "3.5.0",
+		MinimumNativeVersion: &minimumNative,
+		Titles:               map[string]string{"zh-CN": "低版本", "en-US": "Lower version"},
+		Contents:             map[string]string{"zh-CN": "不应发布", "en-US": "Must not publish"},
+		ExternalURL:          &lowerURL,
+	}, userID, "integration-lower-create")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = repo.Publish(ctx, tenantID, appID, lower.ID, lower.LockVersion, userID, "integration-lower-publish"); !errors.Is(err, domain.ErrReleaseVersionNotIncreasing) {
+		t.Fatalf("lower WGT publish error=%v", err)
+	}
+	if err = repo.Delete(ctx, tenantID, appID, []uuid.UUID{lower.ID, wgt.ID}, userID, "integration-atomic-delete"); !errors.Is(err, domain.ErrReleaseDeleteForbidden) {
+		t.Fatalf("mixed draft/published delete error=%v", err)
+	}
+	if _, err = repo.GetRelease(ctx, tenantID, appID, lower.ID); err != nil {
+		t.Fatalf("atomic delete removed eligible draft: %v", err)
+	}
+	if err = repo.Delete(ctx, tenantID, appID, []uuid.UUID{lower.ID}, userID, "integration-draft-delete"); err != nil {
+		t.Fatalf("delete draft: %v", err)
+	}
+	androidWGT, err = repo.Unpublish(ctx, tenantID, appID, androidWGT.ID, androidWGT.LockVersion, userID, "integration-unpublish")
+	if err != nil || androidWGT.PublishStatus != "offline" {
+		t.Fatalf("unpublish Android WGT=%#v err=%v", androidWGT, err)
+	}
+	androidWGT, err = repo.Publish(ctx, tenantID, appID, androidWGT.ID, androidWGT.LockVersion, userID, "integration-republish")
+	if err != nil || androidWGT.PublishStatus != "online" {
+		t.Fatalf("republish Android WGT=%#v err=%v", androidWGT, err)
+	}
 	invalidReleases := []struct {
-		name    string
-		current string
-		minimum string
-		url     *string
-		notes   string
-		active  bool
+		name          string
+		version       string
+		packageType   string
+		minimumNative *string
+		url           *string
+		createEnv     string
 	}{
-		{name: "invalid semver", current: "1.0", minimum: "1.0.0", notes: `{"zh-CN":"说明","en-US":"Notes"}`},
-		{name: "insecure URL", current: "1.0.0", minimum: "1.0.0", url: ptr("http://example.test/app"), notes: `{"zh-CN":"说明","en-US":"Notes"}`},
-		{name: "active without URL", current: "1.0.0", minimum: "1.0.0", notes: `{"zh-CN":"说明","en-US":"Notes"}`, active: true},
-		{name: "missing localized notes", current: "1.0.0", minimum: "1.0.0", notes: `{"zh-CN":"","en-US":"Notes"}`},
+		{name: "invalid semver", version: "1.0", packageType: "native_app", createEnv: "upgrade_center"},
+		{name: "insecure URL", version: "1.0.0", packageType: "native_app", url: ptr("http://example.test/app"), createEnv: "upgrade_center"},
+		{name: "invalid minimum native semver", version: "1.0.0", packageType: "wgt", minimumNative: ptr("1.0"), createEnv: "upgrade_center"},
+		{name: "unsupported package type", version: "1.0.0", packageType: "archive", createEnv: "upgrade_center"},
+		{name: "unsupported create environment", version: "1.0.0", packageType: "native_app", createEnv: "manual"},
 	}
 	for _, test := range invalidReleases {
-		if _, insertErr := pool.Exec(ctx, `INSERT INTO sys.mobile_releases(platform,current_version,minimum_version,upgrade_url,release_notes,active) VALUES('harmony',$1,$2,$3,$4,$5)`, test.current, test.minimum, test.url, test.notes, test.active); insertErr == nil {
+		if _, insertErr := pool.Exec(ctx, `INSERT INTO sys.mobile_releases(
+tenant_id,app_id,platform,current_version,minimum_version,upgrade_url,release_notes,active,
+package_type,version,minimum_native_version,external_url,create_env)
+VALUES($1,$2,'harmony',$3,'0.0.0',$4,'{}',false,$5,$3,$6,$4,$7)`, tenantID, appID,
+			test.version, test.url, test.packageType, test.minimumNative, test.createEnv); insertErr == nil {
 			t.Fatalf("database accepted %s", test.name)
 		}
 	}

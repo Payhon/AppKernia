@@ -349,6 +349,18 @@ export const generatedRouteRegistry = [
     "activeMenuCode": "app.applications"
   },
   {
+    "componentKey": "app.upgrade-center",
+    "path": "/app/upgrade-center",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.app.upgrade_center.title",
+    "permissions": [
+      "mobile.release.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "app.upgrade-center"
+  },
+  {
     "componentKey": "app.users",
     "path": "/app/users",
     "auth": "required",

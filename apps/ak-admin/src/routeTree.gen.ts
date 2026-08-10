@@ -21,6 +21,7 @@ import { Route as OfflineRouteImport } from './routes/offline'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AppApplicationsRouteImport } from './routes/app.applications'
+import { Route as AppUpgradeCenterRouteImport } from './routes/app.upgrade-center'
 import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as ProfileBasicRouteImport } from './routes/profile.basic'
 import { Route as ProfileConnectionsRouteImport } from './routes/profile.connections'
@@ -134,6 +135,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const AppApplicationsRoute = AppApplicationsRouteImport.update({
   id: '/app/applications',
   path: '/app/applications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppUpgradeCenterRoute = AppUpgradeCenterRouteImport.update({
+  id: '/app/upgrade-center',
+  path: '/app/upgrade-center',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppUsersRoute = AppUsersRouteImport.update({
@@ -446,6 +452,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/app/applications': typeof AppApplicationsRoute
+  '/app/upgrade-center': typeof AppUpgradeCenterRoute
   '/app/users': typeof AppUsersRoute
   '/profile/basic': typeof ProfileBasicRoute
   '/profile/connections': typeof ProfileConnectionsRoute
@@ -514,6 +521,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/app/applications': typeof AppApplicationsRoute
+  '/app/upgrade-center': typeof AppUpgradeCenterRoute
   '/app/users': typeof AppUsersRoute
   '/profile/basic': typeof ProfileBasicRoute
   '/profile/connections': typeof ProfileConnectionsRoute
@@ -574,6 +582,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/app/applications': typeof AppApplicationsRoute
+  '/app/upgrade-center': typeof AppUpgradeCenterRoute
   '/app/users': typeof AppUsersRoute
   '/profile/basic': typeof ProfileBasicRoute
   '/profile/connections': typeof ProfileConnectionsRoute
@@ -644,6 +653,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/app/applications'
+    | '/app/upgrade-center'
     | '/app/users'
     | '/profile/basic'
     | '/profile/connections'
@@ -712,6 +722,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/app/applications'
+    | '/app/upgrade-center'
     | '/app/users'
     | '/profile/basic'
     | '/profile/connections'
@@ -771,6 +782,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/app/applications'
+    | '/app/upgrade-center'
     | '/app/users'
     | '/profile/basic'
     | '/profile/connections'
@@ -840,6 +852,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   AppApplicationsRoute: typeof AppApplicationsRoute
+  AppUpgradeCenterRoute: typeof AppUpgradeCenterRoute
   AppUsersRoute: typeof AppUsersRoute
   ProfileBasicRoute: typeof ProfileBasicRoute
   ProfileConnectionsRoute: typeof ProfileConnectionsRoute
@@ -961,6 +974,13 @@ declare module '@tanstack/react-router' {
       path: '/app/applications'
       fullPath: '/app/applications'
       preLoaderRoute: typeof AppApplicationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/upgrade-center': {
+      id: '/app/upgrade-center'
+      path: '/app/upgrade-center'
+      fullPath: '/app/upgrade-center'
+      preLoaderRoute: typeof AppUpgradeCenterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/users': {
@@ -1508,6 +1528,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   AppApplicationsRoute: AppApplicationsRoute,
+  AppUpgradeCenterRoute: AppUpgradeCenterRoute,
   AppUsersRoute: AppUsersRoute,
   ProfileBasicRoute: ProfileBasicRoute,
   ProfileConnectionsRoute: ProfileConnectionsRoute,

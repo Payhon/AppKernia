@@ -3,10 +3,13 @@ package http
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/google/uuid"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	iamapp "github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	profile "github.com/appkernia/appkernia/server/internal/modules/mobileprofile/application"
@@ -161,13 +164,41 @@ func (handler *Handler) AppVersion(request *ghttp.Request) {
 		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
 	}
-	release, err := handler.service.PublicRelease(request.Context(), appID, request.GetQuery("platform").String())
+	packageType := strings.TrimSpace(request.GetQuery("package_type").String())
+	if packageType == "" {
+		packageType = "native_app"
+	}
+	release, err := handler.service.PublicPackageRelease(request.Context(), appID, request.GetQuery("platform").String(), packageType)
 	if status, code, key := publicReleaseError(err); err != nil {
 		handler.failure(request, status, code, key)
 		return
 	}
-	request.Response.Header().Set("Vary", "Accept-Language")
+	release.UpgradeURL = handler.service.SignedPackageURL(release)
+	request.Response.Header().Set("Vary", "Accept-Language, X-AppID")
+	request.Response.Header().Set("Cache-Control", "no-store")
 	handler.success(request, publicReleaseResponse(release, httpx.Locale(request)))
+}
+func (handler *Handler) AppVersionDownload(request *ghttp.Request) {
+	appID, ok := requestAppID(request)
+	releaseID, releaseErr := uuid.Parse(request.Get("release_id").String())
+	fileID, fileErr := uuid.Parse(request.Get("file_id").String())
+	expires, expiresErr := strconv.ParseInt(request.GetQuery("expires").String(), 10, 64)
+	if !ok || releaseErr != nil || fileErr != nil || expiresErr != nil {
+		handler.failure(request, http.StatusNotFound, "SYS.MOBILE_RELEASE.NOT_FOUND", "errors.common.not_found")
+		return
+	}
+	file, reader, err := handler.service.OpenPackageDownload(request.Context(), appID, releaseID, fileID, expires, request.GetQuery("signature").String())
+	if err != nil {
+		handler.failure(request, http.StatusNotFound, "SYS.MOBILE_RELEASE.NOT_FOUND", "errors.common.not_found")
+		return
+	}
+	defer func() { _ = reader.Close() }()
+	request.Response.Header().Set("Content-Type", file.MediaType)
+	request.Response.Header().Set("Content-Length", fmt.Sprintf("%d", file.SizeBytes))
+	request.Response.Header().Set("Content-Disposition", `attachment; filename="app-package"`)
+	request.Response.Header().Set("Cache-Control", "private, no-store")
+	request.Response.Header().Set("X-Content-Type-Options", "nosniff")
+	_, _ = io.Copy(request.Response.BufferWriter, reader)
 }
 func (handler *Handler) AdminReleases(request *ghttp.Request) {
 	appID, ok := requestAppID(request)
@@ -175,7 +206,43 @@ func (handler *Handler) AdminReleases(request *ghttp.Request) {
 		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
 	}
-	data, err := handler.service.AdminReleases(request.Context(), bearer(request), appID)
+	if strings.TrimSpace(request.GetRouter("app_id").String()) == "" {
+		data, err := handler.service.AdminReleases(request.Context(), bearer(request), appID)
+		if err != nil {
+			handler.adminError(request, err)
+			return
+		}
+		handler.success(request, data)
+		return
+	}
+	filter, ok := releaseFilter(request)
+	if !ok {
+		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	data, err := handler.service.AdminReleasePage(request.Context(), bearer(request), appID, filter)
+	if err != nil {
+		handler.adminError(request, err)
+		return
+	}
+	handler.success(request, data)
+}
+func (handler *Handler) AdminRelease(request *ghttp.Request) {
+	appID, ok := requestAppID(request)
+	id, err := uuid.Parse(request.Get("id").String())
+	if !ok || err != nil {
+		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	if request.Method == http.MethodDelete {
+		if err = handler.service.DeleteReleases(request.Context(), bearer(request), httpx.RequestID(request), appID, []uuid.UUID{id}); err != nil {
+			handler.adminError(request, err)
+			return
+		}
+		handler.success(request, map[string]bool{"deleted": true})
+		return
+	}
+	data, err := handler.service.AdminRelease(request.Context(), bearer(request), appID, id)
 	if err != nil {
 		handler.adminError(request, err)
 		return
@@ -223,6 +290,68 @@ func (handler *Handler) AdminUpdateRelease(request *ghttp.Request) {
 	}
 	handler.success(request, out)
 }
+func (handler *Handler) AdminPublishRelease(request *ghttp.Request) {
+	handler.releasePublicationAction(request, true)
+}
+func (handler *Handler) AdminUnpublishRelease(request *ghttp.Request) {
+	handler.releasePublicationAction(request, false)
+}
+func (handler *Handler) releasePublicationAction(request *ghttp.Request, publish bool) {
+	appID, ok := requestAppID(request)
+	id, err := uuid.Parse(request.Get("id").String())
+	var body struct {
+		LockVersion int32 `json:"lock_version"`
+	}
+	if !ok || err != nil || decode(request, &body) != nil {
+		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	var out profiledomain.Release
+	if publish {
+		out, err = handler.service.PublishRelease(request.Context(), bearer(request), httpx.RequestID(request), appID, id, body.LockVersion)
+	} else {
+		out, err = handler.service.UnpublishRelease(request.Context(), bearer(request), httpx.RequestID(request), appID, id, body.LockVersion)
+	}
+	if err != nil {
+		handler.adminError(request, err)
+		return
+	}
+	handler.success(request, out)
+}
+func (handler *Handler) AdminBatchDeleteReleases(request *ghttp.Request) {
+	appID, ok := requestAppID(request)
+	var body struct {
+		IDs []uuid.UUID `json:"ids"`
+	}
+	if !ok || decode(request, &body) != nil {
+		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	if err := handler.service.DeleteReleases(request.Context(), bearer(request), httpx.RequestID(request), appID, body.IDs); err != nil {
+		handler.adminError(request, err)
+		return
+	}
+	handler.success(request, map[string]int{"deleted_count": len(body.IDs)})
+}
+
+func releaseFilter(request *ghttp.Request) (profiledomain.ReleaseFilter, bool) {
+	filter := profiledomain.ReleaseFilter{Query: strings.TrimSpace(request.GetQuery("q").String()), PackageType: strings.TrimSpace(request.GetQuery("package_type").String()), Platform: strings.TrimSpace(request.GetQuery("platform").String()), PublishStatus: strings.TrimSpace(request.GetQuery("publish_status").String()), Page: 1, PageSize: 20}
+	if raw := request.GetQuery("page").String(); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value < 1 {
+			return filter, false
+		}
+		filter.Page = int32(value)
+	}
+	if raw := request.GetQuery("page_size").String(); raw != "" {
+		value, err := strconv.Atoi(raw)
+		if err != nil || value < 1 || value > 100 {
+			return filter, false
+		}
+		filter.PageSize = int32(value)
+	}
+	return filter, true
+}
 func requestAppID(request *ghttp.Request) (uuid.UUID, bool) {
 	raw := strings.TrimSpace(request.GetRouter("app_id").String())
 	if raw == "" {
@@ -233,15 +362,39 @@ func requestAppID(request *ghttp.Request) (uuid.UUID, bool) {
 }
 
 type mobileReleaseResponse struct {
-	Platform       string  `json:"platform"`
-	CurrentVersion string  `json:"current_version"`
-	MinimumVersion string  `json:"minimum_version"`
-	UpgradeURL     *string `json:"upgrade_url"`
-	ReleaseNotes   string  `json:"release_notes"`
+	Platform       string     `json:"platform"`
+	PackageType    string     `json:"package_type"`
+	CurrentVersion string     `json:"current_version"`
+	MinimumVersion string     `json:"minimum_version"`
+	UpgradeURL     *string    `json:"upgrade_url"`
+	Title          string     `json:"title"`
+	ReleaseNotes   string     `json:"release_notes"`
+	IsSilently     bool       `json:"is_silently"`
+	IsMandatory    bool       `json:"is_mandatory"`
+	PublishedAt    *time.Time `json:"published_at,omitempty"`
 }
 
 func publicReleaseResponse(release profiledomain.Release, locale i18n.Locale) mobileReleaseResponse {
-	return mobileReleaseResponse{Platform: release.Platform, CurrentVersion: release.CurrentVersion, MinimumVersion: release.MinimumVersion, UpgradeURL: release.UpgradeURL, ReleaseNotes: release.ReleaseNotes[string(locale)]}
+	localeCode := string(locale)
+	title, notes := release.Titles[localeCode], release.Contents[localeCode]
+	if notes == "" {
+		notes = release.ReleaseNotes[localeCode]
+	}
+	if title == "" {
+		title = release.Titles["zh-CN"]
+	}
+	if notes == "" {
+		notes = release.Contents["zh-CN"]
+	}
+	if notes == "" {
+		notes = release.ReleaseNotes["zh-CN"]
+	}
+	if release.PackageType == "" {
+		release.PackageType = "native_app"
+	}
+	return mobileReleaseResponse{Platform: release.Platform, PackageType: release.PackageType, CurrentVersion: release.CurrentVersion,
+		MinimumVersion: release.MinimumVersion, UpgradeURL: release.UpgradeURL, Title: title, ReleaseNotes: notes,
+		IsSilently: release.IsSilently, IsMandatory: release.IsMandatory, PublishedAt: release.LastPublishedAt}
 }
 func publicReleaseError(err error) (int, string, string) {
 	if err == nil {
@@ -263,6 +416,14 @@ func (handler *Handler) adminError(request *ghttp.Request, err error) {
 		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 	case errors.Is(err, profiledomain.ErrReleaseConflict):
 		handler.failure(request, http.StatusConflict, "SYS.MOBILE_RELEASE.CONFLICT", "errors.common.conflict")
+	case errors.Is(err, profiledomain.ErrReleaseFrozen):
+		handler.failure(request, http.StatusConflict, "SYS.MOBILE_RELEASE.FROZEN", "errors.common.conflict")
+	case errors.Is(err, profiledomain.ErrReleaseDeleteForbidden):
+		handler.failure(request, http.StatusConflict, "SYS.MOBILE_RELEASE.DELETE_FORBIDDEN", "errors.common.conflict")
+	case errors.Is(err, profiledomain.ErrReleaseVersionNotIncreasing):
+		handler.failure(request, http.StatusConflict, "SYS.MOBILE_RELEASE.VERSION_NOT_INCREASING", "errors.common.conflict")
+	case errors.Is(err, profiledomain.ErrReleaseFileInvalid):
+		handler.failure(request, http.StatusUnprocessableEntity, "SYS.MOBILE_RELEASE.FILE_INVALID", "errors.validation.failed")
 	case errors.Is(err, profiledomain.ErrReleaseNotFound):
 		handler.failure(request, http.StatusNotFound, "SYS.MOBILE_RELEASE.NOT_FOUND", "errors.common.not_found")
 	default:
@@ -271,17 +432,35 @@ func (handler *Handler) adminError(request *ghttp.Request, err error) {
 }
 
 type releaseRequest struct {
-	Platform       string            `json:"platform"`
-	CurrentVersion string            `json:"current_version"`
-	MinimumVersion string            `json:"minimum_version"`
-	UpgradeURL     *string           `json:"upgrade_url"`
-	ReleaseNotes   map[string]string `json:"release_notes"`
-	Active         bool              `json:"active"`
-	LockVersion    int32             `json:"lock_version"`
+	PackageType          string            `json:"package_type"`
+	Platforms            []string          `json:"platforms"`
+	Version              string            `json:"version"`
+	MinimumNativeVersion *string           `json:"minimum_native_version"`
+	Titles               map[string]string `json:"titles"`
+	Contents             map[string]string `json:"contents"`
+	PackageFileID        *uuid.UUID        `json:"package_file_id"`
+	ExternalURL          *string           `json:"external_url"`
+	StoreListingIDs      []uuid.UUID       `json:"store_listing_ids"`
+	CreateEnv            string            `json:"create_env"`
+	IsSilently           bool              `json:"is_silently"`
+	IsMandatory          bool              `json:"is_mandatory"`
+	PublishNow           bool              `json:"publish_now"`
+	Platform             string            `json:"platform"`
+	CurrentVersion       string            `json:"current_version"`
+	MinimumVersion       string            `json:"minimum_version"`
+	UpgradeURL           *string           `json:"upgrade_url"`
+	ReleaseNotes         map[string]string `json:"release_notes"`
+	Active               bool              `json:"active"`
+	LockVersion          int32             `json:"lock_version"`
 }
 
 func (x releaseRequest) domain(id uuid.UUID, lock int32) profiledomain.Release {
-	return profiledomain.Release{ID: id, Platform: x.Platform, CurrentVersion: x.CurrentVersion, MinimumVersion: x.MinimumVersion, UpgradeURL: x.UpgradeURL, ReleaseNotes: x.ReleaseNotes, Active: x.Active, LockVersion: lock}
+	return profiledomain.Release{ID: id, PackageType: x.PackageType, Platforms: x.Platforms, Version: x.Version,
+		MinimumNativeVersion: x.MinimumNativeVersion, Titles: x.Titles, Contents: x.Contents, PackageFileID: x.PackageFileID,
+		ExternalURL: x.ExternalURL, StoreListingIDs: x.StoreListingIDs, CreateEnv: x.CreateEnv,
+		IsSilently: x.IsSilently, IsMandatory: x.IsMandatory, Platform: x.Platform, CurrentVersion: x.CurrentVersion,
+		MinimumVersion: x.MinimumVersion, UpgradeURL: x.UpgradeURL, ReleaseNotes: x.ReleaseNotes,
+		Active: x.Active || x.PublishNow, LockVersion: lock}
 }
 func (handler *Handler) success(request *ghttp.Request, data any) {
 	handler.successStatus(request, http.StatusOK, data)
