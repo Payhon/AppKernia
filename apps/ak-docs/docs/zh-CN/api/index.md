@@ -9,6 +9,8 @@ AppKernia 使用 OpenAPI 3.1 描述服务端契约。本文档提供最常用路
 
 [下载当前 OpenAPI YAML](/openapi.yaml)
 
+[使用 Admin 在线 OpenAPI 文档](./online-reference)
+
 ## API 面
 
 | 面           | 前缀            | 使用者                    | 身份边界                              |
@@ -103,6 +105,7 @@ curl --fail-with-body \
 
 ## 从哪里开始
 
+- [在线 OpenAPI 文档与系统菜单](./online-reference)
 - [响应、错误与幂等](./conventions)
 - [Mobile 认证 API](./mobile-auth)
 - [Mobile 用户与公共资源](./mobile-resources)

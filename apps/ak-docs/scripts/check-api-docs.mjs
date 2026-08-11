@@ -11,6 +11,13 @@ const openapiPaths = new Set(
 );
 const failures = [];
 let referenceCount = 0;
+const nonOperationRoutes = new Set([
+  '/admin-api/',
+  '/api/',
+  '/internal/',
+  '/openapi/',
+  '/openapi/openapi.yaml',
+]);
 
 if (!/^\s*license:\s*\n\s+name:\s+MIT\s*$/m.test(openapi)) {
   failures.push('OpenAPI info.license must declare MIT.');
@@ -36,6 +43,7 @@ for (const locale of ['zh-CN', 'en-US']) {
       }
 
       const withoutQuery = reference.split('?')[0];
+      if (nonOperationRoutes.has(withoutQuery)) continue;
       const fullPath = withoutQuery.startsWith('/internal/')
         ? withoutQuery
         : `${prefix}${withoutQuery}`;

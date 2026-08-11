@@ -152,6 +152,8 @@ flowchart TB
 
 React SPA 只访问 `/admin-api/v1`。路由代码静态编译，菜单由服务端过滤，最终授权仍由 Go API 强制执行。
 
+System 在数据层继续是一级菜单，但 Shell 将它放到侧栏底部齿轮；普通主菜单独立滚动。旁边的文档图标打开公开、独立构建的 OpenAPI 页面，既不读取 Admin 会话凭据，也不改变现有路由和权限语义。详见[在线 OpenAPI 文档与系统菜单](../api/online-reference)。
+
 ### AK Server
 
 GoFrame 负责 HTTP 边界，pgx/v5 + sqlc 负责 PostgreSQL 数据访问。API、Worker 与 CLI 共享代码库；内部任务使用 River，外部事件使用 Transactional Outbox。

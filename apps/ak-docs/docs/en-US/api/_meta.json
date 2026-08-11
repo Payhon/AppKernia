@@ -1,1 +1,9 @@
-["index", "conventions", "mobile-auth", "mobile-resources", "admin-auth", "admin-core"]
+[
+  "index",
+  "online-reference",
+  "conventions",
+  "mobile-auth",
+  "mobile-resources",
+  "admin-auth",
+  "admin-core"
+]

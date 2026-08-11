@@ -152,6 +152,8 @@ AK Mobile uses uni-app x, UTS/UVue, and VDOM. Feature pages reach platform and n
 
 AK Admin is a React SPA that only calls `/admin-api/v1`. Routes are statically compiled, menus are filtered by the server, and the Go API remains the final authorization boundary.
 
+System remains a top-level data menu, but the Shell presents it through the bottom sidebar gear while the primary menu scrolls independently. The adjacent documentation icon opens a public, independently built OpenAPI page that neither reads Admin session credentials nor changes route and permission semantics. See [online OpenAPI reference and System menu](../api/online-reference).
+
 ### AK Server
 
 AK Server uses GoFrame at the HTTP boundary and pgx/v5 plus sqlc for PostgreSQL. API, worker, and CLI share one codebase. River handles internal jobs and a transactional outbox handles external events.

@@ -9,6 +9,8 @@ AppKernia describes its server contract with OpenAPI 3.1. These pages explain co
 
 [Download the current OpenAPI YAML](/openapi.yaml)
 
+[Use the Admin online OpenAPI reference](./online-reference)
+
 | Surface      | Prefix          | Client                         | Identity boundary                          |
 | ------------ | --------------- | ------------------------------ | ------------------------------------------ |
 | App API      | `/api/v1`       | uni-app x and app users        | `ak-mobile` bearer token                   |
@@ -87,6 +89,6 @@ A successful response has a 2xx status, a stable `code`, matching `Content-Langu
 - Define idempotency keys, retry limits, and audit behavior for writes.
 - Validate SQL isolation with integration data from two tenants.
 
-Start with [conventions](./conventions), [Mobile authentication](./mobile-auth), [Mobile resources](./mobile-resources), [Admin authentication](./admin-auth), or [Admin core resources](./admin-core).
+Start with the [online OpenAPI reference and System menu](./online-reference), [conventions](./conventions), [Mobile authentication](./mobile-auth), [Mobile resources](./mobile-resources), [Admin authentication](./admin-auth), or [Admin core resources](./admin-core).
 
 <div class="ak-doc-callout"><strong>Version status</strong>The current API is 0.1.0 and the project has no stable release yet. Generate clients from OpenAPI and verify the schema hash instead of maintaining hand-written DTOs from this page.</div>
