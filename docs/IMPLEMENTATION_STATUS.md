@@ -9,8 +9,16 @@
 | Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环                                                                    | 当前 Admin backlog 已收口；生产 Adapter 联调见风险                                                        |
 | Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁；公开 `/openapi/` 与侧栏底部文档/System 工具入口已完成 Node 24、Docker/Nginx 和 Chromium 验收                                                      | 生产部署、真实 Bearer 手工调用、第三方 Scalar 请求客户端瞬态 axe 与跨浏览器验收见风险                     |
 | Mobile              | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证                        | Android/Harmony 安装运行、三端真机、签名/发布仍未完成                                                     |
-| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：66 个静态页面、零门槛向导、核心 API、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31299540867` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
+| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：68 个静态页面、零门槛向导、核心 API、在线 OpenAPI/System 菜单指南、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31475956211` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
+
+## 2026-08-11 文档站发布在线 OpenAPI 与 System 菜单指南
+
+- 服务端 API 栏目新增中英文“在线 OpenAPI 文档与系统菜单”页面，集中说明 Admin 底部文档/System 入口、桌面级联与移动内联层级、接口面/模块/接口三级分组、标题本地化、真实请求安全边界、顶部提示的会话级关闭和自托管构建约束。
+- 双语 API 首页和总体架构页已增加交叉入口，`_meta.json` 将新页面放在 API 概览之后；API 文档检查器仅为 `/openapi/`、`/api/`、`/admin-api/` 与 `/internal/` 网关基础路径增加非 operation allowlist，真实 operation 路径仍逐项对 canonical OpenAPI 校验。
+- Node 24.18.1 下 `pnpm --filter @appkernia/docs check` 退出 0：121 个 API 路径引用、lint、TypeScript、Prettier、双语 parity、死链/锚点、68 页 Rspress build 和 Sitemap 全部通过。Mobile 蓝图与统一 i18n validator、`git diff --check` 同样退出 0。
+- 内容提交 `32fc41e` 已推送 `origin/main` 与 `gitee/main`；GitHub Pages run `31475956211` 的 build/deploy 分别用时 56/45 秒并成功。中英文新页面、API 首页与 OpenAPI YAML 均为 HTTP 200，线上标题匹配，发布 YAML SHA-256 与 canonical 同为 `efc4a2050a7cbe8f31fa88f23306ebc545783fa2e34dba5622e3ed8f348bd8df`。
+- 当前公开地址仍为 `https://payhon.github.io/AppKernia/`，Pages 为 workflow 模式且强制 HTTPS，`cname=null`。本轮复用现有文档主题，只新增 Markdown 内容和导航顺序，没有视觉组件或样式变更，因此没有新增 UI Skill 产物、截图、axe 或物理设备证据。
 
 ## 2026-08-11 管理端 OpenAPI 模块分组与接口标题双语化
 

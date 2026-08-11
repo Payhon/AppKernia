@@ -1862,3 +1862,31 @@
 | `AK_E2E_BASE_URL=http://127.0.0.1:4174 AK_E2E_SKIP_SHELL=1 ... e2e_openapi_system_navigation.py`（首次 / CSS 修复后） | 1 / 0 | 首次发现 `.ak-openapi-notice` 的 `display:grid` 覆盖 HTML `hidden` 默认样式；补充 `.ak-openapi-notice[hidden]{display:none}` 后双语 1440/375 Chromium 验收通过，关闭后刷新仍隐藏，axe serious/critical 为 0。 |
 
 截图：[中文关闭态](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-reference-navigation-i18n/screenshots/openapi.zh-CN.1440.notice-dismissed.png)、[英文关闭态](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-reference-navigation-i18n/screenshots/openapi.en-US.1440.notice-dismissed.png)。
+
+## 2026-08-11 文档站在线 OpenAPI 与 System 菜单指南发布
+
+### 交付内容
+
+- 在服务端 API 栏目新增 `zh-CN` / `en-US` 双语指南，覆盖 Admin 底部文档与 System 工具入口、桌面/移动导航差异、权限裁剪、接口面/模块/接口三级分组、双语标题、搜索、交互测试凭据与 Cookie 边界、顶部提示关闭、自托管资源、缓存和安全响应头。
+- API 首页和总体架构页增加双语交叉链接，栏目 `_meta.json` 将新页面固定在 API 概览之后。文档不复制第二份 API 规范，公开下载仍由构建从 `server/openapi/openapi.yaml` 同步。
+- API 文档检查器识别 `/openapi/`、`/api/`、`/admin-api/` 与 `/internal/` 为网关基础路径，不把它们错误拼接为业务 operation；其他内联接口路径继续逐项对 canonical OpenAPI 校验。
+- 本次只复用既有 Rspress 页面、callout、Mermaid 和导航机制，没有新增或调整主题组件、CSS、视觉布局或图片资产，因此不产生新的 UI Skill、截图和视觉回归证据。
+
+### 实际命令与结果
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| Node 24.18.1 `pnpm --filter @appkernia/docs check` | 0 | 121 个文档 API 路径引用、Rslint、TypeScript、Prettier、双语目录 parity、死链/锚点、68 页 Rspress build 与 Sitemap 全部通过。 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 38 routes、3 tabs、26 baseline APIs、38 API deltas、3 platforms，0 error / 0 warning。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN` / `en-US`、默认/最终回退和 Backend/Admin/Mobile reference packs 一致。 |
+| `git diff --check` | 0 | 文档与检查器补丁无空白错误。 |
+| `git push origin main && git push gitee main` | 0 | 内容提交 `32fc41e4b05ddbadccd761f17aedbc4f4315c862` 已推送两个远端的 `main`。 |
+| GitHub Pages run `31475956211` | 0 | build 56 秒、deploy 45 秒，两个 Job 均成功；Pages artifact 对应 `32fc41e`。 |
+| 线上 HTTP / 内容 / Hash smoke | 0 | 中英文新页面、API 首页和 `/openapi.yaml` 均为 HTTP 200；双语标题存在；线上 YAML 与 canonical SHA-256 同为 `efc4a2050a7cbe8f31fa88f23306ebc545783fa2e34dba5622e3ed8f348bd8df`。 |
+
+### 线上地址与验证边界
+
+- 中文：`https://payhon.github.io/AppKernia/api/online-reference`
+- English：`https://payhon.github.io/AppKernia/en-US/api/online-reference`
+- GitHub Pages：workflow 模式、HTTPS enforcement 开启、`cname=null`；`appkernia.com` 仍未绑定，不能宣称自定义域名已发布。
+- 本轮线上验收为 GitHub Actions 状态、HTTP、预渲染标题和 OpenAPI 字节 Hash；没有重新执行 Chromium 视觉、axe、Firefox/Safari 或物理设备验证。既有 Admin/OpenAPI Chromium 证据仍记录在前述交付报告中，不能外推为本轮文档页面的新视觉证据。
