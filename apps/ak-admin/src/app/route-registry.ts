@@ -71,6 +71,11 @@ export interface ResolvedMenuPage {
 
 export type ResolvedMenuItem = ResolvedMenuDirectory | ResolvedMenuPage;
 
+export interface ShellNavigationItems {
+  primary: ResolvedMenuItem[];
+  system: ResolvedMenuDirectory | null;
+}
+
 const navigationRootCodes = new Set(["app", "dashboard", "system"]);
 
 export function findRegisteredRoute(
@@ -170,6 +175,20 @@ export function findMenuAncestorKeys(
     if (match.length > 0) return match;
   }
   return [];
+}
+
+export function partitionShellNavigation(menus: readonly ResolvedMenuItem[]): ShellNavigationItems {
+  const system = menus.find((menu): menu is ResolvedMenuDirectory => (
+    menu.code === "system" && menu.type === "directory"
+  )) ?? null;
+  return {
+    primary: menus.filter((menu) => menu.code !== "system"),
+    system,
+  };
+}
+
+export function isSystemPath(pathname: string): boolean {
+  return pathname === "/system" || pathname.startsWith("/system/");
 }
 
 export function flattenMenuPages(menus: readonly ResolvedMenuItem[]): ResolvedMenuPage[] {

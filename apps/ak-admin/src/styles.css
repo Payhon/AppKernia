@@ -428,13 +428,129 @@ a,
 .ak-drawer-brand img {
   border-radius: 8px;
 }
-.ak-desktop-sider,
-.ak-desktop-sider .ant-layout-sider-children {
+.ak-desktop-sider {
+  position: sticky;
+  z-index: 25;
+  top: 0;
+  align-self: flex-start;
+  height: 100dvh;
   overflow: visible;
 }
-.ak-desktop-sider {
-  position: relative;
-  z-index: 25;
+.ak-desktop-sider .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: visible;
+}
+.ak-primary-navigation {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-color: rgb(255 255 255 / 20%) transparent;
+  scrollbar-width: thin;
+}
+.ak-primary-navigation .ant-menu {
+  border-inline-end: 0 !important;
+}
+.ak-shell-utilities {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  flex: 0 0 auto;
+  min-height: 52px;
+  padding: 4px;
+  border-top: 1px solid rgb(255 255 255 / 12%);
+  background: #111;
+}
+.ak-shell-utilities-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ak-shell-utility-popover-trigger {
+  display: block;
+  min-width: 0;
+}
+.ak-shell-utility-button.ant-btn {
+  display: inline-grid;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  place-items: center;
+  color: rgb(255 255 255 / 78%);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    border-color 160ms ease;
+}
+.ak-shell-utility-button.ant-btn:hover,
+.ak-shell-utility-button.ant-btn:focus-visible {
+  color: #fff !important;
+  background: rgb(255 255 255 / 10%) !important;
+  border-color: rgb(255 255 255 / 16%) !important;
+}
+.ak-shell-utility-button-active.ant-btn,
+.ak-shell-utility-button-active.ant-btn:hover,
+.ak-shell-utility-button-active.ant-btn:focus-visible {
+  color: var(--ak-ink) !important;
+  background: #fff !important;
+  border-color: #fff !important;
+}
+.ak-shell-utility-button.ant-btn .anticon {
+  font-size: 18px;
+}
+.ak-desktop-sider.ant-layout-sider-collapsed .ak-shell-utilities {
+  min-height: 48px;
+  padding: 2px 0;
+}
+.ak-desktop-sider.ant-layout-sider-collapsed .ak-shell-utility-button.ant-btn {
+  height: 44px;
+  border-radius: 0;
+}
+.ak-system-menu-popover .ant-popover-container,
+.ak-system-menu-popover .ant-popover-inner {
+  padding: 6px;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 16%);
+  border-radius: 12px;
+  background: rgb(10 10 10 / 96%);
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 28%),
+    10px 18px 42px rgb(0 0 0 / 34%);
+  -webkit-backdrop-filter: saturate(150%) blur(14px);
+  backdrop-filter: saturate(150%) blur(14px);
+}
+.ak-system-menu-popover .ant-popover-content,
+.ak-system-menu-popover .ant-popover-inner-content {
+  color: #fff;
+}
+.ak-system-menu-panel {
+  width: min(264px, calc(100vw - 16px));
+  max-height: min(640px, calc(100dvh - 92px));
+  overflow: auto;
+}
+.ak-system-menu-heading {
+  padding: 10px 12px 8px;
+  color: rgb(255 255 255 / 58%);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ak-system-navigation-menu.ant-menu {
+  border: 0;
+  background: transparent;
+}
+.ak-system-navigation-menu.ant-menu-dark .ant-menu-item-selected a {
+  color: var(--ak-ink);
+}
+.ak-system-navigation-menu.ant-menu-dark .ant-menu-submenu-selected > .ant-menu-submenu-title,
+.ak-system-navigation-menu.ant-menu-dark .ant-menu-submenu-open > .ant-menu-submenu-title {
+  color: #fff;
+  background: rgb(255 255 255 / 8%);
+}
+.ak-system-navigation-menu.ant-menu-inline .ant-menu-sub.ant-menu-inline {
+  background: rgb(255 255 255 / 4%);
 }
 .ak-desktop-sider .ant-menu-dark .ant-menu-item .ant-menu-title-content > a,
 .ak-mobile-drawer .ant-menu-dark .ant-menu-item .ant-menu-title-content > a {
@@ -627,6 +743,7 @@ a,
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .ak-shell-utility-button.ant-btn,
   .ak-sider-collapse-handle.ant-btn,
   .ak-sider-hide-handle.ant-btn,
   .ak-sider-hidden-restore.ant-btn {
@@ -1557,8 +1674,26 @@ a,
   animation: ak-spin 800ms linear infinite;
 }
 .ak-mobile-drawer .ant-drawer-body {
+  min-height: 0;
   padding: 0;
   background: #111;
+}
+.ak-mobile-navigation-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+.ak-mobile-navigation-shell .ak-primary-navigation {
+  min-height: 0;
+}
+.ak-mobile-navigation-shell .ak-shell-utilities {
+  min-height: 56px;
+  padding: 6px;
+  gap: 8px;
+}
+.ak-mobile-navigation-shell .ak-shell-utility-button.ant-btn {
+  min-height: 44px;
 }
 .ak-session-current-warning {
   margin-bottom: 20px;

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { AdminMenuItem } from '../generated/api/types.gen'
-import { findMenuAncestorKeys, findRegisteredRoute, isSafeInternalRedirect, resolveBackendMenus } from './route-registry'
+import { findMenuAncestorKeys, findRegisteredRoute, isSafeInternalRedirect, isSystemPath, partitionShellNavigation, resolveBackendMenus } from './route-registry'
 
 let menuId = 0
 
@@ -103,6 +103,31 @@ describe('static route registry', () => {
     const arbitraryRoot = directory('custom-root')
     const child = page('dashboard', arbitraryRoot.id)
     expect(resolveBackendMenus([arbitraryRoot, child], new Set(), {})).toEqual([])
+  })
+
+  it('moves the permission-filtered System directory out of primary navigation', () => {
+    const dashboard = page('dashboard', null, 'dashboard')
+    const menus = systemTree('system.users.accounts')
+    const resolved = resolveBackendMenus([dashboard, ...menus], new Set(['iam.user.read']), {})
+
+    const partitioned = partitionShellNavigation(resolved)
+    expect(partitioned.primary.map((item) => item.code)).toEqual(['dashboard'])
+    expect(partitioned.system?.code).toBe('system')
+    expect(partitioned.system?.children[0]?.code).toBe('system.users')
+  })
+
+  it('keeps the primary menu usable when System is missing or fully pruned', () => {
+    const dashboard = page('dashboard', null, 'dashboard')
+    const resolved = resolveBackendMenus([dashboard, ...systemTree('system.users.accounts')], new Set(), {})
+
+    expect(partitionShellNavigation(resolved)).toEqual({ primary: resolved, system: null })
+  })
+
+  it('recognizes only System routes for the utility active state', () => {
+    expect(isSystemPath('/system/settings/configs')).toBe(true)
+    expect(isSystemPath('/system')).toBe(true)
+    expect(isSystemPath('/systems')).toBe(false)
+    expect(isSystemPath('/dashboard')).toBe(false)
   })
 
   it('accepts only registered authenticated same-origin paths as redirects', () => {
