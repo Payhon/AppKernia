@@ -8,6 +8,8 @@ from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
+from e2e_navigation_helpers import open_system_page
+
 ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / "output" / "playwright"
 AXE = ROOT / "apps" / "ak-admin" / "node_modules" / "axe-core" / "axe.min.js"
@@ -69,7 +71,7 @@ def main() -> None:
         login(page)
         page.get_by_label("显示语言", exact=True).select_option(label="English")
 
-        page.locator('.ak-desktop-sider a[href="/system/notifications/notices"]').click()
+        open_system_page(page, "/system/notifications/notices", "Notification Center")
         page.wait_for_url(f"{BASE}/system/notifications/notices")
         page.get_by_role("heading", name="Announcements", exact=True).wait_for()
         shot(page, "notifications.notices.en-US.1440.empty", evidence)
@@ -106,7 +108,7 @@ def main() -> None:
         assert page.locator("script").filter(has_text="window.bad").count() == 0
         shot(page, "notifications.notices.en-US.1440.detail", evidence)
 
-        page.locator('.ak-desktop-sider a[href="/system/notifications/messages"]').click()
+        open_system_page(page, "/system/notifications/messages", "Notification Center")
         page.wait_for_url(f"{BASE}/system/notifications/messages")
         page.get_by_role("heading", name="In-app messages", exact=True).wait_for()
         page.get_by_role("button", name="Create draft", exact=True).click()
@@ -129,7 +131,7 @@ def main() -> None:
         page.get_by_role("dialog", name="Confirm recipients and publish?", exact=True).get_by_role("button", name="Cancel", exact=True).click()
         evidence["recipient_confirmation"] = {"notice_count": preview_count, "selected_message_count": 1}
 
-        page.locator('.ak-desktop-sider a[href="/system/notifications/templates"]').click()
+        open_system_page(page, "/system/notifications/templates", "Notification Center")
         page.wait_for_url(f"{BASE}/system/notifications/templates")
         page.get_by_role("heading", name="Notification templates", exact=True).wait_for()
         page.get_by_role("button", name="Create template", exact=True).click()
@@ -156,7 +158,7 @@ def main() -> None:
         delivery_id = sql(f"""INSERT INTO notify.deliveries(tenant_id,message_id,user_id,template_id,channel,target_ciphertext,target_hash,target_hint,target_key_version,provider,status,attempt_count,max_attempts,last_error)
 SELECT tm.tenant_id,'{notice_id}',tm.user_id,'{template_id}','email',decode('01','hex'),decode(repeat('01',32),'hex'),'e***@example.test',1,'local-mock','failed',1,3,'temporary failure' FROM iam.tenant_members tm JOIN iam.users u ON u.id=tm.user_id WHERE u.email='{EMAIL}' LIMIT 1 RETURNING id;""").splitlines()[0]
         assert delivery_id
-        page.locator('.ak-desktop-sider a[href="/system/notifications/deliveries"]').click()
+        open_system_page(page, "/system/notifications/deliveries", "Notification Center")
         page.wait_for_url(f"{BASE}/system/notifications/deliveries")
         page.get_by_role("heading", name="Delivery records", exact=True).wait_for()
         delivery_row = page.get_by_role("row").filter(has_text="e***@example.test")

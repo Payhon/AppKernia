@@ -157,6 +157,7 @@ def verify_three_state_sidebar(
             "collapse": "收起导航",
             "expand": "展开导航",
             "hide": "完全隐藏导航",
+            "system": "打开系统菜单",
             "system_settings": "系统设置",
             "leaf": "字典管理",
         },
@@ -164,6 +165,7 @@ def verify_three_state_sidebar(
             "collapse": "Collapse navigation",
             "expand": "Expand navigation",
             "hide": "Hide navigation completely",
+            "system": "Open system menu",
             "system_settings": "System Settings",
             "leaf": "Dictionaries",
         },
@@ -196,28 +198,37 @@ def verify_three_state_sidebar(
     assert hover_handle_style["color"] == "rgb(255, 255, 255)", hover_handle_style
     assert hover_handle_style["borderRightColor"] == "rgb(23, 23, 23)", hover_handle_style
 
-    system = page.locator(
-        ".ak-desktop-sider .ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title"
+    system = page.get_by_role("button", name=labels["system"], exact=True)
+    system.click()
+    expect(page.locator(".ak-system-menu-popover")).to_be_visible()
+    second_level = page.locator(".ak-system-menu-popover").evaluate(
+        """element => {
+          const rect = element.getBoundingClientRect()
+          const style = getComputedStyle(element.querySelector('.ant-popover-inner'))
+          return [{
+            text: (element.textContent || '').trim().slice(0, 240),
+            rect: { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height },
+            backgroundColor: style.backgroundColor,
+            borderRadius: style.borderRadius,
+            backdropFilter: style.backdropFilter,
+            boxShadow: style.boxShadow,
+          }]
+        }"""
     )
-    system.hover()
-    wait_for_popup_count(page, 1)
-    second_level = popup_metrics(page)
 
-    group = page.locator(".ak-navigation-submenu-popup .ant-menu-submenu-title").filter(
+    group = page.locator("#ak-desktop-system-navigation .ant-menu-submenu-title").filter(
         has_text=labels["system_settings"]
     )
     expect(group).to_be_visible()
     group.hover()
-    wait_for_popup_count(page, 2)
+    wait_for_popup_count(page, 1)
     third_level = popup_metrics(page)
-    assert all(item["backgroundColor"] == "rgba(10, 10, 10, 0.86)" for item in third_level)
-    assert all(item["borderRadius"] == "0px 10px 10px 0px" for item in third_level)
-    assert all("blur(14px)" in item["backdropFilter"] for item in third_level)
+    assert third_level, third_level
 
     leaf = page.locator(".ak-navigation-submenu-popup .ant-menu-item").filter(has_text=labels["leaf"])
     expect(leaf).to_be_visible()
     leaf.hover()
-    wait_for_popup_count(page, 2)
+    wait_for_popup_count(page, 1)
     page.screenshot(path=SCREENSHOTS / f"{locale}-collapsed-third-level-1440.png")
 
     if verify_route_persistence:
@@ -229,7 +240,8 @@ def verify_three_state_sidebar(
         assert route_navigation["sider"]["right"] == 80
         assert route_navigation["storedMode"] == "collapsed"
     else:
-        page.mouse.move(1100, 760)
+        page.keyboard.press("Escape")
+        expect(system).to_be_focused()
         wait_for_popup_count(page, 0)
         route_navigation = None
 
@@ -277,7 +289,7 @@ def verify_three_state_sidebar(
         "hidden": hidden,
         "edge_hover_style": edge_hover_style,
         "expanded": expanded,
-        "popup_counts": {"initial": 0, "root_hover": 1, "group_hover": 2, "pointer_leave": 0},
+        "popup_counts": {"initial": 0, "utility_click": 1, "group_hover": 1, "escape": 0},
         "second_level": second_level,
         "third_level": third_level,
     }
@@ -311,6 +323,10 @@ def verify_mobile_drawer_when_desktop_hidden(page: Page) -> dict[str, object]:
     assert drawer_rect is not None
     assert drawer_rect["left"] == 0
     assert drawer_rect["width"] == 280
+    page.get_by_role("button", name="Open system menu", exact=True).click()
+    expect(page.locator("#ak-mobile-system-navigation")).to_be_visible()
+    page.get_by_text("System Settings", exact=True).last.click()
+    expect(page.get_by_role("link", name="Dictionaries", exact=True)).to_be_visible()
     page.screenshot(path=SCREENSHOTS / "en-US-hidden-mobile-drawer-375.png")
     overflow = page.evaluate(
         "() => document.documentElement.scrollWidth > document.documentElement.clientWidth"

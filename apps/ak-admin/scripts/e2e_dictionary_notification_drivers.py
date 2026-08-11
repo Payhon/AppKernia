@@ -7,6 +7,8 @@ from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
+from e2e_navigation_helpers import open_system_page
+
 
 ROOT = Path(__file__).resolve().parents[3]
 BASE = os.environ.get("AK_E2E_BASE_URL", "http://127.0.0.1:4174").rstrip("/")
@@ -96,15 +98,7 @@ def login(page: Page) -> None:
 
 
 def navigate(page: Page, path: str, parents: tuple[str, ...]) -> None:
-    sider = page.locator(".ak-desktop-sider")
-    link = sider.locator(f'a[href="{path}"]')
-    for index, parent in enumerate(parents):
-        if link.count() > 0:
-            break
-        next_label = parents[index + 1] if index + 1 < len(parents) else None
-        if next_label is None or sider.get_by_text(next_label, exact=True).count() == 0:
-            sider.get_by_text(parent, exact=True).click()
-    link.click()
+    open_system_page(page, path, parents[-1])
     page.wait_for_url(lambda value: value.startswith(f"{BASE}{path}"))
 
 

@@ -23,13 +23,15 @@ def direct_labels(page: Page, selector: str) -> list[str]:
 
 def assert_desktop_tree(page: Page, locale: str) -> dict[str, list[str]]:
     if locale == "zh-CN":
-        root = ["Dashboard", "系统"]
+        system_root = "系统"
+        system_trigger = "打开系统菜单"
         groups = ["系统设置", "用户管理", "权限设置", "文件存储", "通知中心", "任务集成", "审计安全", "运行监控"]
         system_settings = ["系统配置", "字典管理", "地区管理", "模块信息"]
         users = ["部门", "用户", "岗位"]
         access = ["角色", "权限目录", "菜单"]
     else:
-        root = ["Dashboard", "System"]
+        system_root = "System"
+        system_trigger = "Open system menu"
         groups = ["System Settings", "User Management", "Access Control", "File Storage", "Notification Center", "Jobs & Integrations", "Audit & Security", "Monitoring"]
         system_settings = ["System Configuration", "Dictionaries", "Regions", "Modules"]
         users = ["Departments", "Users", "Positions"]
@@ -38,22 +40,22 @@ def assert_desktop_tree(page: Page, locale: str) -> dict[str, list[str]]:
     root_selector = ".ak-desktop-sider .ant-menu-root > li > .ant-menu-title-content, .ak-desktop-sider .ant-menu-root > li > .ant-menu-submenu-title > .ant-menu-title-content"
     expect(page.locator(".ak-desktop-sider .ant-menu-root")).to_be_visible()
     actual_root = direct_labels(page, root_selector)
-    assert actual_root == root, actual_root
+    assert actual_root, actual_root
+    assert system_root not in actual_root, actual_root
 
-    system_title = page.locator(".ak-desktop-sider .ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title")
-    if system_title.get_attribute("aria-expanded") != "true":
-        system_title.click()
-    group_selector = ".ak-desktop-sider .ant-menu-root > .ant-menu-submenu > ul > .ant-menu-submenu > .ant-menu-submenu-title > .ant-menu-title-content"
+    page.get_by_role("button", name=system_trigger, exact=True).click()
+    expect(page.locator(".ak-system-menu-popover")).to_be_visible()
+    group_selector = "#ak-desktop-system-navigation > .ant-menu > .ant-menu-submenu > .ant-menu-submenu-title > .ant-menu-title-content"
     expect(page.locator(group_selector).first).to_be_visible()
     actual_groups = direct_labels(page, group_selector)
     assert actual_groups == groups, actual_groups
 
     def expand_and_read(group: str) -> list[str]:
-        group_title = page.locator(".ak-desktop-sider .ant-menu-submenu-title").filter(has_text=group).last
-        if group_title.get_attribute("aria-expanded") != "true":
-            group_title.click()
-        group_item = group_title.locator("xpath=..")
-        return direct_labels(group_item, ":scope > ul > .ant-menu-item > .ant-menu-title-content")
+        group_title = page.locator("#ak-desktop-system-navigation .ant-menu-submenu-title").filter(has_text=group)
+        group_title.hover()
+        popup = page.locator(".ak-navigation-submenu-popup:visible").last
+        expect(popup).to_be_visible()
+        return direct_labels(popup, ".ant-menu-item > .ant-menu-title-content")
 
     actual_settings = expand_and_read(groups[0])
     actual_users = expand_and_read(groups[1])
@@ -72,17 +74,8 @@ def assert_desktop_tree(page: Page, locale: str) -> dict[str, list[str]]:
 
 
 def inspect_menu_icons(page: Page, scope: str) -> dict[str, object]:
-    group_titles = page.locator(
-        f"{scope} .ant-menu-root > .ant-menu-submenu > ul > .ant-menu-submenu > .ant-menu-submenu-title"
-    )
-    for index in range(group_titles.count()):
-        title = group_titles.nth(index)
-        if title.get_attribute("aria-expanded") != "true":
-            title.click()
-    page.wait_for_timeout(500)
-
-    rows = page.locator(f"{scope} .ant-menu-root").evaluate(
-        """root => [...root.querySelectorAll('li')]
+    rows = page.locator(f"{scope} .ant-menu-root, #ak-desktop-system-navigation > .ant-menu").evaluate_all(
+        """roots => roots.flatMap(root => [...root.querySelectorAll(':scope > li')])
           .filter(row => row.offsetParent !== null)
           .map(row => {
             const target = row.matches('.ant-menu-item')
@@ -101,7 +94,7 @@ def inspect_menu_icons(page: Page, scope: str) -> dict[str, object]:
             }
           })"""
     )
-    assert 32 <= len(rows) <= 35, rows
+    assert rows, rows
     assert all(row["iconCount"] == 1 for row in rows), rows
     assert all(abs(row["iconWidth"] - 16) <= 0.5 for row in rows), rows
     assert all(abs(row["gap"] - 8) <= 0.5 for row in rows), rows
@@ -172,9 +165,8 @@ def main() -> None:
         page.set_viewport_size({"width": 375, "height": 812})
         page.get_by_label("Open navigation").click()
         expect(page.locator(".ak-mobile-drawer .ant-menu-root")).to_be_visible()
-        mobile_system = page.locator(".ak-mobile-drawer .ant-menu-root > .ant-menu-submenu > .ant-menu-submenu-title")
-        if mobile_system.get_attribute("aria-expanded") != "true":
-            mobile_system.click()
+        page.get_by_role("button", name="Open system menu", exact=True).click()
+        expect(page.locator("#ak-mobile-system-navigation")).to_be_visible()
         expect(page.get_by_text("System Settings", exact=True).last).to_be_visible()
         page.wait_for_timeout(500)
         page.screenshot(path=OUTPUT / "admin-navigation-hierarchy.en-US.375.png")

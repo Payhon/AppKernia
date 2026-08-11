@@ -8,6 +8,8 @@ from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
+from e2e_navigation_helpers import open_system_page
+
 ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / "output" / "playwright"
 AXE = ROOT / "apps" / "ak-admin" / "node_modules" / "axe-core" / "axe.min.js"
@@ -82,7 +84,7 @@ def main() -> None:
         page.get_by_label("显示语言", exact=True).select_option(label="English")
 
         with page.expect_response(lambda response: response.url.endswith("/admin-api/v1/job-handlers")) as handlers_response:
-            page.locator('.ak-desktop-sider a[href="/system/integrations/schedules"]').click()
+            open_system_page(page, "/system/integrations/schedules", "Jobs & Integrations")
         page.wait_for_url(f"{BASE}/system/integrations/schedules")
         assert handlers_response.value.status == 200, handlers_response.value.text()
         handlers = handlers_response.value.json()["data"]

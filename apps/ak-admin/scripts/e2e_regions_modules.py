@@ -7,6 +7,8 @@ from pathlib import Path
 
 from playwright.sync_api import Page, Route, sync_playwright
 
+from e2e_navigation_helpers import open_system_page
+
 ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / "output/playwright"
 AXE = ROOT / "apps/ak-admin/node_modules/axe-core/axe.min.js"
@@ -65,13 +67,8 @@ def select_language(page: Page, option: str) -> None:
 
 
 def open_regions(page: Page, system: str, settings: str, regions: str) -> None:
-    sidebar = page.locator(".ak-desktop-sider")
-    region_link = sidebar.get_by_role("link", name=regions, exact=True)
-    if region_link.count() == 0:
-        sidebar.get_by_role("menuitem", name=system, exact=True).click()
-    if region_link.count() == 0:
-        sidebar.get_by_role("menuitem", name=settings, exact=True).click()
-    region_link.click()
+    del system, regions
+    open_system_page(page, "/system/settings/regions", settings)
     page.wait_for_url(f"{BASE}/system/settings/regions")
 
 

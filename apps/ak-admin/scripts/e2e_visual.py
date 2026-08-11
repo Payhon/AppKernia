@@ -10,6 +10,8 @@ from urllib.parse import parse_qs, urlparse
 
 from playwright.sync_api import Page, Response, expect, sync_playwright
 
+from e2e_navigation_helpers import open_system_page
+
 
 ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / "output" / "playwright"
@@ -591,7 +593,7 @@ def main() -> None:
         page.wait_for_url(lambda url: url.startswith(f"{BASE_URL}/dashboard"))
         page.get_by_label("Switch workspace", exact=True).wait_for()
         choose_locale(page, "Display language", "简体中文")
-        page.locator(".ak-desktop-sider").get_by_role("link", name="租户", exact=True).click()
+        open_system_page(page, "/system/users/tenants", "用户管理")
         page.wait_for_url(f"{BASE_URL}/system/users/tenants")
         page.get_by_role("heading", name="租户", exact=True).wait_for()
         run_axe(page, "tenants.zh-CN.1440", evidence)
@@ -720,7 +722,7 @@ def main() -> None:
         page.get_by_role("heading", name="菜单", exact=True).wait_for()
         run_axe(page, "menus.zh-CN.1440", evidence)
         page.screenshot(path=OUTPUT / "admin-menus.zh-CN.1440.png", full_page=True)
-        page.locator(".ak-desktop-sider").get_by_role("link", name="角色", exact=True).click()
+        open_system_page(page, "/system/access/roles", "权限设置")
         page.get_by_role("heading", name="角色", exact=True).wait_for()
         run_axe(page, "roles.zh-CN.1440", evidence)
         page.screenshot(path=OUTPUT / "admin-roles.zh-CN.1440.png", full_page=True)

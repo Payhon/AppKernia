@@ -7,6 +7,8 @@ from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
+from e2e_navigation_helpers import open_system_page
+
 
 ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / "output" / "playwright"
@@ -60,16 +62,12 @@ def switch_header_locale(page: Page, button: str, option: str) -> None:
 
 
 def open_configs_from_sidebar(page: Page) -> None:
-    sider = page.locator(".ak-desktop-sider")
-    root_label = "System" if page.locator("html").get_attribute("lang") == "en-US" else "系统"
     settings_label = (
         "System Settings"
         if page.locator("html").get_attribute("lang") == "en-US"
         else "系统设置"
     )
-    sider.get_by_role("menuitem", name=root_label, exact=True).click()
-    sider.get_by_role("menuitem", name=settings_label, exact=True).click()
-    sider.locator('a[href="/system/settings/configs"]').click()
+    open_system_page(page, "/system/settings/configs", settings_label)
     page.wait_for_url(lambda url: url.startswith(f"{BASE_URL}/system/settings/configs"))
 
 

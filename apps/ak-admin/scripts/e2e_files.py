@@ -3,6 +3,7 @@ from __future__ import annotations
 import json, os, re, subprocess
 from pathlib import Path
 from playwright.sync_api import Page, Route, sync_playwright
+from e2e_navigation_helpers import open_system_page
 
 ROOT=Path(__file__).resolve().parents[3];OUTPUT=ROOT/"output/playwright";AXE=ROOT/"apps/ak-admin/node_modules/axe-core/axe.min.js"
 BASE=os.environ.get("AK_E2E_BASE_URL","http://127.0.0.1:4173").rstrip("/");EMAIL=os.environ["AK_E2E_EMAIL"];PASSWORD=os.environ["AK_E2E_PASSWORD"]
@@ -25,7 +26,7 @@ def main()->None:
     OUTPUT.mkdir(parents=True,exist_ok=True);evidence:dict[str,object]={};errors:list[str]=[];payload=b"A"*(5*1024*1024+2048)
     with sync_playwright() as p:
         browser=p.chromium.launch();context=browser.new_context(viewport={"width":1440,"height":900},locale="zh-CN",accept_downloads=True);page=context.new_page();page.on("console",lambda m:errors.append(m.text) if m.type=="error" and "ERR_FAILED" not in m.text else None);login(page)
-        page.locator("select.ak-locale-switcher").select_option("en-US");page.locator(".ak-desktop-sider").get_by_role("link",name="Files",exact=True).click();page.get_by_role("heading",name="File storage",exact=True).wait_for()
+        page.locator("select.ak-locale-switcher").select_option("en-US");open_system_page(page,"/system/storage/files","File Storage");page.get_by_role("heading",name="File storage",exact=True).wait_for()
         sql("DELETE FROM storage.file_usages WHERE module_code='e2e' AND file_id IN (SELECT id FROM storage.files WHERE original_name IN ('resume-e2e.txt','cancel-e2e.txt'));")
         while page.get_by_role("row").filter(has_text="resume-e2e.txt").count()>0:
             stale=page.get_by_role("row").filter(has_text="resume-e2e.txt").first;stale.get_by_role("button",name="Delete",exact=True).click();page.get_by_text("The file object will be removed and cannot be recovered.",exact=True).wait_for();page.get_by_role("button",name="Delete",exact=True).last.click();page.get_by_text("File deleted.",exact=True).wait_for();page.get_by_role("row").filter(has_text="resume-e2e.txt").wait_for(state="detached")

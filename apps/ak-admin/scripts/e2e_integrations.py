@@ -8,6 +8,8 @@ from pathlib import Path
 
 from playwright.sync_api import Page, sync_playwright
 
+from e2e_navigation_helpers import open_system_page
+
 ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / "output" / "playwright"
 AXE = ROOT / "apps" / "ak-admin" / "node_modules" / "axe-core" / "axe.min.js"
@@ -76,7 +78,7 @@ def main() -> None:
         page.on("console", lambda message: console_errors.append(message.text) if message.type == "error" else None)
         login(page)
 
-        page.locator('.ak-desktop-sider a[href="/system/integrations/api-clients"]').click()
+        open_system_page(page, "/system/integrations/api-clients", "Jobs & Integrations")
         page.wait_for_url(f"{BASE}/system/integrations/api-clients")
         page.get_by_role("heading", name="API Clients", exact=True).wait_for()
         shot(page, "api-clients.en-US.1440.empty", evidence)
@@ -145,7 +147,7 @@ def main() -> None:
         page.set_viewport_size({"width": 1440, "height": 900})
         page.get_by_label("显示语言", exact=True).select_option(label="English")
 
-        page.locator('.ak-desktop-sider a[href="/system/integrations/webhooks"]').click()
+        open_system_page(page, "/system/integrations/webhooks", "Jobs & Integrations")
         page.wait_for_url(f"{BASE}/system/integrations/webhooks")
         page.get_by_role("heading", name="Webhooks", exact=True).wait_for()
         shot(page, "webhooks.en-US.1440.empty", evidence)

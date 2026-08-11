@@ -7,6 +7,8 @@ from pathlib import Path
 
 from playwright.sync_api import Page, expect, sync_playwright
 
+from e2e_navigation_helpers import open_system_page
+
 
 ROOT = Path(__file__).resolve().parents[3]
 OUTPUT = ROOT / "output" / "playwright"
@@ -61,7 +63,7 @@ def main() -> None:
         page.wait_for_url(lambda url: url.startswith(f"{BASE_URL}/dashboard"))
         page.get_by_label("显示语言", exact=True).select_option(label="English")
 
-        page.locator(".ak-desktop-sider").get_by_role("link", name="System Configuration", exact=True).click()
+        open_system_page(page, "/system/settings/configs", "System Settings")
         page.wait_for_url(f"{BASE_URL}/system/settings/configs")
         page.get_by_role("heading", name="System Configuration", exact=True).wait_for()
         run_axe(page, "configs.en-US.1440", evidence)
@@ -124,7 +126,7 @@ def main() -> None:
 
         page.set_viewport_size({"width": 1440, "height": 900})
         page.get_by_label("显示语言", exact=True).select_option(label="English")
-        page.locator(".ak-desktop-sider").get_by_role("link", name="Dictionaries", exact=True).click()
+        open_system_page(page, "/system/settings/dictionaries", "System Settings")
         page.wait_for_url(f"{BASE_URL}/system/settings/dictionaries")
         page.get_by_role("heading", name="Dictionaries", exact=True).wait_for()
         page.get_by_role("button", name="Create dictionary", exact=True).click()
