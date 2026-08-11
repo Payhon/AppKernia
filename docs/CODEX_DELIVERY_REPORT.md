@@ -1,6 +1,6 @@
 # AppKernia Codex 交付报告
 
-日期：2026-08-04  
+日期：2026-08-11
 范围：Backend + Admin frontend 完成性与 GitHub 开源开发体验；未自动 commit、push 或部署。
 
 ## 2026-08-10 本地管理员与安全 Seed 引导
@@ -1758,3 +1758,107 @@
 - 首轮 axe 暴露内容抽屉既有控件缺少可访问名称；补齐后原样重跑，5 个场景全部为 0 serious/critical。
 - 浏览器业务数据使用网络 Mock 以稳定覆盖表单状态；字典 Seed 和 API 返回另用本地 PostgreSQL 18 + 真实管理员会话验证。二者不等同于生产部署、外部发布服务或移动端设备验收。
 - Admin 目前没有独立暗色主题，`preferred-dark` 仅验证深色系统偏好下的兼容性；本轮未执行 Android/iOS/HarmonyOS 编译、模拟器或真机。
+
+## 2026-08-11 管理端 OpenAPI 文档与 System 底部入口交付报告
+
+### 交付内容
+
+- 新增 Admin 独立 Vite MPA `/openapi/`，精确锁定并自托管 `@scalar/api-reference@1.64.1`。开发和构建直接消费 canonical `server/openapi/openapi.yaml`，产物 `/openapi/openapi.yaml` 与源文件逐字节一致，不创建第二份业务规范。
+- 文档按 `?lang=zh-CN|en-US` 初始化，AppKernia 标题、写操作警告、复制等自有文案使用 `openapi` 语义翻译键；`en-US` 仅在 Scalar 内部映射为 `en`。
+- 交互请求使用 `credentials: omit` 并覆盖当前 `Accept-Language`，不读取 Admin 内存 Token 或 HttpOnly Cookie，不预填凭据，`persistAuth=false`。关闭默认字体、Agent、遥测、开发者工具、远程代理和插件 URL；运行时移除 Scalar 版本中无公开关闭配置的 MCP 插件层。
+- Nginx 对 `/openapi/` 增加自包含 CSP、`nosniff`、`no-referrer`、`X-Frame-Options: DENY` 与 HTML/YAML 重新验证缓存；哈希资源保持长期 immutable。新增同源 `/api/` 和精确 live/ready 健康代理，继续保留 `/admin-api/`，其余 `/internal/` 明确返回 404。
+- 菜单树在权限、Feature Flag、实现注册和空目录过滤后拆分。System 仍是数据一级菜单并保留现有 Seed、权限、路由及三级结构，但 UI 只在侧栏底部以齿轮入口出现；文档图标固定在左且始终保留，System 无可见叶子时齿轮隐藏。
+- 桌面展开/折叠态使用按钮上方的边框、圆角、阴影限高面板及右侧级联三级菜单；移动 Drawer 使用可滚动内联层级。实现当前路由祖先展开、选中态、导航后关闭、外部/Esc 关闭、方向键、焦点环与焦点回归；折叠态两列各 40 px，移动触控高度各 44 px。
+- 同步 Admin 信息架构、路由授权、设计系统 Master/page override、统一 i18n 契约、Scalar MIT 第三方许可、UI Skill request/output/decisions/review checklist、双语截图与机器可读浏览器证据。
+
+### 实际命令、退出码与证据
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin check`（由最终 Node 24 `make check` 调用） | 0 | API/i18n/routes 生成、ESLint、strict TypeScript、30 个 Vitest 文件 / 124 项测试、Vite production build、OpenAPI 产物、bundle budget 与 Admin blueprint 全部通过。 |
+| 首轮聚合 `make check` | 2 | i18n validator 发现新增 `openapi` namespace 尚未进入统一契约；补齐 `blueprint/i18n-contract.json` 与文字契约后重跑。 |
+| 第二轮聚合 `make check` | 2 | TypeScript 拒绝当前 Scalar 版本不存在的 `showToolbar` 配置；移除无效选项，以受支持配置和 wrapper hardening 收口。 |
+| `env PATH=/Users/payhon/.nvm/versions/node/v24.18.1/bin:$PATH make check`（最终） | 0 | Backend blueprint/vet/tests、Admin 完整 check、Mobile blueprint/static checks、统一 i18n、Docs checks/build 与仓库聚合门禁全部通过。 |
+| `docker compose -p appkernia-openapi-e2e build admin`（最终） | 0 | Node 24.18.1 / pnpm 11.18.0 production Admin 镜像构建成功。首轮曾因 pnpm 11 拒绝 `vue-demi@0.14.10` build script 失败；将该既有传递依赖精确加入 `onlyBuiltDependencies` 后重建通过。 |
+| `docker compose -p appkernia-openapi-e2e up ...` | 0 | 隔离 PostgreSQL/API/Admin 全部 healthy；API 的 secure-origin 首轮使用 `127.0.0.1` 失败，改为浏览器实际来源 `http://localhost:4175` 后通过。 |
+| Nginx `curl` 路由/安全头 smoke | 0 | `/openapi/`、YAML、`/healthz`、live、ready 为 200；metrics 和任意其他 `/internal/` 为 404；`/api/v1/public/config` 到达 Backend 并因缺少必需 App header 返回预期 400，`/admin-api/v1/auth/public-config` 为 200。CSP、no-cache、no-referrer、nosniff、DENY 均存在。 |
+| `AK_E2E_BASE_URL=http://localhost:4175 ... python apps/ak-admin/scripts/e2e_openapi_system_navigation.py` | 0 | 真实 Chromium 覆盖 1440px 展开/折叠、375px Drawer、`zh-CN`/`en-US`、System 三级导航、公开文档新上下文、健康请求、Cookie omission、内部拒绝、键盘/Esc/焦点、Reduced Motion、无外部请求/横向溢出/console error；稳定表面 axe serious/critical 为 0。 |
+| `docker compose -p appkernia-openapi-e2e down -v` | 0 | 精确移除本轮隔离容器、网络和临时数据库/对象存储卷；复核无同 project 容器或 volume。临时测试数据不可恢复，但不包含用户现有 Compose 数据。 |
+
+### 构建与浏览器度量
+
+- canonical 与构建 YAML：362,990 B；SHA-256 均为 `635df57558c4bc95748d2a77e065a1019b65ebe6ed64267cfb18a48edeeedca1`。
+- Admin 初始依赖图 gzip 233,372 B，最大 Admin chunk 166,106 B；`admin_scalar_keys=[]`，主 Admin 首屏没有 Scalar。
+- OpenAPI 独立初始图 gzip 988,669 B，最大 chunk 686,992 B；均低于独立预算 1,126,400 B / 768,000 B。Scalar 自身仍触发大 chunk 提示，但未进入主 Admin 入口。
+- Chromium 证据覆盖 1440px 桌面展开、1440px 桌面折叠、1440px System panel、375px 移动 Drawer及 1440px 中英文文档。375px 是浏览器 viewport，不是 Android/iOS/HarmonyOS 真机。
+- 双语文档均为 HTTP 200，`Accept-Language` 分别为 `zh-CN` / `en-US`，Cookie 发送为 false，外部/Agent/遥测请求均为空。证据见 `output/playwright/openapi-system-navigation.evidence.json`。
+
+### 截图索引
+
+- [桌面中文展开](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-system-utilities/screenshots/admin-navigation-openapi.zh-CN.1440-expanded.png)、[桌面英文折叠](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-system-utilities/screenshots/admin-navigation-openapi.en-US.1440-collapsed.png)。
+- [桌面 System 弹层与三级级联](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-system-utilities/screenshots/admin-system-popover.zh-CN.1440.png)、[375px 移动 Drawer 内联层级](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-system-utilities/screenshots/admin-system-drawer.en-US.375.png)。
+- [OpenAPI 中文](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-system-utilities/screenshots/openapi.zh-CN.1440.png)、[OpenAPI 英文](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-system-utilities/screenshots/openapi.en-US.1440.png)。
+
+### 未完成项与风险
+
+- 没有在文档客户端手工输入 Bearer Token 并调用受保护写接口，因此不把“真实受保护接口 Bearer 调用”和“刷新后手工授权清空”标记为 E2E 通过；当前证据覆盖 `persistAuth=false` 配置、公共健康接口、刷新边界、Cookie omission 和无管理端 Token 继承。
+- Scalar 内嵌 API client 打开后的第三方瞬态界面仍观测到 ARIA name/required/value 与颜色对比度 axe 问题；稳定文档页和 Admin shell 的 serious/critical 为 0，但前者不能外推为该瞬态客户端状态通过。
+- Scalar 包的文档依赖图包含未执行的 Agent component chunk，这是上游打包行为；运行配置、DOM 和网络证据均确认 Agent 不可用且无 Agent 请求。独立文档包虽在预算内，仍明显大于 Admin 首屏。
+- 未执行 Firefox/Safari、生产部署、生产数据、物理移动设备或移动 App 验收。未修改业务 OpenAPI 内容、数据库菜单结构、System Seed、后端权限或生成 Client；本轮未 commit、未 push。
+
+## 2026-08-11 管理端 OpenAPI 模块分组与接口标题双语化交付报告
+
+### 交付内容
+
+- canonical `server/openapi/openapi.yaml` 新增 3 个有序接口面、31 个有序业务模块、顶层 `tags` / `x-tagGroups`、英文 `x-displayName` 和语义 i18n key。每个可见 operation 只属于一个稳定 tag，Scalar 原生导航呈现为“接口面 → 业务模块 → 接口”，模块列表默认折叠且不按字母重排。
+- canonical `paths` 下实际有 278 个直接 operation，另有 3 个 Scalar 会渲染的 `components.pathItems` 复用 operation；为消除残余未分组英文项，281 个可见接口标题均纳入唯一分组和双语门禁。path、method、`operationId`、Schema、security 和生成 Client 公共签名均未改变。
+- 新增仅由独立文档 MPA 导入的 `api_reference` namespace，包含 3 个接口面、31 个模块和 281 个 operation 的双语值。英文标题与 canonical `summary` 精确一致，中文为逐项校订标题；参数、响应、Schema、示例和详细描述继续保留 canonical 英文。
+- 独立入口精确使用 `yaml@2.9.0` 解析 canonical YAML，在内存中替换分组名称、模块 `x-displayName` 和 operation `summary` 后交给 Scalar；缺失/多余翻译、重复 `operationId`、未注册/多 tag、错误路径映射及非 OpenAPI 3.1 文档均 fail closed。直接下载仍为唯一原始 YAML。
+- 构建门禁确认 canonical/emitted YAML 逐字节一致、没有 locale-specific spec；Scalar、YAML parser 和 `api_reference` 大 catalog 只进入 OpenAPI 文档图，Admin 主 SPA 依赖图没有相关 marker 或 Scalar key。
+- 同步 i18n 契约、Admin 信息架构与路由授权说明、Design System Master/OpenAPI override、UI Skill request/output/decisions/review checklist、六张双语桌面/375 视口截图和机器可读 Chromium 证据。
+
+### 实际命令、退出码与证据
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin check`（首轮） | 1 | ESLint 拒绝测试中的两处 `Array<T>`；改为仓库规定的 `T[]` 后重跑。 |
+| `pnpm --filter @appkernia/admin check`（最终，Node 24.18.1） | 0 | OpenAPI/i18n/routes 生成、分组契约、ESLint、strict TypeScript、30 个 Vitest 文件 / 128 项测试、Vite build、bundle/OpenAPI 产物与 Admin 蓝图全部通过。 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 38 routes、3 tabs、26 baseline APIs、38 API deltas、3 platforms，0 error / 0 warning。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py`（首轮 / 最终） | 1 / 0 | 首轮发现文档专用 `api_reference` 未登记统一 namespace；同步 JSON 与文字契约后双语 key、placeholder 和生成 catalog 一致。 |
+| `pnpm --package=@redocly/cli@2.12.4 dlx redocly lint ...`（默认 / 跳过既有 `security-defined` 基线） | 1 / 0 | 默认推荐规则暴露仓库既有安全声明基线及一处未加引号的流式 YAML 描述；本轮修复描述并为 31 个 tag 补齐 description，最终明确 `--skip-rule security-defined` 后规范有效，仅保留 3 个既有 file path 歧义 warning。 |
+| `env PATH=/Users/payhon/.nvm/versions/node/v24.18.1/bin:$PATH make check` | 0 | Backend blueprint/vet/tests、Admin 完整门禁、Mobile 静态检查、统一 i18n、Docs 113 个 API 引用及 66 页双语构建全部通过。 |
+| `docker compose -p appkernia-acceptance build admin && ... up -d --no-deps admin` | 0 | 最终 Node 24.18.1 Admin 镜像构建并替换成功；Admin/API/PostgreSQL healthy，Worker running。 |
+| Nginx smoke 首轮 / 最终 | 无效 / 0 | 首轮 smoke 子 Shell 误用 zsh 特殊变量 `path` 导致自身 `PATH` 被覆盖，未产生验收结论；更名后最终 `/healthz`、文档、YAML、live/ready、Admin public config 为 200，metrics/其他 internal 为 404，Mobile public config 到达 Backend 并返回预期 400，安全头完整。 |
+| `AK_E2E_BASE_URL=http://127.0.0.1:4174 AK_E2E_SKIP_SHELL=1 ... e2e_openapi_system_navigation.py` | 0 | 真实 Chromium 覆盖 `zh-CN`/`en-US`、1440×900 与 375×812、初始折叠、模块展开、模块/标题搜索、侧栏/正文一致、稳定锚点、健康请求语言头、无 Cookie/外部请求/横向溢出/意外 console error；axe serious/critical 为 0。 |
+| `git diff --check` | 0 | 最终补丁无空白错误。 |
+
+### 构建与契约度量
+
+- 3 个接口面、31 个模块、278 个直接 path operation、3 个复用 path-item operation、281 个本地化可见标题；每个 locale 有 315 个 `api_reference` key。
+- canonical 与构建 YAML 均为 377,817 B，SHA-256 均为 `efc4a2050a7cbe8f31fa88f23306ebc545783fa2e34dba5622e3ed8f348bd8df`；Nginx 实际下载内容 SHA 同值。
+- Admin 初始图 gzip 233,379 B，最大 chunk gzip 166,106 B；OpenAPI 独立初始图 gzip 999,599 B，最大 chunk gzip 686,992 B，均在既定预算内。`admin_docs_only_matches=[]`、`admin_scalar_keys=[]`。
+- 浏览器证据位于 `output/playwright/openapi-reference-navigation-i18n.evidence.json`：双语健康请求均为 200，`Accept-Language` 精确对应当前 locale，Cookie 未发送，外部/禁止请求为空，metrics 为 404。
+
+### 截图索引与验证边界
+
+- [中文桌面模块展开](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-reference-navigation-i18n/screenshots/openapi.zh-CN.1440.module-expanded.png)、[中文搜索](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-reference-navigation-i18n/screenshots/openapi.zh-CN.1440.search.png)、[中文 375 视口](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-reference-navigation-i18n/screenshots/openapi.zh-CN.375.module-expanded.png)。
+- [英文桌面模块展开](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-reference-navigation-i18n/screenshots/openapi.en-US.1440.module-expanded.png)、[英文搜索](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-reference-navigation-i18n/screenshots/openapi.en-US.1440.search.png)、[英文 375 视口](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-reference-navigation-i18n/screenshots/openapi.en-US.375.module-expanded.png)。
+- 375×812 仅为 Chromium viewport，不是 Android/iOS/HarmonyOS 物理设备；未执行 Firefox/Safari、生产部署或受保护写接口手工 Bearer 调用。Scalar 上游 Agent chunk 仍存在于独立文档依赖图，但 Agent 功能、DOM 和网络请求均被关闭；本轮未 commit、未 push。
+
+## 2026-08-11 OpenAPI 顶部交互测试提示可关闭
+
+### 变更
+
+- 文档顶部真实写请求风险提示新增可见的 `×` 关闭按钮，使用双语语义 ARIA 标签、键盘焦点环和移动端适配布局；关闭后不再占据页面空间。
+- 关闭状态只保存在当前标签页 `sessionStorage`，刷新当前文档页保持关闭，新建浏览上下文或新标签页重新显示提示，避免永久隐藏重要风险提醒。
+- 新增关闭状态 helper 单元测试，并更新 UI Skill request/output/decisions/review checklist、页面 override、截图索引。
+
+### 验证
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin check` | 0 | 30 个 Vitest 文件、129 项测试、lint、strict typecheck、production build、bundle budget 和 OpenAPI 文档检查通过。 |
+| `docker compose -p appkernia-acceptance build admin && ... up -d --no-deps admin` | 0 | 包含关闭提示修复的 Admin 镜像重新构建并健康运行。 |
+| `AK_E2E_BASE_URL=http://127.0.0.1:4174 AK_E2E_SKIP_SHELL=1 ... e2e_openapi_system_navigation.py`（首次 / CSS 修复后） | 1 / 0 | 首次发现 `.ak-openapi-notice` 的 `display:grid` 覆盖 HTML `hidden` 默认样式；补充 `.ak-openapi-notice[hidden]{display:none}` 后双语 1440/375 Chromium 验收通过，关闭后刷新仍隐藏，axe serious/critical 为 0。 |
+
+截图：[中文关闭态](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-reference-navigation-i18n/screenshots/openapi.zh-CN.1440.notice-dismissed.png)、[英文关闭态](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-openapi-reference-navigation-i18n/screenshots/openapi.en-US.1440.notice-dismissed.png)。

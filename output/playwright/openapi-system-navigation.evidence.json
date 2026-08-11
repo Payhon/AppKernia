@@ -1,0 +1,55 @@
+{
+  "openapi_zh_CN": {
+    "status": 200,
+    "lang": "zh-CN",
+    "title": "AppKernia OpenAPI 文档",
+    "health_status": 200,
+    "health_accept_language": "zh-CN",
+    "health_cookie_sent": false,
+    "internal_metrics_status": 404,
+    "canonical_yaml_bytes": 362990,
+    "external_requests": [],
+    "forbidden_requests": [],
+    "axe_serious_or_critical": []
+  },
+  "openapi_en_US": {
+    "status": 200,
+    "lang": "en-US",
+    "title": "AppKernia OpenAPI Documentation",
+    "health_status": 200,
+    "health_accept_language": "en-US",
+    "health_cookie_sent": false,
+    "internal_metrics_status": 404,
+    "canonical_yaml_bytes": 362990,
+    "external_requests": [],
+    "forbidden_requests": [],
+    "axe_serious_or_critical": []
+  },
+  "shell": {
+    "primary_labels": [
+      "Dashboard",
+      "App管理"
+    ],
+    "desktop_utility_order": [
+      "documentation",
+      "system"
+    ],
+    "collapsed_button_widths": [
+      40,
+      40
+    ],
+    "mobile_touch_heights": [
+      44,
+      44
+    ],
+    "system_popover_style": {
+      "border": "1px solid rgba(255, 255, 255, 0.16)",
+      "borderRadius": "12px",
+      "boxShadow": "rgba(0, 0, 0, 0.28) 0px 1px 2px 0px, rgba(0, 0, 0, 0.34) 10px 18px 42px 0px"
+    },
+    "reduced_motion_transition_duration": "1e-05s",
+    "horizontal_overflow": false,
+    "axe_serious_or_critical": [],
+    "console_errors": []
+  }
+}

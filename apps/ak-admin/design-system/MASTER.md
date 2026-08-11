@@ -19,6 +19,11 @@
 - Group editable translations in one shared line-style locale Tabs region. Source locale order, default and labels from the locked `system.language` dictionary; do not stack one card per locale or maintain a page-local language list.
 - Keep visited locale panels mounted so form values and dirty state survive switching. Mark invalid locale tabs with a semantic icon and accessible text, then focus the first invalid locale after submit.
 - While the language dictionary is loading or invalid, render a contained loading/error state in the multilingual region and disable saving; do not silently fall back to a page-local array.
+- Treat System as a data-level root but a shell utility: remove it from the scrolling primary menu and expose it through the fixed bottom gear beside OpenAPI documentation. Keep permission and feature-flag pruning before this visual partition.
+- Bottom shell utilities are icon-only controls with tooltip, semantic accessible name, visible focus ring, and at least a 44 px touch target. Documentation stays left, System stays right; both disappear only when the entire sidebar is hidden.
+- Open the desktop System hierarchy in a bounded, bordered and shadowed panel above the gear. Preserve the second/third levels through cascading keyboard-capable menus; use an inline scrollable hierarchy in the mobile Drawer. Escape and outside click close the panel and restore focus to its trigger.
+- Open OpenAPI documentation in a separate browsing context with `noopener noreferrer`; do not move the current Admin route or imply that a browser tab is guaranteed to be a separate operating-system window.
+- Structure the OpenAPI reference as interface surface, business module, then operation. Keep module operation lists collapsed initially; localize surface/module labels and operation titles from the documentation-only `api_reference` namespace while retaining canonical English descriptions, schemas, parameters and examples.
 
 ## Responsive layout
 
@@ -39,3 +44,5 @@
 
 - Verify 1440 px light/dark and 768 px layouts, both locales, loading/error/empty states, keyboard focus, and upload progress/cancel/resume.
 - Keep screenshots and the UI Skill decision trail under `artifacts/ui-ux-pro-max/`.
+- For navigation utility changes, additionally verify 1440 px expanded/collapsed, 375 px Drawer, both locales, current-System selected state, no-System permission state, keyboard focus return, reduced motion, and absence of horizontal overflow.
+- For OpenAPI reference changes, additionally verify both locales at 1440 × 900 and 375 × 812, module and operation search, title consistency between navigation/search/body, stable anchors, canonical download byte identity, and isolation from the Admin entry graph.

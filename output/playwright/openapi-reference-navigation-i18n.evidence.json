@@ -1,0 +1,56 @@
+{
+  "openapi_zh_CN": {
+    "status": 200,
+    "lang": "zh-CN",
+    "title": "AppKernia OpenAPI 文档",
+    "interface_surfaces": [
+      "平台与公共接口",
+      "移动端接口",
+      "管理端接口"
+    ],
+    "expanded_module": "健康检查",
+    "notice_dismissed_in_session": true,
+    "localized_operation_title": "检查 API 进程存活状态",
+    "stable_anchor": "#tag/platform-health/GET/internal/v1/health/live",
+    "health_status": 200,
+    "health_accept_language": "zh-CN",
+    "health_cookie_sent": false,
+    "internal_metrics_status": 404,
+    "canonical_yaml_bytes": 377817,
+    "external_requests": [],
+    "forbidden_requests": [],
+    "mobile_viewport": {
+      "width": 375,
+      "height": 812,
+      "horizontal_overflow": false
+    },
+    "axe_serious_or_critical": []
+  },
+  "openapi_en_US": {
+    "status": 200,
+    "lang": "en-US",
+    "title": "AppKernia OpenAPI Documentation",
+    "interface_surfaces": [
+      "Platform and Public APIs",
+      "Mobile APIs",
+      "Admin APIs"
+    ],
+    "expanded_module": "Platform health",
+    "notice_dismissed_in_session": true,
+    "localized_operation_title": "Check API process liveness",
+    "stable_anchor": "#tag/platform-health/GET/internal/v1/health/live",
+    "health_status": 200,
+    "health_accept_language": "en-US",
+    "health_cookie_sent": false,
+    "internal_metrics_status": 404,
+    "canonical_yaml_bytes": 377817,
+    "external_requests": [],
+    "forbidden_requests": [],
+    "mobile_viewport": {
+      "width": 375,
+      "height": 812,
+      "horizontal_overflow": false
+    },
+    "axe_serious_or_critical": []
+  }
+}

@@ -1,16 +1,38 @@
 # AppKernia 实施状态
 
-更新时间：2026-08-10（Asia/Shanghai）
+更新时间：2026-08-11（Asia/Shanghai）
 
 ## 总体状态
 
 | Surface             | 当前可交付状态                                                                                                                                                                                                         | 下一依赖                                                                                                  |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环                                                                    | 当前 Admin backlog 已收口；生产 Adapter 联调见风险                                                        |
-| Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁                                                                                                                                                     | 当前 Admin backlog 已收口；跨浏览器/生产验收见风险                                                        |
+| Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁；公开 `/openapi/` 与侧栏底部文档/System 工具入口已完成 Node 24、Docker/Nginx 和 Chromium 验收                                                      | 生产部署、真实 Bearer 手工调用、第三方 Scalar 请求客户端瞬态 axe 与跨浏览器验收见风险                     |
 | Mobile              | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证                        | Android/Harmony 安装运行、三端真机、签名/发布仍未完成                                                     |
 | Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：66 个静态页面、零门槛向导、核心 API、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31299540867` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
+
+## 2026-08-11 管理端 OpenAPI 模块分组与接口标题双语化
+
+- canonical OpenAPI 新增 3 个有序接口面、31 个有序业务模块及唯一 operation tag；导航由 Scalar 原生 `tags` / `x-tagGroups` 渲染为“接口面 → 业务模块 → 接口”，模块接口列表默认折叠。路径分配 validator 对 App 子资源优先级和所有已注册模块执行发布门禁。
+- canonical 的 `paths` 下有 278 个直接 operation，另有 3 个会被 Scalar 渲染的 `components.pathItems` 复用 operation；为避免残留未分组英文项，本轮实际对 281 个渲染标题全部完成唯一模块归属和双语覆盖。此处理不改变 path、method、`operationId`、Schema、security 或生成 Client 公共签名。
+- 新增文档专用 `api_reference` namespace：英文标题与 canonical `summary` 精确一致，中文为逐项校订标题；接口面、模块和标题在文档浏览器内存中本地化，参数、响应、Schema、示例及描述继续保留 canonical 英文。缺失/多余翻译、重复 ID、无效 tag 或非规范文档均 fail closed。
+- Scalar 仍加载和直接下载唯一 `/openapi/openapi.yaml`；独立入口用精确 `yaml@2.9.0` 解析展示对象。构建门禁验证 emitted YAML 与源文件逐字节一致、无 locale-specific spec，并确认 YAML、Scalar 和大体量标题 catalog 未进入 Admin 主 SPA 依赖图。
+- Chromium E2E 在 1440×900 与 375×812、`zh-CN` 与 `en-US` 下覆盖初始折叠、模块展开、双语模块/标题搜索、侧栏/正文一致、稳定锚点、健康请求及语言头、Cookie omission、无外部请求/横向溢出/意外 console error，稳定文档面 axe serious/critical 为 0。375×812 仅代表 Chromium viewport，不是物理设备证据。
+- 最终 Node 24.18.1 `make check` 退出 0：Admin 30 个 Vitest 文件 / 128 项测试、Backend vet/tests、Mobile 静态校验、统一 i18n 及 Docs 66 页构建全部通过。canonical/emitted YAML 均为 377,817 B，SHA-256 同为 `efc4a2050a7cbe8f31fa88f23306ebc545783fa2e34dba5622e3ed8f348bd8df`；Admin/OpenAPI 初始图 gzip 分别为 233,379 B / 999,599 B。
+- Redocly 2.12.4 在明确跳过仓库既有 `security-defined` 基线后退出 0，仅保留 3 个既有 files ambiguous-path warning；最终 Admin Docker 镜像、Nginx 路由 smoke 和真实 Chromium E2E 均退出 0。本地验收栈继续运行在 `http://127.0.0.1:4174`，PostgreSQL 映射端口为 55432。
+- 后续补充的顶部交互测试提示关闭按钮已同步 `zh-CN`/`en-US` ARIA 文案；关闭状态只写入当前标签页 `sessionStorage`，并已由 Chromium 验证点击隐藏、刷新保持隐藏、新文档上下文重新显示。当前 Admin 单元测试为 129 项。
+- UI Skill request/output/decisions/review checklist、页面 override、双语桌面/移动展开与搜索截图已保存。本轮继续基于未提交工作树增量交付，未 commit、未 push。
+
+## 2026-08-11 管理端 OpenAPI 文档与 System 底部入口
+
+- Admin 以独立 Vite 多页面入口公开 `/openapi/`，精确使用自托管 `@scalar/api-reference@1.64.1`；构建和开发服务器直接读取 `server/openapi/openapi.yaml`，没有第二份业务规范。最终产物与 canonical 文件均为 362,990 B，SHA-256 同为 `635df57558c4bc95748d2a77e065a1019b65ebe6ed64267cfb18a48edeeedca1`。
+- 文档支持 `?lang=zh-CN|en-US`、双语标题与真实写操作风险提示；交互请求强制 `credentials: omit` 和对应 `Accept-Language`，不读取 Admin 会话，`persistAuth=false`。默认字体、Agent、遥测、开发者工具、远程代理和插件 URL 均关闭。
+- 菜单在权限、Feature Flag、实现注册与空目录裁剪后拆分：System 继续保留数据一级菜单、三级结构、路由与后端授权，但不再进入主菜单；文档和齿轮固定在侧栏底部，System 无可见叶子时仅隐藏齿轮。桌面使用上弹面板和右侧级联三级菜单，移动 Drawer 使用可滚动内联层级。
+- Nginx 自托管文档资源并增加严格 CSP、`nosniff`、`no-referrer`、禁止 iframe 和分层缓存；同源保留 `/admin-api/`，增加 `/api/`、精确 live/ready 健康代理，其余 `/internal/` 返回 404。文档公开访问不需要登录。
+- Node 24.18.1 聚合 `make check` 退出 0：Admin 30 个 Vitest 文件、124 项测试通过，Backend vet/tests、Admin lint/typecheck/build、OpenAPI/蓝图/i18n、Mobile 静态检查和 Docs build 均通过。Admin 初始 gzip 233,372 B，OpenAPI 独立入口初始 gzip 988,669 B；Admin 首屏依赖图未引入 Scalar。
+- Admin Docker 镜像构建成功；隔离 Compose 环境完成 Nginx 路由 smoke 和真实 Chromium E2E。1440px 展开/折叠、375px 移动 Drawer、双语文档、System 三级导航、键盘/Esc/焦点回归、Reduced Motion、无横向溢出、无外部请求及控制台错误均有证据；稳定页面 serious/critical axe 为 0。375px 仅为浏览器视口，不代表移动真机。
+- 验证边界：未使用手工 Bearer Token 实调受保护写接口，刷新清除授权仅由 `persistAuth=false` 配置与自动化边界覆盖；Scalar 内嵌请求客户端打开后的第三方瞬态界面仍有 ARIA/对比度 axe 问题，不能声明该瞬态状态无障碍通过；未做 Firefox/Safari、生产部署或物理设备验收。本轮未改数据库菜单、权限 Seed、业务 OpenAPI 内容、Backend 业务实现或生成 Client，未 commit、未 push。
 
 ## 2026-08-10 App 范围页面全局选择器与前置状态
 

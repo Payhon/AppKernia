@@ -4,6 +4,12 @@
 
 TanStack Router 在构建期生成全部可执行路由。后端 `sys.menus` 只返回 `component_key`、标题、图标、排序、可见性、重定向和 feature flag。前端用静态 Map 解析；未知 key 被丢弃并记录 telemetry，绝不动态 import 后端字符串。
 
+System 的底部齿轮只是通过静态 Registry 解析后的另一种呈现方式：先执行 Feature Flag 与 View Permission 过滤，再从根菜单集合中提取 `code=system`。它不改变路由注册、直接 URL 守卫、`active_menu_code`、数据库菜单分配或后端授权；没有可访问 System 叶子时不渲染齿轮。
+
+公开 `/openapi/` 是独立 Vite 页面而非 TanStack 管理路由，不读取 Auth Context，不预填管理端凭据。其交互请求强制 `credentials: omit` 并发送当前 `Accept-Language`；受保护 API 仅接受用户在文档页面手动输入的 Bearer Token，且 `persistAuth=false`。
+
+OpenAPI canonical YAML 仍是唯一契约。文档入口加载后只在浏览器内存中替换 `x-tagGroups.name`、tag `x-displayName` 和 operation `summary` 用于双语展示，path、method、`operationId`、security 与原始 tag code 不变；这些分组元数据不参与菜单权限、路由守卫或后端授权。直接下载继续返回原始 YAML，不产生 locale-specific 规范。
+
 ## 路由守卫顺序
 
 1. 匿名/受保护策略；2. Auth Context；3. feature flag；4. view permission；5. loader 预取。直接输入 URL 与侧栏点击必须得到相同授权结果。

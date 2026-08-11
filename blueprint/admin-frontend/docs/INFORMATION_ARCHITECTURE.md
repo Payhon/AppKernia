@@ -1,5 +1,15 @@
 # 信息架构、菜单与隐藏路由
 
+## 0. Shell 呈现规则
+
+- `sys.menus` 与权限上下文继续把 `system` 保存为数据一级菜单，既有二级能力域、三级页面、排序、Feature Flag 和权限语义均不改变。
+- Admin 在完成 Feature Flag、View Permission 和静态 Route Registry 过滤后，才把已解析树拆成“普通主菜单”和“System 工具菜单”。普通主菜单进入左侧独立滚动区；System 不再出现在该滚动区，而是由侧栏底部右侧齿轮打开。
+- 底部工具区固定为 OpenAPI 文档在左、System 在右。若过滤后 System 没有可访问页面，则整个 System 数据节点被裁掉且齿轮隐藏；公开文档入口始终保留。完全隐藏侧栏时工具区随侧栏隐藏。
+- 桌面端齿轮上方展示 System 二级能力域，三级页面通过右侧级联菜单访问；移动 Drawer 使用可滚动的内联展开层级。选择页面后关闭面板，移动端同时关闭 Drawer。
+- OpenAPI 文档不是 `sys.menus` 项，不增加权限码。它通过 `/openapi/?lang=zh-CN|en-US` 在新的浏览上下文公开打开，页面规范仍以 `server/openapi/openapi.yaml` 为唯一事实源。
+- OpenAPI 文档内部导航固定为“接口面 → 业务模块 → 接口”三级：3 个接口面包含 31 个有序模块，模块接口列表默认折叠。该层级由 canonical YAML 的单一 operation tag、顶层 `tags` 与 `x-tagGroups` 驱动，不使用前端自定义侧栏或字母重排。
+- 文档独立入口仅在内存中本地化接口面、模块名称和接口标题；参数、响应、Schema、示例及详细说明保留 canonical 英文。`api_reference` namespace 只进入 OpenAPI MPA，不进入 Admin 主 SPA；直接下载 `/openapi/openapi.yaml` 始终返回逐字节不变的 canonical YAML。
+
 ## 1. 最终菜单树
 
 ```text
@@ -40,7 +50,7 @@ Dashboard
     └── 服务状态
 ```
 
-系统一级菜单下的二级项是能力域，三级项才是实际页面。这样既满足用户指定的布局，又承载后端 51 张核心表对应的管理能力。
+系统一级菜单下的二级项是能力域，三级项才是实际页面。上面的树描述数据结构；实际 Shell 视觉入口位于固定底部齿轮，而不是左侧滚动主菜单。
 
 ## 2. 菜单页面表
 
