@@ -1,112 +1,252 @@
 {
-  "generated_at": "2026-08-10T14:03:56.801Z",
+  "generated_at": "2026-08-11T08:04:08.494Z",
   "budgets": {
     "initial_gzip_bytes": 307200,
-    "chunk_gzip_bytes": 184320
+    "chunk_gzip_bytes": 184320,
+    "openapi_initial_gzip_bytes": 1126400,
+    "openapi_chunk_gzip_bytes": 768000
   },
   "actual": {
-    "initial_gzip_bytes": 221174,
+    "initial_gzip_bytes": 233392,
     "largest_chunks": [
       {
-        "file": "assets/DashboardTrendChart-BmUDRLF1.js",
-        "gzip_bytes": 166087
+        "file": "assets/DashboardTrendChart-BNKy1ccp.js",
+        "gzip_bytes": 166106
       },
       {
-        "file": "assets/context-DywDVt-A.js",
-        "gzip_bytes": 94125
+        "file": "assets/context-yyxeLCwO.js",
+        "gzip_bytes": 94070
       },
       {
-        "file": "assets/query-client-B6dSOiIb.js",
-        "gzip_bytes": 87210
+        "file": "assets/query-client-CgSofi-F.js",
+        "gzip_bytes": 73954
       },
       {
-        "file": "assets/AppShell-Cvv9Od6U.js",
-        "gzip_bytes": 64088
+        "file": "assets/AppShell-D-2I6HiY.js",
+        "gzip_bytes": 64946
       },
       {
-        "file": "assets/typography-BaONyMga.js",
-        "gzip_bytes": 52311
+        "file": "assets/typography-BRndVoJK.js",
+        "gzip_bytes": 52347
       },
       {
-        "file": "assets/table-Dcu5F78M.js",
-        "gzip_bytes": 38685
+        "file": "assets/table-bhrE8VvH.js",
+        "gzip_bytes": 38724
       },
       {
-        "file": "assets/schemas-BEnb3sF3.js",
-        "gzip_bytes": 38187
+        "file": "assets/space-gDSPZWKV.js",
+        "gzip_bytes": 27048
       },
       {
-        "file": "assets/space-Bg_aHXDY.js",
-        "gzip_bytes": 27005
+        "file": "assets/index.esm-DAYWBqiC.js",
+        "gzip_bytes": 20624
       },
       {
-        "file": "assets/Match-DqMyU-Vq.js",
-        "gzip_bytes": 15601
+        "file": "assets/schemas-Cx2xd4-1.js",
+        "gzip_bytes": 19868
       },
       {
-        "file": "assets/tree-BorqBqfu.js",
-        "gzip_bytes": 15383
+        "file": "assets/Match-DDdcwB12.js",
+        "gzip_bytes": 15620
+      }
+    ],
+    "openapi_initial_gzip_bytes": 999910,
+    "openapi_largest_chunks": [
+      {
+        "file": "assets/add-scalar-classes-CIwe324d.js",
+        "gzip_bytes": 686992
+      },
+      {
+        "file": "assets/openapi-C5EZxMQZ.js",
+        "gzip_bytes": 130587
+      },
+      {
+        "file": "assets/AgentScalarChatInterface.vue-DxqbAxFe.js",
+        "gzip_bytes": 55622
+      },
+      {
+        "file": "assets/modal-UvtHyHpl.js",
+        "gzip_bytes": 50966
+      },
+      {
+        "file": "assets/client-BGY1e91G.js",
+        "gzip_bytes": 42458
+      },
+      {
+        "file": "assets/runtime-core.esm-bundler-BJbD5xlI.js",
+        "gzip_bytes": 32685
+      },
+      {
+        "file": "assets/browser-CNXWOmk1.js",
+        "gzip_bytes": 31257
+      },
+      {
+        "file": "assets/schemas-Cx2xd4-1.js",
+        "gzip_bytes": 19868
+      },
+      {
+        "file": "assets/openapi-DdC-9Wgq.js",
+        "gzip_bytes": 14121
+      },
+      {
+        "file": "assets/interface-setting-cog.svg-CEoxNz01.js",
+        "gzip_bytes": 924
       }
     ]
   },
   "initial_files": [
     {
-      "file": "assets/context-DywDVt-A.js",
-      "gzip_bytes": 94125
+      "file": "assets/context-yyxeLCwO.js",
+      "gzip_bytes": 94070
     },
     {
-      "file": "assets/query-client-B6dSOiIb.js",
-      "gzip_bytes": 87210
+      "file": "assets/query-client-CgSofi-F.js",
+      "gzip_bytes": 73954
     },
     {
-      "file": "assets/Match-DqMyU-Vq.js",
-      "gzip_bytes": 15601
+      "file": "assets/Match-DDdcwB12.js",
+      "gzip_bytes": 15620
     },
     {
-      "file": "assets/index-Bu-Boory.js",
-      "gzip_bytes": 8841
+      "file": "assets/openapi-DdC-9Wgq.js",
+      "gzip_bytes": 14121
     },
     {
-      "file": "assets/useStore-B11YKrzp.js",
-      "gzip_bytes": 6631
+      "file": "assets/admin-BQQGLq-g.css",
+      "gzip_bytes": 9951
     },
     {
-      "file": "assets/jsx-runtime-KJkY8l8U.js",
-      "gzip_bytes": 3302
+      "file": "assets/admin-Db0F2_7K.js",
+      "gzip_bytes": 8681
     },
     {
-      "file": "assets/link-BpwE05VL.js",
-      "gzip_bytes": 2409
+      "file": "assets/useStore-BjGXTPRv.js",
+      "gzip_bytes": 6646
     },
     {
-      "file": "assets/lazyRouteComponent-CgWUwnGH.js",
-      "gzip_bytes": 1385
+      "file": "assets/jsx-runtime-DRF4vMFQ.js",
+      "gzip_bytes": 3031
     },
     {
-      "file": "assets/shim-DRT8D95O.js",
-      "gzip_bytes": 486
+      "file": "assets/link-BM5gu3zh.js",
+      "gzip_bytes": 2426
+    },
+    {
+      "file": "assets/lazyRouteComponent-Cr9qMN18.js",
+      "gzip_bytes": 1402
+    },
+    {
+      "file": "assets/preload-helper-Czpn1I53.js",
+      "gzip_bytes": 675
+    },
+    {
+      "file": "assets/shim-C6N66reA.js",
+      "gzip_bytes": 504
+    },
+    {
+      "file": "assets/rolldown-runtime-QTnfLwEv.js",
+      "gzip_bytes": 422
+    },
+    {
+      "file": "assets/modulepreload-polyfill-Dezn_h7o.js",
+      "gzip_bytes": 392
     },
     {
       "file": "assets/redirect-D3L17tzd.js",
       "gzip_bytes": 326
     },
     {
-      "file": "assets/useNavigate-DqCnFULB.js",
-      "gzip_bytes": 235
+      "file": "assets/clsx-CjueKrWZ.js",
+      "gzip_bytes": 274
     },
     {
-      "file": "assets/useParams-ClqzaoLM.js",
-      "gzip_bytes": 231
+      "file": "assets/useNavigate-ER_pfsNy.js",
+      "gzip_bytes": 253
     },
     {
-      "file": "assets/useSearch-Dwf_At7k.js",
+      "file": "assets/useParams-CVYVZLjv.js",
+      "gzip_bytes": 233
+    },
+    {
+      "file": "assets/useSearch--JyLiDVQ.js",
       "gzip_bytes": 209
     },
     {
-      "file": "assets/useRouter-DVsENc7m.js",
-      "gzip_bytes": 183
+      "file": "assets/useRouter-khAFy5ok.js",
+      "gzip_bytes": 202
+    }
+  ],
+  "openapi_initial_files": [
+    {
+      "file": "assets/add-scalar-classes-CIwe324d.js",
+      "gzip_bytes": 686992
+    },
+    {
+      "file": "assets/openapi-C5EZxMQZ.js",
+      "gzip_bytes": 130587
+    },
+    {
+      "file": "assets/client-BGY1e91G.js",
+      "gzip_bytes": 42458
+    },
+    {
+      "file": "assets/openapi-B1AVe2mn.css",
+      "gzip_bytes": 39286
+    },
+    {
+      "file": "assets/runtime-core.esm-bundler-BJbD5xlI.js",
+      "gzip_bytes": 32685
+    },
+    {
+      "file": "assets/browser-CNXWOmk1.js",
+      "gzip_bytes": 31257
+    },
+    {
+      "file": "assets/schemas-Cx2xd4-1.js",
+      "gzip_bytes": 19868
+    },
+    {
+      "file": "assets/openapi-DdC-9Wgq.js",
+      "gzip_bytes": 14121
+    },
+    {
+      "file": "assets/preload-helper-Czpn1I53.js",
+      "gzip_bytes": 675
+    },
+    {
+      "file": "assets/interface-content-folder.svg-DE6Q0fan.js",
+      "gzip_bytes": 585
+    },
+    {
+      "file": "assets/rolldown-runtime-QTnfLwEv.js",
+      "gzip_bytes": 422
+    },
+    {
+      "file": "assets/modulepreload-polyfill-Dezn_h7o.js",
+      "gzip_bytes": 392
+    },
+    {
+      "file": "assets/config-DS0Kdncm.js",
+      "gzip_bytes": 308
+    },
+    {
+      "file": "assets/clsx-CjueKrWZ.js",
+      "gzip_bytes": 274
     }
   ],
   "passed": true,
-  "oversized_chunks": []
+  "admin_docs_only_matches": [],
+  "admin_scalar_keys": [],
+  "openapi_docs_only_matches": [
+    {
+      "file": "assets/openapi-C5EZxMQZ.js",
+      "marker": "api_reference.operation.getLiveness"
+    },
+    {
+      "file": "assets/openapi-C5EZxMQZ.js",
+      "marker": "OPENAPI_DOCUMENT_VERSION_UNSUPPORTED"
+    }
+  ],
+  "oversized_chunks": [],
+  "openapi_oversized_chunks": []
 }

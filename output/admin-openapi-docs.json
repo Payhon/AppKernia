@@ -1,0 +1,28 @@
+{
+  "generated_at": "2026-08-11T08:04:09.068Z",
+  "passed": true,
+  "checks": {
+    "admin_entry_present": true,
+    "canonical_openapi_31": true,
+    "docs_entry_is_independent": true,
+    "docs_entry_present": true,
+    "emitted_spec_is_byte_identical": true,
+    "html_contains_no_remote_asset": true,
+    "html_uses_bundled_entry": true,
+    "no_locale_specific_spec": true
+  },
+  "canonical": {
+    "bytes": 377817,
+    "path": "server/openapi/openapi.yaml",
+    "sha256": "efc4a2050a7cbe8f31fa88f23306ebc545783fa2e34dba5622e3ed8f348bd8df"
+  },
+  "emitted": {
+    "bytes": 377817,
+    "path": "apps/ak-admin/dist/openapi/openapi.yaml",
+    "sha256": "efc4a2050a7cbe8f31fa88f23306ebc545783fa2e34dba5622e3ed8f348bd8df"
+  },
+  "entries": {
+    "admin": "assets/admin-Db0F2_7K.js",
+    "openapi": "assets/openapi-C5EZxMQZ.js"
+  }
+}

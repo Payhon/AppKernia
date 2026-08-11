@@ -7,11 +7,179 @@ info:
     identifier: MIT
 servers:
   - url: /
+tags:
+  - name: platform-health
+    description: Platform health
+    x-displayName: Platform health
+    x-appkernia-i18n-key: api_reference.module.platform_health
+  - name: public-app
+    description: App public capabilities
+    x-displayName: App public capabilities
+    x-appkernia-i18n-key: api_reference.module.public_app
+  - name: public-content
+    description: Public content
+    x-displayName: Public content
+    x-appkernia-i18n-key: api_reference.module.public_content
+  - name: public-dictionary
+    description: Public dictionaries
+    x-displayName: Public dictionaries
+    x-appkernia-i18n-key: api_reference.module.public_dictionary
+  - name: api-client-auth
+    description: API Client authentication
+    x-displayName: API Client authentication
+    x-appkernia-i18n-key: api_reference.module.api_client_auth
+  - name: mobile-auth
+    description: Authentication
+    x-displayName: Authentication
+    x-appkernia-i18n-key: api_reference.module.mobile_auth
+  - name: mobile-profile
+    description: Profile and preferences
+    x-displayName: Profile and preferences
+    x-appkernia-i18n-key: api_reference.module.mobile_profile
+  - name: mobile-devices-sessions
+    description: Devices and sessions
+    x-displayName: Devices and sessions
+    x-appkernia-i18n-key: api_reference.module.mobile_devices_sessions
+  - name: mobile-notifications
+    description: Notifications
+    x-displayName: Notifications
+    x-appkernia-i18n-key: api_reference.module.mobile_notifications
+  - name: mobile-security
+    description: Security events
+    x-displayName: Security events
+    x-appkernia-i18n-key: api_reference.module.mobile_security
+  - name: mobile-content
+    description: Bookmarks and legal consent
+    x-displayName: Bookmarks and legal consent
+    x-appkernia-i18n-key: api_reference.module.mobile_content
+  - name: admin-auth-profile
+    description: Authentication and profile
+    x-displayName: Authentication and profile
+    x-appkernia-i18n-key: api_reference.module.admin_auth_profile
+  - name: admin-dashboard
+    description: Dashboard
+    x-displayName: Dashboard
+    x-appkernia-i18n-key: api_reference.module.admin_dashboard
+  - name: admin-app-management
+    description: App management
+    x-displayName: App management
+    x-appkernia-i18n-key: api_reference.module.admin_app_management
+  - name: admin-releases
+    description: Upgrade center
+    x-displayName: Upgrade center
+    x-appkernia-i18n-key: api_reference.module.admin_releases
+  - name: admin-app-content
+    description: App content
+    x-displayName: App content
+    x-appkernia-i18n-key: api_reference.module.admin_app_content
+  - name: admin-app-communications
+    description: App notifications
+    x-displayName: App notifications
+    x-appkernia-i18n-key: api_reference.module.admin_app_communications
+  - name: admin-app-users
+    description: App users
+    x-displayName: App users
+    x-appkernia-i18n-key: api_reference.module.admin_app_users
+  - name: admin-organization
+    description: Organization
+    x-displayName: Organization
+    x-appkernia-i18n-key: api_reference.module.admin_organization
+  - name: admin-tenants
+    description: Tenants
+    x-displayName: Tenants
+    x-appkernia-i18n-key: api_reference.module.admin_tenants
+  - name: admin-users
+    description: Users
+    x-displayName: Users
+    x-appkernia-i18n-key: api_reference.module.admin_users
+  - name: admin-access-control
+    description: Permissions
+    x-displayName: Permissions
+    x-appkernia-i18n-key: api_reference.module.admin_access_control
+  - name: admin-system-settings
+    description: System settings
+    x-displayName: System settings
+    x-appkernia-i18n-key: api_reference.module.admin_system_settings
+  - name: admin-storage
+    description: Files
+    x-displayName: Files
+    x-appkernia-i18n-key: api_reference.module.admin_storage
+  - name: admin-content
+    description: Content
+    x-displayName: Content
+    x-appkernia-i18n-key: api_reference.module.admin_content
+  - name: admin-notifications
+    description: Notifications
+    x-displayName: Notifications
+    x-appkernia-i18n-key: api_reference.module.admin_notifications
+  - name: admin-jobs
+    description: Jobs
+    x-displayName: Jobs
+    x-appkernia-i18n-key: api_reference.module.admin_jobs
+  - name: admin-api-clients
+    description: API Clients
+    x-displayName: API Clients
+    x-appkernia-i18n-key: api_reference.module.admin_api_clients
+  - name: admin-webhooks
+    description: Webhooks
+    x-displayName: Webhooks
+    x-appkernia-i18n-key: api_reference.module.admin_webhooks
+  - name: admin-audit-security
+    description: Audit and security
+    x-displayName: Audit and security
+    x-appkernia-i18n-key: api_reference.module.admin_audit_security
+  - name: admin-operations
+    description: Online sessions and runtime
+    x-displayName: Online sessions and runtime
+    x-appkernia-i18n-key: api_reference.module.admin_operations
+x-tagGroups:
+  - name: Platform and Public APIs
+    x-appkernia-i18n-key: api_reference.surface.platform_public
+    tags:
+      - platform-health
+      - public-app
+      - public-content
+      - public-dictionary
+      - api-client-auth
+  - name: Mobile APIs
+    x-appkernia-i18n-key: api_reference.surface.mobile
+    tags:
+      - mobile-auth
+      - mobile-profile
+      - mobile-devices-sessions
+      - mobile-notifications
+      - mobile-security
+      - mobile-content
+  - name: Admin APIs
+    x-appkernia-i18n-key: api_reference.surface.admin
+    tags:
+      - admin-auth-profile
+      - admin-dashboard
+      - admin-app-management
+      - admin-releases
+      - admin-app-content
+      - admin-app-communications
+      - admin-app-users
+      - admin-organization
+      - admin-tenants
+      - admin-users
+      - admin-access-control
+      - admin-system-settings
+      - admin-storage
+      - admin-content
+      - admin-notifications
+      - admin-jobs
+      - admin-api-clients
+      - admin-webhooks
+      - admin-audit-security
+      - admin-operations
+
 paths:
   /internal/v1/health/live:
     get:
       summary: Check API process liveness
       operationId: getLiveness
+      tags: [platform-health]
       security: []
       responses:
         "200":
@@ -26,6 +194,7 @@ paths:
     get:
       summary: Check required dependency readiness
       operationId: getReadiness
+      tags: [platform-health]
       security: []
       responses:
         "200":
@@ -46,6 +215,7 @@ paths:
     get:
       summary: Read public mobile application configuration
       operationId: getAppPublicConfig
+      tags: [public-app]
       security: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
@@ -79,6 +249,7 @@ paths:
     get:
       summary: Read a published App legal document with locale fallback
       operationId: getAppLegalDocument
+      tags: [public-app]
       security: []
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {$ref: "#/components/parameters/AppID"}, {name: document_type, in: path, required: true, schema: {type: string, enum: [privacy-policy, terms-of-service]}}]
       responses: {"200": {description: Published legal document and immutable revision hash., content: {application/json: {schema: {$ref: "#/components/schemas/AppPublicPageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -86,6 +257,7 @@ paths:
     get:
       summary: Read one published App single page
       operationId: getAppPublicPage
+      tags: [public-app]
       security: []
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {$ref: "#/components/parameters/AppID"}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}]
       responses: {"200": {description: Published App page and immutable revision hash., content: {application/json: {schema: {$ref: "#/components/schemas/AppPublicPageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -93,6 +265,7 @@ paths:
     post:
       summary: Record acceptance of the currently published App legal revision
       operationId: acceptAppLegalDocument
+      tags: [mobile-content]
       parameters: [{$ref: "#/components/parameters/AppID"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppLegalConsentRequest"}}}}
       responses: {"200": {description: Consent was recorded idempotently., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -101,6 +274,7 @@ paths:
     get:
       summary: Lazily list active public regions
       operationId: listAppRegions
+      tags: [public-app]
       security: []
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: parent_code, in: query, schema: {type: string, maxLength: 32}}, {name: level, in: query, schema: {type: integer, minimum: 0, maximum: 10}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 200, default: 100}}]
       responses: {"200": {description: Active region nodes; roots are returned when parent_code and q are absent., content: {application/json: {schema: {$ref: "#/components/schemas/RegionListResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -108,6 +282,7 @@ paths:
     get:
       summary: Read the public mobile application upgrade policy
       operationId: getMobileAppVersion
+      tags: [public-app]
       security: []
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {$ref: "#/components/parameters/AppID"}, {name: platform, in: query, required: true, schema: {type: string, enum: [android, ios, harmony]}}, {name: package_type, in: query, schema: {type: string, enum: [native_app, wgt], default: native_app}}]
       responses: {"200": {description: Localized current version and upgrade policy without administrative fields., content: {application/json: {schema: {$ref: "#/components/schemas/MobileAppVersionResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {description: No active release policy exists for this platform., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -115,6 +290,7 @@ paths:
     get:
       summary: Download a published internal package with a short-lived App/version/file-bound signature
       operationId: downloadMobileAppVersionPackage
+      tags: [public-app]
       security: []
       parameters: [{$ref: "#/components/parameters/AppID"}, {name: release_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: file_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: expires, in: query, required: true, schema: {type: integer, format: int64}}, {name: signature, in: query, required: true, schema: {type: string}}]
       responses: {"200": {description: Private package bytes with no-store cache policy., content: {application/octet-stream: {schema: {type: string, format: binary}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -123,6 +299,7 @@ paths:
     post:
       summary: Sign in to the mobile application with a password
       operationId: mobilePasswordLogin
+      tags: [mobile-auth]
       security: []
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: X-AK-Device-Key, in: header, required: true, description: A random UUID identifying this mobile installation. It is not an authentication factor., schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePasswordLoginRequest"}}}}
@@ -131,6 +308,7 @@ paths:
     post:
       summary: Register an App user and start App-configured email verification
       operationId: registerAppUser
+      tags: [mobile-auth]
       security: []
       parameters: [{$ref: "#/components/parameters/AppID"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppRegistrationRequest"}}}}
@@ -139,6 +317,7 @@ paths:
     post:
       summary: Verify a registration email OTP for the current App
       operationId: verifyAppRegistrationEmail
+      tags: [mobile-auth]
       security: []
       parameters: [{$ref: "#/components/parameters/AppID"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppEmailOTPRequest"}}}}
@@ -147,6 +326,7 @@ paths:
     post:
       summary: Resend a registration OTP subject to the App email cooldown
       operationId: resendAppRegistrationEmail
+      tags: [mobile-auth]
       security: []
       parameters: [{$ref: "#/components/parameters/AppID"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppEmailRequest"}}}}
@@ -155,6 +335,7 @@ paths:
     post:
       summary: Start an App-scoped password-reset email OTP flow
       operationId: forgotAppPassword
+      tags: [mobile-auth]
       security: []
       parameters: [{$ref: "#/components/parameters/AppID"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppEmailRequest"}}}}
@@ -163,6 +344,7 @@ paths:
     post:
       summary: Reset an App user's password with a one-time email OTP
       operationId: resetAppPassword
+      tags: [mobile-auth]
       security: []
       parameters: [{$ref: "#/components/parameters/AppID"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppPasswordResetRequest"}}}}
@@ -172,6 +354,7 @@ paths:
     post:
       summary: Rotate a mobile refresh token
       operationId: mobileRefreshToken
+      tags: [mobile-auth]
       security: []
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileRefreshRequest"}}}}
       responses: {"200": {description: Refresh token rotated; old token is consumed., content: {application/json: {schema: {$ref: "#/components/schemas/MobileTokenResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
@@ -180,18 +363,21 @@ paths:
     post:
       summary: Revoke the current mobile session
       operationId: mobileLogout
+      tags: [mobile-auth]
       responses: {"200": {description: Session revoked, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/auth/context:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: Get the authenticated mobile identity context
       operationId: mobileAuthContext
+      tags: [mobile-auth]
       responses: {"200": {description: Authenticated mobile context, content: {application/json: {schema: {$ref: "#/components/schemas/MobileContextResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/auth/password/change:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     post:
       summary: Change the current mobile user's password and revoke other sessions
       operationId: mobileChangePassword
+      tags: [mobile-auth]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SelfPasswordChangeRequest"}}}}
       responses: {"200": {description: Password changed, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me:
@@ -199,10 +385,12 @@ paths:
     get:
       summary: Get the current mobile user profile
       operationId: getMobileMe
+      tags: [mobile-profile]
       responses: {"200": {description: Current profile, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
     patch:
       summary: Update the current mobile user profile
       operationId: updateMobileMe
+      tags: [mobile-profile]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileUpdateRequest"}}}}
       responses: {"200": {description: Updated profile, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/sessions:
@@ -210,12 +398,14 @@ paths:
     get:
       summary: List the current user's mobile sessions
       operationId: listMobileSelfSessions
+      tags: [mobile-devices-sessions]
       responses: {"200": {description: Mobile sessions, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSessionListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/me/sessions/{id}:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     delete:
       summary: Revoke one current-user mobile session
       operationId: revokeMobileSelfSession
+      tags: [mobile-devices-sessions]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Session revoked, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/devices:
@@ -223,12 +413,14 @@ paths:
     get:
       summary: List the current user's devices
       operationId: listMobileSelfDevices
+      tags: [mobile-devices-sessions]
       responses: {"200": {description: Mobile devices, content: {application/json: {schema: {$ref: "#/components/schemas/MobileDeviceListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/me/devices/{id}:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     delete:
       summary: Remove a current-user device and its sessions
       operationId: removeMobileSelfDevice
+      tags: [mobile-devices-sessions]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Device removed, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/preferences:
@@ -236,24 +428,27 @@ paths:
     get:
       summary: Get current-user locale and appearance preferences
       operationId: getMobilePreferences
+      tags: [mobile-profile]
       responses: {"200": {description: Current preferences, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
     patch:
       summary: Update current-user locale, appearance, and notification preferences
       operationId: updateMobilePreferences
+      tags: [mobile-profile]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesUpdateRequest"}}}}
       responses: {"200": {description: Updated preferences, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/notification-preferences:
     parameters: [{$ref: "#/components/parameters/AppID"}]
-    get: {summary: Get current-user notification preferences, operationId: getMobileNotificationPreferences, responses: {"200": {description: Current notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
-    patch: {summary: Update current-user notification preferences, operationId: updateMobileNotificationPreferences, requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesUpdateRequest"}}}}, responses: {"200": {description: Updated notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}}
+    get: {summary: Get current-user notification preferences, operationId: getMobileNotificationPreferences, tags: [mobile-notifications], responses: {"200": {description: Current notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    patch: {summary: Update current-user notification preferences, operationId: updateMobileNotificationPreferences, tags: [mobile-notifications], requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesUpdateRequest"}}}}, responses: {"200": {description: Updated notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}}
   /api/v1/me/notifications/unread-count:
     parameters: [{$ref: "#/components/parameters/AppID"}]
-    get: {summary: Count unread in-app notifications for the current user, operationId: getMobileUnreadNotificationCount, responses: {"200": {description: Unread count, content: {application/json: {schema: {$ref: "#/components/schemas/MobileUnreadCountResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    get: {summary: Count unread in-app notifications for the current user, operationId: getMobileUnreadNotificationCount, tags: [mobile-notifications], responses: {"200": {description: Unread count, content: {application/json: {schema: {$ref: "#/components/schemas/MobileUnreadCountResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
   /api/v1/me/notifications:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: List delivered current-user in-app notifications with an opaque cursor
       operationId: listMobileNotifications
+      tags: [mobile-notifications]
       parameters: [{name: cursor, in: query, schema: {type: string}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Delivered notifications visible only to the authenticated tenant member., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPageResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/notifications/{id}/read:
@@ -261,23 +456,26 @@ paths:
     patch:
       summary: Mark one delivered current-user notification as read
       operationId: markMobileNotificationRead
+      tags: [mobile-notifications]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Notification read state updated, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/login-events:
     parameters: [{$ref: "#/components/parameters/AppID"}]
-    get: {summary: List the current user's mobile login events, operationId: listMobileLoginEvents, responses: {"200": {description: Login events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    get: {summary: List the current user's mobile login events, operationId: listMobileLoginEvents, tags: [mobile-security], responses: {"200": {description: Login events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
   /api/v1/me/security-events:
     parameters: [{$ref: "#/components/parameters/AppID"}]
-    get: {summary: List current-user security events, operationId: listMobileSecurityEvents, responses: {"200": {description: Security events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSecurityEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    get: {summary: List current-user security events, operationId: listMobileSecurityEvents, tags: [mobile-security], responses: {"200": {description: Security events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSecurityEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
   /admin-api/v1/mobile/releases:
     parameters: [{name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
     get:
       summary: List administrator-managed mobile release policies
       operationId: listAdminMobileReleases
+      tags: [admin-releases]
       responses: {"200": {description: Global platform release policies, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}}
     post:
       summary: Create a mobile release policy
       operationId: createAdminMobileRelease
+      tags: [admin-releases]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
       responses: {"201": {description: Release policy created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/mobile/releases/{id}:
@@ -285,23 +483,27 @@ paths:
     get:
       summary: Read one mobile release through the compatibility entry
       operationId: getAdminMobileRelease
+      tags: [admin-releases]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Release detail, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update one mobile release policy using optimistic locking
       operationId: updateAdminMobileRelease
+      tags: [admin-releases]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
       responses: {"200": {description: Release policy updated; platform is immutable and must match the stored record., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
     delete:
       summary: Delete one never-published release draft through the compatibility entry
       operationId: deleteAdminMobileRelease
+      tags: [admin-releases]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Draft deleted, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
   /admin-api/v1/mobile/releases/batch-delete:
     post:
       summary: Atomically delete compatibility-entry release drafts
       operationId: batchDeleteAdminMobileReleases
+      tags: [admin-releases]
       parameters: [{name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/UUIDBatchRequest"}}}}
       responses: {"200": {description: Drafts deleted, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -309,6 +511,7 @@ paths:
     post:
       summary: Publish a release through the compatibility entry
       operationId: publishAdminMobileRelease
+      tags: [admin-releases]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
       responses: {"200": {description: Release published, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -316,6 +519,7 @@ paths:
     post:
       summary: Unpublish a release through the compatibility entry
       operationId: unpublishAdminMobileRelease
+      tags: [admin-releases]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
       responses: {"200": {description: Release unpublished, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -323,12 +527,14 @@ paths:
     get:
       summary: List Apps scoped to the authenticated Admin tenant
       operationId: listAdminApps
+      tags: [admin-app-management]
       security: [{adminBearer: []}]
       parameters: [{name: q, in: query, schema: {type: string, maxLength: 160}}, {name: app_type, in: query, schema: {type: string, enum: [uni_app, uni_app_x]}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Tenant Apps, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
     post:
       summary: Create a new App and its reserved single-page identities
       operationId: createAdminApp
+      tags: [admin-app-management]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppRequest"}}}}
       responses: {"201": {description: App created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -336,12 +542,14 @@ paths:
     get:
       summary: Read one App scoped to the authenticated Admin tenant
       operationId: getAdminApp
+      tags: [admin-app-management]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App detail, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update App registration and locale configuration with optimistic locking
       operationId: updateAdminApp
+      tags: [admin-app-management]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppRequest"}}}}
@@ -349,6 +557,7 @@ paths:
     delete:
       summary: Soft-delete one disabled non-default App
       operationId: deleteAdminApp
+      tags: [admin-app-management]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App soft-deleted., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -356,6 +565,7 @@ paths:
     post:
       summary: Atomically soft-delete up to 100 disabled non-default Apps
       operationId: batchDeleteAdminApps
+      tags: [admin-app-management]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/UUIDBatchRequest"}}}}
       responses: {"200": {description: All Apps soft-deleted., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -363,6 +573,7 @@ paths:
     post:
       summary: Enable an App using an optimistic-lock request body
       operationId: enableAdminApp
+      tags: [admin-app-management]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppStatusRequest"}}}}
@@ -371,6 +582,7 @@ paths:
     post:
       summary: Disable an App and reject subsequent mobile header resolution
       operationId: disableAdminApp
+      tags: [admin-app-management]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppStatusRequest"}}}}
@@ -379,12 +591,14 @@ paths:
     get:
       summary: List mobile release policies owned by the selected App
       operationId: listAdminAppMobileReleases
+      tags: [admin-releases]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: package_type, in: query, schema: {type: string, enum: [native_app, wgt]}}, {name: platform, in: query, schema: {type: string, enum: [android, ios, harmony]}}, {name: publish_status, in: query, schema: {type: string, enum: [draft, online, partial, offline]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: App release version history., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleasePageResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create a mobile release policy for the selected App
       operationId: createAdminAppMobileRelease
+      tags: [admin-releases]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
@@ -393,12 +607,14 @@ paths:
     get:
       summary: Read one App release version
       operationId: getAdminAppMobileRelease
+      tags: [admin-releases]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Release detail., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update a mobile release policy owned by the selected App
       operationId: updateAdminAppMobileRelease
+      tags: [admin-releases]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
@@ -406,6 +622,7 @@ paths:
     delete:
       summary: Delete a never-published release draft
       operationId: deleteAdminAppMobileRelease
+      tags: [admin-releases]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Draft deleted., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -413,6 +630,7 @@ paths:
     post:
       summary: Atomically delete up to 100 never-published release drafts
       operationId: batchDeleteAdminAppMobileReleases
+      tags: [admin-releases]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/UUIDBatchRequest"}}}}
@@ -421,6 +639,7 @@ paths:
     post:
       summary: Atomically publish a release to every target platform
       operationId: publishAdminAppMobileRelease
+      tags: [admin-releases]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
@@ -429,6 +648,7 @@ paths:
     post:
       summary: Remove this release from every current publication pointer
       operationId: unpublishAdminAppMobileRelease
+      tags: [admin-releases]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
@@ -437,12 +657,14 @@ paths:
     get:
       summary: List App-scoped announcements
       operationId: listAdminAppNotices
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [draft, scheduled, published, cancelled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: App notices., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create an App-scoped announcement draft
       operationId: createAdminAppNotice
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
@@ -451,12 +673,14 @@ paths:
     get:
       summary: Get an App-scoped announcement
       operationId: getAdminAppNotice
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App notice., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update an App-scoped announcement
       operationId: updateAdminAppNotice
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
@@ -465,6 +689,7 @@ paths:
     post:
       summary: Preview recipients selected from the App membership set
       operationId: previewAdminAppNoticeRecipients
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App recipient preview., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientPreviewResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -472,6 +697,7 @@ paths:
     post:
       summary: Publish or cancel an App-scoped announcement
       operationId: transitionAdminAppNotice
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: action, in: path, required: true, schema: {type: string, enum: [publish, cancel]}}]
       responses: {"200": {description: Transitioned App notice., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -479,6 +705,7 @@ paths:
     get:
       summary: Get App-scoped announcement recipient statistics
       operationId: getAdminAppNoticeRecipients
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App recipient statistics., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientStatsResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -486,12 +713,14 @@ paths:
     get:
       summary: List App-scoped messages
       operationId: listAdminAppMessages
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [draft, scheduled, published, cancelled]}}, {name: message_type, in: query, schema: {type: string, enum: [system, private, marketing, security]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: App messages., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create an App-scoped message draft
       operationId: createAdminAppMessage
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
@@ -500,12 +729,14 @@ paths:
     get:
       summary: Get an App-scoped message
       operationId: getAdminAppMessage
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App message., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update an App-scoped message
       operationId: updateAdminAppMessage
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
@@ -514,6 +745,7 @@ paths:
     post:
       summary: Preview recipients selected from the App membership set
       operationId: previewAdminAppMessageRecipients
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App recipient preview., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientPreviewResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -521,6 +753,7 @@ paths:
     post:
       summary: Publish or cancel an App-scoped message
       operationId: transitionAdminAppMessage
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: action, in: path, required: true, schema: {type: string, enum: [publish, cancel]}}]
       responses: {"200": {description: Transitioned App message., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -528,6 +761,7 @@ paths:
     get:
       summary: Get App-scoped message recipient statistics
       operationId: getAdminAppMessageRecipients
+      tags: [admin-app-communications]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App recipient statistics., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientStatsResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -535,12 +769,14 @@ paths:
     get:
       summary: List categories belonging only to the selected App
       operationId: listAdminAppContentCategories
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: App category page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create a category owned by the selected App
       operationId: createAdminAppContentCategory
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryRequest"}}}}
@@ -549,12 +785,14 @@ paths:
     get:
       summary: Read one category owned by the selected App
       operationId: getAdminAppContentCategory
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Category., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update an App-owned category with optimistic locking
       operationId: updateAdminAppContentCategory
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryUpdateRequest"}}}}
@@ -562,6 +800,7 @@ paths:
     delete:
       summary: Delete an unused App-owned category
       operationId: deleteAdminAppContentCategory
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
       responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -569,12 +808,14 @@ paths:
     get:
       summary: List articles belonging only to the selected App
       operationId: listAdminAppContentArticles
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: category_id, in: query, schema: {type: string, format: uuid}}, {name: status, in: query, schema: {type: string, enum: [draft, published, archived]}}, {name: featured, in: query, schema: {type: boolean}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: App article page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create an App-owned draft article
       operationId: createAdminAppContentArticle
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleRequest"}}}}
@@ -583,12 +824,14 @@ paths:
     get:
       summary: Read one App-owned article
       operationId: getAdminAppContentArticle
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Article., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update an App-owned article using lock_version
       operationId: updateAdminAppContentArticle
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleUpdateRequest"}}}}
@@ -596,6 +839,7 @@ paths:
     delete:
       summary: Delete an App-owned draft article
       operationId: deleteAdminAppContentArticle
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
       responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -603,6 +847,7 @@ paths:
     post:
       summary: Transition an App-owned article using its lifecycle action
       operationId: transitionAdminAppContentArticle
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: transition, in: path, required: true, schema: {type: string, enum: [publish, unpublish, archive]}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTransitionRequest"}}}}
@@ -611,12 +856,14 @@ paths:
     get:
       summary: List App-scoped single pages and their current revisions
       operationId: listAdminAppPages
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [draft, published, archived]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Pages belonging only to the selected App., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPageListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create a custom page or append a versioned revision to a reserved App page
       operationId: saveAdminAppPage
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPageRequest"}}}}
@@ -625,6 +872,7 @@ paths:
     patch:
       summary: Save an App page draft revision without replacing the current published revision
       operationId: saveAdminAppPageDraft
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPageRequest"}}}}
@@ -632,6 +880,7 @@ paths:
     delete:
       summary: Delete a custom App page; reserved legal and about pages are immutable
       operationId: deleteAdminAppPage
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
       responses: {"200": {description: Custom page deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -639,6 +888,7 @@ paths:
     post:
       summary: Publish the newest draft revision of an App page
       operationId: publishAdminAppPage
+      tags: [admin-app-content]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTransitionRequest"}}}}
@@ -647,12 +897,14 @@ paths:
     get:
       summary: List only users explicitly associated with the selected App
       operationId: listAdminAppUsers
+      tags: [admin-app-users]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [pending_verification, active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: App memberships, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create an App user identity and active App membership
       operationId: createAdminAppUser
+      tags: [admin-app-users]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserCreateRequest"}}}}
@@ -661,12 +913,14 @@ paths:
     get:
       summary: Read one explicit App membership
       operationId: getAdminAppUser
+      tags: [admin-app-users]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App user detail, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update permitted profile fields for an App user
       operationId: updateAdminAppUser
+      tags: [admin-app-users]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserUpdateRequest"}}}}
@@ -675,6 +929,7 @@ paths:
     post:
       summary: Enable an App user membership without changing global IAM identity status
       operationId: enableAdminAppUser
+      tags: [admin-app-users]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserActionRequest"}}}}
@@ -683,6 +938,7 @@ paths:
     post:
       summary: Disable an App membership and revoke only that App's mobile sessions
       operationId: disableAdminAppUser
+      tags: [admin-app-users]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserActionRequest"}}}}
@@ -691,6 +947,7 @@ paths:
     post:
       summary: Clear an App user's credential lock state
       operationId: unlockAdminAppUser
+      tags: [admin-app-users]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserActionRequest"}}}}
@@ -699,6 +956,7 @@ paths:
     post:
       summary: Reset global credentials and revoke only the selected App mobile sessions
       operationId: resetAdminAppUserPassword
+      tags: [admin-app-users]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppPasswordResetRequest"}}}}
@@ -707,6 +965,7 @@ paths:
     post:
       summary: Revoke active ak-mobile sessions belonging to the selected App only
       operationId: revokeAdminAppUserSessions
+      tags: [admin-app-users]
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserActionRequest"}}}}
@@ -715,6 +974,7 @@ paths:
     post:
       summary: Sign in to the Admin application with a password
       operationId: adminLogin
+      tags: [admin-auth-profile]
       security: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
@@ -746,6 +1006,7 @@ paths:
     get:
       summary: Resolve an active public dictionary using tenant-neutral locale fallback
       operationId: getPublicDictionary
+      tags: [public-dictionary]
       security: []
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: code, in: path, required: true, schema: {type: string, pattern: "^[a-z][a-z0-9_.-]{1,159}$"}}]
       responses: {"200": {description: Public consumption fields only., content: {application/json: {schema: {$ref: "#/components/schemas/ResolvedDictionaryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -754,6 +1015,7 @@ paths:
       summary: Create a short-lived image CAPTCHA for an Admin login retry
       description: Creates a single-use PNG challenge bound to the normalized email, Admin audience, and request source. Creating a new challenge invalidates an earlier active challenge for the same scope.
       operationId: createAdminLoginCaptcha
+      tags: [admin-auth-profile]
       security: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
@@ -779,6 +1041,7 @@ paths:
     get:
       summary: Read public Admin authentication configuration
       operationId: getAdminPublicConfig
+      tags: [admin-auth-profile]
       security: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
@@ -803,6 +1066,7 @@ paths:
     post:
       summary: Request self-service registration in the configured Admin tenant
       operationId: registerAdminAccount
+      tags: [admin-auth-profile]
       security: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
@@ -829,6 +1093,7 @@ paths:
     post:
       summary: Request an Admin password reset without revealing account existence
       operationId: requestAdminPasswordReset
+      tags: [admin-auth-profile]
       security: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
@@ -858,6 +1123,7 @@ paths:
     post:
       summary: Consume a one-time Admin password reset token and revoke existing sessions
       operationId: resetAdminPassword
+      tags: [admin-auth-profile]
       security: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
@@ -882,6 +1148,7 @@ paths:
     post:
       summary: Rotate the Admin refresh token and issue a new access token
       operationId: refreshAdminToken
+      tags: [admin-auth-profile]
       security:
         - adminRefreshCookie: []
       parameters:
@@ -907,6 +1174,7 @@ paths:
     post:
       summary: Revoke the current Admin session
       operationId: adminLogout
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
           adminRefreshCookie: []
@@ -928,6 +1196,7 @@ paths:
     get:
       summary: Read the current Admin identity, tenant and authorization context
       operationId: getAdminAuthContext
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -945,6 +1214,7 @@ paths:
     post:
       summary: Switch the current Admin session to another available tenant
       operationId: switchAdminTenant
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -980,6 +1250,7 @@ paths:
     get:
       summary: Read the current Admin user's profile
       operationId: getAdminMe
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -1002,6 +1273,7 @@ paths:
     patch:
       summary: Update the current Admin user's basic profile settings
       operationId: updateAdminMe
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -1034,6 +1306,7 @@ paths:
       summary: Create a self-scoped avatar upload session
       description: Creates a short-lived upload target for the authenticated user's browser-cropped avatar. The server selects tenant, owner, configured local/S3/MinIO provider and random object key; the client cannot provide them or receive storage credentials.
       operationId: createAdminSelfAvatarUploadSession
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -1057,6 +1330,7 @@ paths:
       summary: Upload and attach browser-cropped avatar content
       description: Uploads through the tenant's configured ObjectStore adapter (development local, S3, or MinIO), then validates MIME magic, dimensions, size and ownership before attaching the object to the current user.
       operationId: uploadAdminSelfAvatarContent
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -1084,6 +1358,7 @@ paths:
     get:
       summary: Read the current Admin user's private avatar
       operationId: getAdminSelfAvatarContent
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       responses:
@@ -1102,6 +1377,7 @@ paths:
     get:
       summary: List the current Admin user's active sessions
       operationId: listAdminSelfSessions
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -1125,6 +1401,7 @@ paths:
     delete:
       summary: Revoke one of the current Admin user's sessions
       operationId: revokeAdminSelfSession
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -1153,6 +1430,7 @@ paths:
     get:
       summary: List the current Admin user's registered Web devices
       operationId: listAdminSelfDevices
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -1176,6 +1454,7 @@ paths:
     delete:
       summary: Remove one of the current Admin user's registered devices
       operationId: removeAdminSelfDevice
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -1204,6 +1483,7 @@ paths:
     post:
       summary: Change the current Admin user's password
       operationId: changeAdminSelfPassword
+      tags: [admin-auth-profile]
       security:
         - adminBearer: []
       parameters:
@@ -1238,6 +1518,7 @@ paths:
     get:
       summary: Read the current Admin user's MFA status
       operationId: getAdminSelfMfa
+      tags: [admin-auth-profile]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1249,6 +1530,7 @@ paths:
       summary: Start a one-time TOTP enrollment
       description: The plaintext secret and otpauth URI are returned only by this response and are never returned by status or list APIs.
       operationId: enrollAdminSelfTotp
+      tags: [admin-auth-profile]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1260,6 +1542,7 @@ paths:
     post:
       summary: Verify and activate a pending TOTP enrollment
       operationId: verifyAdminSelfTotp
+      tags: [admin-auth-profile]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminTotpVerifyRequest"}}}}
@@ -1272,6 +1555,7 @@ paths:
     delete:
       summary: Disable TOTP after step-up confirmation
       operationId: disableAdminSelfTotp
+      tags: [admin-auth-profile]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminStepUpRequest"}}}}
@@ -1284,6 +1568,7 @@ paths:
     post:
       summary: Rotate recovery codes after step-up confirmation
       operationId: rotateAdminSelfRecoveryCodes
+      tags: [admin-auth-profile]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminStepUpRequest"}}}}
@@ -1296,6 +1581,7 @@ paths:
     get:
       summary: List the current Admin user's OAuth connections
       operationId: listAdminSelfOAuthAccounts
+      tags: [admin-auth-profile]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1306,6 +1592,7 @@ paths:
     post:
       summary: Start an OAuth binding with state and S256 PKCE
       operationId: startAdminSelfOAuth
+      tags: [admin-auth-profile]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -1320,6 +1607,7 @@ paths:
       summary: Complete a self-service OAuth binding callback
       description: Consumes a single-use state and authorization code. Provider token material is never returned to the browser.
       operationId: completeAdminSelfOAuth
+      tags: [admin-auth-profile]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -1334,6 +1622,7 @@ paths:
     delete:
       summary: Unbind an OAuth account while preserving another login method
       operationId: deleteAdminSelfOAuth
+      tags: [admin-auth-profile]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -1348,6 +1637,7 @@ paths:
     get:
       summary: Read permission-pruned Admin dashboard KPI metrics
       operationId: getAdminDashboardSummary
+      tags: [admin-dashboard]
       security:
         - adminBearer: []
       parameters:
@@ -1368,6 +1658,7 @@ paths:
     get:
       summary: Read permission-pruned Admin dashboard daily trends
       operationId: getAdminDashboardTrends
+      tags: [admin-dashboard]
       security:
         - adminBearer: []
       parameters:
@@ -1388,6 +1679,7 @@ paths:
     get:
       summary: Read permission-pruned, redacted Admin dashboard activity
       operationId: getAdminDashboardActivity
+      tags: [admin-dashboard]
       security:
         - adminBearer: []
       parameters:
@@ -1408,6 +1700,7 @@ paths:
     get:
       summary: Read the tenant-scoped organization unit tree
       operationId: listAdminOrgUnitTree
+      tags: [admin-organization]
       security: [{adminBearer: []}]
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
@@ -1422,6 +1715,7 @@ paths:
     post:
       summary: Create an organization unit
       operationId: createAdminOrgUnit
+      tags: [admin-organization]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminOrgUnitRequest"}}}}
@@ -1436,6 +1730,7 @@ paths:
     patch:
       summary: Update an organization unit without changing its parent
       operationId: updateAdminOrgUnit
+      tags: [admin-organization]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminOrgUnitRequest"}}}}
@@ -1449,6 +1744,7 @@ paths:
     delete:
       summary: Delete an empty organization unit
       operationId: deleteAdminOrgUnit
+      tags: [admin-organization]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1462,6 +1758,7 @@ paths:
     post:
       summary: Move an organization unit using an accessible keyboard-compatible form
       operationId: moveAdminOrgUnit
+      tags: [admin-organization]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminOrgUnitMoveRequest"}}}}
@@ -1476,6 +1773,7 @@ paths:
     get:
       summary: List tenant-scoped positions
       operationId: listAdminOrgPositions
+      tags: [admin-organization]
       security: [{adminBearer: []}]
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
@@ -1490,6 +1788,7 @@ paths:
     post:
       summary: Create a tenant-scoped position
       operationId: createAdminOrgPosition
+      tags: [admin-organization]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminOrgPositionRequest"}}}}
@@ -1504,6 +1803,7 @@ paths:
     patch:
       summary: Update a tenant-scoped position
       operationId: updateAdminOrgPosition
+      tags: [admin-organization]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminOrgPositionRequest"}}}}
@@ -1517,6 +1817,7 @@ paths:
     delete:
       summary: Delete an unassigned position
       operationId: deleteAdminOrgPosition
+      tags: [admin-organization]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1529,6 +1830,7 @@ paths:
     get:
       summary: List tenants visible in the current tenant scope
       operationId: listAdminTenants
+      tags: [admin-tenants]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -1546,6 +1848,7 @@ paths:
     post:
       summary: Create a tenant and make the caller its first super administrator
       operationId: createAdminTenant
+      tags: [admin-tenants]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminTenantCreateRequest"}}}}
@@ -1561,6 +1864,7 @@ paths:
     get:
       summary: Read the current tenant detail
       operationId: getAdminTenant
+      tags: [admin-tenants]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1571,6 +1875,7 @@ paths:
     patch:
       summary: Update the current tenant profile or status
       operationId: updateAdminTenant
+      tags: [admin-tenants]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminTenantUpdateRequest"}}}}
@@ -1585,6 +1890,7 @@ paths:
     get:
       summary: List members of the current tenant
       operationId: listAdminTenantMembers
+      tags: [admin-tenants]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1595,6 +1901,7 @@ paths:
     post:
       summary: Add an existing global identity to the current tenant
       operationId: addAdminTenantMember
+      tags: [admin-tenants]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminTenantMemberAddRequest"}}}}
@@ -1612,6 +1919,7 @@ paths:
     patch:
       summary: Change a current tenant member status
       operationId: updateAdminTenantMember
+      tags: [admin-tenants]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminTenantMemberUpdateRequest"}}}}
@@ -1625,6 +1933,7 @@ paths:
     delete:
       summary: Mark a current tenant member as having left
       operationId: removeAdminTenantMember
+      tags: [admin-tenants]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1637,6 +1946,7 @@ paths:
     get:
       summary: List tenant-scoped roles and their separate permission, menu and data-scope assignments
       operationId: listAdminRoles
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -1653,6 +1963,7 @@ paths:
     post:
       summary: Create a tenant custom role
       operationId: createAdminRole
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminRoleRequest"}}}}
@@ -1667,6 +1978,7 @@ paths:
     patch:
       summary: Update a tenant custom role; system roles are immutable
       operationId: updateAdminRole
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminRoleRequest"}}}}
@@ -1680,6 +1992,7 @@ paths:
     delete:
       summary: Soft-delete an unassigned tenant custom role
       operationId: deleteAdminRole
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1693,6 +2006,7 @@ paths:
     put:
       summary: Replace backend permissions for a tenant custom role independently from menus
       operationId: replaceAdminRolePermissions
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminRolePermissionsRequest"}}}}
@@ -1708,6 +2022,7 @@ paths:
     put:
       summary: Replace navigation menus for a tenant custom role independently from permissions
       operationId: replaceAdminRoleMenus
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminRoleMenusRequest"}}}}
@@ -1723,6 +2038,7 @@ paths:
     put:
       summary: Replace a tenant custom role data scope and tenant-scoped custom units
       operationId: replaceAdminRoleDataScope
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminRoleDataScopeRequest"}}}}
@@ -1737,6 +2053,7 @@ paths:
     get:
       summary: Read the global stable permission catalog
       operationId: listAdminPermissions
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -1755,6 +2072,7 @@ paths:
     get:
       summary: Read the core plus current-tenant menu tree
       operationId: listAdminMenus
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1765,6 +2083,7 @@ paths:
     post:
       summary: Create a current-tenant menu using a registered component key
       operationId: createAdminMenu
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMenuRequest"}}}}
@@ -1780,6 +2099,7 @@ paths:
     patch:
       summary: Update a current-tenant menu; core menus are immutable
       operationId: updateAdminMenu
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMenuRequest"}}}}
@@ -1793,6 +2113,7 @@ paths:
     delete:
       summary: Soft-delete an unoccupied current-tenant menu
       operationId: deleteAdminMenu
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1806,6 +2127,7 @@ paths:
     post:
       summary: Move a tenant menu with explicit keyboard-compatible parent and sort fields
       operationId: moveAdminMenu
+      tags: [admin-access-control]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMenuMoveRequest"}}}}
@@ -1820,6 +2142,7 @@ paths:
     get:
       summary: List tenant-scoped redacted operation audit records
       operationId: listAdminAuditOperations
+      tags: [admin-audit-security]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -1839,6 +2162,7 @@ paths:
     get:
       summary: List tenant-scoped login events without identifier hashes or raw device payloads
       operationId: listAdminAuditLogins
+      tags: [admin-audit-security]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -1859,6 +2183,7 @@ paths:
     get:
       summary: List tenant-scoped security events
       operationId: listAdminAuditSecurityEvents
+      tags: [admin-audit-security]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -1880,6 +2205,7 @@ paths:
     get:
       summary: Read a tenant-scoped security event with recursively redacted details
       operationId: getAdminAuditSecurityEvent
+      tags: [admin-audit-security]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1892,6 +2218,7 @@ paths:
     post:
       summary: Resolve one open tenant security event and append an immutable operation audit
       operationId: resolveAdminAuditSecurityEvent
+      tags: [admin-audit-security]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1904,6 +2231,7 @@ paths:
     get:
       summary: List tenant-scoped managed users
       operationId: listAdminUsers
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -1925,6 +2253,7 @@ paths:
     post:
       summary: Create a tenant user with a temporary password
       operationId: createAdminUser
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminUserCreateRequest"}}}}
@@ -1938,6 +2267,7 @@ paths:
     post:
       summary: Import up to 500 tenant users from a UTF-8 CSV file
       operationId: importAdminUsers
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {text/csv: {schema: {type: string, maxLength: 2097152}}}}
@@ -1950,6 +2280,7 @@ paths:
     post:
       summary: Export up to 500 filtered tenant users using a safe field allow-list
       operationId: exportAdminUsers
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminUserExportRequest"}}}}
@@ -1962,6 +2293,7 @@ paths:
     get:
       summary: List active tenant role options for user assignment
       operationId: listAdminUserRoleOptions
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1973,6 +2305,7 @@ paths:
     get:
       summary: Read a tenant user detail
       operationId: getAdminUser
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -1983,6 +2316,7 @@ paths:
     patch:
       summary: Update safe user profile fields
       operationId: updateAdminUser
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminUserUpdateRequest"}}}}
@@ -2003,6 +2337,7 @@ paths:
     post:
       summary: Reset a user password and revoke every active session
       operationId: resetAdminUserPassword
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminUserResetPasswordRequest"}}}}
@@ -2017,6 +2352,7 @@ paths:
     put:
       summary: Replace a tenant user's roles after tenant validation
       operationId: replaceAdminUserRoles
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminUserRolesRequest"}}}}
@@ -2031,6 +2367,7 @@ paths:
     put:
       summary: Replace tenant-validated unit and position assignments
       operationId: replaceAdminUserAssignments
+      tags: [admin-organization]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminUserAssignmentsRequest"}}}}
@@ -2045,6 +2382,7 @@ paths:
     get:
       summary: List a tenant user's sessions
       operationId: listAdminUserSessions
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -2059,6 +2397,7 @@ paths:
     delete:
       summary: Revoke one tenant-scoped user session
       operationId: revokeAdminUserSession
+      tags: [admin-users]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -2070,6 +2409,7 @@ paths:
     get:
       summary: List tenant-scoped online sessions using only safe identifier hints
       operationId: listAdminOnlineSessions
+      tags: [admin-operations]
       security: [{adminBearer: []}]
       parameters:
         - {$ref: "#/components/parameters/AcceptLanguage"}
@@ -2096,6 +2436,7 @@ paths:
     delete:
       summary: Force one active tenant session offline and revoke its refresh-token family
       operationId: revokeAdminOnlineSession
+      tags: [admin-operations]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -2107,12 +2448,14 @@ paths:
     get:
       summary: Lazily list or search the global region catalog
       operationId: listAdminRegions
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: parent_code, in: query, schema: {type: string, maxLength: 32}}, {name: level, in: query, schema: {type: integer, minimum: 0, maximum: 10}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 200, default: 100}}]
       responses: {"200": {description: Region nodes with has_children for lazy expansion., content: {application/json: {schema: {$ref: "#/components/schemas/RegionListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
     post:
       summary: Create a direct child below a province-level or city-level region
       operationId: createAdminRegion
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminRegionCreateRequest"}}}}
@@ -2127,6 +2470,7 @@ paths:
     patch:
       summary: Update mutable fields of a region without changing its code or hierarchy
       operationId: updateAdminRegion
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminRegionUpdateRequest"}}}}
@@ -2140,6 +2484,7 @@ paths:
     delete:
       summary: Soft-delete a leaf region
       operationId: deleteAdminRegion
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses:
@@ -2152,6 +2497,7 @@ paths:
     get:
       summary: Read the effective tenant upload policy without exposing storage credentials or bucket names
       operationId: getAdminFileUploadPolicy
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses: {"200": {description: Effective provider and server-enforced upload constraints., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileUploadPolicyResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "503": {description: Storage configuration is incomplete or unavailable., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2159,6 +2505,7 @@ paths:
     post:
       summary: Create a tenant-scoped multipart upload session
       operationId: createAdminFileUploadSession
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileUploadRequest"}}}}
@@ -2168,17 +2515,20 @@ paths:
     get:
       summary: Get uploaded parts for resumable upload
       operationId: getAdminFileUploadSession
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       responses: {"200": {description: Current uploaded parts., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileUploadSessionResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
     delete:
       summary: Cancel a multipart upload and discard its parts
       operationId: cancelAdminFileUploadSession
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       responses: {"200": {description: Upload cancelled., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBooleanResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
   /admin-api/v1/files/upload-sessions/{id}/parts/{partNumber}:
     put:
       summary: Upload or replace one exact-size part
       operationId: uploadAdminFilePart
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: partNumber, in: path, required: true, schema: {type: integer, minimum: 1}}]
       requestBody: {required: true, content: {application/octet-stream: {schema: {type: string, format: binary}}}}
@@ -2187,6 +2537,7 @@ paths:
     post:
       summary: Assemble, verify MIME and checksum, then complete a multipart upload
       operationId: completeAdminFileUploadSession
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"201": {description: File becomes ready only after validation and the configured scan gate., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileResponse"}}}}, "409": {description: Missing part or scan gate conflict., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2194,6 +2545,7 @@ paths:
     get:
       summary: List tenant-scoped files
       operationId: listAdminFiles
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [pending, ready, quarantined]}}, {name: scan_status, in: query, schema: {type: string, enum: [pending, clean, infected, failed, skipped]}}, {name: media_type, in: query, schema: {type: string}}, {name: provider, in: query, schema: {type: string, x-appkernia-dictionary: storage.driver}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Object keys and checksums are not exposed., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
@@ -2202,17 +2554,20 @@ paths:
     get:
       summary: Get one tenant-scoped file
       operationId: getAdminFile
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       responses: {"200": {description: File metadata., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
     delete:
       summary: Delete an unused tenant-scoped file
       operationId: deleteAdminFile
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       responses: {"200": {description: File soft-deleted and object removed., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBooleanResponse"}}}}, "409": {description: File has active usages and cannot be deleted., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
   /admin-api/v1/files/{id}/usages:
     get:
       summary: List business references that protect a file from deletion
       operationId: listAdminFileUsages
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: File usages., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileUsageListResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -2220,6 +2575,7 @@ paths:
     post:
       summary: Create a short-lived download target after scan and permission checks
       operationId: presignAdminFileDownload
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Download target., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileDownloadResponse"}}}}, "409": {description: File is not ready or scan-safe., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2227,6 +2583,7 @@ paths:
     get:
       summary: Stream a scan-safe private file from the tenant's configured storage adapter
       operationId: downloadAdminFileContent
+      tags: [admin-storage]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Private binary content., content: {application/octet-stream: {schema: {type: string, format: binary}}}}, "409": {description: Scan gate blocked download., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2235,6 +2592,7 @@ paths:
     get:
       summary: List published tenant articles localized by Accept-Language
       operationId: listAppArticles
+      tags: [public-content]
       security: [{mobileBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: category, in: query, schema: {type: string, maxLength: 120}}, {name: featured, in: query, schema: {type: boolean}}, {name: cursor, in: query, schema: {type: string, format: uuid}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}]
       responses: {"200": {description: Published articles only., headers: {Content-Language: {schema: {$ref: "#/components/schemas/SupportedLocale"}}}, content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2243,6 +2601,7 @@ paths:
     get:
       summary: List all active tenant article categories localized by Accept-Language
       operationId: listAppArticleCategories
+      tags: [public-content]
       security: [{mobileBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses: {"200": {description: Active categories in stable sort order., headers: {Content-Language: {schema: {$ref: "#/components/schemas/SupportedLocale"}}}, content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleCategoryListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
@@ -2251,14 +2610,16 @@ paths:
     get:
       summary: Read a scan-safe image used by a published tenant article
       operationId: getAppArticleAsset
+      tags: [public-content]
       security: [{mobileBearer: []}]
       parameters: [{name: file_id, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {"200": {description: Authorized JPEG, PNG, or WebP article cover., headers: {Cache-Control: {schema: {type: string}}, ETag: {schema: {type: string}}}, content: {image/jpeg: {schema: {type: string, format: binary}}, image/png: {schema: {type: string, format: binary}}, image/webp: {schema: {type: string, format: binary}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+      responses: {"200": {description: "Authorized JPEG, PNG, or WebP article cover.", headers: {Cache-Control: {schema: {type: string}}, ETag: {schema: {type: string}}}, content: {image/jpeg: {schema: {type: string, format: binary}}, image/png: {schema: {type: string, format: binary}}, image/webp: {schema: {type: string, format: binary}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/articles/{slug}:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: Read a published localized article
       operationId: getAppArticle
+      tags: [public-content]
       security: [{mobileBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}]
       responses: {"200": {description: Published article., headers: {Content-Language: {schema: {$ref: "#/components/schemas/SupportedLocale"}}}, content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2267,12 +2628,14 @@ paths:
     put:
       summary: Bookmark a published tenant article
       operationId: bookmarkAppArticle
+      tags: [mobile-content]
       security: [{mobileBearer: []}]
       parameters: [{name: article_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Bookmark present., content: {application/json: {schema: {$ref: "#/components/schemas/AppBookmarkResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
     delete:
       summary: Remove an article bookmark
       operationId: removeAppArticleBookmark
+      tags: [mobile-content]
       security: [{mobileBearer: []}]
       parameters: [{name: article_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Bookmark absent., content: {application/json: {schema: {$ref: "#/components/schemas/AppBookmarkResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
@@ -2280,12 +2643,14 @@ paths:
     get:
       summary: List tenant content categories
       operationId: listAdminContentCategories
+      tags: [admin-content]
       security: [{adminBearer: []}]
       parameters: [{name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}, {name: sort, in: query, schema: {type: string, enum: [sort_order, updated_desc, slug], default: sort_order}}]
       responses: {"200": {description: Category page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
     post:
       summary: Create a category with both supported translations
       operationId: createAdminContentCategory
+      tags: [admin-content]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryRequest"}}}}
       responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -2293,12 +2658,14 @@ paths:
     get:
       summary: Read a tenant category
       operationId: getAdminContentCategory
+      tags: [admin-content]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Category., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update a category with optimistic lock version
       operationId: updateAdminContentCategory
+      tags: [admin-content]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryUpdateRequest"}}}}
@@ -2306,6 +2673,7 @@ paths:
     delete:
       summary: Delete an unused category
       operationId: deleteAdminContentCategory
+      tags: [admin-content]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
       responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -2313,12 +2681,14 @@ paths:
     get:
       summary: List tenant articles in every lifecycle state
       operationId: listAdminContentArticles
+      tags: [admin-content]
       security: [{adminBearer: []}]
       parameters: [{name: q, in: query, schema: {type: string, maxLength: 160}}, {name: category_id, in: query, schema: {type: string, format: uuid}}, {name: status, in: query, schema: {type: string, enum: [draft, published, archived]}}, {name: featured, in: query, schema: {type: boolean}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}, {name: sort, in: query, schema: {type: string, enum: [updated_desc, published_desc, sort_order, slug], default: updated_desc}}]
       responses: {"200": {description: Article page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}}
     post:
       summary: Create a draft article
       operationId: createAdminContentArticle
+      tags: [admin-content]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleRequest"}}}}
       responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -2326,12 +2696,14 @@ paths:
     get:
       summary: Read a tenant article
       operationId: getAdminContentArticle
+      tags: [admin-content]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Article., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update a draft article using lock_version
       operationId: updateAdminContentArticle
+      tags: [admin-content]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleUpdateRequest"}}}}
@@ -2339,6 +2711,7 @@ paths:
     delete:
       summary: Delete a draft article
       operationId: deleteAdminContentArticle
+      tags: [admin-content]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
       responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -2346,6 +2719,7 @@ paths:
     post:
       summary: Transition an article using publish, unpublish, or archive
       operationId: transitionAdminContentArticle
+      tags: [admin-content]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: transition, in: path, required: true, schema: {type: string, enum: [publish, unpublish, archive]}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTransitionRequest"}}}}
@@ -2354,12 +2728,14 @@ paths:
     get:
       summary: List tenant-scoped announcements
       operationId: listAdminNotices
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [draft, scheduled, published, cancelled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Announcement page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
     post:
       summary: Create an announcement draft
       operationId: createAdminNotice
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
       responses: {"201": {description: Draft created and audited., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2368,11 +2744,13 @@ paths:
     get:
       summary: Get one tenant-scoped announcement
       operationId: getAdminNotice
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       responses: {"200": {description: Announcement detail with server-sanitized HTML body., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update an announcement draft or scheduled announcement
       operationId: updateAdminNotice
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
       responses: {"200": {description: Announcement updated and audited., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "409": {description: Published or cancelled announcements are immutable., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2380,6 +2758,7 @@ paths:
     post:
       summary: Resolve the exact active recipient set before publishing an announcement
       operationId: previewAdminNoticeRecipients
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Exact count and at most 20 safe recipient hints., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientPreviewResponse"}}}}, "409": {description: Empty or immutable recipient set., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2387,6 +2766,7 @@ paths:
     post:
       summary: Publish or schedule an announcement and idempotently materialize recipients
       operationId: publishAdminNotice
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Announcement published or scheduled with the resolved audience., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationPublishResponse"}}}}, "409": {description: Invalid lifecycle or empty audience., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2394,6 +2774,7 @@ paths:
     post:
       summary: Cancel an announcement
       operationId: cancelAdminNotice
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Announcement cancelled and audited., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "409": {description: Invalid lifecycle., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2401,6 +2782,7 @@ paths:
     get:
       summary: Get announcement recipient delivery and read statistics
       operationId: getAdminNoticeRecipients
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Aggregate recipient statistics., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientStatsResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -2408,12 +2790,14 @@ paths:
     get:
       summary: List tenant-scoped non-announcement in-app messages
       operationId: listAdminMessages
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [draft, scheduled, published, cancelled]}}, {name: message_type, in: query, schema: {type: string, enum: [system, private, marketing, security]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: In-app message page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
     post:
       summary: Create an in-app message draft
       operationId: createAdminMessage
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
       responses: {"201": {description: Draft created and audited., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2422,11 +2806,13 @@ paths:
     get:
       summary: Get one tenant-scoped in-app message
       operationId: getAdminMessage
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       responses: {"200": {description: Message detail., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update an in-app message draft or scheduled message
       operationId: updateAdminMessage
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageRequest"}}}}
       responses: {"200": {description: Message updated and audited., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "409": {description: Published or cancelled messages are immutable., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2434,6 +2820,7 @@ paths:
     post:
       summary: Resolve the exact active recipient set before publishing a message
       operationId: previewAdminMessageRecipients
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Exact count and at most 20 safe recipient hints., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientPreviewResponse"}}}}, "409": {description: Empty or immutable recipient set., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2441,6 +2828,7 @@ paths:
     post:
       summary: Publish or schedule a message and idempotently materialize recipients
       operationId: publishAdminMessage
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Message published or scheduled with the resolved audience., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationPublishResponse"}}}}, "409": {description: Invalid lifecycle or empty audience., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2448,6 +2836,7 @@ paths:
     post:
       summary: Cancel an in-app message
       operationId: cancelAdminMessage
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Message cancelled and audited., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationMessageResponse"}}}}, "409": {description: Invalid lifecycle., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2455,6 +2844,7 @@ paths:
     get:
       summary: Get message recipient delivery and read statistics
       operationId: getAdminMessageRecipients
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Aggregate recipient statistics., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRecipientStatsResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -2462,12 +2852,14 @@ paths:
     get:
       summary: List tenant and global notification templates
       operationId: listAdminNotificationTemplates
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: channel, in: query, schema: {$ref: "#/components/schemas/AdminNotificationTemplateChannel"}}, {name: locale, in: query, schema: {type: string, enum: [zh-CN, en-US, global]}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Locale-specific templates. Global templates have a null locale., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTemplateListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
     post:
       summary: Create a tenant notification template
       operationId: createAdminNotificationTemplate
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTemplateRequest"}}}}
       responses: {"201": {description: Template created and audited., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTemplateResponse"}}}}, "409": {description: "Duplicate code, channel and locale.", content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2475,6 +2867,7 @@ paths:
     patch:
       summary: Update a tenant notification template
       operationId: updateAdminNotificationTemplate
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTemplateRequest"}}}}
@@ -2483,6 +2876,7 @@ paths:
     get:
       summary: List tenant SMS provider bindings for a template
       operationId: listAdminSMSTemplateBindings
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Provider bindings without credentials., content: {application/json: {schema: {$ref: "#/components/schemas/AdminSMSTemplateBindingListResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -2490,6 +2884,7 @@ paths:
     put:
       summary: Create or replace an audited SMS provider template binding
       operationId: upsertAdminSMSTemplateBinding
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: provider, in: path, required: true, schema: {type: string, enum: [tencent, aliyun]}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminSMSTemplateBindingRequest"}}}}
@@ -2497,6 +2892,7 @@ paths:
     delete:
       summary: Delete an audited SMS provider template binding
       operationId: deleteAdminSMSTemplateBinding
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: provider, in: path, required: true, schema: {type: string, enum: [tencent, aliyun]}}]
       responses: {"200": {description: Binding deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBooleanResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -2504,6 +2900,7 @@ paths:
     post:
       summary: Enqueue a billable real delivery from a saved email or SMS template
       operationId: testAdminNotificationTemplate
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTemplateTestRequest"}}}}
@@ -2512,6 +2909,7 @@ paths:
     get:
       summary: List tenant notification deliveries without encrypted targets or provider payloads
       operationId: listAdminNotificationDeliveries
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: channel, in: query, schema: {type: string, enum: [email, sms, push, webhook]}}, {name: status, in: query, schema: {type: string, enum: [pending, processing, sent, failed, cancelled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Safe delivery page with target hints only., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationDeliveryListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2519,6 +2917,7 @@ paths:
     get:
       summary: Get safe notification delivery detail
       operationId: getAdminNotificationDelivery
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Safe error code and bounded summary; no target secret or raw provider payload., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationDeliveryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -2526,6 +2925,7 @@ paths:
     post:
       summary: Requeue a failed delivery below its attempt limit
       operationId: retryAdminNotificationDelivery
+      tags: [admin-notifications]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRetryRequest"}}}}
@@ -2534,6 +2934,7 @@ paths:
     get:
       summary: List compile-time registered scheduled-job handlers
       operationId: listAdminJobHandlers
+      tags: [admin-jobs]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses: {"200": {description: Static safe handler catalog with translation keys and payload schemas., content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobHandlerListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
@@ -2541,6 +2942,7 @@ paths:
     post:
       summary: Validate a registered handler, Cron expression and IANA time zone and preview five runs
       operationId: previewAdminJobSchedule
+      tags: [admin-jobs]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobScheduleRequest"}}}}
       responses: {"200": {description: Five strictly ordered UTC instants interpreted in the requested IANA time zone., content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobCronPreviewResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2548,12 +2950,14 @@ paths:
     get:
       summary: List tenant-scoped scheduled jobs
       operationId: listAdminJobSchedules
+      tags: [admin-jobs]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [active, paused, disabled]}}, {name: time_zone, in: query, schema: {type: string, maxLength: 64}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Tenant-scoped schedule page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobScheduleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
     post:
       summary: Create a tenant scheduled job using a compile-time handler
       operationId: createAdminJobSchedule
+      tags: [admin-jobs]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobScheduleRequest"}}}}
       responses: {"201": {description: Active schedule created with a DST-aware next run and audit record., content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobScheduleResponse"}}}}, "409": {description: Tenant schedule code conflict., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2561,6 +2965,7 @@ paths:
     patch:
       summary: Update a tenant scheduled job
       operationId: updateAdminJobSchedule
+      tags: [admin-jobs]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobScheduleRequest"}}}}
@@ -2569,6 +2974,7 @@ paths:
     post:
       summary: Pause an active scheduled job
       operationId: pauseAdminJobSchedule
+      tags: [admin-jobs]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Schedule paused and next run cleared., content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobScheduleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {description: Invalid lifecycle transition., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2576,6 +2982,7 @@ paths:
     post:
       summary: Resume a paused scheduled job
       operationId: resumeAdminJobSchedule
+      tags: [admin-jobs]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Schedule resumed with a newly calculated next run., content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobScheduleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {description: Invalid lifecycle transition., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2583,6 +2990,7 @@ paths:
     post:
       summary: Manually enqueue a scheduled job through River
       operationId: executeAdminJobSchedule
+      tags: [admin-jobs]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 16, maxLength: 128}, description: Opaque key reused only when intentionally replaying the same manual execution request.}]
       responses: {"202": {description: Run record and River job inserted atomically; duplicate idempotency keys return the original run., content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobRunResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {description: Disabled schedule or overlap policy conflict., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2590,6 +2998,7 @@ paths:
     get:
       summary: List safe run history for a tenant scheduled job
       operationId: listAdminJobScheduleRuns
+      tags: [admin-jobs]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: status, in: query, schema: {type: string, enum: [queued, running, succeeded, failed, cancelled, skipped]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Safe run records; raw River errors and arbitrary worker logs are never returned., content: {application/json: {schema: {$ref: "#/components/schemas/AdminJobRunListResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2597,12 +3006,14 @@ paths:
     get:
       summary: List visible system configuration items
       operationId: listAdminConfigs
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string}}, {name: module_code, in: query, schema: {type: string}}, {name: config_group, in: query, schema: {type: string}}, {name: value_type, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string}}, {name: is_public, in: query, schema: {type: boolean}}, {name: is_secret, in: query, schema: {type: boolean}}, {name: sort, in: query, schema: {type: string}}, {name: page, in: query, schema: {type: integer}}, {name: page_size, in: query, schema: {type: integer, maximum: 100}}]
       responses: {"200": {description: "Secret plaintext and ciphertext are never returned.", content: {application/json: {schema: {$ref: "#/components/schemas/AdminConfigListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
     post:
       summary: Create a tenant configuration item
       operationId: createAdminConfig
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminConfigWriteRequest"}}}}
       responses: {"201": {description: Created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminConfigResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2610,6 +3021,7 @@ paths:
     patch:
       summary: Update a tenant configuration item
       operationId: updateAdminConfig
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminConfigWriteRequest"}}}}
@@ -2618,6 +3030,7 @@ paths:
     post:
       summary: Replace a secret configuration value
       operationId: rotateAdminConfigSecret
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminConfigSecretRequest"}}}}
@@ -2626,12 +3039,14 @@ paths:
     get:
       summary: List visible dictionary types
       operationId: listAdminDictionaryTypes
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string}}, {name: sort, in: query, schema: {type: string}}, {name: page, in: query, schema: {type: integer}}, {name: page_size, in: query, schema: {type: integer, maximum: 100}}]
       responses: {"200": {description: Visible dictionary types, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDictionaryTypeListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
     post:
       summary: Create a tenant dictionary type
       operationId: createAdminDictionaryType
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDictionaryTypeWriteRequest"}}}}
       responses: {"201": {description: Created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDictionaryTypeResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2639,6 +3054,7 @@ paths:
     get:
       summary: Resolve tenant-overlaid active dictionary options for internal Admin consumption
       operationId: getAdminDictionary
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: code, in: path, required: true, schema: {type: string, pattern: "^[a-z][a-z0-9_.-]{1,159}$"}}]
       responses: {"200": {description: Merged consumption fields without internal overlay structure., content: {application/json: {schema: {$ref: "#/components/schemas/ResolvedDictionaryResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -2646,6 +3062,7 @@ paths:
     patch:
       summary: Update a tenant dictionary type
       operationId: updateAdminDictionaryType
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDictionaryTypeWriteRequest"}}}}
@@ -2654,12 +3071,14 @@ paths:
     get:
       summary: List items in a visible dictionary type
       operationId: listAdminDictionaryItems
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string}}, {name: locale, in: query, schema: {type: string, enum: [zh-CN, en-US, neutral]}}, {name: status, in: query, schema: {type: string}}, {name: sort, in: query, schema: {type: string}}, {name: page, in: query, schema: {type: integer}}, {name: page_size, in: query, schema: {type: integer, maximum: 100}}]
       responses: {"200": {description: Items with explicit locale and lock state, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDictionaryItemListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create a dictionary item
       operationId: createAdminDictionaryItem
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDictionaryItemWriteRequest"}}}}
@@ -2668,6 +3087,7 @@ paths:
     patch:
       summary: Update a dictionary item
       operationId: updateAdminDictionaryItem
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDictionaryItemWriteRequest"}}}}
@@ -2675,6 +3095,7 @@ paths:
     delete:
       summary: Delete a dictionary item
       operationId: deleteAdminDictionaryItem
+      tags: [admin-system-settings]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Deleted, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "409": {description: Conflict, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
@@ -2683,6 +3104,7 @@ paths:
     post:
       summary: Exchange an API Client secret for a short-lived ak-api audience token
       operationId: createApiClientToken
+      tags: [api-client-auth]
       security: []
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/APIClientTokenRequest"}}}}
       responses: {"200": {description: Machine access token., content: {application/json: {schema: {$ref: "#/components/schemas/APIClientTokenResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
@@ -2690,12 +3112,14 @@ paths:
     get:
       summary: List tenant API Clients without secret material
       operationId: listAdminAPIClients
+      tags: [admin-api-clients]
       security: [{adminBearer: []}]
       parameters: [{name: q, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, default: 1}}, {name: page_size, in: query, schema: {type: integer, default: 20, maximum: 100}}]
       responses: {"200": {description: API Client page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
     post:
       summary: Create a tenant API Client
       operationId: createAdminAPIClient
+      tags: [admin-api-clients]
       security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientRequest"}}}}
       responses: {"201": {description: API Client created without a secret., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -2703,12 +3127,14 @@ paths:
     get:
       summary: Get one tenant API Client without secret material
       operationId: getAdminAPIClient
+      tags: [admin-api-clients]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Tenant-scoped API Client metadata., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update an API Client status expiry and CIDR allowlist
       operationId: updateAdminAPIClient
+      tags: [admin-api-clients]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientRequest"}}}}
@@ -2717,6 +3143,7 @@ paths:
     post:
       summary: Create and disclose an API Client secret exactly once
       operationId: createAdminAPIClientSecret
+      tags: [admin-api-clients]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientSecretRequest"}}}}
@@ -2725,6 +3152,7 @@ paths:
     delete:
       summary: Revoke an API Client secret
       operationId: revokeAdminAPIClientSecret
+      tags: [admin-api-clients]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: secret_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Secret revoked., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBooleanResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -2732,6 +3160,7 @@ paths:
     put:
       summary: Replace stable permission codes assigned to an API Client
       operationId: replaceAdminAPIClientPermissions
+      tags: [admin-api-clients]
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientPermissionsRequest"}}}}
@@ -2740,12 +3169,14 @@ paths:
     get:
       summary: List tenant webhook endpoints without signing secret material
       operationId: listAdminWebhooks
+      tags: [admin-webhooks]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string}}, {name: event_type, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, default: 1}}, {name: page_size, in: query, schema: {type: integer, default: 20, maximum: 100}}]
       responses: {"200": {description: Webhook endpoint page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminWebhookListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
     post:
       summary: Create a webhook endpoint and disclose its signing secret exactly once
       operationId: createAdminWebhook
+      tags: [admin-webhooks]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminWebhookRequest"}}}}
@@ -2754,6 +3185,7 @@ paths:
     patch:
       summary: Update a webhook endpoint without rotating or exposing its signing secret
       operationId: updateAdminWebhook
+      tags: [admin-webhooks]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminWebhookRequest"}}}}
@@ -2762,6 +3194,7 @@ paths:
     post:
       summary: Send an idempotent signed test delivery through the configured adapter
       operationId: testAdminWebhook
+      tags: [admin-webhooks]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 16, maxLength: 128}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminWebhookTestRequest"}}}}
@@ -2770,6 +3203,7 @@ paths:
     get:
       summary: List bounded webhook delivery summaries for one tenant endpoint
       operationId: listAdminWebhookDeliveries
+      tags: [admin-webhooks]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: page, in: query, schema: {type: integer, default: 1}}, {name: page_size, in: query, schema: {type: integer, default: 20, maximum: 100}}]
       responses: {"200": {description: Delivery page with bounded response and error summaries., content: {application/json: {schema: {$ref: "#/components/schemas/AdminWebhookDeliveryListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -2777,12 +3211,14 @@ paths:
     get:
       summary: List tenant access rules with server-redacted subject hints
       operationId: listAdminBlockRules
+      tags: [admin-audit-security]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: subject_type, in: query, schema: {$ref: "#/components/schemas/AdminBlockRuleSubjectType"}}, {name: subject_hint, in: query, description: Matches only the server-generated redacted hint., schema: {type: string}}, {name: scope, in: query, schema: {type: string, enum: [tenant]}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: expiry, in: query, schema: {type: string, enum: [active, expired, never]}}, {name: page, in: query, schema: {type: integer, default: 1}}, {name: page_size, in: query, schema: {type: integer, default: 20, maximum: 100}}]
       responses: {"200": {description: Redacted access-rule page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBlockRuleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
     post:
       summary: Create a tenant access rule after client-side impact confirmation
       operationId: createAdminBlockRule
+      tags: [admin-audit-security]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminBlockRuleCreateRequest"}}}}
@@ -2791,6 +3227,7 @@ paths:
     patch:
       summary: Update access-rule action reason timing or status without returning its raw subject
       operationId: updateAdminBlockRule
+      tags: [admin-audit-security]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminBlockRuleUpdateRequest"}}}}
@@ -2798,6 +3235,7 @@ paths:
     delete:
       summary: Revoke and permanently remove a tenant access rule with an immutable audit record
       operationId: revokeAdminBlockRule
+      tags: [admin-audit-security]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Rule revoked., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBlockRuleRevokeResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
@@ -2805,6 +3243,7 @@ paths:
     get:
       summary: Read a secret-free dependency health summary
       operationId: getAdminOpsHealth
+      tags: [admin-operations]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses: {"200": {description: Dependency status without connection strings or paths., content: {application/json: {schema: {$ref: "#/components/schemas/AdminOpsHealthResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
@@ -2812,6 +3251,7 @@ paths:
     get:
       summary: Read versions modules Worker queue and tenant schedule-run counts without secrets
       operationId: getAdminOpsRuntimeSummary
+      tags: [admin-operations]
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses: {"200": {description: Safe runtime diagnostic summary., content: {application/json: {schema: {$ref: "#/components/schemas/AdminOpsRuntimeResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
@@ -2959,6 +3399,7 @@ components:
       post:
         summary: Enable a suspended tenant membership
         operationId: enableAdminUser
+        tags: [admin-users]
         security: [{adminBearer: []}]
         parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
         responses:
@@ -2971,6 +3412,7 @@ components:
       post:
         summary: Suspend a tenant membership and revoke its tenant sessions
         operationId: disableAdminUser
+        tags: [admin-users]
         security: [{adminBearer: []}]
         parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
         responses:
@@ -2984,6 +3426,7 @@ components:
       post:
         summary: Clear credential lock state for a tenant user
         operationId: unlockAdminUser
+        tags: [admin-users]
         security: [{adminBearer: []}]
         parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
         responses:

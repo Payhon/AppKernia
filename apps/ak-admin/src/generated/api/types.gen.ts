@@ -10437,7 +10437,7 @@ export type GetAppArticleAssetError = GetAppArticleAssetErrors[keyof GetAppArtic
 
 export type GetAppArticleAssetResponses = {
     /**
-     * Authorized JPEG
+     * Authorized JPEG, PNG, or WebP article cover.
      */
     200: Blob | File;
 };

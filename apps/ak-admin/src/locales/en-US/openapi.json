@@ -1,0 +1,12 @@
+{
+  "openapi.navigation.label": "OpenAPI documentation",
+  "openapi.copy_code": "Copy code",
+  "openapi.load_error": "The API reference could not be loaded. Refresh the page and try again.",
+  "openapi.notice.body": "API tests send real requests to the current environment. Confirm the target environment and request parameters before creating, changing, or deleting data.",
+  "openapi.notice.close": "Dismiss interactive API testing notice",
+  "openapi.notice.title": "Interactive API testing notice",
+  "openapi.skip_to_reference": "Skip to API reference",
+  "openapi.system_menu.close": "Close system menu",
+  "openapi.system_menu.open": "Open system menu",
+  "openapi.title": "AppKernia OpenAPI Documentation"
+}

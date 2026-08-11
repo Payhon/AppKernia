@@ -16,6 +16,7 @@ import enErrors from '../../locales/en-US/errors.json'
 import enMobileReleases from '../../locales/en-US/mobile_releases.json'
 import enNavigation from '../../locales/en-US/navigation.json'
 import enNotifications from '../../locales/en-US/notifications.json'
+import enOpenApi from '../../locales/en-US/openapi.json'
 import enProfile from '../../locales/en-US/profile.json'
 import enSettings from '../../locales/en-US/settings.json'
 import enSystem from '../../locales/en-US/system.json'
@@ -28,6 +29,7 @@ import zhErrors from '../../locales/zh-CN/errors.json'
 import zhMobileReleases from '../../locales/zh-CN/mobile_releases.json'
 import zhNavigation from '../../locales/zh-CN/navigation.json'
 import zhNotifications from '../../locales/zh-CN/notifications.json'
+import zhOpenApi from '../../locales/zh-CN/openapi.json'
 import zhProfile from '../../locales/zh-CN/profile.json'
 import zhSettings from '../../locales/zh-CN/settings.json'
 import zhSystem from '../../locales/zh-CN/system.json'
@@ -38,8 +40,8 @@ export const supportedLocales = ['zh-CN', 'en-US'] as const
 export type AdminLocale = (typeof supportedLocales)[number]
 
 const localeStorageKey = 'ak.admin.locale'
-const enCatalog = { ...enApps, ...enAuth, ...enCommon, ...enContent, ...enErrors, ...enMobileReleases, ...enNavigation, ...enNotifications, ...enProfile, ...enSettings, ...enSystem, ...enValidation }
-const zhCatalog = { ...zhApps, ...zhAuth, ...zhCommon, ...zhContent, ...zhErrors, ...zhMobileReleases, ...zhNavigation, ...zhNotifications, ...zhProfile, ...zhSettings, ...zhSystem, ...zhValidation }
+const enCatalog = { ...enApps, ...enAuth, ...enCommon, ...enContent, ...enErrors, ...enMobileReleases, ...enNavigation, ...enNotifications, ...enOpenApi, ...enProfile, ...enSettings, ...enSystem, ...enValidation }
+const zhCatalog = { ...zhApps, ...zhAuth, ...zhCommon, ...zhContent, ...zhErrors, ...zhMobileReleases, ...zhNavigation, ...zhNotifications, ...zhOpenApi, ...zhProfile, ...zhSettings, ...zhSystem, ...zhValidation }
 
 function readStoredLocale(): string | null {
   try {

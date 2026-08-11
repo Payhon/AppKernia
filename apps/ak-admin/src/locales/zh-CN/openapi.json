@@ -1,0 +1,12 @@
+{
+  "openapi.navigation.label": "OpenAPI 文档",
+  "openapi.copy_code": "复制代码",
+  "openapi.load_error": "接口文档加载失败，请刷新页面后重试。",
+  "openapi.notice.body": "接口测试会向当前环境发送真实请求。执行创建、修改或删除操作前，请确认目标环境和请求参数。",
+  "openapi.notice.close": "关闭接口测试提示",
+  "openapi.notice.title": "交互式接口测试提示",
+  "openapi.skip_to_reference": "跳到接口文档",
+  "openapi.system_menu.close": "关闭系统菜单",
+  "openapi.system_menu.open": "打开系统菜单",
+  "openapi.title": "AppKernia OpenAPI 文档"
+}

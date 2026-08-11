@@ -3,6 +3,7 @@ packages:
 
 allowBuilds:
   msw: true
+  vue-demi: true
 
 overrides:
   js-yaml: 4.3.0
