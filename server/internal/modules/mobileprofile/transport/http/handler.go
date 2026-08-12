@@ -362,16 +362,25 @@ func requestAppID(request *ghttp.Request) (uuid.UUID, bool) {
 }
 
 type mobileReleaseResponse struct {
-	Platform       string     `json:"platform"`
-	PackageType    string     `json:"package_type"`
-	CurrentVersion string     `json:"current_version"`
-	MinimumVersion string     `json:"minimum_version"`
-	UpgradeURL     *string    `json:"upgrade_url"`
-	Title          string     `json:"title"`
-	ReleaseNotes   string     `json:"release_notes"`
-	IsSilently     bool       `json:"is_silently"`
-	IsMandatory    bool       `json:"is_mandatory"`
-	PublishedAt    *time.Time `json:"published_at,omitempty"`
+	Platform       string               `json:"platform"`
+	PackageType    string               `json:"package_type"`
+	DeliveryMode   string               `json:"delivery_mode"`
+	CurrentVersion string               `json:"current_version"`
+	MinimumVersion string               `json:"minimum_version"`
+	UpgradeURL     *string              `json:"upgrade_url"`
+	StoreList      []mobileReleaseStore `json:"store_list"`
+	Title          string               `json:"title"`
+	ReleaseNotes   string               `json:"release_notes"`
+	IsSilently     bool                 `json:"is_silently"`
+	IsMandatory    bool                 `json:"is_mandatory"`
+	PublishedAt    *time.Time           `json:"published_at,omitempty"`
+}
+
+type mobileReleaseStore struct {
+	ID       uuid.UUID `json:"id"`
+	Name     string    `json:"name"`
+	Scheme   string    `json:"scheme"`
+	Priority int32     `json:"priority"`
 }
 
 func publicReleaseResponse(release profiledomain.Release, locale i18n.Locale) mobileReleaseResponse {
@@ -392,8 +401,16 @@ func publicReleaseResponse(release profiledomain.Release, locale i18n.Locale) mo
 	if release.PackageType == "" {
 		release.PackageType = "native_app"
 	}
-	return mobileReleaseResponse{Platform: release.Platform, PackageType: release.PackageType, CurrentVersion: release.CurrentVersion,
-		MinimumVersion: release.MinimumVersion, UpgradeURL: release.UpgradeURL, Title: title, ReleaseNotes: notes,
+	deliveryMode := "external_link"
+	if release.PackageFileID != nil {
+		deliveryMode = "internal_package"
+	}
+	stores := make([]mobileReleaseStore, 0, len(release.StoreList))
+	for _, store := range release.StoreList {
+		stores = append(stores, mobileReleaseStore{ID: store.ID, Name: store.Name, Scheme: store.Scheme, Priority: store.Priority})
+	}
+	return mobileReleaseResponse{Platform: release.Platform, PackageType: release.PackageType, DeliveryMode: deliveryMode, CurrentVersion: release.CurrentVersion,
+		MinimumVersion: release.MinimumVersion, UpgradeURL: release.UpgradeURL, StoreList: stores, Title: title, ReleaseNotes: notes,
 		IsSilently: release.IsSilently, IsMandatory: release.IsMandatory, PublishedAt: release.LastPublishedAt}
 }
 func publicReleaseError(err error) (int, string, string) {
@@ -402,6 +419,12 @@ func publicReleaseError(err error) (int, string, string) {
 	}
 	if errors.Is(err, profile.ErrInvalidRelease) {
 		return http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed"
+	}
+	if errors.Is(err, profiledomain.ErrReleasePackageTypeUnsupported) {
+		return http.StatusUnprocessableEntity, "SYS.MOBILE_RELEASE.UNSUPPORTED_PACKAGE_TYPE", "errors.mobile_release.unsupported_package_type"
+	}
+	if errors.Is(err, profiledomain.ErrReleaseDeliveryModeUnsupported) {
+		return http.StatusUnprocessableEntity, "SYS.MOBILE_RELEASE.UNSUPPORTED_DELIVERY_MODE", "errors.mobile_release.unsupported_delivery_mode"
 	}
 	return http.StatusServiceUnavailable, "APP.RELEASE.UNAVAILABLE", "errors.common.unknown"
 }
@@ -424,6 +447,10 @@ func (handler *Handler) adminError(request *ghttp.Request, err error) {
 		handler.failure(request, http.StatusConflict, "SYS.MOBILE_RELEASE.VERSION_NOT_INCREASING", "errors.common.conflict")
 	case errors.Is(err, profiledomain.ErrReleaseFileInvalid):
 		handler.failure(request, http.StatusUnprocessableEntity, "SYS.MOBILE_RELEASE.FILE_INVALID", "errors.validation.failed")
+	case errors.Is(err, profiledomain.ErrReleasePackageTypeUnsupported):
+		handler.failure(request, http.StatusUnprocessableEntity, "SYS.MOBILE_RELEASE.UNSUPPORTED_PACKAGE_TYPE", "errors.mobile_release.unsupported_package_type")
+	case errors.Is(err, profiledomain.ErrReleaseDeliveryModeUnsupported):
+		handler.failure(request, http.StatusUnprocessableEntity, "SYS.MOBILE_RELEASE.UNSUPPORTED_DELIVERY_MODE", "errors.mobile_release.unsupported_delivery_mode")
 	case errors.Is(err, profiledomain.ErrReleaseNotFound):
 		handler.failure(request, http.StatusNotFound, "SYS.MOBILE_RELEASE.NOT_FOUND", "errors.common.not_found")
 	default:

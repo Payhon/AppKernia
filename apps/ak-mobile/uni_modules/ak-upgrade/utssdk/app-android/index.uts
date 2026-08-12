@@ -1,0 +1,33 @@
+import Intent from 'android.content.Intent'
+import Uri from 'android.net.Uri'
+import { UpgradeCanOpenURL, UpgradeOpenURL } from '../interface.uts'
+
+function allowed(url: string): boolean {
+  const value = url.trim()
+  const colon = value.indexOf(':')
+  if (colon <= 0) return false
+  const scheme = value.substring(0, colon).toLowerCase()
+  return scheme != 'file' && scheme != 'content' && scheme != 'intent' && scheme != 'javascript' && scheme != 'data'
+}
+
+export const canOpenURL: UpgradeCanOpenURL = function (url: string): boolean {
+  if (!allowed(url)) return false
+  const activity = UTSAndroid.getUniActivity()
+  if (activity == null) return false
+  const intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url))
+  return intent.resolveActivity(activity.packageManager) != null
+}
+
+export const openURL: UpgradeOpenURL = function (url: string): boolean {
+  if (!canOpenURL(url)) return false
+  try {
+    const activity = UTSAndroid.getUniActivity()
+    if (activity == null) return false
+    const intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url))
+    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    activity.startActivity(intent)
+    return true
+  } catch (error) {
+    return false
+  }
+}

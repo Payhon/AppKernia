@@ -23,6 +23,8 @@
   "mobile_releases.empty": "No versions match the filters",
   "mobile_releases.feedback.conflict": "Another administrator updated this version. Your form input has been kept; refresh and try again.",
   "mobile_releases.feedback.frozen": "This version has been published before and is permanently frozen.",
+  "mobile_releases.feedback.unsupported_package_type": "uni-app x applications do not support WGT resource releases.",
+  "mobile_releases.feedback.unsupported_delivery_mode": "Internal native packages support Android APK only. Use an HTTPS or app-store link for iOS and HarmonyOS.",
   "mobile_releases.feedback.version_conflict": "The version must be newer than the current version for every target platform.",
   "mobile_releases.feedback.load_error": "Version history could not be loaded. Try again.",
   "mobile_releases.feedback.save_error": "The version could not be saved. Check the package, URL and permissions.",
@@ -65,6 +67,8 @@
   "mobile_releases.source_type.internal": "Internal file",
   "mobile_releases.source_type.external": "HTTPS URL",
   "mobile_releases.states.appid_pending": "This App has no manifest AppID yet. Configure it before publishing a version.",
+  "mobile_releases.states.uni_app_x_capability": "uni-app x supports native upgrades only: Android can use an internal APK or link; iOS and HarmonyOS use HTTPS/app-store links.",
+  "mobile_releases.states.historic_incompatible": "This historical record can still be viewed or taken offline, but it cannot be edited, published or republished.",
   "mobile_releases.delete.title": "Delete version drafts?",
   "mobile_releases.delete.description": "Atomically delete {count} drafts that have never been online. Published history can never be deleted.",
   "mobile_releases.title": "Mobile release policies",
@@ -74,5 +78,7 @@
   "mobile_releases.validation.source_required": "Choose one usable package source before publishing.",
   "mobile_releases.validation.https": "Only HTTPS URLs are accepted.",
   "mobile_releases.validation.bilingual_required": "Immediate publishing requires complete Chinese and English content.",
+  "mobile_releases.validation.unsupported_package_type": "A uni-app x application cannot create a WGT resource package.",
+  "mobile_releases.validation.unsupported_delivery_mode": "Internal native packages support Android APK only.",
   "mobile_releases.values.none": "Not configured"
 }

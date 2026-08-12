@@ -71,6 +71,8 @@
   "errors.storage.avatar.unavailable": "Avatar upload is temporarily unavailable. Try again later.",
   "errors.storage.avatar.upload_not_found": "The avatar upload session does not exist or has expired. Choose the file again.",
   "errors.validation.failed": "The submitted data is invalid.",
+  "errors.mobile_release.unsupported_package_type": "This application type does not support the selected upgrade package type.",
+  "errors.mobile_release.unsupported_delivery_mode": "This platform does not support the selected upgrade delivery mode.",
   "messages.auth.password_changed": "Your password has been changed.",
   "messages.auth.password_reset_sent": "If the account exists, reset instructions have been sent.",
   "messages.auth.signed_out": "You have signed out.",

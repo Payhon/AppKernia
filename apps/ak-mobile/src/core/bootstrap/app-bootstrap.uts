@@ -17,6 +17,7 @@ import { themeStore } from '../theme/theme-store.uts'
 import { legalConsentStore } from '../../features/legal/legal-consent-store.uts'
 import { legalRuntime } from '../../features/legal/legal-runtime.uts'
 import { appPublicConfigRuntime } from '../../features/app-config/public-config-runtime.uts'
+import { akUpgradeCoordinator } from '../../../uni_modules/ak-upgrade/coordinator.uts'
 
 type ManifestRuntimeConfig = {
   readonly environment: string
@@ -56,8 +57,23 @@ export function initializeAppRuntime(): boolean {
         completeAuthenticatedBootstrap()
       }, () => sessionRuntime.signOut(() => { uni.reLaunch({url:'/pages/auth/login/index'}); }))
     })
-    const configLoad = appPublicConfigRuntime.load(restoreSession, error => {
-      if (error.code == 'app.config_mismatch') { sessionRuntime.signOut(() => { uni.reLaunch({ url: '/pages/auth/login/index' }) }); return }
+    const continueAfterPublicConfig = () => {
+      const publicConfig = appPublicConfigRuntime.get()
+      if (publicConfig == null || !versionRuntime.configureUpgrade(publicConfig.appid)) { restoreSession(); return }
+      akUpgradeCoordinator.check((outcome, _policy) => {
+        if (outcome == 'config_mismatch') {
+          sessionRuntime.signOut(() => { uni.reLaunch({ url: '/pages/error/offline/index?reason=app_config_mismatch' }) })
+          return
+        }
+        restoreSession()
+      }, (_kind, _code) => {
+        // Version policy availability is not an authentication prerequisite.
+        // Automatic checks fail open; manual checks surface the same failure.
+        restoreSession()
+      })
+    }
+    const configLoad = appPublicConfigRuntime.load(continueAfterPublicConfig, error => {
+      if (error.code == 'app.config_mismatch') { sessionRuntime.signOut(() => { uni.reLaunch({ url: '/pages/error/offline/index?reason=app_config_mismatch' }) }); return }
       restoreSession()
     })
     if (configLoad == null) restoreSession()

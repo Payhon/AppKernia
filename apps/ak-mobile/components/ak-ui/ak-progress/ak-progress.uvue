@@ -1,0 +1,18 @@
+<template>
+  <view class="ak-progress" :aria-label="label">
+    <progress class="ak-progress__bar" :percent="normalized" activeColor="#246BFE" backgroundColor="#E5E5EA" :stroke-width="8" />
+    <view class="ak-progress__copy"><text class="ak-progress__label">{{ label }}</text><text class="ak-progress__value">{{ normalized }}%</text></view>
+  </view>
+</template>
+<script lang="uts">
+export default {
+  props: { percent: { type: Number, default: 0 }, label: { type: String, default: '' } },
+  computed: { normalized(): number { return Math.max(0, Math.min(100, Math.round(this.percent))) } },
+}
+</script>
+<style lang="scss">
+.ak-progress { width:100%; }
+.ak-progress__bar { width:100%; }
+.ak-progress__copy { margin-top:8px; flex-direction:row; justify-content:space-between; }
+.ak-progress__label,.ak-progress__value { color:var(--ak-muted); font-size:13px; line-height:18px; }
+</style>

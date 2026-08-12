@@ -1,6 +1,6 @@
 # AppKernia 实施状态
 
-更新时间：2026-08-11（Asia/Shanghai）
+更新时间：2026-08-12（Asia/Shanghai）
 
 ## 总体状态
 
@@ -8,9 +8,19 @@
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环                                                                    | 当前 Admin backlog 已收口；生产 Adapter 联调见风险                                                        |
 | Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁；公开 `/openapi/` 与侧栏底部文档/System 工具入口已完成 Node 24、Docker/Nginx 和 Chromium 验收                                                      | 生产部署、真实 Bearer 手工调用、第三方 Scalar 请求客户端瞬态 axe 与跨浏览器验收见风险                     |
-| Mobile              | 28 个页面已完成 Apple HIG 启发的 AK UI 统一刷新；HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过，iOS 18.6 / iPhone 16 Pro 双语视觉、登录/重启刷新、法律/找回/注册返回链路与安全存储回读已验证                        | Android/Harmony 安装运行、三端真机、签名/发布仍未完成                                                     |
+| Mobile              | 29 个页面已完成 AK UI 统一刷新并接入启动升级门禁；独立 `ak-upgrade` 支持三端应用市场跳转及 Android APK 下载/安装，HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过                                       | Android APK、iOS/Harmony 商店跳转、强制升级返回拦截仍需三端真机验收；Harmony 包名/签名未配置               |
 | Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：68 个静态页面、零门槛向导、核心 API、在线 OpenAPI/System 菜单指南、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31475956211` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
+
+## 2026-08-12 移动端自动升级
+
+- 新增无 uniCloud、通知栏和第三方运行时依赖的 `uni_modules/ak-upgrade`。启动流程在隐私同意和公开 App 配置完成后、会话恢复前执行版本门禁；严格比较三段式 SemVer，普通网络失败 fail-open，AppID 配置不一致和已发现的强制升级保持阻断。
+- Android 内部发布通过五分钟签名地址下载 APK，只携带 `X-AppID`，签名失效最多刷新一次；下载状态支持进度、取消、重试和临时文件清理，完成后使用 `uni.installApk`。Android/iOS/Harmony 外部发布按市场优先级尝试安全 scheme，再回退 HTTPS 地址；拒绝危险协议。
+- About 页面展示本地版本和服务端最新版本并可手动检查；新增双语升级 modal-page、`AkProgress` 组件、页面/API/路由蓝图契约和确定性 UTS DTO 生成器。UI Skill 采用现有 AK 设计系统，保留 44px 触控目标、安全区、文本状态和 reduced-motion 约束；未伪造截图。
+- 后端公开版本投影新增 `delivery_mode`、过滤排序后的 `store_list` 和签名/HTTPS `upgrade_url`；应用层限制 `uni_app_x` WGT 及 iOS/Harmony 内部原生包，新增两个稳定 422 错误码。已有 `000017_app_upgrade_center` 字段足够，本轮没有数据库 Migration、权限或字典变更。
+- Admin 根据应用类型隐藏 `uni_app_x` WGT，限制非 Android 内部包，平台切换会清理内部文件；历史不兼容记录保留查看、下线和草稿删除能力，但隐藏发布/重新发布入口。
+- 最终 Node 24.18.1 `make check` 退出 0：Backend vet/tests、Admin 30 个 Vitest 文件 / 130 项测试、production build、Mobile 39 routes/34 components 静态门禁、统一 i18n 和 Docs 68 页构建全部通过。PostgreSQL `mobileprofile` integration 退出 0；HBuilderX 5.06 Android/iOS/Harmony 三端 29 页面 UTS 编译退出 0。
+- 验证边界：三端结果是编译证据，不是物理设备安装或应用商店跳转证据；Harmony 仅生成未配置包名/签名的原生工程。Android APK 安装权限/取消/失败、三端市场 fallback、强制升级返回拦截和双语截图仍待真机完成。
 
 ## 2026-08-11 文档站发布在线 OpenAPI 与 System 菜单指南
 

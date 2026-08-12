@@ -2988,14 +2988,23 @@ export type MobileAppVersionResponse = {
 export type MobileAppVersion = {
     platform: 'android' | 'ios' | 'harmony';
     package_type: 'native_app' | 'wgt';
+    delivery_mode: 'internal_package' | 'external_link';
     current_version: string;
     minimum_version: string;
     upgrade_url?: string | null;
+    store_list: Array<MobileAppVersionStore>;
     title: string;
     release_notes: string;
     is_silently: boolean;
     is_mandatory: boolean;
     published_at?: string | null;
+};
+
+export type MobileAppVersionStore = {
+    id: string;
+    name: string;
+    scheme: string;
+    priority: number;
 };
 
 export type BooleanSuccessResponse = {

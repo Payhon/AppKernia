@@ -32,6 +32,8 @@ This page inherits `../MASTER.md`. The rules below only define the mobile releas
 
 - Platforms are the stable protocol enum `android | ios | harmony`; they are not configurable dictionaries.
 - Native packages target exactly one platform. WGT targets one or more platforms and requires a minimum native version.
+- For `uni_app_x`, the create action exposes native packages only. Android may use an internal APK or HTTPS/store delivery; iOS and HarmonyOS use HTTPS/store delivery only.
+- Historical incompatible rows remain readable and may be taken offline, but publish and republish actions are suppressed with a bilingual warning.
 - Package and minimum versions use strict core `x.y.z` SemVer without a leading `v`, prerelease or build metadata.
 - Publishing requires both locales and exactly one source: a selected internal file or an absolute HTTPS URL.
 - Store selections only use enabled store relations of the selected App.

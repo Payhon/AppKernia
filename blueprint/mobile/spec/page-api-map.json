@@ -246,6 +246,14 @@
       "phase": "P1"
     },
     {
+      "route_key": "upgrade.dialog",
+      "endpoints": [
+        "GET /api/v1/public/app-version",
+        "GET /api/v1/public/app-version/download/{release_id}/{file_id}"
+      ],
+      "phase": "P1"
+    },
+    {
       "route_key": "legal.page",
       "endpoints": ["GET /api/v1/public/pages/{slug}"],
       "phase": "P1"

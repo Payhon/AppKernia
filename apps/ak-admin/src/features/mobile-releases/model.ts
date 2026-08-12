@@ -6,6 +6,7 @@ export const mobileReleasePackageTypes = ["native_app", "wgt"] as const;
 export const mobileReleasePublishStatuses = ["draft", "online", "partial", "offline"] as const;
 export type MobileReleasePlatform = (typeof mobileReleasePlatforms)[number];
 export type ManagedMobileRelease = AdminMobileRelease;
+export type MobileApplicationType = "uni_app" | "uni_app_x";
 
 const semverPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
@@ -54,6 +55,17 @@ export const mobileReleaseInputSchema = z.object({
   }
 });
 
+export function mobileReleaseInputSchemaFor(appType: MobileApplicationType) {
+  return mobileReleaseInputSchema.superRefine((value, context) => {
+    if (appType === "uni_app_x" && value.package_type === "wgt") {
+      context.addIssue({ code: "custom", path: ["package_type"], message: "unsupported_package_type" });
+    }
+    if (value.package_type === "native_app" && value.source_type === "internal" && value.platforms[0] !== "android") {
+      context.addIssue({ code: "custom", path: ["source_type"], message: "unsupported_delivery_mode" });
+    }
+  });
+}
+
 export type MobileReleaseInput = z.infer<typeof mobileReleaseInputSchema>;
 export interface MobileReleaseFilters { q: string; package_type: string; platform: string; publish_status: string; page: number; page_size: number; }
 export interface MobileReleasePage { items: ManagedMobileRelease[]; page: number; page_size: number; total: number; }
@@ -64,4 +76,10 @@ export function defaultMobileReleaseInput(packageType: "native_app" | "wgt" = "n
 
 export function releaseInput(item: ManagedMobileRelease): MobileReleaseInput {
   return { package_type: item.package_type, platforms: item.platforms, version: item.version, minimum_native_version: item.minimum_native_version ?? "", titles: item.titles, contents: item.contents, source_type: item.package_file_id ? "internal" : "external", package_file_id: item.package_file_id ?? null, external_url: item.external_url ?? "", store_listing_ids: item.store_listing_ids, is_silently: item.is_silently, is_mandatory: item.is_mandatory, publish_now: false, lock_version: item.lock_version };
+}
+
+export function releaseCapabilityError(appType: MobileApplicationType, item: Pick<ManagedMobileRelease, "package_type" | "platforms" | "package_file_id">): "unsupported_package_type" | "unsupported_delivery_mode" | null {
+  if (appType === "uni_app_x" && item.package_type === "wgt") return "unsupported_package_type";
+  if (item.package_type === "native_app" && item.package_file_id && item.platforms[0] !== "android") return "unsupported_delivery_mode";
+  return null;
 }

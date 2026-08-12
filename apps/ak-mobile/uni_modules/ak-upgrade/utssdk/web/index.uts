@@ -1,0 +1,4 @@
+import { UpgradeCanOpenURL, UpgradeOpenURL } from '../interface.uts'
+
+export const canOpenURL: UpgradeCanOpenURL = function (_url: string): boolean { return false }
+export const openURL: UpgradeOpenURL = function (_url: string): boolean { return false }

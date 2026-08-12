@@ -1,1 +1,25 @@
-import{AkConfig}from'../../../core/config/config.uts';import{SessionStore}from'../../../core/stores/session-store.uts';import{AkHttpClient}from'../../../core/network/ak-http-client.uts';import{HttpVersionRepository}from'./http-version-repository.uts';export class VersionRuntime{private r:HttpVersionRepository|null=null;configure(c:AkConfig,s:SessionStore):void{this.r=new HttpVersionRepository(new AkHttpClient(c,s))}getRepository():HttpVersionRepository|null{return this.r}}export const versionRuntime=new VersionRuntime()
+import { AkConfig } from '../../../core/config/config.uts'
+import { SessionStore } from '../../../core/stores/session-store.uts'
+import { AkHttpClient } from '../../../core/network/ak-http-client.uts'
+import { akUpgradeCoordinator } from '../../../../uni_modules/ak-upgrade/coordinator.uts'
+import { HttpVersionRepository } from './http-version-repository.uts'
+
+export class VersionRuntime {
+  private repository: HttpVersionRepository | null = null
+  private config: AkConfig | null = null
+
+  configure(config: AkConfig, session: SessionStore): void {
+    this.config = config
+    this.repository = new HttpVersionRepository(new AkHttpClient(config, session))
+  }
+
+  configureUpgrade(backendAppid: string): boolean {
+    if (this.repository == null || this.config == null) return false
+    akUpgradeCoordinator.configure(this.repository, this.config.apiBaseUrl, this.config.appId, backendAppid)
+    return true
+  }
+
+  getRepository(): HttpVersionRepository | null { return this.repository }
+}
+
+export const versionRuntime = new VersionRuntime()

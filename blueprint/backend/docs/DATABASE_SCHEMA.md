@@ -174,7 +174,7 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 | `sys.idempotency_keys` | 租户 | 可重试写接口结果缓存 | identity+key 唯一；请求哈希防冲突 |
 | `sys.webhook_endpoints` | 租户 | Webhook 目标、事件和签名秘密 | 密文 Secret、超时和重试限制 |
 | `sys.webhook_deliveries` | Endpoint | Webhook 交付状态和响应摘要 | endpoint+event 唯一 |
-| `sys.mobile_releases` | 全局 | Android/iOS/Harmony 的受控发布与升级策略 | 每平台至多一条 active；双语发布说明；乐观锁 |
+| `sys.mobile_releases` | 全局 | Android/iOS/Harmony 的受控发布与升级策略 | 每平台/包类型至多一条 active；双语发布说明；乐观锁；`uni_app_x` 禁止 WGT，内部原生包仅允许 Android APK |
 
 ### 4.4 Storage
 

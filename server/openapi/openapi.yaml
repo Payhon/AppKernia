@@ -6058,8 +6058,13 @@ components:
     MobileAppVersion:
       type: object
       additionalProperties: false
-      required: [platform, package_type, current_version, minimum_version, title, release_notes, is_silently, is_mandatory]
-      properties: {platform: {type: string, enum: [android, ios, harmony]}, package_type: {type: string, enum: [native_app, wgt]}, current_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, minimum_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, upgrade_url: {type: [string, 'null'], format: uri-reference}, title: {type: string}, release_notes: {type: string}, is_silently: {type: boolean}, is_mandatory: {type: boolean}, published_at: {type: [string, 'null'], format: date-time}}
+      required: [platform, package_type, delivery_mode, current_version, minimum_version, store_list, title, release_notes, is_silently, is_mandatory]
+      properties: {platform: {type: string, enum: [android, ios, harmony]}, package_type: {type: string, enum: [native_app, wgt]}, delivery_mode: {type: string, enum: [internal_package, external_link]}, current_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, minimum_version: {type: string, pattern: '^\d+\.\d+\.\d+$'}, upgrade_url: {type: [string, 'null'], format: uri-reference}, store_list: {type: array, items: {$ref: "#/components/schemas/MobileAppVersionStore"}}, title: {type: string}, release_notes: {type: string}, is_silently: {type: boolean}, is_mandatory: {type: boolean}, published_at: {type: [string, 'null'], format: date-time}}
+    MobileAppVersionStore:
+      type: object
+      additionalProperties: false
+      required: [id, name, scheme, priority]
+      properties: {id: {type: string, format: uuid}, name: {type: string}, scheme: {type: string}, priority: {type: integer, format: int32}}
     BooleanSuccessResponse:
       type: object
       required: [code, message, data, request_id]

@@ -231,6 +231,12 @@
       "feature_flag": null
     },
     {
+      "route_key": "upgrade.dialog",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
       "route_key": "account.deletion",
       "view_permissions": [
         "iam.user.request_deletion_self"

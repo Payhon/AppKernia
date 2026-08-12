@@ -219,6 +219,16 @@
       "harmony": "test_required"
     },
     {
+      "wrapper": "AkProgress",
+      "implementation": "native progress wrapped by AK UI",
+      "status": "approved",
+      "phase": "P1",
+      "notes": "长任务同时显示进度条、百分比和文本状态，不仅依赖颜色。",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
       "wrapper": "AkStatusTag",
       "implementation": "up-tag",
       "status": "approved",

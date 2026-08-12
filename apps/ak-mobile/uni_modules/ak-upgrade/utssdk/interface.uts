@@ -1,0 +1,2 @@
+export type UpgradeOpenURL = (url: string) => boolean
+export type UpgradeCanOpenURL = (url: string) => boolean

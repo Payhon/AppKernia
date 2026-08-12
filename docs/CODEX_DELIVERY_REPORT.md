@@ -1890,3 +1890,39 @@
 - English：`https://payhon.github.io/AppKernia/en-US/api/online-reference`
 - GitHub Pages：workflow 模式、HTTPS enforcement 开启、`cname=null`；`appkernia.com` 仍未绑定，不能宣称自定义域名已发布。
 - 本轮线上验收为 GitHub Actions 状态、HTTP、预渲染标题和 OpenAPI 字节 Hash；没有重新执行 Chromium 视觉、axe、Firefox/Safari 或物理设备验证。既有 Admin/OpenAPI Chromium 证据仍记录在前述交付报告中，不能外推为本轮文档页面的新视觉证据。
+
+## 2026-08-12 移动端自动升级交付报告
+
+### 交付内容
+
+- 新建 `apps/ak-mobile/uni_modules/ak-upgrade`，通过现有 `AkHttpClient` 注入升级策略，不依赖 uniCloud、后台通知或参考模块。模块包含严格 SemVer、启动/手动检查协调器、下载状态机、双语 modal-page 和 Android/iOS/Harmony 安全链接适配器。
+- 启动页改为 `onReady` 初始化；隐私同意和公开 App 配置完成后先核对运行时 AppID、执行升级门禁，再恢复登录会话。自动检查网络错误静默放行，AppID 不一致进入配置错误阻断；强制升级禁用关闭/返回，并在从商店或安装器返回时重新读取本地版本。
+- Android 内部发布先尝试市场，随后重新获取策略并通过相对签名地址下载 APK；请求只发送 `X-AppID`，不附带用户 Token，404 签名过期最多刷新一次。下载支持进度、取消和失败重试；安装器接管后避免立即删除文件，其余关闭路径清理下载任务、监听器和临时文件。
+- About 页面展示真实本地/服务端版本并支持手动检查；新增升级路由、页面/API 映射、`AkProgress`、双语文案、确定性 UTS DTO 生成器和静态契约测试。
+- 后端公开版本响应增加 `delivery_mode`、`store_list` 和可用 `upgrade_url`；应用层按 App 类型、包类型、平台和交付方式做最终能力校验，`uni_app_x` 不允许 WGT，内部原生包仅允许 Android APK。新增 `SYS.MOBILE_RELEASE.UNSUPPORTED_PACKAGE_TYPE`、`SYS.MOBILE_RELEASE.UNSUPPORTED_DELIVERY_MODE` 双语 422 映射，OpenAPI 和 Admin/Mobile 生成客户端同步。
+- Admin 根据当前 App 类型隐藏 WGT、显示能力说明、限制非 Android 内部包、切换平台时清理内部文件；不兼容历史记录隐藏发布/重新发布并保留下线。既有 Migration `000017_app_upgrade_center` 已覆盖所需字段，本轮未新增 Migration、权限或字典。
+- `ui-ux-pro-max` 与 `native-data-fetching` Skill 的有效约束已落到现有 AK 设计系统、44px 触控目标、显式进度/错误、reduced motion、取消清理、类型化失败和有限重试；通用 App Store 视觉建议未覆盖项目 Master。request、output、decisions、review checklist 和截图索引已保存，截图索引明确记录本轮没有真机截图。
+
+### 实际命令、退出码与证据
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 39 routes、3 tabs、26 baseline APIs、39 API deltas、34 components、3 platforms，0 error / 0 warning。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | Backend/Admin/Mobile 的 `zh-CN`、`en-US` key 与 placeholder 一致。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | 生成 i18n/API 产物为最新；6 组 SemVer 和模块/契约/启动链静态测试通过。 |
+| `go test -tags=integration ./internal/modules/mobileprofile/... -count=1 -v` | 0 | Application、PostgreSQL Repository、HTTP 共 16 个顶层测试通过；能力矩阵子场景另覆盖 6 组。 |
+| `make -C server check` | 0 | `go vet ./...` 与 Backend 全量默认测试通过。 |
+| Node 24.18.1 `pnpm --filter @appkernia/admin check`（由最终根门禁执行） | 0 | 生成 API/i18n/routes、lint、strict typecheck、30 个 Vitest 文件 / 130 项测试、production build、bundle/OpenAPI/蓝图检查全部通过。 |
+| `apps/ak-mobile/scripts/build-platform.sh android` | 0 | HBuilderX 5.06 编译 29 页面，达到 Android class 阶段并输出 `UTS编译完毕`；不是 APK 安装或真机运行。 |
+| `apps/ak-mobile/scripts/build-platform.sh ios` | 0 | iOS simulator 目标编译 29 页面，`ak-upgrade` 插件与页面进入编译，输出 `UTS编译完毕`；不是 App Store 或物理设备验收。 |
+| `apps/ak-mobile/scripts/build-platform.sh harmony` | 0 | 编译 29 页面、输出 `UTS编译完毕`、生成 Harmony 原生工程并安装依赖；当前包名/签名缺失，不是可发布 HAP。 |
+| `env PATH=/Users/payhon/.nvm/versions/node/v24.18.1/bin:$PATH make check` | 0 | Backend/Admin/Mobile/Docs 和三套蓝图/i18n 聚合门禁通过；Docs 构建 68 页。 |
+| `git diff --check` | 0 | 最终补丁无空白错误。 |
+
+### 截图索引、未完成项与风险
+
+- UI 产物位于 `apps/ak-mobile/artifacts/ui-ux-pro-max/app-upgrade/`；`screenshots/INDEX.md` 明确说明未执行三端运行态截图，不能把空索引解读为视觉验收通过。
+- 未执行物理 Android APK 下载/安装权限/取消/失败、市场 fallback，未执行物理 iOS App Store 跳转、Harmony 商店/HTTPS 跳转，也未验证强制升级从安装器/商店返回后的持续拦截；`zh-CN` / `en-US` 真机截图未完成。
+- Harmony 编译提示未配置应用包名/签名；只证明 UTS 与原生工程生成链可用。Android/iOS 的退出 0 同样不能外推为签名包、上架链接或真实设备通过。
+- 自动检查对普通网络故障采用计划锁定的 fail-open；一旦已展示强制策略，下载或跳转失败仍保持阻断并提供重试。外部链接只接受适配器允许的市场 scheme 和最终 HTTPS fallback。
+- 用户原有 `apps/ak-mobile/manifest.json` 版本 `0.2.0` 修改及三个未跟踪参考模块保持原样，没有覆盖、删除或自动纳入本功能依赖。本轮未 commit、未 push。

@@ -73,6 +73,31 @@ func TestValidReleaseEnforcesNativeAndWGTTargetRules(t *testing.T) {
 	}
 }
 
+func TestValidReleaseCapabilitiesEnforcesAppAndPlatformMatrix(t *testing.T) {
+	fileID := uuid.New()
+	cases := []struct {
+		name    string
+		appType string
+		release profile.Release
+		want    error
+	}{
+		{name: "uni app x native external", appType: "uni_app_x", release: profile.Release{PackageType: "native_app", Platforms: []string{"ios"}}},
+		{name: "uni app x wgt", appType: "uni_app_x", release: profile.Release{PackageType: "wgt", Platforms: []string{"android"}}, want: profile.ErrReleasePackageTypeUnsupported},
+		{name: "android internal apk", appType: "uni_app_x", release: profile.Release{PackageType: "native_app", Platforms: []string{"android"}, PackageFileID: &fileID}},
+		{name: "ios internal package", appType: "uni_app_x", release: profile.Release{PackageType: "native_app", Platforms: []string{"ios"}, PackageFileID: &fileID}, want: profile.ErrReleaseDeliveryModeUnsupported},
+		{name: "harmony internal package", appType: "uni_app", release: profile.Release{PackageType: "native_app", Platforms: []string{"harmony"}, PackageFileID: &fileID}, want: profile.ErrReleaseDeliveryModeUnsupported},
+		{name: "classic uni app wgt", appType: "uni_app", release: profile.Release{PackageType: "wgt", Platforms: []string{"android", "ios"}, PackageFileID: &fileID}},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			err := validReleaseCapabilities(test.appType, test.release)
+			if !errors.Is(err, test.want) || test.want == nil && err != nil {
+				t.Fatalf("error=%v want=%v", err, test.want)
+			}
+		})
+	}
+}
+
 func TestDraftMayBeIncompleteButImmediatePublishRequiresBilingualContent(t *testing.T) {
 	draft := profile.Release{PackageType: "native_app", Version: "1.2.3", Platforms: []string{"android"}}
 	if err := validRelease(draft, false); err != nil {

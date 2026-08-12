@@ -45,7 +45,8 @@ initial → loading → content | empty | error | offline | forbidden
 | `tenant.switch` | `pages/tenant/switch/index` | authenticated | P2 | multi_tenant | iam.tenant.switch_self | GET /api/v1/auth/context<br>POST /api/v1/auth/switch-tenant |
 | `legal.privacy` | `pages/legal/privacy/index` | public | P0 | — | — | GET /api/v1/public/legal/{document_type} |
 | `legal.terms` | `pages/legal/terms/index` | public | P0 | — | — | GET /api/v1/public/legal/{document_type} |
-| `about` | `pages/about/index` | public | P1 | — | — | GET /api/v1/public/app-version |
+| `about` | `pages/about/index` | public | P1 | — | — | GET /api/v1/public/app-version<br>GET /api/v1/public/pages/{slug} |
+| `upgrade.dialog` | `uni_modules/ak-upgrade/pages/upgrade-dialog` | public | P1 | — | — | GET /api/v1/public/app-version<br>GET /api/v1/public/app-version/download/{release_id}/{file_id} |
 | `account.deletion` | `pages/account/deletion/index` | authenticated | P2 | account_deletion | iam.user.request_deletion_self | POST /api/v1/auth/step-up<br>POST /api/v1/me/account-deletion<br>GET /api/v1/me/account-deletion<br>DELETE /api/v1/me/account-deletion |
 | `error.forbidden` | `pages/error/forbidden/index` | mixed | P0 | — | — | — |
 | `error.offline` | `pages/error/offline/index` | mixed | P0 | — | — | — |

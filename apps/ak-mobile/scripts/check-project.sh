@@ -7,6 +7,8 @@ repo_root="$(cd "$project_root/../.." && pwd)"
 python3 "$repo_root/blueprint/mobile/scripts/validate_blueprint_specs.py"
 python3 "$repo_root/blueprint/scripts/validate_i18n_contract.py"
 python3 "$project_root/scripts/check-i18n-catalogs.py"
+python3 "$project_root/scripts/generate-mobile-client.py"
+python3 "$project_root/scripts/test_upgrade_contract.py"
 jq -e '."uni-app-x".renderer == "vdom"' "$project_root/manifest.json" >/dev/null
 rg -n --glob '*.uts' --glob '*.uvue' '\bany\b|sslVerify\s*:\s*false|uni\.(setStorage|setStorageSync)\([^\n]*(token|password|otp)' "$project_root" && {
   printf 'mobile source contains a forbidden pattern\n' >&2

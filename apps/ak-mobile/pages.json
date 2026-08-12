@@ -25,6 +25,7 @@
     { "path": "pages/settings/appearance/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/help/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/about/index", "style": { "navigationStyle": "custom" } },
+    { "path": "uni_modules/ak-upgrade/pages/upgrade-dialog", "style": { "navigationStyle": "custom" } },
     { "path": "pages/articles/list/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/articles/detail/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/error/forbidden/index", "style": { "navigationStyle": "custom" } },

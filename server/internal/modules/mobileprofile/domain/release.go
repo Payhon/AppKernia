@@ -14,6 +14,15 @@ var ErrReleaseFrozen = errors.New("published mobile release is frozen")
 var ErrReleaseDeleteForbidden = errors.New("published mobile release cannot be deleted")
 var ErrReleaseFileInvalid = errors.New("mobile release file is invalid")
 var ErrReleaseVersionNotIncreasing = errors.New("mobile release version must increase")
+var ErrReleasePackageTypeUnsupported = errors.New("mobile release package type is unsupported for this application")
+var ErrReleaseDeliveryModeUnsupported = errors.New("mobile release delivery mode is unsupported for this platform")
+
+type StoreListing struct {
+	ID       uuid.UUID
+	Name     string
+	Scheme   string
+	Priority int32
+}
 
 type Release struct {
 	ID                   uuid.UUID         `json:"id"`
@@ -29,6 +38,7 @@ type Release struct {
 	ExternalURL          *string           `json:"external_url,omitempty"`
 	DownloadURL          *string           `json:"download_url,omitempty"`
 	StoreListingIDs      []uuid.UUID       `json:"store_listing_ids"`
+	StoreList            []StoreListing    `json:"-"`
 	CreateEnv            string            `json:"create_env"`
 	IsSilently           bool              `json:"is_silently"`
 	IsMandatory          bool              `json:"is_mandatory"`
@@ -86,6 +96,7 @@ type ReleaseRepository interface {
 	UpdateRelease(context.Context, uuid.UUID, Release, uuid.UUID, string) (Release, error)
 
 	ActivePackageRelease(context.Context, uuid.UUID, string, string) (Release, error)
+	ApplicationType(context.Context, uuid.UUID) (string, error)
 	ListReleasePage(context.Context, uuid.UUID, uuid.UUID, ReleaseFilter) (ReleasePage, error)
 	GetRelease(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (Release, error)
 	CreateDraft(context.Context, uuid.UUID, uuid.UUID, Release, uuid.UUID, string) (Release, error)

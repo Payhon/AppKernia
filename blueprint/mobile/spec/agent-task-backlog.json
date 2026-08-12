@@ -323,13 +323,15 @@
       "ui_skill_required": true,
       "outputs": [
         "locale adapter",
-        "settings/legal/about pages"
+        "settings/legal/about pages",
+        "ak-upgrade native module"
       ],
       "acceptance": [
         "zh-Hans/en 基线",
         "切换语言无需重启",
         "法律版本可审计",
-        "升级只跳转可信商店"
+        "uni_app_x 禁止 WGT",
+        "Android 签名 APK 或三平台受控商店链接"
       ]
     },
     {

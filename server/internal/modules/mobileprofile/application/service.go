@@ -57,7 +57,21 @@ func (service *Service) PublicPackageRelease(ctx context.Context, appID uuid.UUI
 	if appID == uuid.Nil || !validPlatform(platform) || (packageType != "native_app" && packageType != "wgt") {
 		return profile.Release{}, ErrInvalidRelease
 	}
-	return service.releases.ActivePackageRelease(ctx, appID, packageType, platform)
+	appType, err := service.releases.ApplicationType(ctx, appID)
+	if err != nil {
+		return profile.Release{}, err
+	}
+	if err = validReleaseCapabilities(appType, profile.Release{PackageType: packageType, Platforms: []string{platform}}); err != nil {
+		return profile.Release{}, err
+	}
+	release, err := service.releases.ActivePackageRelease(ctx, appID, packageType, platform)
+	if err != nil {
+		return profile.Release{}, err
+	}
+	if err = validReleaseCapabilities(appType, release); err != nil {
+		return profile.Release{}, err
+	}
+	return release, nil
 }
 func (service *Service) AdminReleases(ctx context.Context, token string, appID uuid.UUID) ([]profile.Release, error) {
 	actor, err := service.admin(ctx, token, "mobile.release.read")
@@ -111,10 +125,13 @@ func (service *Service) CreateRelease(ctx context.Context, token, requestID stri
 	if appID == uuid.Nil {
 		return profile.Release{}, ErrInvalidRelease
 	}
+	release = normalizeRelease(release)
 	if err = validRelease(release, false); err != nil {
 		return profile.Release{}, err
 	}
-	release = normalizeRelease(release)
+	if err = service.validateReleaseCapabilities(ctx, appID, release); err != nil {
+		return profile.Release{}, err
+	}
 	if release.Active {
 		if err = service.validatePackageArchive(ctx, actor.Tenant.ID, release); err != nil {
 			return profile.Release{}, err
@@ -148,6 +165,9 @@ func (service *Service) UpdateRelease(ctx context.Context, token, requestID stri
 	if err = validRelease(release, true); err != nil {
 		return profile.Release{}, err
 	}
+	if err = service.validateReleaseCapabilities(ctx, appID, release); err != nil {
+		return profile.Release{}, err
+	}
 	return service.releases.UpdateDraft(ctx, actor.Tenant.ID, appID, release, actor.User.ID, requestID)
 }
 func (service *Service) PublishRelease(ctx context.Context, token, requestID string, appID, id uuid.UUID, lockVersion int32) (profile.Release, error) {
@@ -162,10 +182,35 @@ func (service *Service) PublishRelease(ctx context.Context, token, requestID str
 	if err != nil {
 		return profile.Release{}, err
 	}
+	if err = service.validateReleaseCapabilities(ctx, appID, current); err != nil {
+		return profile.Release{}, err
+	}
 	if err = service.validatePackageArchive(ctx, actor.Tenant.ID, current); err != nil {
 		return profile.Release{}, err
 	}
 	return service.releases.Publish(ctx, actor.Tenant.ID, appID, id, lockVersion, actor.User.ID, requestID)
+}
+
+func (service *Service) validateReleaseCapabilities(ctx context.Context, appID uuid.UUID, release profile.Release) error {
+	appType, err := service.releases.ApplicationType(ctx, appID)
+	if err != nil {
+		return err
+	}
+	return validReleaseCapabilities(appType, release)
+}
+
+func validReleaseCapabilities(appType string, release profile.Release) error {
+	if appType != "uni_app" && appType != "uni_app_x" {
+		return profile.ErrReleaseNotFound
+	}
+	if appType == "uni_app_x" && release.PackageType == "wgt" {
+		return profile.ErrReleasePackageTypeUnsupported
+	}
+	if release.PackageType == "native_app" && release.PackageFileID != nil &&
+		(len(release.Platforms) != 1 || release.Platforms[0] != "android") {
+		return profile.ErrReleaseDeliveryModeUnsupported
+	}
+	return nil
 }
 
 type packageFileRepository interface {

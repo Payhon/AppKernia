@@ -1,41 +1,26 @@
-import { AkError } from '../../../core/errors/ak-error.uts'
 import { akI18n } from '../../../core/i18n/ak-i18n.uts'
-import { AkHttpPort, HttpCancellation, HttpRequest } from '../../../core/network/http-port.uts'
+import { AkHttpPort, HttpRequest } from '../../../core/network/http-port.uts'
+import { MobileAppVersionWire } from '../../../generated/api/mobile-app-version.uts'
+import { UpgradePolicy, UpgradePolicyProvider, UpgradeStore } from '../../../../uni_modules/ak-upgrade/model.uts'
 
-export type VersionPolicy = {
-  readonly packageType: string
-  readonly current: string
-  readonly minimum: string
-  readonly title: string
-  readonly notes: string
-  readonly upgradeUrl: string | null
-  readonly silently: boolean
-  readonly mandatory: boolean
-  readonly publishedAt: string | null
-}
+export type VersionPolicy = UpgradePolicy
 
-type Wire = {
-  readonly package_type: string
-  readonly current_version: string
-  readonly minimum_version: string
-  readonly title: string
-  readonly release_notes: string
-  readonly upgrade_url: string | null
-  readonly is_silently: boolean
-  readonly is_mandatory: boolean
-  readonly published_at: string | null
-}
-
-export class HttpVersionRepository {
+export class HttpVersionRepository implements UpgradePolicyProvider {
   private readonly http: AkHttpPort
   constructor(http: AkHttpPort) { this.http = http }
-  get(platform: string, ok: (value: VersionPolicy) => void, fail: (error: AkError) => void): HttpCancellation {
+  get(platform: string, onSuccess: (value: VersionPolicy) => void, onFailure: (kind: string, code: string) => void): void {
     const query = new Map<string, string>()
     query.set('platform', platform)
+    query.set('package_type', 'native_app')
     const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/public/app-version', query, headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
-    return this.http.execute<UTSJSONObject, Wire>(request, response => ok(this.value(response.data)), fail)
+    this.http.execute<UTSJSONObject, MobileAppVersionWire>(request, response => onSuccess(this.value(response.data)), error => onFailure(error.kind, error.code))
   }
-  private value(wire: Wire): VersionPolicy {
-    return { packageType: wire.package_type, current: wire.current_version, minimum: wire.minimum_version, title: wire.title, notes: wire.release_notes, upgradeUrl: wire.upgrade_url, silently: wire.is_silently, mandatory: wire.is_mandatory, publishedAt: wire.published_at }
+  private value(wire: MobileAppVersionWire): VersionPolicy {
+    const stores: Array<UpgradeStore> = []
+    for (let index = 0; index < wire.store_list.length; index++) {
+      const store = wire.store_list[index]
+      stores.push({ id: store.id, name: store.name, scheme: store.scheme, priority: store.priority })
+    }
+    return { platform: wire.platform, packageType: wire.package_type, deliveryMode: wire.delivery_mode, current: wire.current_version, minimum: wire.minimum_version, title: wire.title, notes: wire.release_notes, upgradeUrl: wire.upgrade_url, storeList: stores, silently: wire.is_silently, mandatory: wire.is_mandatory, publishedAt: wire.published_at }
   }
 }

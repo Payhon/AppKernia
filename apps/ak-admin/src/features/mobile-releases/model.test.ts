@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { authSession } from "../auth/store";
 import { mobileReleasesApi } from "./api";
-import { compareSemver, defaultMobileReleaseInput, mobileReleaseInputSchema } from "./model";
+import { compareSemver, defaultMobileReleaseInput, mobileReleaseInputSchema, mobileReleaseInputSchemaFor, releaseCapabilityError } from "./model";
 
 const response = (lockVersion: number) => new Response(JSON.stringify({
   code: "OK",
@@ -38,6 +38,15 @@ describe("mobile release model", () => {
     const draft = defaultMobileReleaseInput();
     expect(mobileReleaseInputSchema.safeParse(draft).success).toBe(true);
     expect(mobileReleaseInputSchema.safeParse({ ...draft, publish_now: true, external_url: "https://example.test/app" }).success).toBe(false);
+  });
+
+  it("enforces uni-app x and native delivery capabilities", () => {
+    expect(mobileReleaseInputSchemaFor("uni_app_x").safeParse(defaultMobileReleaseInput("wgt")).success).toBe(false);
+    expect(mobileReleaseInputSchemaFor("uni_app").safeParse(defaultMobileReleaseInput("wgt")).success).toBe(true);
+    const iosInternal = { ...defaultMobileReleaseInput(), platforms: ["ios"] as ["ios"], source_type: "internal" as const };
+    expect(mobileReleaseInputSchemaFor("uni_app_x").safeParse(iosInternal).success).toBe(false);
+    expect(releaseCapabilityError("uni_app_x", { package_type: "wgt", platforms: ["android"], package_file_id: null })).toBe("unsupported_package_type");
+    expect(releaseCapabilityError("uni_app_x", { package_type: "native_app", platforms: ["ios"], package_file_id: "123e4567-e89b-12d3-a456-426614174000" })).toBe("unsupported_delivery_mode");
   });
 
   it("sends lock_version when updating and maps the incremented response", async () => {

@@ -1,15 +1,17 @@
-<template><ak-theme-root><scroll-view class="page" scroll-y><view class="nav"><ak-back-button/><text class="nav-title">{{t('routes.about.title', null)}}</text><view class="nav-slot"/></view><ak-status-view v-if="state!=='content'" :state="state" :title="title" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/><view v-else class="content"><ak-card class="about-card"><text class="brand">{{aboutTitle}}</text><view v-for="block in aboutBlocks" :key="block.id" class="about-body"><text>{{block.text}}</text></view></ak-card><ak-card class="version-card"><view class="version-row"><text class="version-label">{{t('about.current', null)}}</text><text class="version-value">{{currentVersion}}</text></view><view class="version-row"><text class="version-label">{{t('about.minimum', null)}}</text><text class="version-value">{{minimumVersion}}</text></view><text class="release-notes">{{releaseNotes}}</text><ak-button v-if="upgradeAvailable" class="upgrade-button" variant="primary" disabled>{{t('about.upgradeUnavailable', null)}}</ak-button></ak-card></view></scroll-view></ak-theme-root></template>
+<template><ak-theme-root><scroll-view class="page" scroll-y><view class="nav"><ak-back-button/><text class="nav-title">{{t('routes.about.title', null)}}</text><view class="nav-slot"/></view><ak-status-view v-if="state!=='content'" :state="state" :title="title" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/><view v-else class="content"><ak-card class="about-card"><text class="brand">{{aboutTitle}}</text><view v-for="block in aboutBlocks" :key="block.id" class="about-body"><text>{{block.text}}</text></view></ak-card><ak-card class="version-card"><view class="version-row"><text class="version-label">{{t('about.current', null)}}</text><text class="version-value">{{currentVersion}}</text></view><view class="version-row"><text class="version-label">{{t('about.latest', null)}}</text><text class="version-value">{{latestVersion}}</text></view><text class="release-notes">{{releaseNotes}}</text><text v-if="versionFeedback.length>0" class="version-feedback">{{versionFeedback}}</text><ak-button class="upgrade-button" variant="primary" :loading="checking" :loading-text="t('common.loading', null)" :label="t('about.checkUpdates', null)" @click="checkUpdate" /></ak-card></view></scroll-view></ak-theme-root></template>
 <script lang="uts">
 import {akI18n} from '../../src/core/i18n/ak-i18n.uts'
 import {versionRuntime} from '../../src/features/version/infrastructure/version-runtime.uts'
 import {legalRuntime} from '../../src/features/legal/legal-runtime.uts'
 import {LegalDocument} from '../../src/features/legal/legal-repository.uts'
 import {ArticleBodyRenderer, ArticleBodyBlock} from '../../src/features/articles/application/article-body-renderer.uts'
+import {akUpgradeCoordinator} from '../../uni_modules/ak-upgrade/coordinator.uts'
+import {compareUpgradeSemver} from '../../uni_modules/ak-upgrade/semver.uts'
 
 const aboutRenderer = new ArticleBodyRenderer()
 
 export default {
-  data() { return {state:'loading', currentVersion:'', minimumVersion:'', releaseNotes:'', upgradeAvailable:false, aboutTitle:'AppKernia', aboutBlocks:[] as Array<ArticleBodyBlock>} },
+  data() { return {state:'loading', currentVersion:'', latestVersion:'', releaseNotes:'', upgradeAvailable:false, checking:false, versionFeedback:'', aboutTitle:'AppKernia', aboutBlocks:[] as Array<ArticleBodyBlock>} },
   computed: {
     t() { return akI18n.t },
     title() { return akI18n.t(this.state==='offline'?'state.offline.title':this.state==='unavailable'?'state.versionUnavailable.title':'state.error.title', null) },
@@ -33,12 +35,24 @@ export default {
       if (repository == null) { this.state='error'; return }
       this.state='loading'
       repository.get(this.platform(), value => {
-        this.currentVersion=value.current
-        this.minimumVersion=value.minimum
+        this.currentVersion=akUpgradeCoordinator.localVersion()
+        this.latestVersion=value.current
         this.releaseNotes=value.notes
-        this.upgradeAvailable=value.upgradeUrl != null && value.upgradeUrl.length>0
+        const comparison=compareUpgradeSemver(value.current, this.currentVersion)
+        this.upgradeAvailable=comparison!=null&&comparison>0
         this.loadAboutContent()
-      }, error => { this.state=error.kind==='network_unavailable'?'offline':error.kind==='maintenance'?'unavailable':'error' })
+      }, (kind, _code) => { this.state=kind==='network_unavailable'?'offline':kind==='maintenance'?'unavailable':'error' })
+    },
+    checkUpdate() {
+      this.checking=true
+      this.versionFeedback=''
+      akUpgradeCoordinator.check((outcome, value) => {
+        this.checking=false
+        if (value!=null) { this.latestVersion=value.current; this.releaseNotes=value.notes }
+        if (outcome==='config_mismatch') { this.versionFeedback=akI18n.t('about.configMismatch', null); return }
+        if (outcome==='up_to_date') { this.versionFeedback=akI18n.t('about.upToDate', null); return }
+        this.versionFeedback=akI18n.t('about.upgradeActionCompleted', null)
+      }, (_kind, _code) => { this.checking=false; this.versionFeedback=akI18n.t('about.checkFailed', null) })
     },
     loadAboutContent() {
       const repository = legalRuntime.getRepository()
@@ -48,4 +62,4 @@ export default {
   },
 }
 </script>
-<style lang="scss">.page{height:100%;flex:1;padding:16px 20px 32px;background:var(--ak-page)}.nav{height:44px;flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:20px}.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}.nav-slot{width:44px;height:44px}.content{padding-bottom:24px}.about-card,.version-card{padding:20px;border-radius:18px}.version-card{margin-top:16px}.brand{font-size:28px;font-weight:700;color:var(--ak-text)}.about-body{color:var(--ak-text);font-size:16px;line-height:24px;margin-top:14px}.version-row{min-height:28px;flex-direction:row;justify-content:space-between;align-items:center}.version-label{color:var(--ak-muted);font-size:14px}.version-value{color:var(--ak-text);font-size:15px;font-weight:600}.release-notes{color:var(--ak-muted);font-size:14px;line-height:20px;margin-top:12px}.upgrade-button{margin-top:16px}</style>
+<style lang="scss">.page{height:100%;flex:1;padding:16px 20px 32px;background:var(--ak-page)}.nav{height:44px;flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:20px}.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}.nav-slot{width:44px;height:44px}.content{padding-bottom:24px}.about-card,.version-card{padding:20px;border-radius:18px}.version-card{margin-top:16px}.brand{font-size:28px;font-weight:700;color:var(--ak-text)}.about-body{color:var(--ak-text);font-size:16px;line-height:24px;margin-top:14px}.version-row{min-height:28px;flex-direction:row;justify-content:space-between;align-items:center}.version-label{color:var(--ak-muted);font-size:14px}.version-value{color:var(--ak-text);font-size:15px;font-weight:600}.release-notes{color:var(--ak-muted);font-size:14px;line-height:20px;margin-top:12px}.version-feedback{color:var(--ak-text);font-size:14px;line-height:20px;margin-top:12px}.upgrade-button{margin-top:16px}</style>

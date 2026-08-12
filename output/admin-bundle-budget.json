@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-11T08:04:08.494Z",
+  "generated_at": "2026-08-12T03:33:24.330Z",
   "budgets": {
     "initial_gzip_bytes": 307200,
     "chunk_gzip_bytes": 184320,
@@ -7,7 +7,7 @@
     "openapi_chunk_gzip_bytes": 768000
   },
   "actual": {
-    "initial_gzip_bytes": 233392,
+    "initial_gzip_bytes": 233785,
     "largest_chunks": [
       {
         "file": "assets/DashboardTrendChart-BNKy1ccp.js",
@@ -18,28 +18,28 @@
         "gzip_bytes": 94070
       },
       {
-        "file": "assets/query-client-CgSofi-F.js",
-        "gzip_bytes": 73954
+        "file": "assets/query-client-B2QyXZMM.js",
+        "gzip_bytes": 74346
       },
       {
-        "file": "assets/AppShell-D-2I6HiY.js",
-        "gzip_bytes": 64946
+        "file": "assets/AppShell-GC-dHySs.js",
+        "gzip_bytes": 64947
       },
       {
         "file": "assets/typography-BRndVoJK.js",
         "gzip_bytes": 52347
       },
       {
-        "file": "assets/table-bhrE8VvH.js",
-        "gzip_bytes": 38724
+        "file": "assets/table-D9YAELDc.js",
+        "gzip_bytes": 38725
       },
       {
         "file": "assets/space-gDSPZWKV.js",
         "gzip_bytes": 27048
       },
       {
-        "file": "assets/index.esm-DAYWBqiC.js",
-        "gzip_bytes": 20624
+        "file": "assets/index.esm-CDxVDgOn.js",
+        "gzip_bytes": 20625
       },
       {
         "file": "assets/schemas-Cx2xd4-1.js",
@@ -50,15 +50,15 @@
         "gzip_bytes": 15620
       }
     ],
-    "openapi_initial_gzip_bytes": 999910,
+    "openapi_initial_gzip_bytes": 999917,
     "openapi_largest_chunks": [
       {
         "file": "assets/add-scalar-classes-CIwe324d.js",
         "gzip_bytes": 686992
       },
       {
-        "file": "assets/openapi-C5EZxMQZ.js",
-        "gzip_bytes": 130587
+        "file": "assets/openapi-XKG68NzW.js",
+        "gzip_bytes": 130586
       },
       {
         "file": "assets/AgentScalarChatInterface.vue-DxqbAxFe.js",
@@ -100,8 +100,8 @@
       "gzip_bytes": 94070
     },
     {
-      "file": "assets/query-client-CgSofi-F.js",
-      "gzip_bytes": 73954
+      "file": "assets/query-client-B2QyXZMM.js",
+      "gzip_bytes": 74346
     },
     {
       "file": "assets/Match-DDdcwB12.js",
@@ -116,8 +116,8 @@
       "gzip_bytes": 9951
     },
     {
-      "file": "assets/admin-Db0F2_7K.js",
-      "gzip_bytes": 8681
+      "file": "assets/admin-Bv5DiZoE.js",
+      "gzip_bytes": 8682
     },
     {
       "file": "assets/useStore-BjGXTPRv.js",
@@ -182,16 +182,16 @@
       "gzip_bytes": 686992
     },
     {
-      "file": "assets/openapi-C5EZxMQZ.js",
-      "gzip_bytes": 130587
+      "file": "assets/openapi-XKG68NzW.js",
+      "gzip_bytes": 130586
     },
     {
       "file": "assets/client-BGY1e91G.js",
       "gzip_bytes": 42458
     },
     {
-      "file": "assets/openapi-B1AVe2mn.css",
-      "gzip_bytes": 39286
+      "file": "assets/openapi-CxtxGVIo.css",
+      "gzip_bytes": 39294
     },
     {
       "file": "assets/runtime-core.esm-bundler-BJbD5xlI.js",
@@ -239,11 +239,11 @@
   "admin_scalar_keys": [],
   "openapi_docs_only_matches": [
     {
-      "file": "assets/openapi-C5EZxMQZ.js",
+      "file": "assets/openapi-XKG68NzW.js",
       "marker": "api_reference.operation.getLiveness"
     },
     {
-      "file": "assets/openapi-C5EZxMQZ.js",
+      "file": "assets/openapi-XKG68NzW.js",
       "marker": "OPENAPI_DOCUMENT_VERSION_UNSUPPORTED"
     }
   ],

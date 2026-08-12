@@ -1,0 +1,33 @@
+export type UpgradeDeliveryMode = 'internal_package' | 'external_link'
+
+export type UpgradeStore = {
+  id: string
+  name: string
+  scheme: string
+  priority: number
+}
+
+export type UpgradePolicy = {
+  platform: string
+  packageType: string
+  deliveryMode: UpgradeDeliveryMode
+  current: string
+  minimum: string
+  title: string
+  notes: string
+  upgradeUrl: string | null
+  storeList: Array<UpgradeStore>
+  silently: boolean
+  mandatory: boolean
+  publishedAt: string | null
+}
+
+export interface UpgradeCancellation { cancel(): void }
+
+export interface UpgradePolicyProvider {
+  get(platform: string, onSuccess: (policy: UpgradePolicy) => void, onFailure: (kind: string, code: string) => void): void
+}
+
+export type UpgradeCheckOutcome = 'up_to_date' | 'dismissed' | 'external_opened' | 'install_started' | 'unavailable' | 'config_mismatch'
+export type UpgradeCheckSuccess = (outcome: UpgradeCheckOutcome, policy: UpgradePolicy | null) => void
+export type UpgradeCheckFailure = (kind: string, code: string) => void

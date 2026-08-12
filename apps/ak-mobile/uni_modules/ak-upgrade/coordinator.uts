@@ -1,0 +1,109 @@
+import { compareUpgradeSemver } from './semver.uts'
+import { UpgradeCheckFailure, UpgradeCheckOutcome, UpgradeCheckSuccess, UpgradePolicy, UpgradePolicyProvider } from './model.uts'
+
+const STORAGE_PREFIX = 'ak.upgrade.policy.'
+
+function currentPlatform(): string {
+  // #ifdef APP-ANDROID
+  return 'android'
+  // #endif
+  // #ifdef APP-IOS
+  return 'ios'
+  // #endif
+  // #ifdef APP-HARMONY
+  return 'harmony'
+  // #endif
+  return 'unknown'
+}
+
+export class AkUpgradeCoordinator {
+  private provider: UpgradePolicyProvider | null = null
+  private apiBaseUrl: string = ''
+  private applicationId: string = ''
+  private backendAppid: string = ''
+  private pendingSuccess: UpgradeCheckSuccess | null = null
+  private pendingFailure: UpgradeCheckFailure | null = null
+  private checking: boolean = false
+
+  configure(provider: UpgradePolicyProvider, apiBaseUrl: string, applicationId: string, backendAppid: string): void {
+    this.provider = provider
+    this.apiBaseUrl = apiBaseUrl
+    this.applicationId = applicationId
+    this.backendAppid = backendAppid
+  }
+
+  check(onSuccess: UpgradeCheckSuccess, onFailure: UpgradeCheckFailure): void {
+    if (this.checking) { onFailure('conflict', 'upgrade.check_in_progress'); return }
+    const provider = this.provider
+    if (provider == null) { onFailure('unknown', 'upgrade.not_configured'); return }
+    const info = uni.getSystemInfoSync()
+    const runtimeAppid: string = info.appId
+    const localVersion: string = info.appVersion
+    if (runtimeAppid.length == 0 || this.backendAppid.length == 0 || runtimeAppid.toLowerCase() != this.backendAppid.toLowerCase()) {
+      onSuccess('config_mismatch', null)
+      return
+    }
+    if (currentPlatform() == 'unknown') { onFailure('unknown', 'upgrade.unsupported_platform'); return }
+    this.checking = true
+    provider.get(currentPlatform(), policy => {
+      this.checking = false
+      const comparison = compareUpgradeSemver(policy.current, localVersion)
+      if (comparison == null) { onFailure('validation', 'upgrade.invalid_semver'); return }
+      if (comparison <= 0) { onSuccess('up_to_date', policy); return }
+      this.open(policy, onSuccess, onFailure)
+    }, (kind, code) => {
+      this.checking = false
+      onFailure(kind, code)
+    })
+  }
+
+  refresh(onSuccess: (policy: UpgradePolicy) => void, onFailure: UpgradeCheckFailure): void {
+    const provider = this.provider
+    if (provider == null) { onFailure('unknown', 'upgrade.not_configured'); return }
+    provider.get(currentPlatform(), onSuccess, onFailure)
+  }
+
+  complete(outcome: UpgradeCheckOutcome, policy: UpgradePolicy | null): void {
+    const success = this.pendingSuccess
+    this.pendingSuccess = null
+    this.pendingFailure = null
+    if (success != null) success(outcome, policy)
+  }
+
+  fail(kind: string, code: string): void {
+    const failure = this.pendingFailure
+    this.pendingSuccess = null
+    this.pendingFailure = null
+    if (failure != null) failure(kind, code)
+  }
+
+  localVersion(): string { return uni.getSystemInfoSync().appVersion }
+  appId(): string { return this.applicationId }
+
+  resolveDownloadURL(value: string): string | null {
+    const raw = value.trim()
+    if (raw.startsWith('https://') || raw.startsWith('http://')) return raw
+    if (!raw.startsWith('/api/v1/')) return null
+    const marker = '/api/v1'
+    const index = this.apiBaseUrl.indexOf(marker)
+    if (index <= 0) return null
+    return this.apiBaseUrl.substring(0, index) + raw
+  }
+
+  private open(policy: UpgradePolicy, onSuccess: UpgradeCheckSuccess, onFailure: UpgradeCheckFailure): void {
+    const key = STORAGE_PREFIX + Date.now().toString()
+    uni.setStorageSync(key, JSON.stringify(policy))
+    this.pendingSuccess = onSuccess
+    this.pendingFailure = onFailure
+    uni.openDialogPage({
+      url: '/uni_modules/ak-upgrade/pages/upgrade-dialog?policy_key=' + encodeURIComponent(key),
+      disableEscBack: true,
+      fail: () => {
+        uni.removeStorageSync(key)
+        this.fail('unknown', 'upgrade.dialog_open_failed')
+      },
+    })
+  }
+}
+
+export const akUpgradeCoordinator = new AkUpgradeCoordinator()

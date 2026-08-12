@@ -1,0 +1,29 @@
+import { bundleManager, common } from '@kit.AbilityKit'
+import OpenLinkOptions from '@ohos.app.ability.OpenLinkOptions'
+import { getAbilityContext } from '@dcloudio/uni-runtime'
+import { UpgradeCanOpenURL, UpgradeOpenURL } from '../interface.uts'
+
+function allowed(url: string): boolean {
+  const value = url.trim()
+  const colon = value.indexOf(':')
+  if (colon <= 0) return false
+  const scheme = value.substring(0, colon).toLowerCase()
+  return scheme != 'file' && scheme != 'content' && scheme != 'intent' && scheme != 'javascript' && scheme != 'data'
+}
+
+export const canOpenURL: UpgradeCanOpenURL = function (url: string): boolean {
+  if (!allowed(url)) return false
+  try {
+    return bundleManager.canOpenLink(url)
+  } catch (error) {
+    return false
+  }
+}
+
+export const openURL: UpgradeOpenURL = function (url: string): boolean {
+  if (!canOpenURL(url)) return false
+  const context = getAbilityContext() as common.UIAbilityContext | null
+  if (context == null) return false
+  context.openLink(url, { appLinkingOnly: false } as OpenLinkOptions)
+  return true
+}

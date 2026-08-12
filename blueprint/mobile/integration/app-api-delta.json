@@ -173,7 +173,13 @@
     {
       "method": "GET",
       "path": "/api/v1/public/app-version",
-      "purpose": "返回三平台最低/推荐版本、商店地址和升级说明；不下发可执行脚本。",
+      "purpose": "返回三平台原生版本、交付方式、应用市场地址和升级说明；uni-app x 不下发 WGT。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/app-version/download/{release_id}/{file_id}",
+      "purpose": "使用 App/发布/文件绑定的短时签名下载已发布 Android APK，不携带用户令牌。",
       "phase": "P1"
     },
     {

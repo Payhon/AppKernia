@@ -92,7 +92,8 @@ def check_runtime_wiring() -> None:
     manifest = read_json(ROOT / "manifest.json")
     runtime = manifest.get("akRuntime") if isinstance(manifest, dict) else None
     required("initializeAppRuntime" not in app, "App must not duplicate bootstrap runtime initialization")
-    required("initializeAppRuntime()" in bootstrap_page and "onLoad" in bootstrap_page, "bootstrap page does not initialize runtime")
+    required("initializeAppRuntime()" in bootstrap_page and "onReady" in bootstrap_page, "bootstrap page does not initialize runtime after its dialog host is ready")
+    required("akUpgradeCoordinator.check" in bootstrap and "configureUpgrade(publicConfig.appid)" in bootstrap, "bootstrap does not gate session restoration through the native upgrade check")
     required("articleRuntime.configure(config, appSessionStore, auth" in bootstrap, "article runtime is not configured at bootstrap")
     required(isinstance(runtime, dict) and "apiBaseUrl" in runtime, "manifest has no approved runtime API configuration")
     api_base_url = runtime.get("apiBaseUrl")

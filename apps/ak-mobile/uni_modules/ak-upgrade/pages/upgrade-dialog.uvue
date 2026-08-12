@@ -1,0 +1,282 @@
+<template>
+  <ak-theme-root>
+    <view class="upgrade-mask">
+      <ak-card class="upgrade-card">
+        <view class="upgrade-heading">
+          <view class="upgrade-icon"><text class="upgrade-icon-text">AK</text></view>
+          <view class="upgrade-heading-copy">
+            <text class="upgrade-eyebrow">{{ t('upgrade.available', null) }}</text>
+            <text class="upgrade-title">{{ title }}</text>
+          </view>
+        </view>
+        <view class="upgrade-version"><text>{{ localVersion }}</text><text class="upgrade-arrow">→</text><text class="upgrade-version-target">{{ targetVersion }}</text></view>
+        <scroll-view class="upgrade-notes" scroll-y><text class="upgrade-notes-text">{{ notes }}</text></scroll-view>
+        <view v-if="mandatory" class="upgrade-mandatory"><text class="upgrade-mandatory-text">{{ t('upgrade.mandatory', null) }}</text></view>
+        <ak-progress v-if="downloading" class="upgrade-progress" :percent="progress" :label="sizeLabel" />
+        <text v-if="statusMessage.length > 0" class="upgrade-status" :class="failed ? 'upgrade-status-error' : ''">{{ statusMessage }}</text>
+        <ak-button class="upgrade-primary" :label="primaryLabel" :loading="refreshing || installing" :loading-text="t('common.loading', null)" :disabled="downloading" @click="primaryAction" />
+        <ak-button v-if="!mandatory" class="upgrade-secondary" variant="secondary" :label="downloading ? t('upgrade.cancelDownload', null) : t('common.cancel', null)" @click="dismiss" />
+      </ak-card>
+    </view>
+  </ak-theme-root>
+</template>
+
+<script setup lang="uts">
+import { canOpenURL, openURL } from '@/uni_modules/ak-upgrade'
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+import { akUpgradeCoordinator } from '../coordinator.uts'
+import { UpgradeCheckOutcome, UpgradePolicy } from '../model.uts'
+import { compareUpgradeSemver } from '../semver.uts'
+
+const t = akI18n.t
+const policy = ref<UpgradePolicy | null>(null)
+const title = ref<string>('')
+const notes = ref<string>('')
+const targetVersion = ref<string>('')
+const localVersion = ref<string>('')
+const mandatory = ref<boolean>(false)
+const downloading = ref<boolean>(false)
+const refreshing = ref<boolean>(false)
+const installing = ref<boolean>(false)
+const failed = ref<boolean>(false)
+const progress = ref<number>(0)
+const writtenBytes = ref<number>(0)
+const totalBytes = ref<number>(0)
+const statusMessage = ref<string>('')
+const tempFilePath = ref<string>('')
+let downloadTask: DownloadTask | null = null
+let completed = false
+let preserveTempFileAfterInstall = false
+
+function megabytes(value: number): string { return (value / 1024.0 / 1024.0).toFixed(1) }
+
+function currentDialogPage(): UniPage | null {
+  const pages = getCurrentPages()
+  if (pages.length == 0) return null
+  const dialogs = pages[pages.length - 1].getDialogPages()
+  return dialogs.length > 0 ? dialogs[dialogs.length - 1] : null
+}
+
+function cleanupTempFile(): void {
+  if (tempFilePath.value.length == 0) return
+  // #ifdef APP-ANDROID
+  uni.getFileSystemManager().unlink({ filePath: tempFilePath.value, fail: () => {} })
+  // #endif
+  tempFilePath.value = ''
+}
+
+function showFailure(key: string): void {
+  failed.value = true
+  statusMessage.value = t(key, null)
+}
+
+function applyPolicy(value: UpgradePolicy): void {
+  title.value = value.title
+  notes.value = value.notes
+  targetVersion.value = value.current
+  mandatory.value = value.mandatory
+  localVersion.value = akUpgradeCoordinator.localVersion()
+}
+
+function close(outcome: UpgradeCheckOutcome): void {
+  if (completed) return
+  completed = true
+  if (downloadTask != null) downloadTask!.abort()
+  downloadTask = null
+  // 安装器接管 APK 后保留临时文件，避免系统安装界面尚未读取完毕时发生删除竞态。
+  // 其余退出路径都立即清理瞬态下载文件。
+  preserveTempFileAfterInstall = outcome == 'install_started'
+  if (!preserveTempFileAfterInstall) cleanupTempFile()
+  const value = policy.value
+  akUpgradeCoordinator.complete(outcome, value)
+  uni.closeDialogPage({ dialogPage: currentDialogPage() })
+}
+
+function dismiss(): void {
+  if (mandatory.value) return
+  close('dismissed')
+}
+
+function openPreferredStore(value: UpgradePolicy): boolean {
+  for (let index = 0; index < value.storeList.length; index++) {
+    const scheme = value.storeList[index].scheme
+    if (scheme.length > 0 && canOpenURL(scheme) && openURL(scheme)) return true
+  }
+  const fallback = value.upgradeUrl
+  return fallback != null && fallback.startsWith('https://') && canOpenURL(fallback) && openURL(fallback)
+}
+
+function installPackage(): void {
+  if (tempFilePath.value.length == 0) return
+  installing.value = true
+  // #ifdef APP-ANDROID
+  uni.installApk({
+    filePath: tempFilePath.value,
+    success: () => {
+      installing.value = false
+      statusMessage.value = t('upgrade.installStarted', null)
+      if (!mandatory.value) close('install_started')
+    },
+    fail: () => {
+      installing.value = false
+      showFailure('upgrade.installFailed')
+    },
+  })
+  // #endif
+  // #ifndef APP-ANDROID
+  installing.value = false
+  showFailure('upgrade.unsupportedDelivery')
+  // #endif
+}
+
+function startDownload(value: UpgradePolicy, allowSignatureRefresh: boolean): void {
+  const raw = value.upgradeUrl
+  if (raw == null) { showFailure('upgrade.downloadFailed'); return }
+  const resolved = akUpgradeCoordinator.resolveDownloadURL(raw)
+  if (resolved == null) { showFailure('upgrade.downloadFailed'); return }
+  const headerSource: UTSJSONObject = { 'X-AppID': akUpgradeCoordinator.appId() }
+  const headers = JSON.parseObject(JSON.stringify(headerSource))
+  if (headers == null) { showFailure('upgrade.downloadFailed'); return }
+  downloading.value = true
+  progress.value = 0
+  downloadTask = uni.downloadFile({
+    url: resolved,
+    header: headers,
+    success: result => {
+      if (result.statusCode == 200) {
+        downloading.value = false
+        downloadTask = null
+        tempFilePath.value = result.tempFilePath
+        statusMessage.value = t('upgrade.downloadComplete', null)
+        if (mandatory.value) installPackage()
+        return
+      }
+      downloading.value = false
+      downloadTask = null
+      if (result.statusCode == 404 && allowSignatureRefresh) {
+        akUpgradeCoordinator.refresh(refreshed => {
+          policy.value = refreshed
+          applyPolicy(refreshed)
+          startDownload(refreshed, false)
+        }, (_kind, _code) => { showFailure('upgrade.refreshFailed') })
+        return
+      }
+      showFailure('upgrade.downloadFailed')
+    },
+    fail: () => {
+      downloading.value = false
+      downloadTask = null
+      showFailure('upgrade.downloadFailed')
+    },
+  })
+  if (downloadTask != null) downloadTask!.onProgressUpdate(result => {
+    progress.value = result.progress
+    writtenBytes.value = result.totalBytesWritten
+    totalBytes.value = result.totalBytesExpectedToWrite
+  })
+}
+
+function refreshAndDownload(): void {
+  refreshing.value = true
+  akUpgradeCoordinator.refresh(value => {
+    refreshing.value = false
+    const comparison = compareUpgradeSemver(value.current, akUpgradeCoordinator.localVersion())
+    if (comparison != null && comparison <= 0) { policy.value = value; close('up_to_date'); return }
+    policy.value = value
+    applyPolicy(value)
+    if (value.deliveryMode != 'internal_package') {
+      if (openPreferredStore(value)) {
+        statusMessage.value = t('upgrade.waitingForStore', null)
+        if (!mandatory.value) close('external_opened')
+      } else showFailure('upgrade.storeUnavailable')
+      return
+    }
+    startDownload(value, true)
+  }, (_kind, _code) => {
+    refreshing.value = false
+    showFailure('upgrade.refreshFailed')
+  })
+}
+
+function primaryAction(): void {
+  failed.value = false
+  statusMessage.value = ''
+  if (tempFilePath.value.length > 0) { installPackage(); return }
+  const value = policy.value
+  if (value == null) return
+  if (openPreferredStore(value)) {
+    statusMessage.value = t('upgrade.waitingForStore', null)
+    if (!mandatory.value) close('external_opened')
+    return
+  }
+  if (value.deliveryMode == 'external_link') { showFailure('upgrade.storeUnavailable'); return }
+  refreshAndDownload()
+}
+
+const sizeLabel = computed((): string => {
+  if (totalBytes.value <= 0) return t('upgrade.downloading', null)
+  return t('upgrade.downloadSize', new Map<string, string>([['written', megabytes(writtenBytes.value)], ['total', megabytes(totalBytes.value)]]))
+})
+const primaryLabel = computed((): string => {
+  if (downloading.value) return t('upgrade.downloading', null)
+  if (failed.value) return t('common.retry', null)
+  if (tempFilePath.value.length > 0) return t('upgrade.install', null)
+  const value = policy.value
+  if (value != null && value.deliveryMode == 'external_link') return t('upgrade.openStore', null)
+  return t('upgrade.updateNow', null)
+})
+
+onLoad((options: OnLoadOptions) => {
+  const key = options['policy_key'] as string | null
+  if (key == null || key.length == 0) { akUpgradeCoordinator.fail('validation', 'upgrade.missing_policy'); return }
+  const raw = uni.getStorageSync(key) as string
+  uni.removeStorageSync(key)
+  if (raw == null || raw.length == 0) { akUpgradeCoordinator.fail('validation', 'upgrade.missing_policy'); return }
+  const value = JSON.parse<UpgradePolicy>(raw) as UpgradePolicy
+  policy.value = value
+  applyPolicy(value)
+})
+
+onShow(() => {
+  const value = policy.value
+  if (value == null || !mandatory.value) return
+  const comparison = compareUpgradeSemver(akUpgradeCoordinator.localVersion(), value.current)
+  if (comparison != null && comparison >= 0) close('up_to_date')
+})
+
+onBackPress((_options: OnBackPressOptions): boolean | null => {
+  if (mandatory.value) return true
+  dismiss()
+  return true
+})
+
+onUnload(() => {
+  if (downloadTask != null) downloadTask!.abort()
+  downloadTask = null
+  if (!preserveTempFileAfterInstall) cleanupTempFile()
+})
+</script>
+
+<style lang="scss">
+.upgrade-mask { position:fixed; left:0; right:0; top:0; bottom:0; padding:24px; background:rgba(15,23,42,0.46); align-items:center; justify-content:center; box-sizing:border-box; }
+.upgrade-card { width:100%; max-width:420px; padding:24px; border-radius:22px; box-shadow:0 4px 18px rgba(15,23,42,0.08); }
+.upgrade-heading { flex-direction:row; align-items:center; }
+.upgrade-icon { width:52px; height:52px; border-radius:16px; background:var(--ak-brand); align-items:center; justify-content:center; }
+.upgrade-icon-text { color:var(--ak-on-brand); font-size:18px; font-weight:700; }
+.upgrade-heading-copy { flex:1; margin-left:14px; }
+.upgrade-eyebrow { color:var(--ak-brand); font-size:13px; font-weight:600; line-height:18px; }
+.upgrade-title { color:var(--ak-text); font-size:21px; font-weight:700; line-height:28px; margin-top:2px; }
+.upgrade-version { margin-top:20px; min-height:44px; padding:0 14px; border-radius:12px; background:var(--ak-surface-subtle); flex-direction:row; align-items:center; justify-content:center; color:var(--ak-muted); font-size:15px; }
+.upgrade-arrow { margin:0 12px; color:var(--ak-muted); }
+.upgrade-version-target { color:var(--ak-text); font-weight:700; }
+.upgrade-notes { max-height:180px; margin-top:16px; }
+.upgrade-notes-text { color:var(--ak-text); font-size:15px; line-height:22px; }
+.upgrade-mandatory { margin-top:14px; padding:10px 12px; border-radius:12px; background:var(--ak-surface-subtle); }
+.upgrade-mandatory-text { color:var(--ak-danger); font-size:13px; font-weight:600; line-height:18px; }
+.upgrade-progress { margin-top:18px; }
+.upgrade-status { margin-top:14px; color:var(--ak-muted); font-size:14px; line-height:20px; }
+.upgrade-status-error { color:var(--ak-danger); }
+.upgrade-primary { margin-top:20px; }
+.upgrade-secondary { margin-top:8px; }
+@media (prefers-reduced-motion: reduce) { .upgrade-card { transition-duration:0ms; } }
+</style>

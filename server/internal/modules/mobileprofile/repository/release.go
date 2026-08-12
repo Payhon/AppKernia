@@ -38,6 +38,7 @@ WHERE id=$1 AND tenant_id=$2 AND app_id=$3 AND deleted_at IS NULL`, id, tenantID
 		return domain.Release{}, err
 	}
 	out.Platforms, out.PublishedPlatforms, out.StoreListingIDs = []string{}, []string{}, []uuid.UUID{}
+	out.StoreList = []domain.StoreListing{}
 	out.Titles, out.Contents, out.ReleaseNotes = map[string]string{}, map[string]string{}, map[string]string{}
 	rows, err := query.Query(ctx, `SELECT platform FROM sys.mobile_release_targets WHERE release_id=$1 ORDER BY platform`, id)
 	if err != nil {
@@ -76,6 +77,23 @@ WHERE id=$1 AND tenant_id=$2 AND app_id=$3 AND deleted_at IS NULL`, id, tenantID
 			return domain.Release{}, err
 		}
 		out.StoreListingIDs = append(out.StoreListingIDs, storeID)
+	}
+	rows.Close()
+	rows, err = query.Query(ctx, `SELECT s.id,s.name,s.scheme,s.priority
+FROM sys.mobile_release_store_listings r
+JOIN app.application_store_listings s ON s.id=r.store_listing_id AND s.tenant_id=r.tenant_id AND s.app_id=r.app_id
+WHERE r.release_id=$1 AND s.enabled
+ORDER BY s.priority DESC,s.id`, id)
+	if err != nil {
+		return domain.Release{}, err
+	}
+	for rows.Next() {
+		var store domain.StoreListing
+		if err = rows.Scan(&store.ID, &store.Name, &store.Scheme, &store.Priority); err != nil {
+			rows.Close()
+			return domain.Release{}, err
+		}
+		out.StoreList = append(out.StoreList, store)
 	}
 	rows.Close()
 	rows, err = query.Query(ctx, `SELECT platform FROM sys.mobile_release_publications WHERE release_id=$1 ORDER BY platform`, id)
@@ -142,6 +160,15 @@ WHERE app_id=$1 AND package_type=$2 AND platform=$3`, appID, packageType, platfo
 		return domain.Release{}, err
 	}
 	return loadRelease(ctx, repository.pool, tenantID, appID, releaseID)
+}
+
+func (repository *Postgres) ApplicationType(ctx context.Context, appID uuid.UUID) (string, error) {
+	var appType string
+	err := repository.pool.QueryRow(ctx, `SELECT app_type FROM app.applications WHERE id=$1 AND deleted_at IS NULL`, appID).Scan(&appType)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", domain.ErrReleaseNotFound
+	}
+	return appType, err
 }
 
 func (repository *Postgres) ListReleases(ctx context.Context, appID uuid.UUID) ([]domain.Release, error) {

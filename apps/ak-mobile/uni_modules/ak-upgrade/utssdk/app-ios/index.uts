@@ -1,0 +1,25 @@
+import { URL } from 'Foundation'
+import { UIApplication } from 'UIKit'
+import { UpgradeCanOpenURL, UpgradeOpenURL } from '../interface.uts'
+
+function allowed(url: string): boolean {
+  const value = url.trim()
+  const colon = value.indexOf(':')
+  if (colon <= 0) return false
+  const scheme = value.substring(0, colon).toLowerCase()
+  return scheme != 'file' && scheme != 'content' && scheme != 'intent' && scheme != 'javascript' && scheme != 'data'
+}
+
+export const canOpenURL: UpgradeCanOpenURL = function (url: string): boolean {
+  if (!allowed(url)) return false
+  const target = new URL(string = url)
+  return target != null && UIApplication.shared.canOpenURL(target!)
+}
+
+export const openURL: UpgradeOpenURL = function (url: string): boolean {
+  if (!canOpenURL(url)) return false
+  const target = new URL(string = url)
+  if (target == null) return false
+  UIApplication.shared.open(target!)
+  return true
+}

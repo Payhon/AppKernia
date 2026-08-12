@@ -136,8 +136,8 @@
 - Phase：`P1E`
 - 依赖：AKMOB-080, AKMOB-040
 - UI Skill：必须
-- 产物：language preference sync；settings/legal/about pages
-- 验收：复用 AKMOB-015；用户偏好跨设备同步；法律文档按 locale/version/hash 可审计；升级只跳转可信商店
+- 产物：language preference sync；settings/legal/about pages；`ak-upgrade` 原生升级模块
+- 验收：复用 AKMOB-015；用户偏好跨设备同步；法律文档按 locale/version/hash 可审计；`uni_app_x` 禁止 WGT，Android 可下载签名 APK，三平台仅打开受控商店/HTTPS 链接
 
 ## AKMOB-160 — 暗色主题兼容审计
 

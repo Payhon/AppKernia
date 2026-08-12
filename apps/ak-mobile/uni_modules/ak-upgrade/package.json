@@ -1,0 +1,33 @@
+{
+  "id": "ak-upgrade",
+  "displayName": "AK Upgrade",
+  "version": "1.0.0",
+  "description": "AppKernia native application upgrade coordinator for uni-app x without uniCloud.",
+  "engines": {
+    "HBuilderX": "^5.06",
+    "uni-app-x": "^5.06"
+  },
+  "dcloudext": {
+    "type": "uts",
+    "declaration": {
+      "ads": "none",
+      "data": "Reads the packaged App identity and downloads only a server-selected Android APK.",
+      "permissions": "none"
+    }
+  },
+  "uni_modules": {
+    "dependencies": [],
+    "encrypt": [],
+    "platforms": {
+      "client": {
+        "uni-app-x": {
+          "app": {
+            "android": "√",
+            "ios": "√",
+            "harmony": "√"
+          }
+        }
+      }
+    }
+  }
+}

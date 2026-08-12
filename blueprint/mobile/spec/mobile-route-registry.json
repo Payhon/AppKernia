@@ -606,6 +606,24 @@
       "ui_skill_required": true
     },
     {
+      "route_key": "upgrade.dialog",
+      "path": "uni_modules/ak-upgrade/pages/upgrade-dialog",
+      "file": "apps/ak-mobile/uni_modules/ak-upgrade/pages/upgrade-dialog.uvue",
+      "access": "public",
+      "kind": "modal-page",
+      "title_key": "routes.upgrade.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": [
+        "GET /api/v1/public/app-version",
+        "GET /api/v1/public/app-version/download/{release_id}/{file_id}"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
       "route_key": "account.deletion",
       "path": "pages/account/deletion/index",
       "file": "apps/ak-mobile/pages/account/deletion/index.uvue",
