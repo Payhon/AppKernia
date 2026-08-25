@@ -313,5 +313,7 @@
   "api_reference.operation.getAdminOpsRuntimeSummary": "获取运行时摘要",
   "api_reference.operation.enableAdminUser": "启用租户用户",
   "api_reference.operation.disableAdminUser": "停用租户用户并撤销租户会话",
-  "api_reference.operation.unlockAdminUser": "解除租户用户凭据锁定"
+  "api_reference.operation.unlockAdminUser": "解除租户用户凭据锁定",
+  "api_reference.operation.getAppStartupAsset": "读取当前应用的启动图标或已发布启动介绍图片",
+  "api_reference.operation.publishAdminAppOnboarding": "发布不可变的应用启动介绍版本"
 }

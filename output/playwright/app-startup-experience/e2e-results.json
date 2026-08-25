@@ -1,0 +1,35 @@
+{
+  "startup.drawer.zh-CN.light.375": {
+    "violations": []
+  },
+  "startup.drawer.zh-CN.light.768": {
+    "violations": []
+  },
+  "startup.drawer.zh-CN.light.1440": {
+    "violations": []
+  },
+  "startup.drawer.en-US.light.375": {
+    "violations": []
+  },
+  "startup.drawer.en-US.light.768": {
+    "violations": []
+  },
+  "startup.drawer.en-US.light.1440": {
+    "violations": []
+  },
+  "console": {
+    "unexpected_errors": []
+  },
+  "coverage": {
+    "locales": [
+      "zh-CN",
+      "en-US"
+    ],
+    "viewports": [
+      375,
+      768,
+      1440
+    ],
+    "keyboard_ordering": true
+  }
+}

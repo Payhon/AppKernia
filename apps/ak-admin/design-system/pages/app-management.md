@@ -15,3 +15,10 @@ This page family inherits `../MASTER.md`.
 - The application editor is one long, sectioned Drawer: basic/registration, icon and ordered screenshots, owner/team, channels, H5 and stores. Use two columns only when the Drawer has room; otherwise stack fields.
 - Display internal file UUIDs as secondary technical references after selection. Do not expose provider bucket or object key.
 - AppID is editable only while a migrated application is pending configuration. App type is immutable after creation.
+- The startup experience is a distinct section inside the application Drawer. Localized display name and subtitle use `AkLocalizedFormTabs`; changing Admin locale must not discard the inactive locale values.
+- Treat the packaged icon and the remotely published onboarding revision as separate release surfaces. Show an authenticated icon thumbnail and a package-export reminder, but never imply that saving the Drawer changes an already installed binary.
+- Draft save and onboarding publish are separate actions. Show the current immutable published version, published time and draft-changed state next to the publish action; a publish conflict keeps the draft values and offers a reload/retry path.
+- Each onboarding position contains paired `zh-CN` and `en-US` scanned image assets plus localized non-visual accessibility descriptions. The pair moves and deletes as one unit.
+- Limit the draft to ten positions. Provide labelled Move up / Move down controls with disabled boundary states; drag-only ordering is not permitted.
+- Keep the onboarding draft when the enabled switch is off. Re-enabling an unchanged published version must not be presented as a new user-visible revision.
+- At 768 px and below the startup fields, asset pair editors and action row stack to one column. File UUIDs remain secondary technical text and thumbnails never replace accessible labels.

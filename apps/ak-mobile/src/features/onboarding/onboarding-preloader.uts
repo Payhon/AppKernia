@@ -1,0 +1,37 @@
+import { AppPublicStartupSlide } from '../app-config/public-config-runtime.uts'
+
+class OnboardingPreloader {
+  private readonly slides: Array<AppPublicStartupSlide>
+  private readonly appId: string
+  private readonly ok: () => void
+  private readonly fail: () => void
+  private index: number = 0
+  constructor(slides: Array<AppPublicStartupSlide>, appId: string, ok: () => void, fail: () => void) {
+    this.slides = slides
+    this.appId = appId
+    this.ok = ok
+    this.fail = fail
+  }
+  start(): void { this.next() }
+  private next(): void {
+    if (this.index >= this.slides.length) { this.ok(); return }
+    const slide = this.slides[this.index]
+    this.index += 1
+    uni.downloadFile({
+      url: slide.imageUrl,
+      header: { 'X-AppID': this.appId },
+      success: result => {
+        if (result.statusCode < 200 || result.statusCode >= 300 || result.tempFilePath.length == 0) { this.fail(); return }
+        slide.imageUrl = result.tempFilePath
+        this.next()
+      },
+      fail: () => this.fail(),
+    })
+  }
+}
+
+/** Downloads every protected asset before navigation and swaps in local paths. */
+export function preloadOnboardingSlides(slides: Array<AppPublicStartupSlide>, appId: string, ok: () => void, fail: () => void): void {
+  if (slides.length == 0) { fail(); return }
+  new OnboardingPreloader(slides, appId, ok, fail).start()
+}

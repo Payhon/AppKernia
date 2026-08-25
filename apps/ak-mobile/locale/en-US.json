@@ -169,7 +169,14 @@
   "legal.consent.title": "Privacy and service notice",
   "legal.consent.description": "Please review and agree to the privacy policy and terms of service before continuing.",
   "legal.consent.accept": "Agree and continue",
+  "legal.consent.cancel": "Cancel",
+  "legal.consent.ios_cancel_note": "iOS does not allow an app to terminate itself. You can review the documents or agree to continue.",
+  "legal.consent.statement.before": "Some application features require network access. Please read the ",
+  "legal.consent.statement.middle": " and ",
+  "legal.consent.statement.after": ". By selecting Agree, you acknowledge and accept these terms.",
   "legal.consent.required": "Please review and agree to the privacy policy and terms of service first",
+  "onboarding.experience": "Get started",
+  "onboarding.page_indicator_label": "Onboarding page indicator",
   "legal.version": "Version {version}",
   "legal.updatedAt": "Updated {date}",
   "legal.empty": "No published content is available yet",
@@ -180,5 +187,6 @@
   "routes.legal.privacy.title": "Privacy policy",
   "routes.legal.terms.title": "Terms of service",
   "routes.legal.page.title": "Content",
+  "routes.onboarding.title": "Onboarding",
   "errors.auth.appMismatch": "This sign-in does not belong to this app. Sign in again."
 }

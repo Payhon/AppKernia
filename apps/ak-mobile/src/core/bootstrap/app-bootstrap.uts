@@ -18,6 +18,8 @@ import { legalConsentStore } from '../../features/legal/legal-consent-store.uts'
 import { legalRuntime } from '../../features/legal/legal-runtime.uts'
 import { appPublicConfigRuntime } from '../../features/app-config/public-config-runtime.uts'
 import { akUpgradeCoordinator } from '../../../uni_modules/ak-upgrade/coordinator.uts'
+import { onboardingStore } from '../../features/onboarding/onboarding-store.uts'
+import { preloadOnboardingSlides } from '../../features/onboarding/onboarding-preloader.uts'
 
 type ManifestRuntimeConfig = {
   readonly environment: string
@@ -41,7 +43,7 @@ export function initializeAppRuntime(): boolean {
   if (runtime.environment != 'development' && runtime.environment != 'test' && runtime.environment != 'production') { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
   const config = new AkConfig(runtime.environment as AkEnvironment, runtime.apiBaseUrl, runtime.appId)
   const client = new AkHttpClient(config, appSessionStore)
-  appPublicConfigRuntime.configure(client, config.appId)
+  appPublicConfigRuntime.configure(client, config.appId, config.apiBaseUrl)
   legalRuntime.configure(client)
   authRuntime.configure(client, sessionRuntime)
   const auth = authRuntime.getService()
@@ -60,16 +62,25 @@ export function initializeAppRuntime(): boolean {
     const continueAfterPublicConfig = () => {
       const publicConfig = appPublicConfigRuntime.get()
       if (publicConfig == null || !versionRuntime.configureUpgrade(publicConfig.appid)) { restoreSession(); return }
+      const continueAfterUpgrade = () => {
+        const current = appPublicConfigRuntime.get()
+        if (current == null || !current.startup.onboardingEnabled || !onboardingStore.shouldShow(current.appId, current.startup.publishedVersion)) { restoreSession(); return }
+        preloadOnboardingSlides(current.startup.slides, current.appId, () => { uni.reLaunch({ url: '/pages/onboarding/index' }) }, () => {
+          // The onboarding publication remains incomplete. This launch fails
+          // open and a later online launch retries the same version.
+          restoreSession()
+        })
+      }
       akUpgradeCoordinator.check((outcome, _policy) => {
         if (outcome == 'config_mismatch') {
           sessionRuntime.signOut(() => { uni.reLaunch({ url: '/pages/error/offline/index?reason=app_config_mismatch' }) })
           return
         }
-        restoreSession()
+        continueAfterUpgrade()
       }, (_kind, _code) => {
         // Version policy availability is not an authentication prerequisite.
         // Automatic checks fail open; manual checks surface the same failure.
-        restoreSession()
+        continueAfterUpgrade()
       })
     }
     const configLoad = appPublicConfigRuntime.load(continueAfterPublicConfig, error => {

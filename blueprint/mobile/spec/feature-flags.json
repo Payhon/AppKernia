@@ -12,7 +12,7 @@
       "key": "onboarding_enabled",
       "default": false,
       "scope": "public",
-      "phase": "P1"
+      "phase": "P0"
     },
     {
       "key": "password_login_enabled",

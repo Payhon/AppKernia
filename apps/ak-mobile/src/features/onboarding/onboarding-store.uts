@@ -1,0 +1,15 @@
+const COMPLETED_PREFIX = 'ak.mobile.onboarding.completed.v1.'
+
+export class OnboardingStore {
+  completedVersion(appId: string): number {
+    const raw = uni.getStorageSync(COMPLETED_PREFIX + appId.toLowerCase()) as string
+    const value = parseInt(raw)
+    return isNaN(value) || value < 0 ? 0 : value
+  }
+  shouldShow(appId: string, version: number): boolean { return version > 0 && version > this.completedVersion(appId) }
+  complete(appId: string, version: number): void {
+    if (version > this.completedVersion(appId)) uni.setStorageSync(COMPLETED_PREFIX + appId.toLowerCase(), version.toString())
+  }
+}
+
+export const onboardingStore = new OnboardingStore()

@@ -1,6 +1,6 @@
 # AppKernia 实施状态
 
-更新时间：2026-08-12（Asia/Shanghai）
+更新时间：2026-08-15（Asia/Shanghai）
 
 ## 总体状态
 
@@ -11,6 +11,14 @@
 | Mobile              | 29 个页面已完成 AK UI 统一刷新并接入启动升级门禁；独立 `ak-upgrade` 支持三端应用市场跳转及 Android APK 下载/安装，HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过                                       | Android APK、iOS/Harmony 商店跳转、强制升级返回拦截仍需三端真机验收；Harmony 包名/签名未配置               |
 | Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：68 个静态页面、零门槛向导、核心 API、在线 OpenAPI/System 菜单指南、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31475956211` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
+
+## 2026-08-15 快学AI微信公众号草稿工作流
+
+- 已从 skills.sh 对应的 `staruhub/claudeskills` 仓库安装并校验项目级 `wechat-article-writer` Skill；另新增 `quicklearn-ai-wechat` Skill，把资料检索与事实核验、作者口吻写作、微信安全 HTML 构建、封面/正文图片处理和草稿箱投递串成单一工作流。
+- 发布链路固定为“本地 Skill → 既有 SSH 密钥连接 → 白名单服务器 CLI → 微信公众号 API”。服务器仅安装 root 可执行的草稿 CLI，不开放新公网端口或常驻服务，也不提供群发、正式发布或删除草稿命令。
+- AppSecret 只通过服务器交互式无回显输入写入 `/etc/quicklearn-wechat/credentials.json`，文件权限为 `0600 root:root`；仓库、命令参数、日志和草稿包均不保存密钥。默认封面和 Markdown 转微信内联 HTML 工具已纳入项目级 Skill。
+- 本地无图片/带正文图片草稿包构建及 dry-run 均通过；SSH 二进制传输、远端临时目录创建/精确清理和微信 API 调用边界已实测。首次连接曾因微信未认可 IP 白名单返回 `40164`；重新保存白名单后，`doctor` 已成功取得有效 Token 并读取草稿数量。
+- 首篇 AppKernia 介绍文章已由本地 Markdown 构建器生成微信安全 HTML，经服务器上传默认封面并调用草稿新增接口；随后通过草稿详情回读确认标题和单篇文章数量一致，公众号草稿总数由 20 增至 21。仅完成草稿创建，未调用群发或正式发布接口；微信编辑器与手机预览仍需人工检查。
 
 ## 2026-08-12 移动端自动升级
 
@@ -683,3 +691,22 @@
 - 字典管理页新增系统分类与内置类型的双语名称/说明展示；内容表单补齐本次 axe 发现的 Slug、分类、阅读分钟、精选、排序和状态控件可访问名称。
 - 本地 core seed 实际输出 `dictionaries=71`；使用本地管理员会话读取真实 `/admin-api/v1/dictionaries/system.language`，返回 fixed、`zh-CN → en-US` 和唯一默认 `zh-CN`。
 - Chromium 覆盖 `zh-CN/en-US`、375/768/1440、浅色和深色系统偏好，共 5 个表单状态；axe serious/critical、console error 与页面级横向溢出均为 0。Admin 当前仍是固定视觉主题，深色系统偏好不等同于独立暗色主题。
+
+## 2026-08-25 App 启动页与启动介绍管理
+
+### 状态：功能完成（PostgreSQL 18、Backend、Admin Chromium、Android/iOS compile-only 与 Harmony unsigned HAP）；三端物理设备验收未执行
+
+- 新增可逆 `000018_app_startup_experience`：启动双语元信息、双语草稿位置/资产、不可变发布版本/资产和 published pointer 均按 tenant + App 规范化持久化；每个位置强制 `zh-CN`/`en-US` 图片与无障碍说明，最多 10 个位置。草稿和不可变版本分别登记 `storage.file_usages`，发布使用 `SERIALIZABLE` 单事务、版本单调递增和 stale-version 409。
+- 新增 `app.onboarding.publish` 权限、发布 API、公开配置 startup 投影和受控 startup asset API。公开面只返回当前启用的 published revision；资产读取校验 App/tenant、ready、clean、MIME 与当前发布引用，并返回版本化缓存头。
+- `ak-cli app-startup export` 从数据库双语元信息和已扫描 App 图标生成 Mobile 随包 UTS 快照与本地图标；`--check` 只读检测生成物漂移，真实临时目录 `export → --check` 均退出 0。
+- Admin App Drawer 新增双语名称/副标题、图标预览、导出提示、启用开关、双语图片与无障碍说明、键盘上/下移动、草稿状态、版本/时间和独立发布。375px 全屏 Drawer 使用表单内 sticky 发布/保存动作，避免挤压标题。
+- Mobile 隐私页改为严格离线的 pre-bootstrap 圆角容器；协议保持当前容器 allowlist 路由。Android/Harmony 取消走 `uni.exit()` Port，iOS 保持阻断。新增 `pages/onboarding/index`：强制升级门禁之后携带 `X-AppID` 顺序下载全部当前语言图片到临时本地路径；普通失败 fail-open 且不记录完成，无跳过，访问全部位置并位于末页后才保存 App UUID 对应最高完成版本。
+- OpenAPI、生成 Admin/Mobile Client、权限快照、Admin/Mobile route/API/feature 契约、双语 Catalog、设计 override 和 UI Skill 产物均已同步。
+
+### 验证与边界
+
+- PostgreSQL 18 空库 migration up/down/up 成功；定向 integration 覆盖草稿不外泄、发布、stale 409、locale 投影、文件引用和禁用开关。`make -C server check` 退出 0。
+- Admin 全量 check 为 30 个 Vitest 文件 / 130 项测试；真实 Chromium 覆盖 `zh-CN/en-US × 375/768/1440`，6/6 状态 axe 全量 violation、页面横向溢出和 console error 均为 0，键盘排序通过。Mobile blueprint/i18n/generated/static checks 退出 0。
+- HBuilderX 5.24 Android/iOS 30 页面 compile-only 均退出 0。Harmony UVue/UTS 输出项目编译成功；HBuilder 内置 ohpm 受代理解析影响退出 1，随后无代理 `ohpm install --all` 和 DevEco 6.0.2 `hvigorw assembleHap` 退出 0，生成 15,662,973 字节 unsigned HAP。包名/签名未配置。
+- 未执行三端物理设备冷启动、首装零网络抓包、动态字号、安全区、系统返回、退出行为、版本升级/回滚/重装或真实后台图片下载；Mobile 截图索引明确未完成。用户原有 `manifest.json`、既有文档内容和未跟踪微信公众号 Skills 均保留。本轮未 commit、未 push。
+- 最终 Node 24.18.1 根 `make check` 退出 0：Backend、Admin 30 文件/130 项测试、Mobile（含随包快照 App ID/本地图标漂移门禁）、全部蓝图/i18n 和 Docs 121 个 API 引用/68 页构建通过。

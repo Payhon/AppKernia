@@ -1,0 +1,17 @@
+export class StartupExitPort {
+  cancel(): boolean {
+    // #ifdef APP-ANDROID
+    uni.exit()
+    return true
+    // #endif
+    // #ifdef APP-HARMONY
+    uni.exit()
+    return true
+    // #endif
+    // Standalone iOS applications cannot terminate themselves. The caller
+    // remains on the blocking consent page and can only review or accept.
+    return false
+  }
+}
+
+export const startupExitPort = new StartupExitPort()

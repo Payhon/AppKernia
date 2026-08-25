@@ -313,5 +313,7 @@
   "api_reference.operation.getAdminOpsRuntimeSummary": "Read versions modules Worker queue and tenant schedule-run counts without secrets",
   "api_reference.operation.enableAdminUser": "Enable a suspended tenant membership",
   "api_reference.operation.disableAdminUser": "Suspend a tenant membership and revoke its tenant sessions",
-  "api_reference.operation.unlockAdminUser": "Clear credential lock state for a tenant user"
+  "api_reference.operation.unlockAdminUser": "Clear credential lock state for a tenant user",
+  "api_reference.operation.getAppStartupAsset": "Read the active App icon or one image from its current published onboarding revision",
+  "api_reference.operation.publishAdminAppOnboarding": "Atomically publish an immutable onboarding revision"
 }

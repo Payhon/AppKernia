@@ -14,15 +14,16 @@
     },
     {
       "route_key": "privacy.consent",
-      "endpoints": [
-        "GET /api/v1/public/legal/{document_type}"
-      ],
+      "endpoints": [],
       "phase": "P0"
     },
     {
       "route_key": "onboarding",
-      "endpoints": [],
-      "phase": "P1"
+      "endpoints": [
+        "GET /api/v1/public/config",
+        "GET /api/v1/public/startup-assets/{file_id}"
+      ],
+      "phase": "P0"
     },
     {
       "route_key": "auth.login.password",

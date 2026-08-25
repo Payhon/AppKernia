@@ -23,17 +23,20 @@ describe("App management admin API requests", () => {
       default_locale: "zh-CN", registration_enabled: true, registration_verification_mode: "email_otp",
       owner_type: "tenant", owner_id: "123e4567-e89b-12d3-a456-426614174000", icon_file_id: null,
       managers: [], members: [], screenshot_file_ids: [], channels: [], store_listings: [],
+      startup: { translations: { "zh-CN": { display_name: "Alpha", subtitle: "探索更多" }, "en-US": { display_name: "Alpha", subtitle: "Explore more" } }, onboarding_enabled: false, draft_slides: [] },
     } satisfies ApplicationInput;
     await appAdminApi.list({ q: "alpha", page: 2, page_size: 20 });
     await appAdminApi.create(input);
     await appAdminApi.update("app/a", { ...input, default_locale: "en-US", registration_enabled: false, registration_verification_mode: "none", lock_version: 3 });
     await appAdminApi.setStatus("app/a", "disable", 4);
+    await appAdminApi.publishOnboarding("app/a", 2);
     expect(requestCalls()).toEqual([
-      ["/apps?q=alpha&page=2&page_size=20", undefined], ["/apps", "POST"], ["/apps/app%2Fa", "PATCH"], ["/apps/app%2Fa/disable", "POST"],
+      ["/apps?q=alpha&page=2&page_size=20", undefined], ["/apps", "POST"], ["/apps/app%2Fa", "PATCH"], ["/apps/app%2Fa/disable", "POST"], ["/apps/app%2Fa/startup/onboarding/publish", "POST"],
     ]);
     expect(jsonBody(adminRequest.mock.calls[1])).toMatchObject({ registration_verification_mode: "email_otp" });
     expect(jsonBody(adminRequest.mock.calls[2])).toMatchObject({ lock_version: 3 });
     expect(jsonBody(adminRequest.mock.calls[3])).toEqual({ lock_version: 4 });
+    expect(jsonBody(adminRequest.mock.calls[4])).toEqual({ expected_published_version: 2 });
   });
 
   it("uses every App user endpoint with its required password and lock body", async () => {

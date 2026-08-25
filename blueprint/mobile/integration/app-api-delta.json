@@ -4,6 +4,12 @@
   "endpoints": [
     {
       "method": "GET",
+      "path": "/api/v1/public/startup-assets/{file_id}",
+      "purpose": "仅返回当前活动应用图标或当前已发布启动介绍引用的扫描安全图片。",
+      "phase": "P0"
+    },
+    {
+      "method": "GET",
       "path": "/api/v1/auth/context",
       "purpose": "返回当前移动会话、用户、活动租户、租户成员关系、权限快照与 Feature Flags。",
       "phase": "P0"

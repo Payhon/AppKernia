@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -13,16 +14,25 @@ BASE = os.environ.get("AK_E2E_BASE_URL", "http://127.0.0.1:4173").rstrip("/")
 AXE = ROOT / "apps/ak-admin/node_modules/axe-core/axe.min.js"
 OUT = ROOT / "output/playwright/app-upgrade-center"
 OUT.mkdir(parents=True, exist_ok=True)
+STARTUP_OUT = ROOT / "output/playwright/app-startup-experience"
+STARTUP_OUT.mkdir(parents=True, exist_ok=True)
 
 TENANT_ID = "523e4567-e89b-12d3-a456-426614174000"
 APP_ID = "623e4567-e89b-12d3-a456-426614174000"
 USER_ID = "423e4567-e89b-12d3-a456-426614174000"
+ICON_FILE_ID = "a23e4567-e89b-12d3-a456-426614174001"
+ZH_SLIDE_ONE = "a23e4567-e89b-12d3-a456-426614174002"
+EN_SLIDE_ONE = "a23e4567-e89b-12d3-a456-426614174003"
+ZH_SLIDE_TWO = "a23e4567-e89b-12d3-a456-426614174004"
+EN_SLIDE_TWO = "a23e4567-e89b-12d3-a456-426614174005"
+STARTUP_IMAGE = (ROOT / "output/playwright/admin-login.zh-CN.768.png").read_bytes()
 PERMISSIONS = [
     "app.application.read",
     "app.application.create",
     "app.application.update",
     "app.application.disable",
     "app.application.delete",
+    "app.onboarding.publish",
     "app.user.read",
     "app.content.read",
     "app.content.create",
@@ -54,7 +64,7 @@ APP = {
     "creator_user_id": USER_ID,
     "owner_type": "tenant",
     "owner_id": TENANT_ID,
-    "icon_file_id": None,
+    "icon_file_id": ICON_FILE_ID,
     "managers": [USER_ID],
     "members": [],
     "screenshots": [],
@@ -65,6 +75,20 @@ APP = {
     "store_listings": [
         {"id": "823e4567-e89b-12d3-a456-426614174000", "name": "Official", "scheme": "appkernia://", "enabled": True, "priority": 100}
     ],
+    "startup": {
+        "translations": {
+            "zh-CN": {"display_name": "AppKernia", "subtitle": "安全一致的跨端应用基座"},
+            "en-US": {"display_name": "AppKernia", "subtitle": "A consistent and secure cross-platform foundation"},
+        },
+        "onboarding_enabled": True,
+        "draft_slides": [
+            {"id": "b23e4567-e89b-12d3-a456-426614174001", "position": 0, "assets": {"zh-CN": {"file_id": ZH_SLIDE_ONE, "accessibility_label": "第一张中文启动介绍"}, "en-US": {"file_id": EN_SLIDE_ONE, "accessibility_label": "First English onboarding image"}}},
+            {"id": "b23e4567-e89b-12d3-a456-426614174002", "position": 1, "assets": {"zh-CN": {"file_id": ZH_SLIDE_TWO, "accessibility_label": "第二张中文启动介绍"}, "en-US": {"file_id": EN_SLIDE_TWO, "accessibility_label": "Second English onboarding image"}}},
+        ],
+        "published_version": 3,
+        "published_at": "2026-08-24T02:00:00Z",
+        "draft_changed": True,
+    },
     "is_default": True,
     "lock_version": 3,
     "created_at": "2026-08-05T02:00:00Z",
@@ -177,6 +201,8 @@ def route_handler(route: Route) -> None:
         return success(route, APP)
     if path.endswith(f"/apps/{APP_ID}") and method == "PATCH":
         return success(route, {**APP, "lock_version": APP["lock_version"] + 1})
+    if path.endswith(f"/apps/{APP_ID}/startup/onboarding/publish") and method == "POST":
+        return success(route, {**APP, "startup": {**APP["startup"], "published_version": 4, "published_at": "2026-08-25T02:00:00Z", "draft_changed": False}})
     if path.endswith(f"/apps/{APP_ID}") and method == "DELETE":
         return success(route, {"deleted": True})
     if path.endswith("/dictionaries/system.language"):
@@ -220,6 +246,8 @@ def route_handler(route: Route) -> None:
         return success(route, {"deleted": True})
     if path.endswith("/publish") or path.endswith("/unpublish"):
         return success(route, RELEASES[0])
+    if "/files/" in path and path.endswith("/content"):
+        return route.fulfill(status=200, content_type="image/png", body=STARTUP_IMAGE)
     if "/files" in path:
         return success(route, {"items": [], "page": 1, "page_size": 50, "total": 0})
     return success(route, {})
@@ -294,9 +322,26 @@ def main() -> None:
         drawer = page.get_by_role("dialog")
         drawer.wait_for()
         assert drawer.locator('input[placeholder="__UNI__APPKERNIA"]').is_disabled()
+        drawer.get_by_text("启动体验", exact=True).scroll_into_view_if_needed()
+        assert drawer.get_by_text("已发布版本 v3", exact=True).is_visible()
+        assert drawer.get_by_text("草稿有变更", exact=True).is_visible()
+        assert drawer.get_by_role("button", name="发布新版本").is_enabled()
+        chinese_descriptions = drawer.get_by_label("简体中文 无障碍说明")
+        assert chinese_descriptions.count() == 2
+        assert chinese_descriptions.nth(0).input_value() == "第一张中文启动介绍"
+        drawer.locator("button").filter(has_text=re.compile(r"下\s*移")).first.focus()
+        page.keyboard.press("Enter")
+        assert chinese_descriptions.nth(0).input_value() == "第二张中文启动介绍"
+        drawer.locator("button").filter(has_text=re.compile(r"上\s*移")).nth(1).focus()
+        page.keyboard.press("Enter")
+        assert chinese_descriptions.nth(0).input_value() == "第一张中文启动介绍"
         page.wait_for_timeout(400)
-        run_axe(page, "applications.drawer.zh-CN.light.1440", evidence)
-        page.screenshot(path=OUT / "applications.drawer.zh-CN.light.1440.png", full_page=True)
+        for width in (375, 768, 1440):
+            page.set_viewport_size({"width": width, "height": 900 if width != 375 else 812})
+            drawer.get_by_text("启动体验", exact=True).scroll_into_view_if_needed()
+            assert_no_page_overflow(page)
+            run_axe(page, f"startup.drawer.zh-CN.light.{width}", evidence)
+            page.screenshot(path=STARTUP_OUT / f"startup.drawer.zh-CN.light.{width}.png", full_page=True)
         page.keyboard.press("Escape")
         drawer.wait_for(state="hidden")
 
@@ -316,6 +361,19 @@ def main() -> None:
         assert_no_page_overflow(page)
         run_axe(page, "applications.en-US.light.375", evidence)
         page.screenshot(path=OUT / "applications.en-US.light.375.png", full_page=True)
+
+        page.get_by_role("button", name="Edit").first.click()
+        drawer = page.get_by_role("dialog")
+        drawer.wait_for()
+        for width in (375, 768, 1440):
+            page.set_viewport_size({"width": width, "height": 900 if width != 375 else 812})
+            drawer.get_by_text("Startup experience", exact=True).scroll_into_view_if_needed()
+            assert drawer.get_by_label("English Accessibility description").count() == 2
+            assert_no_page_overflow(page)
+            run_axe(page, f"startup.drawer.en-US.light.{width}", evidence)
+            page.screenshot(path=STARTUP_OUT / f"startup.drawer.en-US.light.{width}.png", full_page=True)
+        page.keyboard.press("Escape")
+        drawer.wait_for(state="hidden")
 
         print("app-upgrade-e2e:upgrade-center", flush=True)
         page.set_viewport_size({"width": 1440, "height": 900})
@@ -495,7 +553,10 @@ def main() -> None:
         assert not console_errors, console_errors
         evidence["console"] = {"unexpected_errors": console_errors, "expected_conflicts": len(expected_conflicts)}
         evidence["coverage"] = {"locales": ["zh-CN", "en-US"], "viewports": [375, 768, 1024, 1440], "color_schemes": ["light", "preferred-dark"]}
-        (OUT / "e2e-results.json").write_text(json.dumps(evidence, ensure_ascii=False, indent=2), encoding="utf-8")
+        serialized = json.dumps(evidence, ensure_ascii=False, indent=2)
+        (OUT / "e2e-results.json").write_text(serialized, encoding="utf-8")
+        startup_evidence = {key: value for key, value in evidence.items() if key.startswith("startup.") or key in ("console", "coverage")}
+        (STARTUP_OUT / "e2e-results.json").write_text(json.dumps(startup_evidence, ensure_ascii=False, indent=2), encoding="utf-8")
         context.close()
         browser.close()
     print("app-upgrade-e2e:done", flush=True)

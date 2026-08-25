@@ -1,2 +1,83 @@
-<template><ak-theme-root><scroll-view class="page" scroll-y><view class="hero"><text class="eyebrow">AppKernia</text><text class="title">{{t('legal.consent.title',null)}}</text><text class="description">{{t('legal.consent.description',null)}}</text></view><ak-card class="document"><text class="document-title">{{t('legal.privacy',null)}}</text><text class="body">{{privacyBody}}</text><ak-button variant="secondary" @click="privacy">{{t('legal.privacy',null)}}</ak-button></ak-card><ak-card class="document"><text class="document-title">{{t('legal.terms',null)}}</text><text class="body">{{termsBody}}</text><ak-button variant="secondary" @click="terms">{{t('legal.terms',null)}}</ak-button></ak-card><ak-button class="accept-action" variant="primary" @click="accept">{{t('legal.consent.accept',null)}}</ak-button></scroll-view></ak-theme-root></template>
-<script lang="uts">import{akI18n}from '../../../src/core/i18n/ak-i18n.uts';import{bundledLegalBody,bundledLegalSnapshot}from '../../../src/features/legal/legal-snapshots.uts';import{legalConsentStore}from '../../../src/features/legal/legal-consent-store.uts';export default{computed:{t(){return akI18n.t},privacyBody(){const v=bundledLegalSnapshot('privacy-policy');return v!=null?bundledLegalBody(v):''},termsBody(){const v=bundledLegalSnapshot('terms-of-service');return v!=null?bundledLegalBody(v):''}},methods:{privacy(){uni.navigateTo({url:'/pages/legal/privacy/index'})},terms(){uni.navigateTo({url:'/pages/legal/terms/index'})},accept(){const privacy=bundledLegalSnapshot('privacy-policy');const terms=bundledLegalSnapshot('terms-of-service');if(privacy==null||terms==null)return;legalConsentStore.accept(privacy);legalConsentStore.accept(terms);uni.reLaunch({url:'/pages/bootstrap/index'})}}}</script><style lang="scss">.page{height:100%;background:var(--ak-page);padding:28px 20px 48px}.hero{margin:0 4px 28px}.eyebrow{color:var(--ak-brand);font-size:15px;font-weight:700;margin-bottom:12px}.title{color:var(--ak-text);font-size:32px;font-weight:700}.description{color:var(--ak-muted);font-size:16px;line-height:24px;margin-top:12px}.document{padding:22px;margin-bottom:16px}.document-title{color:var(--ak-text);font-size:19px;font-weight:600;margin-bottom:12px}.body{max-height:112px;overflow:hidden;color:var(--ak-muted);font-size:14px;line-height:22px;margin-bottom:18px}.accept-action{margin-top:8px}</style>
+<template>
+  <ak-theme-root status-tone="startup">
+    <view class="page">
+      <scroll-view class="surface" scroll-y>
+        <view class="content">
+          <view class="identity">
+            <image class="app-icon" mode="aspectFit" :src="iconPath" :aria-label="displayName" />
+            <text class="app-name">{{displayName}}</text>
+            <text class="subtitle">{{subtitle}}</text>
+          </view>
+          <view class="consent-panel">
+            <view class="shield"><text class="shield-text">i</text></view>
+            <view class="statement">
+              <text class="statement-text">{{t('legal.consent.statement.before', null)}}</text>
+              <text class="statement-link" role="link" @click="privacy">{{t('legal.privacy', null)}}</text>
+              <text class="statement-text">{{t('legal.consent.statement.middle', null)}}</text>
+              <text class="statement-link" role="link" @click="terms">{{t('legal.terms', null)}}</text>
+              <text class="statement-text">{{t('legal.consent.statement.after', null)}}</text>
+            </view>
+            <text v-if="cancelBlocked" class="ios-note" role="status">{{t('legal.consent.ios_cancel_note', null)}}</text>
+            <view class="actions">
+              <ak-button class="action" variant="secondary" @click="cancel">{{t('legal.consent.cancel', null)}}</ak-button>
+              <ak-button class="action action-primary" variant="primary" @click="accept">{{t('legal.consent.accept', null)}}</ak-button>
+            </view>
+            <view class="safe-bottom" />
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+  </ak-theme-root>
+</template>
+
+<script lang="uts">
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+import { bundledStartupSnapshot } from '../../../src/generated/startup-snapshot.uts'
+import { bundledLegalSnapshot } from '../../../src/features/legal/legal-snapshots.uts'
+import { legalConsentStore } from '../../../src/features/legal/legal-consent-store.uts'
+import { startupExitPort } from '../../../src/features/onboarding/startup-exit-port.uts'
+
+export default {
+  data() { return { cancelBlocked: false } },
+  computed: {
+    t() { return akI18n.t },
+    iconPath() { return bundledStartupSnapshot.iconPath },
+    displayName() { return akI18n.getLocale() == 'en-US' ? bundledStartupSnapshot.enUS.displayName : bundledStartupSnapshot.zhCN.displayName },
+    subtitle() { return akI18n.getLocale() == 'en-US' ? bundledStartupSnapshot.enUS.subtitle : bundledStartupSnapshot.zhCN.subtitle },
+  },
+  onBackPress() { this.cancel(); return true },
+  methods: {
+    privacy() { uni.navigateTo({ url: '/pages/legal/privacy/index' }) },
+    terms() { uni.navigateTo({ url: '/pages/legal/terms/index' }) },
+    cancel() { this.cancelBlocked = !startupExitPort.cancel() },
+    accept() {
+      const privacy = bundledLegalSnapshot('privacy-policy')
+      const terms = bundledLegalSnapshot('terms-of-service')
+      if (privacy == null || terms == null) return
+      legalConsentStore.accept(privacy); legalConsentStore.accept(terms)
+      uni.reLaunch({ url: '/pages/bootstrap/index' })
+    },
+  },
+}
+</script>
+
+<style lang="scss">
+.page{height:100%;background:var(--ak-startup-backdrop)}
+.surface{height:100%;background:var(--ak-page);border-radius:32px 32px 0 0}
+.content{height:100%;padding:24px 20px 18px;justify-content:space-between}
+.identity{flex:1;min-height:340px;align-items:center;justify-content:center;padding:40px 16px 24px}
+.app-icon{width:96px;height:96px;border-radius:24px}
+.app-name{margin-top:24px;color:var(--ak-text);font-size:34px;line-height:44px;font-weight:700;text-align:center}
+.subtitle{margin-top:8px;color:var(--ak-muted);font-size:18px;line-height:28px;text-align:center}
+.consent-panel{width:100%;align-items:center}
+.shield{width:32px;height:38px;border:3px solid var(--ak-text);border-radius:10px 10px 14px 14px;align-items:center;justify-content:center;margin-bottom:18px}
+.shield-text{color:var(--ak-brand);font-size:18px;font-weight:800}
+.statement{width:100%;font-size:15px;line-height:24px;text-align:left;flex-direction:row;flex-wrap:wrap}
+.statement-text{color:var(--ak-muted);font-size:15px;line-height:24px}
+.statement-link{color:var(--ak-brand);font-size:15px;line-height:24px;font-weight:600}
+.ios-note{width:100%;margin-top:10px;color:var(--ak-muted);font-size:13px;line-height:20px;text-align:center}
+.actions{width:100%;margin-top:22px;flex-direction:row}
+.action{flex:1;min-height:52px}
+.action-primary{margin-left:12px}
+.safe-bottom{height:env(safe-area-inset-bottom)}
+</style>

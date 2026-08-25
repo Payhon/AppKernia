@@ -1,0 +1,73 @@
+<template>
+  <ak-theme-root status-tone="startup">
+    <view class="page">
+      <view class="surface">
+        <swiper class="slides" :current="current" :duration="260" @change="change">
+          <swiper-item v-for="slide in slides" :key="slide.position.toString()">
+            <view class="slide">
+              <image class="slide-image" mode="aspectFit" :src="slide.imageUrl" :aria-label="slide.accessibilityLabel" />
+            </view>
+          </swiper-item>
+        </swiper>
+        <view class="indicators" :aria-label="t('onboarding.page_indicator_label', null)">
+          <view v-for="slide in slides" :key="'indicator-' + slide.position.toString()" :class="slide.position == current ? 'indicator indicator-active' : 'indicator'" />
+        </view>
+        <ak-button class="experience" variant="primary" :disabled="!canComplete" @click="complete">{{t('onboarding.experience', null)}}</ak-button>
+        <view class="safe-bottom" />
+      </view>
+    </view>
+  </ak-theme-root>
+</template>
+
+<script lang="uts">
+import { akI18n } from '../../src/core/i18n/ak-i18n.uts'
+import { appPublicConfigRuntime, AppPublicStartupSlide } from '../../src/features/app-config/public-config-runtime.uts'
+import { onboardingStore } from '../../src/features/onboarding/onboarding-store.uts'
+
+export default {
+  data() { return { current: 0, slides: [] as Array<AppPublicStartupSlide>, visited: [] as Array<boolean>, appId: '', version: 0 } },
+  computed: {
+    t() { return akI18n.t },
+    canComplete(): boolean {
+      if (this.slides.length == 0 || this.current != this.slides.length - 1) return false
+      for (let index = 0; index < this.visited.length; index += 1) if (!this.visited[index]) return false
+      return true
+    },
+  },
+  onLoad() {
+    const config = appPublicConfigRuntime.get()
+    if (config == null || !config.startup.onboardingEnabled || config.startup.slides.length == 0 || !onboardingStore.shouldShow(config.appId, config.startup.publishedVersion)) { uni.reLaunch({ url: '/pages/bootstrap/index' }); return }
+    this.slides = config.startup.slides
+    this.visited = [] as Array<boolean>
+    for (let index = 0; index < this.slides.length; index += 1) this.visited.push(false)
+    this.visited[0] = true
+    this.appId = config.appId
+    this.version = config.startup.publishedVersion
+  },
+  onBackPress() { return true },
+  methods: {
+    change(event: UniSwiperChangeEvent) {
+      this.current = event.detail.current
+      if (this.current >= 0 && this.current < this.visited.length) this.visited[this.current] = true
+    },
+    complete() {
+      if (!this.canComplete) return
+      onboardingStore.complete(this.appId, this.version)
+      uni.reLaunch({ url: '/pages/bootstrap/index' })
+    },
+  },
+}
+</script>
+
+<style lang="scss">
+.page{height:100%;background:var(--ak-startup-backdrop)}
+.surface{height:100%;background:var(--ak-page);border-radius:32px 32px 0 0;padding:24px 20px 20px;justify-content:flex-end}
+.slides{width:100%;flex:1;min-height:0}
+.slide{width:100%;height:100%;align-items:center;justify-content:center}
+.slide-image{width:100%;height:100%;border-radius:20px}
+.indicators{height:44px;flex-direction:row;align-items:center;justify-content:center}
+.indicator{width:8px;height:8px;margin-left:4px;margin-right:4px;border-radius:4px;background:var(--ak-border)}
+.indicator-active{width:28px;background:var(--ak-brand)}
+.experience{margin-top:8px;min-height:52px}
+.safe-bottom{height:env(safe-area-inset-bottom)}
+</style>

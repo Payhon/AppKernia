@@ -27,6 +27,7 @@ export function useApplicationMutations() {
     delete: useMutation({ mutationFn: (id: string) => appAdminApi.delete(id), onSuccess: invalidate }),
     batchDelete: useMutation({ mutationFn: (ids: string[]) => appAdminApi.batchDelete(ids), onSuccess: invalidate }),
     status: useMutation({ mutationFn: ({ id, action, lockVersion }: { id: string; action: "enable" | "disable"; lockVersion: number }) => appAdminApi.setStatus(id, action, lockVersion), onSuccess: invalidate }),
+    publishOnboarding: useMutation({ mutationFn: ({ id, expectedPublishedVersion }: { id: string; expectedPublishedVersion: number }) => appAdminApi.publishOnboarding(id, expectedPublishedVersion), onSuccess: invalidate }),
     createMember: useMutation({ mutationFn: ({ appId, input }: { appId: string; input: AppMemberCreateInput }) => appAdminApi.createMember(appId, input), onSuccess: invalidate }),
     updateMember: useMutation({ mutationFn: ({ appId, memberId, input }: { appId: string; memberId: string; input: AppMemberUpdateInput }) => appAdminApi.updateMember(appId, memberId, input), onSuccess: invalidate }),
     memberAction: useMutation({ mutationFn: ({ appId, memberId, action, lockVersion }: { appId: string; memberId: string; action: "enable" | "disable" | "unlock" | "revoke-sessions"; lockVersion: number }) => appAdminApi.memberAction(appId, memberId, action, lockVersion), onSuccess: invalidate }),

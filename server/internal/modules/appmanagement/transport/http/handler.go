@@ -1,9 +1,11 @@
 package http
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -86,11 +88,47 @@ func (h *Handler) PublicConfig(r *ghttp.Request) {
 		h.fail(r, http.StatusBadRequest, "APP.HEADER.REQUIRED", "errors.validation.failed")
 		return
 	}
+	startup, err := h.service.PublicStartup(r.Context(), a, string(httpx.Locale(r)))
+	if err != nil {
+		h.fail(r, http.StatusServiceUnavailable, "APP.STARTUP.UNAVAILABLE", "errors.common.unknown")
+		return
+	}
 	r.Response.Header().Set("Cache-Control", "public, max-age=60")
 	r.Response.WriteJsonExit(httpx.Success[map[string]any]{Code: "OK", Message: "OK", RequestID: httpx.RequestID(r), Data: map[string]any{
 		"app_id": a.ID.String(), "appid": a.AppID, "app_type": a.AppType, "name": a.Name, "default_locale": a.DefaultLocale,
 		"registration_enabled": a.RegistrationEnabled, "registration_verification_mode": a.RegistrationVerification,
+		"startup": startup,
 	}})
+}
+
+func (h *Handler) StartupAsset(r *ghttp.Request) {
+	a, ok := currentApp(r)
+	if !ok {
+		h.fail(r, http.StatusBadRequest, "APP.HEADER.REQUIRED", "errors.validation.failed")
+		return
+	}
+	fileID, err := uuid.Parse(r.GetRouter("file_id").String())
+	if err != nil {
+		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	asset, reader, err := h.service.OpenStartupAsset(r.Context(), a, fileID)
+	if errors.Is(err, app.ErrAppNotFound) {
+		h.fail(r, http.StatusNotFound, "APP.STARTUP.ASSET_NOT_FOUND", "errors.common.not_found")
+		return
+	}
+	if err != nil {
+		h.fail(r, http.StatusServiceUnavailable, "APP.STARTUP.ASSET_UNAVAILABLE", "errors.common.unknown")
+		return
+	}
+	defer func() { _ = reader.Close() }()
+	r.Response.Header().Set("Content-Type", asset.MediaType)
+	r.Response.Header().Set("Content-Length", fmt.Sprintf("%d", asset.SizeBytes))
+	r.Response.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+	r.Response.Header().Set("ETag", `"`+hex.EncodeToString(app.StartupAssetDigest(asset))+`"`)
+	r.Response.Header().Set("X-Content-Type-Options", "nosniff")
+	r.Response.Header().Set("X-App-Onboarding-Version", fmt.Sprintf("%d", asset.PublishedVersion))
+	_, _ = io.Copy(r.Response.BufferWriter, reader)
 }
 
 type registerRequest struct {
@@ -311,6 +349,7 @@ type adminAppRequest struct {
 	Channels                      []app.ApplicationChannel      `json:"channels"`
 	StoreListings                 []app.ApplicationStoreListing `json:"store_listings"`
 	LockVersion                   int32                         `json:"lock_version"`
+	Startup                       *app.StartupInput             `json:"startup"`
 }
 
 func (x adminAppRequest) input() app.AdminAppInput {
@@ -322,7 +361,24 @@ func (x adminAppRequest) input() app.AdminAppInput {
 		Introduction: x.Introduction, Remark: x.Remark, DefaultLocale: x.DefaultLocale,
 		RegistrationEnabled: x.RegistrationEnabled, RegistrationVerification: verification, OwnerType: x.OwnerType,
 		OwnerID: x.OwnerID, IconFileID: x.IconFileID, Managers: x.Managers, Members: x.Members,
-		ScreenshotFileIDs: x.ScreenshotFileIDs, Channels: x.Channels, StoreListings: x.StoreListings, LockVersion: x.LockVersion}
+		ScreenshotFileIDs: x.ScreenshotFileIDs, Channels: x.Channels, StoreListings: x.StoreListings, LockVersion: x.LockVersion,
+		Startup: x.Startup}
+}
+
+func (h *Handler) AdminPublishOnboarding(r *ghttp.Request) {
+	id, err := uuid.Parse(r.GetRouter("app_id").String())
+	var body struct {
+		ExpectedPublishedVersion int32 `json:"expected_published_version"`
+	}
+	if err != nil || !decode(r, &body) {
+		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	item, err := h.service.PublishOnboarding(r.Context(), bearer(r), id, body.ExpectedPublishedVersion, httpx.RequestID(r))
+	if h.adminFailure(r, err) {
+		return
+	}
+	r.Response.WriteJsonExit(httpx.Success[app.Application]{Code: "OK", Message: "OK", Data: item, RequestID: httpx.RequestID(r)})
 }
 func (h *Handler) AdminApps(r *ghttp.Request) {
 	if r.Method == http.MethodGet {
@@ -740,6 +796,10 @@ func (h *Handler) adminFailure(r *ghttp.Request, err error) bool {
 	}
 	if errors.Is(err, app.ErrInvalidInput) {
 		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return true
+	}
+	if errors.Is(err, app.ErrStartupAssetRejected) {
+		h.fail(r, http.StatusUnprocessableEntity, "APP.STARTUP.ASSET_REJECTED", "errors.validation.failed")
 		return true
 	}
 	if errors.Is(err, app.ErrConflict) {

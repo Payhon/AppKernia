@@ -9,6 +9,7 @@
     { "path": "pages/auth/forgot-password/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/auth/reset-password/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/privacy/consent/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/onboarding/index", "style": { "navigationStyle": "custom", "disableScroll": true } },
     { "path": "pages/legal/privacy/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/legal/terms/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/legal/page/index", "style": { "navigationStyle": "custom" } },

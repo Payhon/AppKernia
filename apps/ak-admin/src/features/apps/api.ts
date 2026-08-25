@@ -22,6 +22,7 @@ export const appAdminApi = {
   delete: (id: string) => data<{ deleted: boolean }>(`/apps/${encodeURIComponent(id)}`, { method: "DELETE" }),
   batchDelete: (ids: string[]) => data<{ deleted_count: number }>("/apps/batch-delete", json("POST", { ids })),
   setStatus: (id: string, action: "enable" | "disable", lockVersion: number) => data<ManagedApplication>(`/apps/${encodeURIComponent(id)}/${action}`, json("POST", { lock_version: lockVersion })),
+  publishOnboarding: (id: string, expectedPublishedVersion: number) => data<ManagedApplication>(appPath(id, "/startup/onboarding/publish"), json("POST", { expected_published_version: expectedPublishedVersion })),
   members: (appId: string, filters: MemberListFilters) => data<Paginated<AppMember>>(appPath(appId, `/users${query(filters)}`)),
   createMember: (appId: string, input: AppMemberCreateInput) => data<AppMember>(appPath(appId, "/users"), json("POST", input)),
   updateMember: (appId: string, memberId: string, input: AppMemberUpdateInput) => data<AppMember>(appPath(appId, `/users/${encodeURIComponent(memberId)}`), json("PATCH", input)),

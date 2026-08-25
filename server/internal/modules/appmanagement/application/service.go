@@ -19,6 +19,7 @@ import (
 
 	iamapp "github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	iam "github.com/appkernia/appkernia/server/internal/modules/iam/domain"
+	storagedomain "github.com/appkernia/appkernia/server/internal/modules/storage/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -65,6 +66,7 @@ type Application struct {
 	LockVersion              int32                     `json:"lock_version"`
 	CreatedAt                time.Time                 `json:"created_at"`
 	UpdatedAt                time.Time                 `json:"updated_at"`
+	Startup                  StartupConfiguration      `json:"startup"`
 }
 
 type ApplicationAsset struct {
@@ -104,9 +106,10 @@ type PublicPage struct {
 }
 
 type Service struct {
-	pool *pgxpool.Pool
-	auth Authenticator
-	otp  OTPNotifier
+	pool    *pgxpool.Pool
+	auth    Authenticator
+	otp     OTPNotifier
+	objects storagedomain.ObjectStore
 }
 
 type Authenticator interface {
@@ -125,6 +128,10 @@ type Option func(*Service)
 
 func WithOTPNotifier(notifier OTPNotifier) Option {
 	return func(service *Service) { service.otp = notifier }
+}
+
+func WithObjectStore(objects storagedomain.ObjectStore) Option {
+	return func(service *Service) { service.objects = objects }
 }
 
 const (
@@ -520,6 +527,7 @@ type AdminAppInput struct {
 	Channels                 []ApplicationChannel
 	StoreListings            []ApplicationStoreListing
 	LockVersion              int32
+	Startup                  *StartupInput
 }
 
 type PageTranslation struct {
@@ -703,7 +711,10 @@ func (s *Service) loadApplicationRelations(ctx context.Context, item *Applicatio
 		item.StoreListings = append(item.StoreListings, store)
 	}
 	rows.Close()
-	return rows.Err()
+	if err = rows.Err(); err != nil {
+		return err
+	}
+	return s.loadStartupConfiguration(ctx, item)
 }
 
 func (s *Service) ListAdminApps(ctx context.Context, token string, filter AdminListFilter) (AdminApplicationPage, error) {
@@ -805,6 +816,11 @@ VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
 	if err = replaceApplicationRelations(ctx, tx, p.Tenant.ID, id, input); err != nil {
 		return Application{}, err
 	}
+	if input.Startup != nil {
+		if err = saveStartupDraft(ctx, tx, p.Tenant.ID, id, *input.Startup); err != nil {
+			return Application{}, err
+		}
+	}
 	if err = tx.Commit(ctx); err != nil {
 		return Application{}, err
 	}
@@ -865,6 +881,11 @@ WHERE id=$1 AND tenant_id=$2 AND lock_version=$16 AND deleted_at IS NULL`, id, p
 	}
 	if err = replaceApplicationRelations(ctx, tx, p.Tenant.ID, id, input); err != nil {
 		return Application{}, err
+	}
+	if input.Startup != nil {
+		if err = saveStartupDraft(ctx, tx, p.Tenant.ID, id, *input.Startup); err != nil {
+			return Application{}, err
+		}
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return Application{}, err

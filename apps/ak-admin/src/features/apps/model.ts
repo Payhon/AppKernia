@@ -27,6 +27,24 @@ export const applicationStoreListingSchema = z.object({
   enabled: z.boolean(),
   priority: z.number().int().min(-100000).max(100000),
 });
+export const startupTranslationSchema = z.object({
+  display_name: z.string().trim().min(1).max(120),
+  subtitle: z.string().trim().max(240),
+});
+export const startupSlideAssetSchema = z.object({
+  file_id: z.uuid(),
+  accessibility_label: z.string().trim().min(1).max(500),
+});
+export const startupSlideSchema = z.object({
+  id: z.uuid().optional(),
+  position: z.number().int().min(0).max(9),
+  assets: z.object({ "zh-CN": startupSlideAssetSchema, "en-US": startupSlideAssetSchema }),
+});
+export const applicationStartupSchema = z.object({
+  translations: z.object({ "zh-CN": startupTranslationSchema, "en-US": startupTranslationSchema }),
+  onboarding_enabled: z.boolean(),
+  draft_slides: z.array(startupSlideSchema).max(10),
+});
 export const applicationInputSchema = z.object({
   appid: z.string().trim().regex(/^__UNI__[A-Za-z0-9_]{2,120}$/),
   app_type: appTypeSchema,
@@ -46,6 +64,7 @@ export const applicationInputSchema = z.object({
   screenshot_file_ids: z.array(z.uuid()).max(20),
   channels: z.array(applicationChannelSchema).max(20),
   store_listings: z.array(applicationStoreListingSchema).max(100),
+  startup: applicationStartupSchema,
   lock_version: z.number().int().positive().optional(),
 });
 export type ApplicationInput = z.infer<typeof applicationInputSchema>;

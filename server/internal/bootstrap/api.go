@@ -159,8 +159,6 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		pool.Close()
 		return nil, fmt.Errorf("create app OTP notifier: %w", err)
 	}
-	appManagementService := appmanagementapp.NewService(pool, authService, appmanagementapp.WithOTPNotifier(appOTPNotifier))
-	appManagementHandler := appmanagementhttp.NewHandler(appManagementService, catalog)
 	mobileProfileRepository := mobileprofilerepo.NewPostgres(pool)
 	storageRepository := storagerepo.NewPostgres(pool)
 	var objectStore storagedomain.ObjectStore
@@ -176,6 +174,11 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 			return nil, fmt.Errorf("create object storage adapter: %w", err)
 		}
 	}
+	appManagementService := appmanagementapp.NewService(pool, authService,
+		appmanagementapp.WithOTPNotifier(appOTPNotifier),
+		appmanagementapp.WithObjectStore(objectStore),
+	)
+	appManagementHandler := appmanagementhttp.NewHandler(appManagementService, catalog)
 	downloadKeyMaterial, err := base64.StdEncoding.DecodeString(cfg.LoginProtectionKeyBase64)
 	if err != nil {
 		pool.Close()
@@ -262,6 +265,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.Middleware(appManagementHandler.RequireMobileApp)
 		group.Middleware(appManagementHandler.RequireMobileSessionApp)
 		group.GET("/public/config", appManagementHandler.PublicConfig)
+		group.GET("/public/startup-assets/{file_id}", appManagementHandler.StartupAsset)
 		group.GET("/public/legal/{document_type}", appManagementHandler.Legal)
 		group.GET("/public/pages/{slug}", appManagementHandler.Page)
 		group.GET("/public/app-version", mobileProfileHandler.AppVersion)
@@ -323,6 +327,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/apps/batch-delete", appManagementHandler.AdminBatchDeleteApps)
 		group.POST("/apps/{app_id}/enable", appManagementHandler.AdminEnableApp)
 		group.POST("/apps/{app_id}/disable", appManagementHandler.AdminDisableApp)
+		group.POST("/apps/{app_id}/startup/onboarding/publish", appManagementHandler.AdminPublishOnboarding)
 		group.GET("/apps/{app_id}/mobile/releases", mobileProfileHandler.AdminReleases)
 		group.POST("/apps/{app_id}/mobile/releases", mobileProfileHandler.AdminCreateRelease)
 		group.POST("/apps/{app_id}/mobile/releases/batch-delete", mobileProfileHandler.AdminBatchDeleteReleases)

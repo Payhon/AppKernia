@@ -1,17 +1,21 @@
+/* eslint-disable @typescript-eslint/restrict-template-expressions -- React Hook Form field paths preserve numeric array indices. */
 import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { useNavigate } from "@tanstack/react-router";
 import { Alert, Button, Card, Divider, Drawer, Form, Grid, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, type TableColumnsType } from "antd";
 import { Controller, useFieldArray, useForm, type FieldPath } from "react-hook-form";
-import { useMemo, useState, type Key } from "react";
+import { useEffect, useMemo, useState, type Key } from "react";
 import { useTranslation } from "react-i18next";
 import { AkFilePicker } from "../components/AkFilePicker";
-import { useAuthStore } from "../features/auth/store";
+import { AkLocalizedFormTabs } from "../components/AkLocalizedFormTabs";
+import { authSession, useAuthStore } from "../features/auth/store";
 import { useApplicationMutations, useManagedApplications } from "../features/apps/hooks";
 import { applicationChannelCodes, applicationInputSchema, type ApplicationInput, type ManagedApplication } from "../features/apps/model";
+import { useSystemLanguages } from "../features/settings/system-languages";
+import type { AdminLocale } from "../shared/i18n";
 import { ApiError } from "../shared/api/error";
 
 type Editor = ManagedApplication | "new" | null;
-type PickerTarget = { type: "icon" } | { type: "screenshot" } | { type: "qrcode"; index: number } | null;
+type PickerTarget = { type: "icon" } | { type: "screenshot" } | { type: "qrcode"; index: number } | { type: "onboarding"; index: number; locale: AdminLocale } | null;
 
 function defaults(tenantId: string): ApplicationInput {
   return {
@@ -19,6 +23,7 @@ function defaults(tenantId: string): ApplicationInput {
     default_locale: "zh-CN", registration_enabled: true, registration_verification_mode: "email_otp",
     owner_type: "tenant", owner_id: tenantId, icon_file_id: null, managers: [], members: [], screenshot_file_ids: [],
     channels: [], store_listings: [],
+    startup: { translations: { "zh-CN": { display_name: "", subtitle: "" }, "en-US": { display_name: "", subtitle: "" } }, onboarding_enabled: false, draft_slides: [] },
   };
 }
 
@@ -31,6 +36,7 @@ function fromItem(item: ManagedApplication): ApplicationInput {
     managers: item.managers, members: item.members, screenshot_file_ids: item.screenshots.map((asset) => asset.file_id),
     channels: item.channels.map((channel) => ({ ...channel, url: channel.url ?? null, abm_url: channel.abm_url ?? null, qrcode_file_id: channel.qrcode_file_id ?? null })),
     store_listings: item.store_listings, lock_version: item.lock_version,
+    startup: { translations: item.startup.translations, onboarding_enabled: item.startup.onboarding_enabled, draft_slides: item.startup.draft_slides },
   };
 }
 
@@ -39,6 +45,7 @@ function commaSeparated(value: string): string[] {
 }
 
 function conflictKey(error: unknown): string {
+  if (error instanceof ApiError && error.code === "APP.STARTUP.ASSET_REJECTED") return "apps.startup.feedback.asset_rejected";
   return error instanceof ApiError && error.status === 409 ? "apps.feedback.conflict" : "apps.feedback.save_error";
 }
 
@@ -82,6 +89,13 @@ export function AdminApplicationsPage() {
       setEditor(null); setFeedback({ key: "apps.feedback.saved", error: false });
     } catch (error) { setFeedback({ key: conflictKey(error), error: true }); }
   });
+  const publishOnboarding = async () => {
+    if (!editor || editor === "new") return;
+    try {
+      const updated = await mutations.publishOnboarding.mutateAsync({ id: editor.id, expectedPublishedVersion: editor.startup.published_version });
+      form.reset(fromItem(updated)); setEditor(updated); setFeedback({ key: "apps.startup.feedback.published", error: false });
+    } catch (error) { setFeedback({ key: conflictKey(error), error: true }); }
+  };
   const changeStatus = async (item: ManagedApplication) => {
     try {
       await mutations.status.mutateAsync({ id: item.id, action: item.status === "active" ? "disable" : "enable", lockVersion: item.lock_version });
@@ -137,14 +151,17 @@ export function AdminApplicationsPage() {
         </Card>)}
       </div>}
     </Card>
-    <ApplicationDrawer editor={editor} form={form} fullScreen={!screens.md} picker={picker} setPicker={setPicker} saving={mutations.create.isPending || mutations.update.isPending} onClose={() => { setEditor(null); }} onSave={() => void save()} />
+    <ApplicationDrawer canPublish={permissions.has("app.onboarding.publish")} editor={editor} form={form} fullScreen={!screens.md} picker={picker} setPicker={setPicker} publishing={mutations.publishOnboarding.isPending} saving={mutations.create.isPending || mutations.update.isPending} onClose={() => { setEditor(null); }} onPublish={() => { Modal.confirm({ title: t("apps.startup.publish.title"), content: t("apps.startup.publish.description"), okText: t("apps.startup.actions.publish"), onOk: publishOnboarding }); }} onSave={() => void save()} />
   </div>;
 }
 
-function ApplicationDrawer({ editor, form, fullScreen, picker, setPicker, saving, onClose, onSave }: { editor: Editor; form: ReturnType<typeof useForm<ApplicationInput>>; fullScreen: boolean; picker: PickerTarget; setPicker: (value: PickerTarget) => void; saving: boolean; onClose: () => void; onSave: () => void }) {
+function ApplicationDrawer({ canPublish, editor, form, fullScreen, picker, setPicker, publishing, saving, onClose, onPublish, onSave }: { canPublish: boolean; editor: Editor; form: ReturnType<typeof useForm<ApplicationInput>>; fullScreen: boolean; picker: PickerTarget; setPicker: (value: PickerTarget) => void; publishing: boolean; saving: boolean; onClose: () => void; onPublish: () => void; onSave: () => void }) {
   const { t } = useTranslation();
+  const [activeLocale, setActiveLocale] = useState<AdminLocale>("zh-CN");
+  const languages = useSystemLanguages();
   const channels = useFieldArray({ control: form.control, name: "channels", keyName: "formKey" });
   const stores = useFieldArray({ control: form.control, name: "store_listings", keyName: "formKey" });
+  const onboarding = useFieldArray({ control: form.control, name: "startup.draft_slides", keyName: "formKey" });
   const screenshots = form.watch("screenshot_file_ids");
   const moveScreenshot = (index: number, delta: number) => {
     const next = [...screenshots]; const target = index + delta;
@@ -156,9 +173,11 @@ function ApplicationDrawer({ editor, form, fullScreen, picker, setPicker, saving
     next[target] = currentFile;
     form.setValue("screenshot_file_ids", next, { shouldDirty: true });
   };
+  const drawerActions = <Space wrap>{editor && editor !== "new" && canPublish ? <Button disabled={onboarding.fields.length === 0 || !editor.startup.draft_changed} loading={publishing} onClick={onPublish}>{t("apps.startup.actions.publish")}</Button> : null}<Button loading={saving} type="primary" onClick={onSave}>{t("common.actions.save")}</Button></Space>;
   return <>
-    <Drawer destroyOnHidden extra={<Button loading={saving} type="primary" onClick={onSave}>{t("common.actions.save")}</Button>} onClose={onClose} open={editor !== null} size={fullScreen ? "100%" : "large"} title={t(editor === "new" ? "apps.application.editor.create" : "apps.application.editor.edit")}>
+    <Drawer destroyOnHidden extra={fullScreen ? null : drawerActions} onClose={onClose} open={editor !== null} size={fullScreen ? "100%" : "large"} title={t(editor === "new" ? "apps.application.editor.create" : "apps.application.editor.edit")}>
       <Form layout="vertical" className="ak-application-form">
+        {fullScreen ? <div className="ak-application-mobile-actions">{drawerActions}</div> : null}
         <Divider titlePlacement="start">{t("apps.application.sections.basic")}</Divider>
         <div className="ak-form-grid-2">
           <Form.Item label={t("apps.application.fields.appid")} {...(form.formState.errors.appid ? { validateStatus: "error" as const } : {})} help={form.formState.errors.appid ? t("apps.application.validation.appid") : t("apps.application.fields.appid_hint")}><Controller control={form.control} name="appid" render={({ field }) => <Input {...field} aria-label={t("apps.application.fields.appid")} disabled={editor !== "new" && editor?.appid_pending === false} placeholder="__UNI__APPKERNIA" />} /></Form.Item>
@@ -173,9 +192,20 @@ function ApplicationDrawer({ editor, form, fullScreen, picker, setPicker, saving
 
         <Divider titlePlacement="start">{t("apps.application.sections.assets")}</Divider>
         <Space orientation="vertical" size="middle" className="ak-full-width">
-          <div><Button onClick={() => { setPicker({ type: "icon" }); }}>{t("apps.application.actions.choose_icon")}</Button> {form.watch("icon_file_id") ? <code className="ak-content-slug">{form.watch("icon_file_id")}</code> : <Typography.Text type="secondary">{t("apps.application.values.none")}</Typography.Text>}</div>
+          <div><Button onClick={() => { setPicker({ type: "icon" }); }}>{t("apps.application.actions.choose_icon")}</Button> {form.watch("icon_file_id") ? <Space><PrivateFileThumbnail alt={t("apps.startup.icon_preview")} fileId={form.watch("icon_file_id") ?? ""} /><code className="ak-content-slug">{form.watch("icon_file_id")}</code></Space> : <Typography.Text type="secondary">{t("apps.application.values.none")}</Typography.Text>}</div>
           <div><Button onClick={() => { setPicker({ type: "screenshot" }); }}>{t("apps.application.actions.add_screenshot")}</Button></div>
           {screenshots.map((fileId, index) => <Space key={`${fileId}-${String(index)}`} wrap><Tag>{index + 1}</Tag><code className="ak-content-slug">{fileId}</code><Button disabled={index === 0} size="small" onClick={() => { moveScreenshot(index, -1); }}>{t("apps.application.actions.move_up")}</Button><Button disabled={index === screenshots.length - 1} size="small" onClick={() => { moveScreenshot(index, 1); }}>{t("apps.application.actions.move_down")}</Button><Button danger size="small" onClick={() => { form.setValue("screenshot_file_ids", screenshots.filter((_, current) => current !== index), { shouldDirty: true }); }}>{t("common.actions.delete")}</Button></Space>)}
+        </Space>
+
+        <Divider titlePlacement="start">{t("apps.application.sections.startup")}</Divider>
+        <Alert showIcon type="info" title={t("apps.startup.bundle_export_hint")} />
+        <AkLocalizedFormTabs activeLocale={activeLocale} errorLocales={{ "zh-CN": Boolean(form.formState.errors.startup?.translations?.["zh-CN"]), "en-US": Boolean(form.formState.errors.startup?.translations?.["en-US"]) }} languages={languages} onActiveLocaleChange={setActiveLocale} renderFields={(locale, label) => <div className="ak-form-grid-2"><Form.Item label={t("apps.startup.fields.display_name")}><Controller control={form.control} name={`startup.translations.${locale}.display_name`} render={({ field }) => <Input {...field} aria-label={`${label} ${t("apps.startup.fields.display_name")}`} maxLength={120} />} /></Form.Item><Form.Item label={t("apps.startup.fields.subtitle")}><Controller control={form.control} name={`startup.translations.${locale}.subtitle`} render={({ field }) => <Input {...field} aria-label={`${label} ${t("apps.startup.fields.subtitle")}`} maxLength={240} />} /></Form.Item></div>} />
+        <div className="ak-startup-status-row"><Form.Item label={t("apps.startup.fields.enabled")}><Controller control={form.control} name="startup.onboarding_enabled" render={({ field }) => <Switch aria-label={t("apps.startup.fields.enabled")} checked={field.value} onChange={field.onChange} />} /></Form.Item>{editor && editor !== "new" ? <Space wrap><Tag>{t("apps.startup.published_version", { version: editor.startup.published_version })}</Tag><Tag className={editor.startup.draft_changed ? "ak-status-warning" : "ak-status-success"}>{t(editor.startup.draft_changed ? "apps.startup.draft_changed" : "apps.startup.draft_synced")}</Tag>{editor.startup.published_at ? <Typography.Text type="secondary">{new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(new Date(editor.startup.published_at))}</Typography.Text> : null}</Space> : null}</div>
+        <Space orientation="vertical" className="ak-full-width" size="middle">
+          {onboarding.fields.map((slide, index) => <Card className="ak-application-nested-card" key={slide.formKey} size="small" title={t("apps.startup.slide", { index: index + 1 })} extra={<Space><Button disabled={index === 0} size="small" onClick={() => { onboarding.swap(index, index - 1); }}>{t("apps.application.actions.move_up")}</Button><Button disabled={index === onboarding.fields.length - 1} size="small" onClick={() => { onboarding.swap(index, index + 1); }}>{t("apps.application.actions.move_down")}</Button><Button danger size="small" onClick={() => { onboarding.remove(index); }}>{t("common.actions.delete")}</Button></Space>}>
+            {(["zh-CN", "en-US"] as const).map((locale) => { const fileId = form.watch(`startup.draft_slides.${index}.assets.${locale}.file_id`); return <div className="ak-startup-locale-asset" key={locale}><Typography.Text strong>{t(`apps.locale.${locale}`)}</Typography.Text><Space wrap><Button onClick={() => { setPicker({ type: "onboarding", index, locale }); }}>{t("apps.startup.actions.choose_image")}</Button>{fileId ? <><PrivateFileThumbnail alt={t("apps.startup.image_preview", { index: index + 1 })} fileId={fileId} /><code className="ak-content-slug">{fileId}</code></> : <Typography.Text type="danger">{t("apps.startup.image_required")}</Typography.Text>}</Space><Form.Item label={t("apps.startup.fields.accessibility_label")}><Controller control={form.control} name={`startup.draft_slides.${index}.assets.${locale}.accessibility_label`} render={({ field }) => <Input {...field} aria-label={`${t(`apps.locale.${locale}`)} ${t("apps.startup.fields.accessibility_label")}`} maxLength={500} />} /></Form.Item></div>; })}
+          </Card>)}
+          <Button block disabled={onboarding.fields.length >= 10} icon={<PlusOutlined />} onClick={() => { const position = onboarding.fields.length; onboarding.append({ position, assets: { "zh-CN": { file_id: "", accessibility_label: "" }, "en-US": { file_id: "", accessibility_label: "" } } }); }}>{t("apps.startup.actions.add_slide")}</Button>
         </Space>
 
         <Divider titlePlacement="start">{t("apps.application.sections.owner_team")}</Divider>
@@ -201,7 +231,23 @@ function ApplicationDrawer({ editor, form, fullScreen, picker, setPicker, saving
       if (picker?.type === "icon") form.setValue("icon_file_id", file.id, { shouldDirty: true });
       if (picker?.type === "screenshot") form.setValue("screenshot_file_ids", [...screenshots, file.id], { shouldDirty: true });
       if (picker?.type === "qrcode") form.setValue(channelPath(picker.index, "qrcode_file_id"), file.id, { shouldDirty: true });
+      if (picker?.type === "onboarding") form.setValue(`startup.draft_slides.${picker.index}.assets.${picker.locale}.file_id`, file.id, { shouldDirty: true });
       setPicker(null);
     }} />
   </>;
+}
+
+function PrivateFileThumbnail({ fileId, alt }: { fileId: string; alt: string }) {
+  const [source, setSource] = useState<string | null>(null);
+  useEffect(() => {
+    if (!fileId) return;
+    let live = true; let objectUrl = "";
+    void authSession.adminRequest(`/files/${encodeURIComponent(fileId)}/content`).then(async (response) => {
+      if (!response.ok) return;
+      objectUrl = URL.createObjectURL(await response.blob());
+      if (live) setSource(objectUrl);
+    });
+    return () => { live = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [fileId]);
+  return source ? <img alt={alt} className="ak-startup-thumbnail" src={source} /> : <span aria-label={alt} className="ak-startup-thumbnail-placeholder" />;
 }

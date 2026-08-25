@@ -41,9 +41,7 @@
       "title_key": "routes.privacyConsent.title",
       "phase": "P0",
       "required_permissions": [],
-      "apis": [
-        "GET /api/v1/public/legal/{document_type}"
-      ],
+      "apis": [],
       "feature_flag": null,
       "tab_key": null,
       "params": {},
@@ -56,9 +54,12 @@
       "access": "public",
       "kind": "page",
       "title_key": "routes.onboarding.title",
-      "phase": "P1",
+      "phase": "P0",
       "required_permissions": [],
-      "apis": [],
+      "apis": [
+        "GET /api/v1/public/config",
+        "GET /api/v1/public/startup-assets/{file_id}"
+      ],
       "feature_flag": "onboarding_enabled",
       "tab_key": null,
       "params": {},

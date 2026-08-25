@@ -8,9 +8,12 @@ describe("App management schemas", () => {
       default_locale: "zh-CN", registration_enabled: true, registration_verification_mode: "email_otp",
       owner_type: "tenant", owner_id: "123e4567-e89b-12d3-a456-426614174000", icon_file_id: null,
       managers: [], members: [], screenshot_file_ids: [], channels: [], store_listings: [],
+      startup: { translations: { "zh-CN": { display_name: "移动应用", subtitle: "探索更多" }, "en-US": { display_name: "Mobile", subtitle: "Explore more" } }, onboarding_enabled: true, draft_slides: [{ position: 0, assets: { "zh-CN": { file_id: "123e4567-e89b-12d3-a456-426614174001", accessibility_label: "中文介绍图" }, "en-US": { file_id: "123e4567-e89b-12d3-a456-426614174002", accessibility_label: "English onboarding image" } } }] },
     };
     expect(applicationInputSchema.safeParse(valid).success).toBe(true);
     expect(applicationInputSchema.safeParse({ ...valid, appid: "not-a-manifest-id" }).success).toBe(false);
+    expect(applicationInputSchema.safeParse({ ...valid, startup: { ...valid.startup, translations: { "zh-CN": valid.startup.translations["zh-CN"] } } }).success).toBe(false);
+    expect(applicationInputSchema.safeParse({ ...valid, startup: { ...valid.startup, draft_slides: Array.from({ length: 11 }, (_, position) => ({ ...valid.startup.draft_slides[0], position })) } }).success).toBe(false);
     expect(applicationInputSchema.safeParse({ name: "", default_locale: "fr-FR", registration_enabled: true, registration_verification_mode: "sms" }).success).toBe(false);
   });
   it("requires App user email and a minimum initial password", () => {

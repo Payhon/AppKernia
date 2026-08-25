@@ -30,6 +30,7 @@ export type AppPublicConfigResponse = {
         default_locale: SupportedLocale;
         registration_enabled: boolean;
         registration_verification_mode: 'none' | 'email_otp';
+        startup: AppPublicStartup;
     };
     request_id: string;
 };
@@ -136,6 +137,7 @@ export type AdminApp = {
     lock_version: number;
     created_at: string;
     updated_at: string;
+    startup: AdminAppStartup;
 };
 
 export type AdminAppRequest = {
@@ -158,6 +160,60 @@ export type AdminAppRequest = {
     channels?: Array<AdminAppChannel>;
     store_listings?: Array<AdminAppStoreListing>;
     lock_version?: number;
+    startup: AdminAppStartupInput;
+};
+
+export type StartupTranslation = {
+    display_name: string;
+    subtitle: string;
+};
+
+export type StartupSlideAsset = {
+    file_id: string;
+    accessibility_label: string;
+};
+
+export type StartupSlide = {
+    id?: string;
+    position: number;
+    assets: {
+        'zh-CN': StartupSlideAsset;
+        'en-US': StartupSlideAsset;
+    };
+};
+
+export type AdminAppStartupInput = {
+    translations: {
+        'zh-CN': StartupTranslation;
+        'en-US': StartupTranslation;
+    };
+    onboarding_enabled: boolean;
+    draft_slides: Array<StartupSlide>;
+};
+
+export type AdminAppStartup = AdminAppStartupInput & {
+    published_version: number;
+    published_at?: string | null;
+    draft_changed: boolean;
+};
+
+export type AdminAppOnboardingPublishRequest = {
+    expected_published_version: number;
+};
+
+export type AppPublicStartupSlide = {
+    position: number;
+    image_url: string;
+    accessibility_label: string;
+};
+
+export type AppPublicStartup = {
+    display_name: string;
+    subtitle: string;
+    icon_url?: string | null;
+    onboarding_enabled: boolean;
+    published_version: number;
+    slides: Array<AppPublicStartupSlide>;
 };
 
 export type AdminAppAsset = {
@@ -3378,6 +3434,39 @@ export type GetAppPublicConfigResponses = {
 
 export type GetAppPublicConfigResponse = GetAppPublicConfigResponses[keyof GetAppPublicConfigResponses];
 
+export type GetAppStartupAssetData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        file_id: string;
+    };
+    query?: never;
+    url: '/api/v1/public/startup-assets/{file_id}';
+};
+
+export type GetAppStartupAssetErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAppStartupAssetError = GetAppStartupAssetErrors[keyof GetAppStartupAssetErrors];
+
+export type GetAppStartupAssetResponses = {
+    /**
+     * A scanned JPEG, PNG, or WebP startup asset scoped to the active App.
+     */
+    200: Blob | File;
+};
+
+export type GetAppStartupAssetResponse = GetAppStartupAssetResponses[keyof GetAppStartupAssetResponses];
+
 export type GetAppLegalDocumentData = {
     body?: never;
     headers: {
@@ -4964,6 +5053,45 @@ export type DisableAdminAppResponses = {
 };
 
 export type DisableAdminAppResponse = DisableAdminAppResponses[keyof DisableAdminAppResponses];
+
+export type PublishAdminAppOnboardingData = {
+    body: AdminAppOnboardingPublishRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/startup/onboarding/publish';
+};
+
+export type PublishAdminAppOnboardingErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The expected published version is stale.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type PublishAdminAppOnboardingError = PublishAdminAppOnboardingErrors[keyof PublishAdminAppOnboardingErrors];
+
+export type PublishAdminAppOnboardingResponses = {
+    /**
+     * Latest App startup configuration and published version.
+     */
+    200: AdminAppResponse;
+};
+
+export type PublishAdminAppOnboardingResponse = PublishAdminAppOnboardingResponses[keyof PublishAdminAppOnboardingResponses];
 
 export type ListAdminAppMobileReleasesData = {
     body?: never;

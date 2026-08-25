@@ -35,6 +35,8 @@ func main() {
 		err = seedCorePermissions(os.Args[2:])
 	case "bootstrap-admin":
 		err = bootstrapAdmin(os.Args[2:])
+	case "app-startup":
+		err = appStartupCommand(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)
@@ -46,7 +48,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: ak-cli doctor | migrate up|down [steps] | seed core-permissions | bootstrap-admin [flags]")
+	fmt.Fprintln(os.Stderr, "usage: ak-cli doctor | migrate up|down [steps] | seed core-permissions | bootstrap-admin [flags] | app-startup export --app-id UUID --output DIR [--check]")
 }
 
 func doctor() error {

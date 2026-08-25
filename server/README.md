@@ -31,4 +31,13 @@ make -C server build
 
 使用 `make -C server bootstrap-admin` 交互创建首个管理员。密码只从 stdin/TTY 读取，禁止放入参数、环境变量、日志或 Git。
 
+发布移动端安装包前，从后台启动元信息导出严格离线的首装隐私页快照与图标：
+
+```bash
+go run ./cmd/ak-cli app-startup export --app-id <public-app-uuid> --output ../apps/ak-mobile
+go run ./cmd/ak-cli app-startup export --app-id <public-app-uuid> --output ../apps/ak-mobile --check
+```
+
+导出要求双语名称/副标题完整，且图标文件属于该 App、处于 `ready` 并已扫描通过。`--check` 不写文件，用于发布门禁检测生成物漂移。
+
 本地开发可以使用 `.env.example` 中明确标记的 development-only Adapter 和密钥。非 development 环境必须提供独立的 `AK_JWT_PRIVATE_KEY_BASE64`、`AK_JWT_KEY_ID` 与 `AK_CONFIG_MASTER_KEY_BASE64`，并禁用本地 Mock Adapter。

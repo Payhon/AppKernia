@@ -169,7 +169,14 @@
   "legal.consent.title": "隐私与服务说明",
   "legal.consent.description": "在继续前，请阅读并同意隐私政策和用户协议。",
   "legal.consent.accept": "同意并继续",
+  "legal.consent.cancel": "取消",
+  "legal.consent.ios_cancel_note": "iOS 不允许应用主动退出。您可以继续查看协议，或同意后进入应用。",
+  "legal.consent.statement.before": "为提供应用服务，部分功能需要联网。请阅读",
+  "legal.consent.statement.middle": "和",
+  "legal.consent.statement.after": "。点击“同意”表示您已知悉并同意使用本应用。",
   "legal.consent.required": "请先阅读并同意隐私政策和用户协议",
+  "onboarding.experience": "立即体验",
+  "onboarding.page_indicator_label": "启动介绍页码",
   "legal.version": "版本 {version}",
   "legal.updatedAt": "更新于 {date}",
   "legal.empty": "暂未发布内容",
@@ -180,5 +187,6 @@
   "routes.legal.privacy.title": "隐私政策",
   "routes.legal.terms.title": "用户协议",
   "routes.legal.page.title": "内容",
+  "routes.onboarding.title": "启动介绍",
   "errors.auth.appMismatch": "当前登录状态不属于此应用，请重新登录。"
 }

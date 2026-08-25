@@ -43,11 +43,11 @@ if [[ "$platform" == "android" ]] && ! rg -q '正在编译为android class' "$lo
   printf '%s\n' 'Android compile did not reach the page-to-class phase.' >&2
   exit 1
 fi
-# iOS and Harmony need an explicit UTS completion marker. A successful CLI
-# transport response without it is not a compilation result. Harmony may then
-# continue into native packaging; any later package/signing failure is caught
-# by the error-marker check above and remains a non-zero script result.
-if [[ "$platform" == "ios" || "$platform" == "harmony" ]] && ! rg -q 'UTS编译完毕' "$log_file"; then
+# HBuilderX 5.06 emitted `UTS编译完毕`; 5.24 emits the stronger project-level
+# `项目 ... 编译成功` after page and UTS-plugin compilation. A CLI transport
+# exit without either marker is not accepted. Harmony may then continue into
+# native packaging; any later package/signing failure is caught above.
+if [[ "$platform" == "ios" || "$platform" == "harmony" ]] && ! rg -q 'UTS编译完毕|项目 .* 编译成功' "$log_file"; then
   printf '%s UTS compilation did not complete.\n' "$platform" >&2
   exit 1
 fi

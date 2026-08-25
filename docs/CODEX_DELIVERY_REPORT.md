@@ -1926,3 +1926,92 @@
 - Harmony 编译提示未配置应用包名/签名；只证明 UTS 与原生工程生成链可用。Android/iOS 的退出 0 同样不能外推为签名包、上架链接或真实设备通过。
 - 自动检查对普通网络故障采用计划锁定的 fail-open；一旦已展示强制策略，下载或跳转失败仍保持阻断并提供重试。外部链接只接受适配器允许的市场 scheme 和最终 HTTPS fallback。
 - 用户原有 `apps/ak-mobile/manifest.json` 版本 `0.2.0` 修改及三个未跟踪参考模块保持原样，没有覆盖、删除或自动纳入本功能依赖。本轮未 commit、未 push。
+
+## 2026-08-15 快学AI微信公众号草稿工作流交付
+
+### 交付内容
+
+- 项目级安装 `wechat-article-writer` Skill，并新增 `quicklearn-ai-wechat` Skill。后者定义快学AI的作者口吻、事实与引用规范、默认封面、草稿 manifest 契约以及“检索 → 写作 → 构建 → dry-run → 投递 → 回读确认”的完整操作流程。
+- 新增本地 Markdown 构建器和 SSH 投递器：文章转换为微信兼容的内联 HTML，支持封面、正文图片占位符、摘要生成和结构/大小校验；投递器只向服务器受控暂存目录传输白名单文件，并保证成功或失败后精确清理。
+- 在 `1.95.190.254` 部署 `/usr/local/bin/quicklearn-wechat`，使用微信 `stable_token`、永久图片素材、正文图片上传、草稿新增和草稿回读接口。CLI 仅暴露配置、诊断、暂存和创建草稿能力，不包含群发、正式发布或删除能力，也不开放公网 HTTP 服务。
+- AppSecret 仅以交互式无回显方式配置到服务器 root-only 文件，未写入 Git、Skill、shell 参数或交付报告；Token 和素材 ID 缓存也位于 root-only 状态目录。
+
+### 实际命令与结果
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `install-skill-from-github.py --repo staruhub/claudeskills --path skills/Geek-skills-wechat-article-writer ...` | 0 | 目标 Skill 安装到 `.agents/skills/wechat-article-writer`。移除不被 Codex frontmatter 接受的上游 `version` 字段后校验通过。 |
+| `quick_validate.py .agents/skills/wechat-article-writer` | 0 | `Skill is valid!`。 |
+| `quick_validate.py .agents/skills/quicklearn-ai-wechat` | 0 | 自定义 Skill 的 metadata、说明和目录结构有效。 |
+| `python3 -m py_compile`（4 个本地/服务器脚本） | 0 | Markdown 构建器、SSH 投递器、服务器网关和默认封面生成器通过 Python 语法编译。 |
+| `build_draft.py`（无正文图片 / 1 张正文图片） | 0 / 0 | 两种草稿包均生成有效 manifest、内联 HTML 和受控图片文件。 |
+| `publish_via_ssh.py publish ... --dry-run`（无正文图片 / 1 张正文图片） | 0 / 0 | 本地契约、资源路径和 HTML 安全校验通过，不触发外部写入。 |
+| SSH 部署、SHA-256 比对与服务器 `python3 -m py_compile` | 0 | 服务器 CLI 与本地源文件 Hash 一致，远端 Python 编译通过；程序为 root-owned `0755`。 |
+| 服务器目录与凭据权限检查 | 0 | `/etc/quicklearn-wechat`、`/var/lib/quicklearn-wechat` 为 `0700`，凭据为 `0600 root:root`。未读取或输出凭据内容。 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 39 routes、3 tabs、26 baseline APIs、39 API deltas、34 components、3 platforms，0 error / 0 warning。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN` / `en-US`、默认/最终回退和 Backend/Admin/Mobile reference packs 一致。 |
+| `git diff --check` | 0 | 当前补丁无空白错误。 |
+| `publish_via_ssh.py publish ...`（连通性草稿） | 1 | SSH 文件传输和远端暂存清理通过；微信返回 `40164 invalid ip 1.95.190.254`，未取得 access token、未上传素材、未创建草稿。 |
+| `publish_via_ssh.py doctor`（首次配置复测） | 1 | 服务器出网地址为 `1.95.190.254`，当时微信仍返回 `40164`；此历史阻塞已在重新保存白名单后解除。 |
+
+### 未完成项与风险
+
+- 微信后台重新保存 `1.95.190.254` 后，`doctor`、草稿新增与草稿详情回读均已成功；原 `40164` 阻塞已解除。
+- 没有执行群发或正式发布，CLI 也没有这些能力；即使草稿创建成功，仍需人工在微信公众号后台预览、校对和决定是否发布。
+- 默认封面已本地目视检查；文章排版尚未获得微信草稿编辑器/手机预览证据。当前没有草稿 `media_id`、后台截图或真机阅读证据。
+- 本轮未修改 Backend、Admin、Mobile、OpenAPI、数据库或 i18n 业务契约；用户原有 `apps/ak-mobile/manifest.json` 修改保持原样。本轮未 commit、未 push。
+
+## 2026-08-15 快学AI首篇 AppKernia 介绍草稿
+
+### 内容与事实边界
+
+- 文章采用维护者第一人称，以实际推进 OpenAPI 单一事实源、移动端自动升级和安全边界时的经历为主线；技术栈、3 个接口面/31 个模块/281 个操作标题、三平台 29 页面编译等陈述均回查当前 README、三套蓝图、实施状态和交付报告。
+- 正文明示“三平台编译通过不等于真机通过”，没有编造用户量、客户案例、收入、性能提升或生产部署结果。远端 `origin/main` 与本地 `HEAD` 均为 `f527b0d`，GitHub 仓库和 GitHub Pages 在本轮均返回 HTTP 200。
+- 使用项目自制默认封面，不包含第三方图片或正文外链图片；文章、编辑记录和生成草稿包保存在 Git 忽略的 `tmp/wechat/2026-08-15-appkernia-intro/`。
+
+### 实际命令与结果
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `publish_via_ssh.py doctor`（白名单重新保存后） | 0 | 公众号为“快学AI”，Token 有效，创建前草稿数为 20。 |
+| `build_draft.py ...` | 0 | 主标题 26 字、摘要 70 字、微信安全 HTML 8,048 字符、正文图片 0 张，manifest 构建成功。 |
+| `publish_via_ssh.py publish ... --dry-run` | 0 | 标题、摘要、HTML、封面和 manifest 本地安全校验通过，未触发外部写入。 |
+| `publish_via_ssh.py publish ...` | 0 | 经 SSH 调用服务器草稿 API，返回 `ok=true`、`verified=true`、`article_count=1`，标题与回读结果一致。 |
+| `publish_via_ssh.py doctor`（创建后） | 0 | 草稿总数为 21，Token 仍有效；远端暂存目录检查为空。 |
+
+### 发布边界
+
+- 本轮只创建草稿，没有调用群发或正式发布接口；仍需在微信公众号后台进行编辑器排版和手机预览检查，再由人工决定是否发布。
+- 默认封面已在工作流部署阶段完成本地目视检查，但本篇文章没有新的微信后台截图或手机预览证据。
+- 用户原有 `apps/ak-mobile/manifest.json` 修改保持原样。本轮未 commit、未 push。
+
+## 2026-08-25 App 启动页与启动介绍交付报告
+
+### 交付内容
+
+- 后端以 `000018_app_startup_experience` 建立双语启动元信息、草稿、不可变 revision、双语排序资产与 published pointer；发布原子校验扫描/MIME/双语完整性、版本递增，并保护 draft/revision 文件引用。
+- Admin App Drawer 完成双语元信息、图标预览、最多 10 组双语图片、无障碍说明、键盘排序、启用开关、草稿/发布状态和独立权限发布；保存不会发布，关闭不会删除草稿或历史版本。
+- Mobile 首装隐私门禁只使用随包快照；公开配置与强制升级之后才判断 onboarding。当前 published 图片携带 `X-AppID` 预下载为本地临时路径，无跳过且必须全部看完，完成状态按 App UUID 保存最高版本。
+- 新增 `ak-cli app-startup export` / `--check`，同步 OpenAPI、生成 Client、权限/契约、双语 Catalog、设计系统和 UI Skill 产物。
+
+### 实际命令与结果
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| PostgreSQL 18 `migrate up → down 1 → up 1` | 0 / 0 / 0 | 最终 version 18、dirty=false，不是仅静态 SQL 检查。 |
+| `go test -tags=integration ./internal/modules/appmanagement/application -count=1 -v` | 0 | 启动草稿/发布/public projection 集成通过；既有 OTP 用例因临时库未 seed 模板 skip 1。 |
+| `make -C server check` | 0 | `go vet ./...` 与 Backend 全量默认测试通过。 |
+| `ak-cli app-startup export ...` + `--check` | 0 / 0 | 真实数据库/local object store 生成 39,129 字节 PNG 和 650 字节 UTS 快照，漂移检查通过。 |
+| `npm run check`（Admin） | 0 | 生成、OpenAPI reference、lint、strict typecheck、30 文件/130 项 Vitest、production build、bundle/OpenAPI/蓝图通过。 |
+| bundled Node Playwright `scripts/e2e_app_startup.mjs` | 0 | 真实 Chromium 双语 × 375/768/1440；axe 全量 violation、overflow、console 均为 0，键盘排序通过。系统 Python 缺模块的首次命令真实退出 1，未修改依赖锁。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile blueprint、i18n、生成 Client、升级模块和启动链静态门禁通过。 |
+| `build-platform.sh android` / `ios` | 0 / 0 | HBuilderX 5.24 编译 30 页面；仅 compile-only，非安装/真机。 |
+| HBuilder Harmony / 无代理 `ohpm install --all` / `hvigorw assembleHap` | 1 / 0 / 0 | UVue/UTS 成功，内置 ohpm 代理 `Invalid URL` 中断；手工依赖安装与 native assemble 成功，生成 15,662,973 字节 unsigned HAP。 |
+| blueprint/i18n + `git diff --check` | 0 | Backend/Admin/Mobile 契约与双语 parity 通过，补丁无空白错误。 |
+| `env PATH=/Users/payhon/.nvm/versions/node/v24.18.1/bin:$PATH make check`（最终） | 0 | Backend、Admin 30 文件/130 项测试、Mobile 随包快照漂移门禁、蓝图/i18n、Docs 121 个 API 引用与 68 页构建全部通过。 |
+
+### 截图、未完成项与风险
+
+- Admin 证据见 `apps/ak-admin/artifacts/ui-ux-pro-max/app-startup-experience/screenshot-index.md`；Mobile UI 产物见 `apps/ak-mobile/artifacts/ui-ux-pro-max/startup-experience/`。
+- 未采集物理设备截图，不能把三平台编译或 unsigned HAP 外推为冷启动、网络、退出、返回键、动态字号和安全区验收。Harmony 仍缺包名/签名，发布流水线需固定可用的 ohpm 网络环境。
+- 用户原有 `apps/ak-mobile/manifest.json`、既有文档增量和未跟踪微信公众号 Skills 未覆盖或删除。本轮未 commit、未 push。

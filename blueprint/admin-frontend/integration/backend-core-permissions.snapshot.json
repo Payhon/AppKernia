@@ -1164,6 +1164,15 @@
       "status": "active"
     },
     {
+      "code": "app.onboarding.publish",
+      "name": "发布应用启动介绍",
+      "module_code": "app",
+      "resource_name": "onboarding",
+      "action_name": "publish",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
       "code": "app.application.disable",
       "name": "停用应用",
       "module_code": "app",
