@@ -2118,4 +2118,6 @@
 
 - 第一次把浏览器 URL 也挂到 `/AppKernia` 的只读静态服务器时，Rspress 客户端路由按 404 处理；改用 Rspress preview 后页面路由正确，但 Base Path 资源被返回为 HTML，形成无样式的假失败。最终使用只读映射服务器在根路径呈现页面、同时映射 `/AppKernia/*` 生产资源，6 个状态原断言全部通过；没有为本地预览削弱生产 Base Path。
 - [AKDOCS-006 decisions](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-006/decisions.md)、[review checklist](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-006/review-checklist.md)、[screenshots and results](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-006/screenshots/INDEX.md)。
-- 本轮只完成本地源码、构建和 Chromium 验收，未 commit、未 push、未触发 GitHub Pages；线上页面仍以已发布 Workflow 为准。
+- 功能提交 `676304f6e606ceb03681a9158297e0ddaa80c054`（`feat(docs): enhance homepage hero`）已推送 `origin/main`；GitHub Pages run [`33047259705`](https://github.com/Payhon/AppKernia/actions/runs/33047259705) 成功，build job `98434068813` 用时 45 秒，deploy job `98434231357` 用时 9 秒，workflow head SHA 与功能提交一致。
+- Pages API 回读 `html_url=https://payhon.github.io/AppKernia/`、`build_type=workflow`、`https_enforced=true`、`cname=null`。中英文首页、Admin/Mobile Hero 静态图及 Sitemap 共 5 个 URL 均返回 HTTP 200；自定义域名尚未绑定，不宣称 `appkernia.com` 可访问。
+- 线上 Python Playwright/Chromium 复核 `zh-CN 375 light`、`zh-CN 1440 light`、`en-US 1440 dark` 三个状态：HTTP 200、单一 H1、页面无横向溢出或破图，标签为 19.5px/0 边框，桌面产品图占 Hero 53.7%，两组 Slider 点击和键盘切换成功；axe serious/critical、console error、失败请求/响应均为 0。
