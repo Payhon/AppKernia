@@ -11,7 +11,6 @@ import { profileRuntime } from '../../features/profile/infrastructure/profile-ru
 import { notificationsRuntime } from '../../features/notifications/infrastructure/notifications-runtime.uts'
 import { preferencesRuntime } from '../../features/preferences/infrastructure/preferences-runtime.uts'
 import { versionRuntime } from '../../features/version/infrastructure/version-runtime.uts'
-import { NavigationLocaleSync } from '../i18n/navigation-sync.uts'
 import { akI18n } from '../i18n/ak-i18n.uts'
 import { themeStore } from '../theme/theme-store.uts'
 import { legalConsentStore } from '../../features/legal/legal-consent-store.uts'
@@ -20,12 +19,6 @@ import { appPublicConfigRuntime } from '../../features/app-config/public-config-
 import { akUpgradeCoordinator } from '../../../uni_modules/ak-upgrade/coordinator.uts'
 import { onboardingStore } from '../../features/onboarding/onboarding-store.uts'
 import { preloadOnboardingSlides } from '../../features/onboarding/onboarding-preloader.uts'
-
-type ManifestRuntimeConfig = {
-  readonly environment: string
-  readonly apiBaseUrl: string
-  readonly appId: string
-}
 
 /**
  * Reads only the packaged, approved manifest configuration. No production URL,
@@ -38,10 +31,12 @@ export function initializeAppRuntime(): boolean {
   const manifest: UTSJSONObject = appManifest as UTSJSONObject
   const raw: UTSJSONObject | null = manifest['akRuntime'] as UTSJSONObject | null
   if (raw == null) { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
-  const runtime: ManifestRuntimeConfig = raw as ManifestRuntimeConfig
-  if (runtime.apiBaseUrl == null || runtime.apiBaseUrl.length == 0 || runtime.appId == null || runtime.appId.length == 0) { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
-  if (runtime.environment != 'development' && runtime.environment != 'test' && runtime.environment != 'production') { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
-  const config = new AkConfig(runtime.environment as AkEnvironment, runtime.apiBaseUrl, runtime.appId)
+  const environment: string | null = raw['environment'] as string | null
+  const apiBaseUrl: string | null = raw['apiBaseUrl'] as string | null
+  const appId: string | null = raw['appId'] as string | null
+  if (apiBaseUrl == null || apiBaseUrl.length == 0 || appId == null || appId.length == 0) { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
+  if (environment != 'development' && environment != 'test' && environment != 'production') { uni.reLaunch({ url: '/pages/error/offline/index' }); return false }
+  const config = new AkConfig(environment as AkEnvironment, apiBaseUrl, appId)
   const client = new AkHttpClient(config, appSessionStore)
   appPublicConfigRuntime.configure(client, config.appId, config.apiBaseUrl)
   legalRuntime.configure(client)
@@ -96,9 +91,13 @@ export function initializeAppRuntime(): boolean {
 export function completeAuthenticatedBootstrap(): void {
   authRuntime.refreshContext(() => {
     const preferences = preferencesRuntime.getRepository()
-    if (preferences == null) { uni.reLaunch({ url: '/pages/home/index' }); return }
-    preferences.get(value => { new NavigationLocaleSync(akI18n).apply(value.locale, 'routes.home.title'); themeStore.apply(value.appearance); recordPublishedLegalConsent(); uni.reLaunch({ url: '/pages/home/index' }) }, () => { recordPublishedLegalConsent(); uni.reLaunch({url:'/pages/home/index'}); })
+    if (preferences == null) { openHome(); return }
+    preferences.get(value => { akI18n.setLocale(value.locale); themeStore.apply(value.appearance); recordPublishedLegalConsent(); openHome() }, () => { recordPublishedLegalConsent(); openHome() })
   }, () => authRuntime.signOut(() => { uni.reLaunch({url:'/pages/auth/login/index'}); }))
+}
+
+function openHome(): void {
+  uni.reLaunch({ url: '/pages/home/index', success: () => { themeStore.markTabBarReady() } })
 }
 
 /** Server audit is best effort after authenticated bootstrap; local consent already gated startup. */

@@ -93,6 +93,13 @@ def check_runtime_wiring() -> None:
     runtime = manifest.get("akRuntime") if isinstance(manifest, dict) else None
     required("initializeAppRuntime" not in app, "App must not duplicate bootstrap runtime initialization")
     required("initializeAppRuntime()" in bootstrap_page and "onReady" in bootstrap_page, "bootstrap page does not initialize runtime after its dialog host is ready")
+    required("raw as ManifestRuntimeConfig" not in bootstrap, "manifest UTSJSONObject must be materialized field by field")
+    for field in ("environment", "apiBaseUrl", "appId"):
+        required(f"raw['{field}'] as string | null" in bootstrap, f"manifest runtime does not materialize {field}")
+    theme = (ROOT / "src/core/theme/theme-store.uts").read_text(encoding="utf-8")
+    required("if (getCurrentPages().length == 0) return" in theme, "native chrome must wait for the first mounted page")
+    required("markTabBarReady" in theme and "if (!this.tabBarReady) return" in theme, "theme runtime must wait for the native TabBar")
+    required("themeStore.markTabBarReady()" in bootstrap, "authenticated bootstrap does not mark the first tab page ready")
     required("akUpgradeCoordinator.check" in bootstrap and "configureUpgrade(publicConfig.appid)" in bootstrap, "bootstrap does not gate session restoration through the native upgrade check")
     required("articleRuntime.configure(config, appSessionStore, auth" in bootstrap, "article runtime is not configured at bootstrap")
     required(isinstance(runtime, dict) and "apiBaseUrl" in runtime, "manifest has no approved runtime API configuration")
@@ -106,6 +113,7 @@ def check_runtime_wiring() -> None:
     required("restore(" in runtime and "signOut(" in runtime and "storage.write" in runtime, "session runtime lacks restore/persist/logout lifecycle")
     required("Test-only adapter" in test_adapter and "uni.setStorage" not in test_adapter, "in-memory test adapter is missing or insecure")
     auth_repository = (ROOT / "src/features/auth/auth-repository.uts").read_text(encoding="utf-8")
+    client = (ROOT / "src/core/network/ak-http-client.uts").read_text(encoding="utf-8")
     auth_service = (ROOT / "src/features/auth/mobile-auth-service.uts").read_text(encoding="utf-8")
     auth_runtime = (ROOT / "src/features/auth/auth-runtime.uts").read_text(encoding="utf-8")
     auth_context = (ROOT / "src/core/stores/auth-context-store.uts").read_text(encoding="utf-8")
@@ -117,8 +125,9 @@ def check_runtime_wiring() -> None:
     detail = (ROOT / "pages/articles/detail/index.uvue").read_text(encoding="utf-8")
     refresh_port = (ROOT / "src/core/network/refreshing-http-port.uts").read_text(encoding="utf-8")
     refresh_coordinator = (ROOT / "src/core/network/refresh-coordinator.uts").read_text(encoding="utf-8")
-    for fragment in ("/auth/login/password", "X-AK-Device-Key", "/auth/token/refresh", "/auth/logout", "/auth/context", "refresh_token"):
+    for fragment in ("/auth/login/password", "/auth/token/refresh", "/auth/logout", "/auth/context", "refresh_token"):
         required(fragment in auth_repository, f"auth repository missing {fragment}")
+    required("'X-AK-Device-Key': this.deviceKey" in client, "HTTP client does not inject the installation device key")
     required("sessions.establish" in auth_service and "refreshToken" in auth_service and "signOut(onComplete" in auth_service, "auth service does not persist rotated refresh credentials or clear logout state")
     required("authContextStore.set" in auth_runtime and "navigationContext" in auth_context and "feature_flags: UTSJSONObject" in auth_repository and "feature_flags.toMap()" in auth_repository, "runtime does not load server auth context safely")
     required("createAuthenticatedNavigationContext" not in routes and "permission: null" in routes, "routes must not manufacture self-scope permissions")

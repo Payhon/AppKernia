@@ -1,6 +1,6 @@
 # AppKernia 实施状态
 
-更新时间：2026-08-15（Asia/Shanghai）
+更新时间：2026-08-26（Asia/Shanghai）
 
 ## 总体状态
 
@@ -8,7 +8,7 @@
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环                                                                    | 当前 Admin backlog 已收口；生产 Adapter 联调见风险                                                        |
 | Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁；公开 `/openapi/` 与侧栏底部文档/System 工具入口已完成 Node 24、Docker/Nginx 和 Chromium 验收                                                      | 生产部署、真实 Bearer 手工调用、第三方 Scalar 请求客户端瞬态 axe 与跨浏览器验收见风险                     |
-| Mobile              | 29 个页面已完成 AK UI 统一刷新并接入启动升级门禁；独立 `ak-upgrade` 支持三端应用市场跳转及 Android APK 下载/安装，HBuilderX 5.06 的 iOS/Android/Harmony 编译均通过                                       | Android APK、iOS/Harmony 商店跳转、强制升级返回拦截仍需三端真机验收；Harmony 包名/签名未配置               |
+| Mobile              | 30 个页面已完成 AK UI 统一刷新；Android/iOS/Harmony 自定义原生产物统一为 `com.appkernia.mobile` 与 AppKernia 品牌，Android vivo 真机、iOS 18.6 模拟器、HarmonyOS API 22 官方模拟器均完成匿名首帧运行验证 | iOS/Harmony 真机签名、三端安全存储/商店跳转/升级/完整交互仍需物理设备验收；Harmony 自动签名需连接在线设备 |
 | Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：68 个静态页面、零门槛向导、核心 API、在线 OpenAPI/System 菜单指南、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31475956211` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
 
@@ -710,3 +710,29 @@
 - HBuilderX 5.24 Android/iOS 30 页面 compile-only 均退出 0。Harmony UVue/UTS 输出项目编译成功；HBuilder 内置 ohpm 受代理解析影响退出 1，随后无代理 `ohpm install --all` 和 DevEco 6.0.2 `hvigorw assembleHap` 退出 0，生成 15,662,973 字节 unsigned HAP。包名/签名未配置。
 - 未执行三端物理设备冷启动、首装零网络抓包、动态字号、安全区、系统返回、退出行为、版本升级/回滚/重装或真实后台图片下载；Mobile 截图索引明确未完成。用户原有 `manifest.json`、既有文档内容和未跟踪微信公众号 Skills 均保留。本轮未 commit、未 push。
 - 最终 Node 24.18.1 根 `make check` 退出 0：Backend、Admin 30 文件/130 项测试、Mobile（含随包快照 App ID/本地图标漂移门禁）、全部蓝图/i18n 和 Docs 121 个 API 引用/68 页构建通过。
+
+## 2026-08-26 AppKernia 三端自定义基座
+
+### 状态：Android 自定义基座已完成 vivo 真机匿名启动，iOS 与 HarmonyOS 官方模拟器均已运行 AppKernia 自定义原生产物
+
+- 将 DCloud AppID 从占位值切换为已登记的 `__UNI__196F2FC`，保留用户原有 `0.2.0` 版本修改；三端原生标识统一为 `com.appkernia.mobile`。Android/iOS 打包和运行入口强制 custom playground，不允许回退到 `io.dcloud.uniappx` 标准基座。
+- 以 `apps/ak-admin/public/brand/appkernia-mark.png` 为唯一源，确定性生成 Android 密度/Android 12 启动图、无 Alpha 的 iOS 1024 图标、Android round icon，以及 DevEco 模板尺寸的 HarmonyOS 288 × 288 layered icon / 144 × 144 start icon；产物门禁进一步核对 Android 四档 launcher icon 逐像素一致、iOS AppIcon 与 1024 主图缩放匹配、Harmony layered/start icon 逐字节一致，并同步设计系统、UI Skill request/output/decisions/review 与截图索引。
+- 新增 `build-custom-base.sh`、原生资产生成器、Harmony overlay/签名隔离和 APK/App/HAP 产物检查器，并新增三端运行手册。HarmonyOS 官方没有 Android/iOS 式基座，交付物为带 AppKernia 原生身份的 HAP；签名采用“先生成原生工程，再只重跑 DevEco 工程”的二阶段流程，避免 HBuilderX 覆盖签名配置。
+- Android 云端自定义基座生成 16 MB `android_debug.apk`，包名 `com.appkernia.mobile`、名称 `AppKernia`、版本 `0.2.0`。vivo V2545A 后续已完成安装；HBuilderX 5.24 明确识别设备端 `com.appkernia.mobile` `0.2.0` 自定义基座为最新版本、跳过基座替换、同步 30 页面并启动。首次真实启动暴露并修复 manifest `UTSJSONObject` 结构强转和 TabBar 尚未创建时同步原生主题两处运行错误；复编译/复启动进入真实登录页，进程定向日志未再匹配对应 `ClassCastException`、`IndexOutOfBoundsException` 或 TabBar fail。
+- iOS 云端生成 89 MB x86_64 `Pandora_simulator_debug.app`；`Info.plist`、图标和 Mach-O 架构检查通过。在 iOS 18.6 iPhone 16 Pro 模拟器安装成功，HBuilderX 报告 custom playground 安装/30 页面同步/启动成功，并采集桌面图标与登录页截图。
+- HarmonyOS 使用 DevEco 6.0.2：HBuilder 内置 OHPM 仍受进程代理影响报 `Invalid URL`，一键脚本随后在生成工程内以无代理 OHPM 安装依赖并由 Hvigor `assembleHap` 成功生成 17,002,087 字节 `entry-default-unsigned.hap`，SHA-256 为 `31f9d8b10b301b6c167c1955135948d72aa85a8bbc03ae9ebb67285bede7d620`。HAP 的 `module.json` 为 `com.appkernia.mobile` / `0.2.0` / layered icon，运行时资源目录为 `__UNI__196F2FC`。
+- 当前无 HarmonyOS 物理设备。用户已授权自动签名；DevEco 在 `com.appkernia.mobile`、已登录帐号和 Managed Profile 流程中真实返回 `Unable to create the profile due to a lack of a device`，因此没有 Signing Config 被持久化。用户已分别明确同意 HarmonyOS Software License and Service Agreement 与 HarmonyOS SDK License Agreement；两份协议均完成接受，HarmonyOS 6.0.2（API 22）官方 Phone ARM64 镜像已下载。镜像六个 detached CMS 签名逐一校验通过；修正本地 HVD 的官方 `imageSubPath` 格式并丢弃失败磁盘层后，模拟器日志显示 `USERimage/SYSimage ... verify succeed` 与 `Guest OS Boot Completed`。重建后的 unsigned HAP 经 `hdc install -r` 安装成功，`aa start` 启动 `EntryAbility`，`bm dump` 回读 bundle、label 和 `$media:layered_image`；1080 × 2340 桌面截图显示完整 AppKernia 渐变/绿色轨迹图标与标签，首次隐私页也完成复测。应用自身隐私/用户协议未代用户点击。物理设备可安装包仍需连接设备完成 Managed Profile 自动签名；iOS 物理设备同样需匹配 Bundle ID 的开发证书与 Provisioning Profile。
+- Mobile framework contract、39 routes/3 platforms 蓝图、跨端 i18n、`check-project.sh`、脚本语法、三产物检查和 `git diff --check` 均退出 0；HBuilderX 5.24 Android/iOS/Harmony 30 页面 UTS 编译通过，Android vivo 真机自定义基座资源同步/匿名启动退出 0。Harmony 的 HBuilder 内置 OHPM 仍因代理 `Invalid URL` 中断，随后脚本以无代理 OHPM 和 DevEco Hvigor 完成 `BUILD SUCCESSFUL` 并重建 unsigned HAP。`verify-installable` 按预期退出 1 并明确 unsigned HAP 不能作为真机可安装交付；官方模拟器安装与首帧运行已单独通过。本轮未 commit、未 push，两个既有未跟踪微信公众号 Skills 保持未改动。
+- 已采集 vivo 匿名登录页、iOS 模拟器桌面/登录页，以及 HarmonyOS API 22 桌面启动器和首次隐私页；未执行 Harmony 应用协议同意、登录、网络、退出、返回键、动态字号、安全区或安全存储生命周期，不能把三端 smoke 外推为完整物理设备验收。Harmony 真机仍缺签名/在线设备，发布流水线还需固定可用的 ohpm 网络环境。
+
+## 2026-08-26 多端打包自动化与操作文档
+
+### 状态：脚本、根命令、双语手册和文档站构建完成；正式签名出包仍待发布凭据
+
+- 新增跨平台 Node.js 编排器，统一 Android/iOS/HarmonyOS 自定义基座与正式版构建入口；支持 macOS/Windows 常见 HBuilderX、DevEco、Python 路径和显式环境变量覆盖。
+- 根 `package.json` 新增自定义基座、正式版、预检、dry-run、单平台、产物校验和脚本测试命令。Android/iOS 签名通过退出即清理的受限临时配置交给 HBuilderX，日志和命令行只显示签名变量配置状态，不显示秘密值。
+- 自定义基座预检只读校验 AppKernia 原生身份和图标契约；正式版预检严格要求 Android Keystore、Apple Distribution p12/Profile 与 Harmony Signing Config，缺少任一项即失败。
+- `docs/manual` 新增自定义基座和正式版三端操作手册，覆盖 macOS/Windows、工具链、签名变量、Harmony 两阶段 release、产物路径、安全边界与发布验收。
+- 文档站新增中英文“移动端自定义基座与正式版打包”页面，并接入 guide 导航、开始使用索引和移动端开发交叉链接；Rspress 最终构建 70 页且双语 parity、Sitemap、121 个 OpenAPI 引用全部通过。
+- Node 24.18.1 脚本测试 4/4 通过；三端 dry-run、自定义基座只读预检、现有 APK/iOS App/Harmony unsigned HAP 产物身份与图标校验、Mobile 蓝图、跨端 i18n、Mobile 静态门禁和 `git diff --check` 通过。
+- 当前没有 Android/iOS 正式发布证书，Harmony 也仍缺在线物理设备形成的 Signing Config；正式预检按设计退出 1，未执行正式版真实出包、商店上传或审核。Windows 兼容性已由路径单测和无 Bash 依赖的编排覆盖，尚未在 Windows 主机实际调用 HBuilderX/DevEco。

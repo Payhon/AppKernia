@@ -38,6 +38,8 @@ apps/ak-mobile/scripts/build-platform.sh harmony
 
 这些命令能否完成取决于本机 IDE、SDK、签名与设备。静态检查成功时，只能报告“静态门禁通过”；没有目标平台构建与设备记录时，不能报告该平台通过。
 
+自定义基座、正式签名包、macOS/Windows 环境变量和根目录自动化入口见[移动端自定义基座与正式版打包](./mobile-packaging.md)。
+
 ## 组件使用
 
 业务页面只能使用 `components/ak-ui` 暴露的 `ak-*`，不能直接绑定 `up-*`。从[移动组件总览](../mobile-components/)开始。

@@ -2015,3 +2015,81 @@
 - Admin 证据见 `apps/ak-admin/artifacts/ui-ux-pro-max/app-startup-experience/screenshot-index.md`；Mobile UI 产物见 `apps/ak-mobile/artifacts/ui-ux-pro-max/startup-experience/`。
 - 未采集物理设备截图，不能把三平台编译或 unsigned HAP 外推为冷启动、网络、退出、返回键、动态字号和安全区验收。Harmony 仍缺包名/签名，发布流水线需固定可用的 ohpm 网络环境。
 - 用户原有 `apps/ak-mobile/manifest.json`、既有文档增量和未跟踪微信公众号 Skills 未覆盖或删除。本轮未 commit、未 push。
+
+## 2026-08-26 AppKernia 三端自定义基座交付报告
+
+### 交付内容
+
+- Android/iOS 原生调试包均使用 custom playground；Android package、iOS bundle identifier 和 HarmonyOS bundle name 统一为 `com.appkernia.mobile`，DCloud 运行时 AppID 为 `__UNI__196F2FC`。
+- 从仓库 AppKernia 品牌主图确定性生成并校验 Android/iOS/HarmonyOS 全套图标与启动资源，不使用 DCloud/HBuilderX 默认图标。
+- 新增 `build-custom-base.sh`、`generate-native-icons.py`、`prepare-harmony-native.py`、`verify-custom-base.py`、Android native resources、Harmony AppScope overlay、运行手册与 UI Skill 证据。Harmony 签名构建拆为不会重新调用 HBuilderX 的 `harmony-signed`，避免已生成 Signing Config 被覆盖。
+
+### 实际命令与结果
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `./scripts/build-custom-base.sh android` | 0 | HBuilderX 5.24 云端生成 `unpackage/debug/android_debug.apk`；aapt2 为 `com.appkernia.mobile` / `AppKernia` / `0.2.0`。APK SHA-256 `a556958d1df12eee23fad69155ba451adb1cab11ffa874007e7c2de45c883d1f`。 |
+| vivo V2545A `adb install -r` | 先 1，后安装成功 | 首次因设备未授权返回 `INSTALL_FAILED_ABORTED`；后续设备已安装 `com.appkernia.mobile` 0.2.0，`pm path`、`dumpsys package` 和前台 Activity 均可解析。 |
+| `./scripts/build-custom-base.sh ios-simulator` | 0 | 云端生成 89 MB `Pandora_simulator_debug.app`；`Info.plist` 为 `com.appkernia.mobile` / `AppKernia` / `0.2.0`，AppIcon 存在，Mach-O 为 x86_64。可执行文件 SHA-256 `01fd984a438a3bb0cf4d42daea405f1fcf1a1a8ece6b87a78117821c44b2df4a`。 |
+| `simctl install/launch` + HBuilderX `launch app-ios --playground custom` | 0 | iOS 18.6 iPhone 16 Pro 模拟器安装成功；HBuilderX 明确报告自定义基座安装成功、30 页面同步成功、项目启动，并显示 AppKernia 登录页。 |
+| `./scripts/build-custom-base.sh harmony` | 0 | HBuilder UVue/UTS 编译成功；内置 OHPM 代理失败后，脚本在 DevEco 工程内无代理安装依赖，Hvigor `BUILD SUCCESSFUL`。按 DevEco 模板尺寸重建 17,002,087 字节 unsigned HAP，SHA-256 `31f9d8b10b301b6c167c1955135948d72aa85a8bbc03ae9ebb67285bede7d620`。 |
+| `./scripts/build-custom-base.sh verify` | 0 | Android APK、iOS simulator App、Harmony unsigned HAP 的原生身份、版本与 AppKernia 图标契约全部通过；Android 四档 launcher icon 逐像素一致，iOS AppIcon 与 1024 品牌主图缩放匹配，Harmony layered/start icon 逐字节一致。HAP 是否签名由官方工具实测，不再依赖文件名。 |
+| `prepare-harmony-native.py --require-signing` | 1（预期门禁） | 当前生成工程没有 Signing Config，构建在读取密码/私钥前明确终止。 |
+| `./scripts/build-custom-base.sh verify-installable` | 1（预期门禁） | APK/App 身份通过，DevEco `hap-sign-tool.jar` 确认 HAP 无签名块，拒绝把 unsigned HAP 标成真机可安装。 |
+| DevEco 自动签名（`com.appkernia.mobile`） | 未生成 | 用户已授权；帐号/Team/Bundle 进入 Managed Profile 流程后，DevEco 明确报缺少在线设备，Signing Config 仍为 0。 |
+| vivo V2545A `adb install -r` 再次发起 | 130 | 安装请求等待手机端授权约 60 秒仍无结果，确认包未安装后终止等待进程；未绕过设备安全提示。 |
+| HBuilderX `launch app-android --playground custom` | 0 | 明确报告设备端 AppKernia 自定义基座已是最新版本并跳过更新，完成 30 页面资源同步、启动和 `onLaunch`；修复前捕获两处运行错误，修复后进入登录页且进程日志无对应异常。 |
+| `apps/ak-mobile/scripts/build-platform.sh android`（运行时修复后） | 0 | HBuilderX 5.24 完成 30 页面 Android class 编译，`ready in 34225ms`。 |
+| `apps/ak-mobile/scripts/build-platform.sh ios`（运行时修复后） | 0 | HBuilderX 5.24 完成 30 页面 iOS UTS 编译，`ready in 36724ms`。 |
+| `build-platform.sh harmony` / `build-custom-base.sh harmony` | 1 / 0 | 前者 30 页面编译成功后被 HBuilder 内置 OHPM 的代理 `Invalid URL` 中断；后者使用无代理 OHPM/Hvigor 完成 unsigned HAP，`BUILD SUCCESSFUL`。 |
+| DevEco Device Manager 协议/模拟器 | 0 / 通过 | 用户分别明确同意 HarmonyOS Software License and Service Agreement 与 HarmonyOS SDK License Agreement；两份协议均完成接受，HarmonyOS 6.0.2（API 22）官方 Phone ARM64 镜像下载完成。六个镜像 detached CMS 签名逐一验证通过，模拟器日志显示系统/用户镜像校验成功和 Guest OS Boot Completed。 |
+| API 22 模拟器 `hdc install -r` / `aa start` / `bm dump` | 0 | 新 HAP 返回 `install bundle successfully` 和 `start ability successfully`；`bm dump` 回读 `com.appkernia.mobile`、AppKernia label resource、`$media:layered_image` 与 API 22 编译信息。 |
+| `uitest keyEvent Home` + `snapshot_display` + `hdc file recv` | 0 | 保存两张 1080 × 2340 JPEG：Home Screen 完整显示仓库 AppKernia 渐变/绿色轨迹 layered icon 与标签；首次隐私页也完成复测。未代替用户同意应用自身隐私/用户协议。 |
+| `bash -n` + `python3 -m py_compile` | 0 | 两个 shell 入口和三个 Python 工具语法通过。 |
+| `./scripts/check-project.sh` | 0 | Mobile blueprint/i18n、生成 Client、随包启动快照和升级静态测试通过。 |
+| `python3 apps/ak-mobile/scripts/verify-mobile-framework.py` | 0 | 修正静态门禁与当前由 `AkHttpClient` 统一注入设备键的架构漂移后，运行配置逐字段读取、TabBar 生命周期及既有 framework contract 全部通过。 |
+| mobile blueprint + cross-platform i18n validators | 0 / 0 | 39 routes、3 platforms，0 error / 0 warning；`zh-CN` / `en-US` parity 通过。 |
+| `git diff --check` | 0 | 补丁无空白错误。 |
+
+### 截图、未完成项与风险
+
+- 截图索引位于 `apps/ak-mobile/artifacts/ui-ux-pro-max/custom-native-bases/screenshots/INDEX.md`：包含 vivo 安装授权页、首次未同步诊断页、修复后真机登录页、iOS 模拟器桌面/登录页，以及 HarmonyOS API 22 官方模拟器的 AppKernia 桌面启动器与首次隐私页。
+- Android 已完成 vivo V2545A 自定义基座安装、资源同步与匿名登录页启动；未执行登录、后端网络、安全存储、升级、返回键或长时稳定性。iOS 物理机仍需要 `com.appkernia.mobile` 对应开发证书/Profile。
+- DevEco Project Structure 已确认 Bundle name 为 `com.appkernia.mobile` 且华为帐号已登录；用户授权后自动签名真实执行到 Managed Profile 创建阶段，但因没有在线物理设备而停止，没有留下空签名配置。两份 HarmonyOS 软件/SDK 许可协议均已按用户即时明确授权接受；API 22 官方 Phone 镜像及 unsigned HAP 模拟器运行已经完成。下一项外部依赖仅为连接实际 HarmonyOS 设备后重试 Managed Profile 自动签名与真机安装。
+- Harmony HBuilder 内置 OHPM 会受已启动 HBuilderX 进程的代理环境影响；独立无代理 OHPM/Hvigor 路径已自动化并退出 0。首次生成原生工程若在依赖阶段前失败，应清除代理环境后重启 HBuilderX。
+- 用户原有 `manifest.json` 版本 `0.2.0` 保持；两个既有未跟踪微信公众号 Skills 未纳入改动。本轮未 commit、未 push。
+
+## 2026-08-26 多端打包自动化与文档站交付报告
+
+### 交付内容
+
+- 新增 `apps/ak-mobile/scripts/mobile-package.mjs`，在 macOS/Windows 上编排 HBuilderX 云打包、Harmony 原生工程生成、无代理 OHPM 和 Hvigor。Android/iOS/HarmonyOS 自定义基座与正式版均有独立的 preflight、dry-run、单平台、all 和 verify 入口。
+- 正式版 Android 固定 AppKernia 包名并使用自有 Keystore；iOS 固定 AppKernia Bundle ID 并使用 Apple Distribution p12/Profile；Harmony 使用“prepare → DevEco Signing Config → release assembleApp”两阶段流程，避免重新生成工程覆盖签名配置。
+- HBuilderX 签名配置仅写入系统临时目录的受限 `configure.json`，调用结束后递归删除；命令输出、`package.json` 与文档不保存密码。正式预检缺签名时 fail-closed。
+- 新增 `docs/manual/mobile-custom-base-build.md`、`docs/manual/mobile-production-release.md`，并更新 Mobile README。文档站新增中英文打包指南、导航元数据、开始使用索引和移动开发交叉链接。
+- `apps/ak-mobile/scripts/check-project.sh` 纳入打包编排器的 Node 单测，后续 Mobile 静态门禁会持续检查 AppKernia custom 配置、Windows 路径和签名脱敏契约。
+
+### 实际命令与结果
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| Node 24.18.1 `node --check`、`node --test mobile-package.test.mjs` | 0 / 0 | 编排器语法通过；4 项测试全部通过，覆盖参数、AppKernia identity/custom 模式、Windows 可执行路径和秘密值脱敏。 |
+| `python3 -m py_compile` + `python3 -m json.tool package.json` | 0 / 0 | 三个 Python 辅助工具与根 `package.json` 语法有效。 |
+| `pnpm build:mobile:base:preflight` | 0 | 只读检查原生身份、三端图标尺寸与 Harmony AppScope，未重生成资产或发起打包。 |
+| `pnpm build:mobile:base:dry-run` | 0 | 展示 Android/iOS custom pack、Harmony pack/overlay/OHPM/Hvigor 完整编排，未调用云打包或编译。 |
+| `pnpm build:mobile:release:dry-run` | 0 | 展示三端 release 编排；7 个签名输入均只输出 `<missing>`，没有输出秘密值。 |
+| `pnpm build:mobile:release:preflight` | 1（预期门禁） | 当前首先明确缺少 4 个 Android 发布签名变量并停止；证明无签名不会继续正式打包。 |
+| `pnpm build:mobile:base:verify` | 0 | 复核仓库当前已有 Android APK、iOS simulator App 与 Harmony unsigned HAP 的 AppKernia 身份和实际图标；这是既有自定义基座产物复核，不是本轮重新云打包。 |
+| Mobile blueprint / cross-platform i18n validators | 0 / 0 | 39 routes、3 platforms，0 error / 0 warning；`zh-CN` / `en-US` parity 通过。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | 生成 Client/i18n/启动快照/升级契约及新增 4 项打包脚本测试全部通过。 |
+| 首轮 `pnpm check:docs` | 1 | lint 与 typecheck 通过，Prettier 准确指出英文 guide 索引表列宽格式漂移；未掩盖失败。 |
+| Prettier 定向格式化后 `pnpm check:docs` | 0 | 121 个 OpenAPI 引用、rslint 0、TypeScript、Prettier、Rspress 双语构建、language parity 与 70 页 Sitemap 全部通过。 |
+| Node 24.18.1 根 `make check`（发布前最终门禁） | 0 | Backend 蓝图与 Go 全量测试、Admin 30 文件/130 项测试及生产构建、Mobile、三套蓝图/i18n 与 Docs 70 页聚合门禁全部通过。 |
+| `git diff --check` | 0 | 当前补丁无空白错误。 |
+
+### 未完成项与风险
+
+- 未提供 Android/iOS 正式发布证书，Harmony Managed Profile 仍依赖在线物理设备，因此没有执行三端正式签名出包、真实安装、商店上传或审核；dry-run 与脚本测试不能替代这些外部验收。
+- Windows 分支已由单测验证路径选择，并由同一 Node 编排器避免 Bash 依赖；本轮实际执行环境是 macOS，尚无 Windows HBuilderX/DevEco 真实打包证据。
+- 文档站源码和本地 production build 已更新；线上发布以本次 `main` 推送触发的 GitHub Pages workflow 及最终 HTTP 验证为准。
+- 本项没有新增可视 UI，也没有新的截图；既有自定义基座设备/模拟器截图仍由上一节索引管理。

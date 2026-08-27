@@ -1,8 +1,8 @@
 {
 	"name": "AppKernia",
-	"appid": "__UNI__APPKERNIA",
+	"appid": "__UNI__196F2FC",
 	"description": "AppKernia uni-app x application base",
-	"versionName": "0.1.0",
+	"versionName": "0.2.0",
 	"versionCode": "100",
 	"locale": "zh-CN",
 	"fallbackLocale": "zh-CN",
@@ -15,11 +15,13 @@
 		"renderer": "vdom"
 	},
 	"app": {
+		"defaultAppTheme": "light",
 		"minSdkVersion": 26,
 		"distribute": {
 			"android": {},
 			"ios": {
-				"deploymentTarget": "13.0"
+				"deploymentTarget": "13.0",
+				"CFBundleName": "AppKernia"
 			},
 			"harmony": {
 				"minAPILevel": 14
@@ -29,20 +31,41 @@
 	"app-android": {
 		"minSdkVersion": 26,
 		"distribute": {
+			"syncDebug": true,
 			"modules": {},
-			"icons": {},
+			"icons": {
+				"hdpi": "static/app-icons/android/icon-72.png",
+				"xhdpi": "static/app-icons/android/icon-96.png",
+				"xxhdpi": "static/app-icons/android/icon-144.png",
+				"xxxhdpi": "static/app-icons/android/icon-192.png"
+			},
 			"splashScreens": {
-				"default": {}
+				"default": {},
+				"background": "#F2F2F7",
+				"icon": {
+					"xhdpi": "static/app-icons/android/splash-icon-480.png",
+					"xxhdpi": "static/app-icons/android/splash-icon-720.png",
+					"xxxhdpi": "static/app-icons/android/splash-icon-960.png"
+				}
 			}
 		}
 	},
 	"app-ios": {
 		"minSdkVersion": 26,
 		"distribute": {
+			"syncDebug": true,
 			"deploymentTarget": "13.0",
 			"modules": {},
-			"icons": {},
+			"icons": {
+				"appstore": "static/app-icons/ios/appstore-1024.png"
+			},
 			"splashScreens": {}
+		}
+	},
+	"app-harmony": {
+		"distribute": {
+			"bundleName": "com.appkernia.mobile",
+			"modules": {}
 		}
 	}
 }

@@ -11,6 +11,7 @@ export const themeState = reactive({ isDark: false } as ThemeState)
 export class ThemeStore {
   private appearance: Appearance = 'system'
   private listening: boolean = false
+  private tabBarReady: boolean = false
 
   initialize(): void {
     if (this.listening) return
@@ -38,9 +39,17 @@ export class ThemeStore {
 
   isDark(): boolean { return themeState.isDark }
 
+  /** The native TabBar does not exist until the first tab page is mounted. */
+  markTabBarReady(): void {
+    this.tabBarReady = true
+    this.applyNativeChrome()
+  }
+
   private applyNativeChrome(): void {
+    if (getCurrentPages().length == 0) return
     const dark: boolean = themeState.isDark
     uni.setNavigationBarColor({ frontColor: dark ? '#FFFFFF' : '#000000', backgroundColor: dark ? '#000000' : '#F2F2F7' })
+    if (!this.tabBarReady) return
     uni.setTabBarStyle({ color: dark ? '#8E8E93' : '#8E8E93', selectedColor: dark ? '#4D8DFF' : '#246BFE', backgroundColor: dark ? '#1C1C1E' : '#FFFFFF', borderStyle: dark ? 'black' : 'white' })
     uni.setTabBarItem({ index: 0, iconPath: '/static/ak-tabbar/home-default.png', selectedIconPath: dark ? '/static/ak-tabbar/home-selected-dark.png' : '/static/ak-tabbar/home-selected.png' })
     uni.setTabBarItem({ index: 1, iconPath: '/static/ak-tabbar/notifications-default.png', selectedIconPath: dark ? '/static/ak-tabbar/notifications-selected-dark.png' : '/static/ak-tabbar/notifications-selected.png' })

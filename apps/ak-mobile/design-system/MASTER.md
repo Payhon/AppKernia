@@ -56,6 +56,13 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 - Standard tabs use outline icons when inactive and filled icons when selected. Do not redistribute SF Symbols or use emoji.
 - Page icon buttons are hosted by a 44 × 44 px target. Decorative icons are not separate actions.
 
+## Native application identity
+
+- Android, iOS and HarmonyOS launcher/start-window assets are derived from the canonical `apps/ak-admin/public/brand/appkernia-mark.png`; do not ship DCloud/HBuilder default artwork.
+- iOS App Store artwork is an opaque 1024 × 1024 PNG. Android launcher artwork uses the platform density matrix and keeps the mark inside the Android 12 splash safe circle.
+- HarmonyOS uses an AppKernia blue layered-image background plus the AppKernia foreground mark. The native label is `AppKernia` on all three platforms.
+- Native package identity is `com.appkernia.mobile` for the current reusable base. Changing it requires synchronized signing profiles, build scripts, verification and delivery documentation.
+
 ## Shared interaction rules
 
 - Every user-visible string is an `AkI18n` key in both catalogs.

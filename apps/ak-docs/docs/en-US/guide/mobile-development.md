@@ -29,4 +29,6 @@ apps/ak-mobile/scripts/build-platform.sh harmony
 
 Completion depends on installed IDEs, SDKs, signing, and devices. A static check only proves static gates; do not report a platform as accepted without its build and device record.
 
+See [Mobile custom-base and release packaging](./mobile-packaging.md) for custom playgrounds, signed release artifacts, macOS/Windows variables, and root-level automation commands.
+
 Business pages must use `ak-*` components from `components/ak-ui`, never bind directly to `up-*`. Continue with the [mobile component overview](../mobile-components/).

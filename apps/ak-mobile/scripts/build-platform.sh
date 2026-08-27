@@ -9,10 +9,10 @@ cli=/Applications/HBuilderX.app/Contents/MacOS/cli
 
 case "$platform" in
   android)
-    command=("$cli" launch app-android --project "$project_root" --compile true --cleanCache true --continue-on-error false)
+    command=("$cli" launch app-android --project "$project_root" --playground custom --compile true --cleanCache true --continue-on-error false)
     ;;
   ios)
-    command=("$cli" launch app-ios --project "$project_root" --iosTarget simulator --compile true --cleanCache true --continue-on-error false)
+    command=("$cli" launch app-ios --project "$project_root" --iosTarget simulator --playground custom --compile true --cleanCache true --continue-on-error false)
     ;;
   harmony)
     command=("$cli" launch app-harmony --project "$project_root" --compile true --cleanCache true --continue-on-error false)

@@ -1,0 +1,13 @@
+# Screenshot index
+
+| File | Device/state | What it proves | Boundary |
+|---|---|---|---|
+| `android-vivo-install-authorization.png` | vivo V2545A, Android package installer | The physical device parsed the custom APK as AppKernia `0.2.0` and rendered the repository-derived launcher icon. | Installation stopped at vivo's manual “authorize this installation” security gate; this is not an installed-app or cold-start screenshot. |
+| `android-vivo-custom-base.png` | vivo V2545A, first custom-base launch before resource sync | The installed package launched with the AppKernia identity and exposed the expected missing-resource diagnostic before HBuilderX sync. | Superseded diagnostic evidence; it is not the final runtime state. |
+| `android-vivo-custom-base-login.png` | vivo V2545A, Android custom playground after 30-page sync | HBuilderX skipped base replacement because `com.appkernia.mobile` `0.2.0` was current, synchronized project files, and launched the real dark-theme AppKernia login page. | Anonymous startup smoke only; no authenticated API or secure-storage lifecycle is claimed. |
+| `ios-18.6-appkernia-home.png` | iPhone 16 Pro simulator, iOS 18.6 Home Screen | The installed `com.appkernia.mobile` custom base renders the AppKernia icon and label, distinct from the standard uni-app x base. | Simulator evidence only; it does not prove physical-device signing or Keychain behavior. |
+| `ios-18.6-appkernia-running.png` | iPhone 16 Pro simulator, iOS 18.6, synced custom playground | HBuilderX custom playground installed, synced all 30 pages and launched the real AppKernia login surface. | Local development API was not started; no authenticated/network flow is claimed. |
+| `harmony-api22-appkernia-home.jpeg` | HarmonyOS 6.0.2 API 22 official Phone ARM64 emulator, Home Screen | The installed `com.appkernia.mobile` HAP renders the complete repository-derived layered launcher icon (including the green orbital stroke) and `AppKernia` label. | Emulator evidence only; it does not prove physical-device signing, Asset Store or hardware behavior. |
+| `harmony-api22-custom-base-login.jpeg` | HarmonyOS 6.0.2 API 22 official Phone ARM64 emulator, first launch | The rebuilt unsigned HAP installed and started `EntryAbility`; the 1080 × 2340 device snapshot renders the AppKernia name, subtitle and first-launch privacy surface. | The privacy surface contains its own embedded illustration and is not used as launcher-icon evidence. The application privacy/user agreement was not accepted on the user's behalf. |
+
+HarmonyOS physical-device runtime screenshots are not claimed. Generated PNG previews are design assets, not runtime evidence.

@@ -1,10 +1,12 @@
 # AppKernia HarmonyOS 真机运行调试实录
 
+> **历史证据边界（2026-08-26 补充）：** 本文保留的是使用 HBuilderX 生成身份 `io.dcloud.uniappx` 的旧调试链路，不满足当前“不得使用 HBuilder 默认基座/默认原生身份”的自定义基座目标，也不得作为 `com.appkernia.mobile` 的签名、安装或运行证据。当前 AppKernia 自定义 HAP、签名隔离和验收命令以 [`apps/ak-mobile/docs/custom-native-bases.md`](../../apps/ak-mobile/docs/custom-native-bases.md) 为准。本文以下内容仅用于追溯旧设备/工具链行为。
+
 > 记录日期：2026-08-25（Asia/Shanghai）
 >
 > 仓库提交基线：`f527b0d`（运行时工作树包含未提交功能改动）
 >
-> 结论：**AppKernia 已在 USB 连接的 HarmonyOS 真机完成编译、调试签名、安装、启动和独立重启。**
+> 历史结论：旧 `io.dcloud.uniappx` 调试包曾在 USB 连接的 HarmonyOS 真机完成编译、调试签名、安装、启动和独立重启；该结果不能外推为当前 AppKernia 自定义原生身份通过。
 
 ## 1. 本次验收边界
 

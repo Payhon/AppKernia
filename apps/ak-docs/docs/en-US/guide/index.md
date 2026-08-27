@@ -14,6 +14,7 @@ If you are still deciding whether it fits your project, start with [What is AppK
 | See the complete system quickly  | [Docker quick start](./quick-start)         | Docker Desktop and Git            |
 | Change Go or React source        | [Source development](./source-development)  | Go 1.26, Node 24, pnpm 11, Docker |
 | Build Android, iOS, or HarmonyOS | [Mobile development](./mobile-development)  | HBuilderX and platform toolchains |
+| Build custom bases or releases   | [Mobile packaging](./mobile-packaging)      | HBuilderX, DevEco, and signing    |
 | Understand the repository first  | [Repository structure](./project-structure) | 5–10 minutes                      |
 | Decide whether the project fits  | [What is AppKernia?](./what-is-appkernia)   | 8–12 minutes                      |
 
@@ -38,6 +39,7 @@ If any check fails, go to [troubleshooting](./troubleshooting), keep the first f
 | Add a business API                  | Read [server conventions](../api/conventions) and the OpenAPI source           |
 | Add an Admin page                   | Confirm permission, menu, generated client, and bilingual keys                 |
 | Add a Mobile page or component      | Continue with [Mobile development](./mobile-development) and AK UI             |
+| Package a custom base or release    | Follow [Mobile packaging](./mobile-packaging) for toolchains and signing       |
 | Change auth, authorization, tenancy | Read [authentication](../concepts/authentication) and ownership boundaries     |
 | Prepare a contribution              | Follow the [contribution guide](../community/contributing) and evidence checks |
 
@@ -49,4 +51,5 @@ If any check fails, go to [troubleshooting](./troubleshooting), keep the first f
 4. [Authentication and sessions](../concepts/authentication)
 5. [Server API](../api/)
 6. [Mobile components](../mobile-components/)
-7. [Contributing](../community/contributing)
+7. [Mobile packaging](./mobile-packaging)
+8. [Contributing](../community/contributing)
