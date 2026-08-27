@@ -2093,3 +2093,29 @@
 - Windows 分支已由单测验证路径选择，并由同一 Node 编排器避免 Bash 依赖；本轮实际执行环境是 macOS，尚无 Windows HBuilderX/DevEco 真实打包证据。
 - 文档站源码和本地 production build 已更新；线上发布以本次 `main` 推送触发的 GitHub Pages workflow 及最终 HTTP 验证为准。
 - 本项没有新增可视 UI，也没有新的截图；既有自定义基座设备/模拟器截图仍由上一节索引管理。
+
+## 2026-08-27 AKDOCS-006 首页 Hero 视觉优化交付报告
+
+### 交付内容
+
+- 移除 Hero 眉题的胶囊边框、圆角与内边距，并显式重置行高，避免 Rspress 原始大标题行盒把小标签撑至约 93px。
+- 以 `.ak-home-main > .rp-home-hero` 覆盖默认 1152px/Flex 规则，采用最大 1488px、`0.88fr / 1.12fr` 两栏网格；产品组合在桌面端超过 Hero 宽度的 45% 门禁。
+- Admin 浏览器画布减少右侧保留空间，手机框占比从 22% 增至 23%；不裁改、不替换原始产品截图和 alt 文本。
+- 通过 Hero `100vw` 伪元素提供全宽浅色/深色品牌渐变，内容列仍保持居中与响应式堆叠。
+- 验收脚本新增标签高度/边框、Hero 渐变、桌面产品图占比断言，并保存 1440px 中英文 Hero 局部截图。
+
+### 实际命令与结果
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `ui-ux-pro-max --design-system` + UX/React 查询 | 0 | 采用 WCAG AA、响应式图片、无页面横向滚动与多视口检查；拒绝与项目阶段不符的客户 Logo、评分和动画社交证明。 |
+| `DOCS_ORIGIN=https://payhon.github.io DOCS_BASE=/AppKernia pnpm --dir apps/ak-docs check` | 0 | 121 个 API 引用、RSLint 12 文件 0 error/warning、TypeScript strict、Prettier、70 页双语构建、语言 parity 与 Sitemap 全部通过。 |
+| `AK_DOCS_EVIDENCE_ID=AKDOCS-006 AK_DOCS_SAMPLE=home ... visual-check.py` | 0 | 6 个最终状态全部通过；标签 19.5px/0 边框，桌面产品列 53.3%–53.7%，两套渐变存在，H1/图片/overflow/Slider/console/请求/axe 均通过。 |
+| Backend / Admin / Mobile blueprint validators | 0 / 0 / 0 | Backend 18 对 migration/89 表；Admin 46 菜单/56 路由；Mobile 39 路由/34 组件，0 error/warning。 |
+| i18n validator / UI Skill check / Python compile | 0 / 0 / 0 | `zh-CN`、`en-US` 和三端 reference pack 一致；Skill 存在且已真实执行；视觉脚本语法通过。 |
+
+### 纠正记录与边界
+
+- 第一次把浏览器 URL 也挂到 `/AppKernia` 的只读静态服务器时，Rspress 客户端路由按 404 处理；改用 Rspress preview 后页面路由正确，但 Base Path 资源被返回为 HTML，形成无样式的假失败。最终使用只读映射服务器在根路径呈现页面、同时映射 `/AppKernia/*` 生产资源，6 个状态原断言全部通过；没有为本地预览削弱生产 Base Path。
+- [AKDOCS-006 decisions](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-006/decisions.md)、[review checklist](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-006/review-checklist.md)、[screenshots and results](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-006/screenshots/INDEX.md)。
+- 本轮只完成本地源码、构建和 Chromium 验收，未 commit、未 push、未触发 GitHub Pages；线上页面仍以已发布 Workflow 为准。

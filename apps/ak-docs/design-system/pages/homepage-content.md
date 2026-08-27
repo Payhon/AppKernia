@@ -1,4 +1,19 @@
-# AKDOCS-005 — Author voice and connected-grid homepage
+# AKDOCS-006 — Hero gradient and product focus
+
+## Hero override
+
+- Render the `MIT open source · Mobile + Admin + Server` eyebrow as compact
+  mono text with no border, pill radius, or padded shell.
+- Override Rspress's stock 1152 px flex Hero with the AppKernia 1488 px grid.
+  At desktop widths, the product screenshot column must occupy at least 45% of
+  the Hero and use the full available width.
+- Use a full-bleed blue–cyan–green gradient spanning the Hero from viewport edge
+  to viewport edge. Keep saturation restrained, preserve WCAG AA text contrast,
+  and provide a darker equivalent rather than reusing the light gradient.
+- Below 1100 px, stack copy and product surfaces; below 768 px, keep the Admin
+  window and one phone without page-level horizontal overflow.
+
+## Preserved AKDOCS-005 rules
 
 ## Page intent
 

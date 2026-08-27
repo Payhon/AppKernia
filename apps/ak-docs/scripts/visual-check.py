@@ -133,8 +133,14 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
           const sidebar = document.querySelector('.rp-doc-layout__sidebar');
           const outline = document.querySelector('.rp-doc-layout__outline');
           const paragraph = document.querySelector('.rp-doc p');
+          const hero = document.querySelector('.rp-home-hero');
+          const heroImage = document.querySelector('.rp-home-hero__image');
+          const heroLabel = document.querySelector('.rp-home-hero__title-brand');
           const sidebarRect = sidebar?.getBoundingClientRect();
           const outlineRect = outline?.getBoundingClientRect();
+          const heroRect = hero?.getBoundingClientRect();
+          const heroImageRect = heroImage?.getBoundingClientRect();
+          const heroLabelRect = heroLabel?.getBoundingClientRect();
           return {
             h1Count: document.querySelectorAll('h1').length,
             viewportWidth: window.innerWidth,
@@ -171,6 +177,14 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
             technologyCards: document.querySelectorAll('.ak-tech-logo-card').length,
             productSliders: document.querySelectorAll('.ak-product-slider').length,
             maturitySections: document.querySelectorAll('#maturity-title, .ak-maturity-grid').length,
+            hero: heroRect && heroImageRect && heroLabelRect ? {
+              width: heroRect.width,
+              imageWidth: heroImageRect.width,
+              imageRatio: heroImageRect.width / heroRect.width,
+              labelHeight: heroLabelRect.height,
+              labelBorderWidth: Number.parseFloat(getComputedStyle(heroLabel).borderTopWidth),
+              backgroundImage: getComputedStyle(hero, '::before').backgroundImage,
+            } : null,
           };
         }
         """
@@ -233,6 +247,9 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
         full_page=route in {"/", "/en-US/"},
     )
     if route in {"/", "/en-US/"} and width == 1440:
+        await page.locator(".rp-home-hero").screenshot(
+            path=str(EVIDENCE / f"{name}.hero.png")
+        )
         await page.add_style_tag(content=".rp-nav { display: none !important; }")
         await page.locator(".ak-tech-stack-section").screenshot(
             path=str(EVIDENCE / f"{name}.technology.png")
@@ -276,6 +293,18 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
     if "what-is-appkernia" in route and metrics["galleryImages"] != 8:
         errors.append(f"expected 8 product gallery images, got {metrics['galleryImages']}")
     if route in {"/", "/en-US/"}:
+        hero = metrics["hero"]
+        if not hero:
+            errors.append("hero metrics are not measurable")
+        else:
+            if hero["labelBorderWidth"] != 0:
+                errors.append(f"hero label border remains: {hero['labelBorderWidth']}px")
+            if hero["labelHeight"] > 32:
+                errors.append(f"hero label is too tall: {hero['labelHeight']}px")
+            if hero["backgroundImage"] == "none":
+                errors.append("hero gradient background is missing")
+            if width >= 1200 and hero["imageRatio"] < 0.45:
+                errors.append(f"hero product image is too small: {hero['imageRatio']:.3f}")
         if metrics["homeSections"] != 9:
             errors.append(f"expected 9 home sections, got {metrics['homeSections']}")
         if metrics["maturitySections"]:

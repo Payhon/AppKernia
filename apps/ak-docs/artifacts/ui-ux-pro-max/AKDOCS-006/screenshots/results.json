@@ -1,0 +1,418 @@
+[
+  {
+    "name": "home.zh-CN.light.375",
+    "url": "http://127.0.0.1:4175/",
+    "status": 200,
+    "theme": "light",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 375,
+      "scrollWidth": 375,
+      "brokenImages": [],
+      "overflowElements": [
+        {
+          "selector": ".ak-capability-table",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 353.0625,
+          "right": 566,
+          "width": 212.9375
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 353.0625,
+          "right": 566,
+          "width": 212.9375
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 353.0625,
+          "right": 566,
+          "width": 212.9375
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        }
+      ],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0,
+      "hero": {
+        "width": 343,
+        "imageWidth": 343,
+        "imageRatio": 1,
+        "labelHeight": 19.5,
+        "labelBorderWidth": 0,
+        "backgroundImage": "radial-gradient(circle at 78% 42%, rgba(0, 184, 199, 0.2), rgba(0, 0, 0, 0) 36%), radial-gradient(circle at 14% 8%, rgba(0, 112, 243, 0.15), rgba(0, 0, 0, 0) 34%), linear-gradient(118deg, rgb(248, 251, 255) 0%, rgb(238, 250, 255) 54%, rgb(247, 255, 244) 100%)"
+      }
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/", "http://127.0.0.1:4175/"],
+    "errors": []
+  },
+  {
+    "name": "home.zh-CN.light.768",
+    "url": "http://127.0.0.1:4175/",
+    "status": 200,
+    "theme": "light",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 768,
+      "scrollWidth": 768,
+      "brokenImages": [],
+      "overflowElements": [
+        {
+          "selector": ".ak-capability-table",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        },
+        {
+          "selector": ".",
+          "left": 566,
+          "right": 802,
+          "width": 236
+        },
+        {
+          "selector": ".",
+          "left": 42,
+          "right": 802,
+          "width": 760
+        }
+      ],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0,
+      "hero": {
+        "width": 736,
+        "imageWidth": 736,
+        "imageRatio": 1,
+        "labelHeight": 19.5,
+        "labelBorderWidth": 0,
+        "backgroundImage": "radial-gradient(circle at 78% 42%, rgba(0, 184, 199, 0.2), rgba(0, 0, 0, 0) 36%), radial-gradient(circle at 14% 8%, rgba(0, 112, 243, 0.15), rgba(0, 0, 0, 0) 34%), linear-gradient(118deg, rgb(248, 251, 255) 0%, rgb(238, 250, 255) 54%, rgb(247, 255, 244) 100%)"
+      }
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/", "http://127.0.0.1:4175/"],
+    "errors": []
+  },
+  {
+    "name": "home.zh-CN.light.1024",
+    "url": "http://127.0.0.1:4175/",
+    "status": 200,
+    "theme": "light",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 1024,
+      "scrollWidth": 1024,
+      "brokenImages": [],
+      "overflowElements": [],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0,
+      "hero": {
+        "width": 976,
+        "imageWidth": 820,
+        "imageRatio": 0.8401639344262295,
+        "labelHeight": 19.5,
+        "labelBorderWidth": 0,
+        "backgroundImage": "radial-gradient(circle at 78% 42%, rgba(0, 184, 199, 0.2), rgba(0, 0, 0, 0) 36%), radial-gradient(circle at 14% 8%, rgba(0, 112, 243, 0.15), rgba(0, 0, 0, 0) 34%), linear-gradient(118deg, rgb(248, 251, 255) 0%, rgb(238, 250, 255) 54%, rgb(247, 255, 244) 100%)"
+      }
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/", "http://127.0.0.1:4175/"],
+    "errors": []
+  },
+  {
+    "name": "home.zh-CN.light.1440",
+    "url": "http://127.0.0.1:4175/",
+    "status": 200,
+    "theme": "light",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
+      "brokenImages": [],
+      "overflowElements": [],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0,
+      "hero": {
+        "width": 1392,
+        "imageWidth": 747.28125,
+        "imageRatio": 0.5368399784482759,
+        "labelHeight": 19.5,
+        "labelBorderWidth": 0,
+        "backgroundImage": "radial-gradient(circle at 78% 42%, rgba(0, 184, 199, 0.2), rgba(0, 0, 0, 0) 36%), radial-gradient(circle at 14% 8%, rgba(0, 112, 243, 0.15), rgba(0, 0, 0, 0) 34%), linear-gradient(118deg, rgb(248, 251, 255) 0%, rgb(238, 250, 255) 54%, rgb(247, 255, 244) 100%)"
+      }
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/", "http://127.0.0.1:4175/"],
+    "errors": []
+  },
+  {
+    "name": "home.zh-CN.light.1920",
+    "url": "http://127.0.0.1:4175/",
+    "status": 200,
+    "theme": "light",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 1920,
+      "scrollWidth": 1920,
+      "brokenImages": [],
+      "overflowElements": [],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0,
+      "hero": {
+        "width": 1488,
+        "imageWidth": 792.96875,
+        "imageRatio": 0.5329091061827957,
+        "labelHeight": 19.5,
+        "labelBorderWidth": 0,
+        "backgroundImage": "radial-gradient(circle at 78% 42%, rgba(0, 184, 199, 0.2), rgba(0, 0, 0, 0) 36%), radial-gradient(circle at 14% 8%, rgba(0, 112, 243, 0.15), rgba(0, 0, 0, 0) 34%), linear-gradient(118deg, rgb(248, 251, 255) 0%, rgb(238, 250, 255) 54%, rgb(247, 255, 244) 100%)"
+      }
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/", "http://127.0.0.1:4175/"],
+    "errors": []
+  },
+  {
+    "name": "home.en-US.dark.1440",
+    "url": "http://127.0.0.1:4175/en-US/",
+    "status": 200,
+    "theme": "dark",
+    "metrics": {
+      "h1Count": 1,
+      "viewportWidth": 1440,
+      "scrollWidth": 1440,
+      "brokenImages": [],
+      "overflowElements": [],
+      "shell": null,
+      "paragraphWidth": null,
+      "diagramShells": 0,
+      "diagramSvgs": 0,
+      "diagramTitles": 0,
+      "diagramDescriptions": 0,
+      "rawMermaidBlocks": 0,
+      "galleryImages": 0,
+      "homeSections": 9,
+      "featureCards": 6,
+      "technologyCards": 9,
+      "productSliders": 2,
+      "maturitySections": 0,
+      "hero": {
+        "width": 1392,
+        "imageWidth": 747.28125,
+        "imageRatio": 0.5368399784482759,
+        "labelHeight": 19.5,
+        "labelBorderWidth": 0,
+        "backgroundImage": "radial-gradient(circle at 78% 42%, rgba(53, 211, 211, 0.16), rgba(0, 0, 0, 0) 36%), radial-gradient(circle at 14% 8%, rgba(77, 163, 255, 0.17), rgba(0, 0, 0, 0) 34%), linear-gradient(118deg, rgb(2, 8, 23) 0%, rgb(6, 21, 34) 54%, rgb(7, 27, 22) 100%)"
+      }
+    },
+    "axeSeriousCritical": [],
+    "sliderInteractions": {
+      "adminChangedAfterClick": true,
+      "mobileChangedAfterKeyboard": true,
+      "noAutomaticAdvance": true,
+      "liveRegions": 2
+    },
+    "deliveryCopyHits": [],
+    "abortedRequests": [],
+    "navigations": ["http://127.0.0.1:4175/en-US/", "http://127.0.0.1:4175/en-US/"],
+    "errors": []
+  }
+]

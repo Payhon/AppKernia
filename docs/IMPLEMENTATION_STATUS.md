@@ -1,6 +1,6 @@
 # AppKernia 实施状态
 
-更新时间：2026-08-26（Asia/Shanghai）
+更新时间：2026-08-27（Asia/Shanghai）
 
 ## 总体状态
 
@@ -9,7 +9,7 @@
 | Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环                                                                    | 当前 Admin backlog 已收口；生产 Adapter 联调见风险                                                        |
 | Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁；公开 `/openapi/` 与侧栏底部文档/System 工具入口已完成 Node 24、Docker/Nginx 和 Chromium 验收                                                      | 生产部署、真实 Bearer 手工调用、第三方 Scalar 请求客户端瞬态 axe 与跨浏览器验收见风险                     |
 | Mobile              | 30 个页面已完成 AK UI 统一刷新；Android/iOS/Harmony 自定义原生产物统一为 `com.appkernia.mobile` 与 AppKernia 品牌，Android vivo 真机、iOS 18.6 模拟器、HarmonyOS API 22 官方模拟器均完成匿名首帧运行验证 | iOS/Harmony 真机签名、三端安全存储/商店跳转/升级/完整交互仍需物理设备验收；Harmony 自动签名需连接在线设备 |
-| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：68 个静态页面、零门槛向导、核心 API、在线 OpenAPI/System 菜单指南、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；线上首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | GitHub Pages run `31475956211` 发布成功；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
+| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：70 个静态页面、零门槛向导、核心 API、在线 OpenAPI/System 菜单指南、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；首页包含 9 个内容区、6 张特性卡、9 项技术栈与 Admin/Mobile 双 Slider | Hero 视觉优化已在本地通过门禁；线上仍为 GitHub Pages run `31475956211`，`appkernia.com` 待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
 
 ## 2026-08-15 快学AI微信公众号草稿工作流
@@ -736,3 +736,13 @@
 - 文档站新增中英文“移动端自定义基座与正式版打包”页面，并接入 guide 导航、开始使用索引和移动端开发交叉链接；Rspress 最终构建 70 页且双语 parity、Sitemap、121 个 OpenAPI 引用全部通过。
 - Node 24.18.1 脚本测试 4/4 通过；三端 dry-run、自定义基座只读预检、现有 APK/iOS App/Harmony unsigned HAP 产物身份与图标校验、Mobile 蓝图、跨端 i18n、Mobile 静态门禁和 `git diff --check` 通过。
 - 当前没有 Android/iOS 正式发布证书，Harmony 也仍缺在线物理设备形成的 Signing Config；正式预检按设计退出 1，未执行正式版真实出包、商店上传或审核。Windows 兼容性已由路径单测和无 Bash 依赖的编排覆盖，尚未在 Windows 主机实际调用 HBuilderX/DevEco。
+
+## 2026-08-27 文档站 Hero 视觉优化
+
+### 状态：本地完成并通过视觉与仓库门禁；未提交、未发布
+
+- 首页 Hero 左上角 `MIT 开源 · Mobile + Admin + Server` 由高胶囊外框改为 19.5px 高的紧凑纯文字眉题，边框和额外内边距均为 0；中英文内容保持不变。
+- 使用更高优先级的主题规则覆盖 Rspress 默认 1152px Flex Hero，恢复 1488px 居中网格。1440/1920 下产品截图组合分别占 Hero 宽度 53.7%/53.3%，Admin 浏览器和两台手机均使用原真实素材并明显放大。
+- Hero 使用铺满视口宽度的蓝—青—绿多层渐变，浅色与深色主题分别配置，内容仍受居中网格约束；无动画、无新增远程图片或运行时依赖。
+- `AKDOCS-006` 保存 UI Skill request/output、设计决策、review checklist、响应式整页与 Hero 局部截图、机器可读结果。375/768/1024/1440/1920 中文浅色及 1440 英文深色共 6 个状态通过：HTTP 200、单一 H1、无页面级横向溢出、破图、console/网络错误或 axe serious/critical 问题。
+- 文档全量 check、121 个 API 引用、70 页双语构建、Backend/Admin/Mobile 蓝图、跨端 i18n、UI Skill 与 Python 语法校验均退出 0。本轮没有修改公开文案、Hero 图片、路由、API、数据库、Admin 或 Mobile 公共接口。

@@ -1,7 +1,7 @@
 # AppKernia Docs Design System
 
 > Source: `ui-ux-pro-max` persisted output for `AppKernia Docs`, refreshed for
-> `AKDOCS-005` on 2026-08-09.
+> `AKDOCS-006` on 2026-08-27.
 
 ## Product direction
 
@@ -53,6 +53,10 @@
   surfaces, 1 px dividers, square outer edges, minimal shadow, and one blue
   accent. This follows the restrained grid logic of developer platforms such
   as Vercel without copying their assets or product identity.
+- The homepage Hero uses a full-bleed, low-saturation blue–cyan–green gradient
+  behind the centered content grid. Text remains on an optically quiet portion
+  of the gradient, while the product showcase occupies at least 45% of the
+  desktop Hero width.
 - The custom home layout must render the authored MDX body after the Hero;
   frontmatter-only output is not an acceptable homepage implementation.
 - Breakpoints are verified at 375, 768, 1024, 1440, and 1920 px.
@@ -69,6 +73,7 @@
   one loaded Admin dashboard and two signed-in iOS simulator surfaces.
 - Desktop uses an Admin browser window with two overlapping phones; tablet
   stacks the browser and phones; mobile shows the Admin window and one phone.
+- The Hero eyebrow is compact plain text without a pill border or padded frame.
 - No emoji icons, guessed brand logos, fake metrics, customer logos, star counts, or testimonials.
 - Every image has meaningful alt text; decorative layers are hidden from assistive technology.
 - Product galleries use repository screenshots only. Public captions explain
