@@ -985,6 +985,13 @@ a,
   margin: 0 auto;
   padding: clamp(24px, 3.4vw, 48px);
 }
+
+/* Keep page-level messages visually separate from the data or content surface
+   that follows them. Alerts wrapped by Ant Space keep Space's own rhythm, and
+   Drawer/Modal portals are intentionally outside the page container. */
+.ak-page-container .ant-alert + * {
+  margin-block-start: 16px;
+}
 .ak-page-heading {
   margin-bottom: 28px;
 }

@@ -2143,3 +2143,21 @@
 
 - 内容管理 Skill 截图目录登记了缩略图、网格 Hover、24px 紧凑表格、预览折叠、Select 菜单与窗口缩放状态；Chromium fixture 中 axe serious/critical 为 0。
 - 本地 Admin 已部署并验证 `/healthz`；本次提交验证使用干净暂存快照，未将工作区中其他未提交功能带入结果，也不把 fixture 表述为真实账号或生产对象存储验收。
+
+### Admin 页面 Message 垂直节奏交付
+
+- 交付：为所有 `.ak-page-container` 内相邻的 Ant Alert 与后续内容建立共享 16px 最小间距，覆盖连续提示、卡片、筛选、表格包装和详情内容；Modal/Drawer 与 Ant `Space` 保持原有局部布局职责。
+- 范围证据：27 个页面文件、66 个页面 Alert，54 个页面范围非 Space 提示；Master、升级中心 override、UI Skill request/output/decisions/checklist、截图索引及静态回归测试均已同步。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| Alert AST/source audit | 0 | 27 个页面文件、66 个页面 Alert；54 个属于页面容器且不由 `Space` 托管。 |
+| `pnpm --filter @appkernia/admin exec vitest run src/app/page-message-rhythm.test.ts` | 0 | 1 个文件、2 项 CSS 作用域/16px 契约测试通过。 |
+| 隔离提交快照 `npm run check` | 0 | ESLint、TypeScript strict、36 个测试文件/148 项测试、Vite production build（9937 modules transformed）、bundle、OpenAPI reference/docs 与 Admin Blueprint 全通过。 |
+| 旧 `e2e_mobile_releases.py` 首轮 | 1 | 在已改为操作下拉菜单的应用列表上仍查找旧“升级中心”文本按钮；属于过期测试定位，未冒充通过。 |
+| `e2e_page_message_rhythm.py`（Chromium 1440/375） | 0 | 两个视口实测 Alert→Card 均为 16px；无页面溢出、无控制台错误、axe serious/critical 为 0。 |
+| 当前聚合工作区 `pnpm --filter @appkernia/admin check` | 0 | 38 个测试文件/153 项测试，generate、OpenAPI reference、lint、typecheck、build、bundle、OpenAPI docs、Admin Blueprint 全通过；未混入本次隔离提交。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py`、`git diff --check` | 0 | `zh-CN`/`en-US` 契约及补丁格式通过。 |
+| 同步 Admin dist 并重启本地容器 | 0 | `http://localhost:4174/healthz` 返回 `ok`，Admin 容器 healthy。 |
+
+- 截图：[桌面 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-page-message-rhythm/screenshots/upgrade-center.zh-CN.light.1440.png)、[移动 375](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-page-message-rhythm/screenshots/upgrade-center.zh-CN.light.375.png)、[几何与 axe 结果](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-page-message-rhythm/screenshots/e2e-results.json)。受控 API fixture 不代表生产账号联调；Firefox/Safari 未验证。

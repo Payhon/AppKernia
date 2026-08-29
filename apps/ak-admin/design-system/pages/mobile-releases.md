@@ -15,6 +15,7 @@ This page inherits `../MASTER.md`. The rules below only define the mobile releas
 ## Visual and interaction rules
 
 - Reuse the existing Ant Design semantic tokens and AK page/card/table styles. Do not introduce the skill's generic palette or runtime web fonts.
+- The native-package capability notice, pending-App warning and action feedback follow the shared page-message rhythm: every visible message keeps at least 16 px before the next message or release card/table surface.
 - Keep platforms and package type as text plus neutral tags; draft, online, partial and offline always have translated text as well as semantic color.
 - Versions use tabular/monospace text for scanability.
 - The Drawer groups package identity and targets, one dictionary-driven localized-content Tabs region, one package source, stores and lifecycle switches.

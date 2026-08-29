@@ -755,3 +755,11 @@
 - 文件选择器支持类型/上传日期筛选、三种视图、受扫描门禁保护的缩略图与视频预览、整行选择、可折叠/可调分栏，以及共享 `AkModal` 的移动、最大化和右下角缩放能力。
 - 干净暂存快照中 Admin `npm run check` 通过：35 个 Vitest 文件、146 项测试，lint、typecheck、production build、OpenAPI reference/docs、bundle 和 Admin Blueprint 全部退出 0；相关 content/storage/bootstrap Go 测试、Mobile Blueprint 与跨端 i18n 校验退出 0。
 - Chromium fixture 已登记表头圆角、浅色下拉选中态、1120×720→1160×744 缩放和 axe serious/critical 0 的证据；fixture 不替代真实账号和对象存储联调。
+
+### 2026-08-29 Admin 页面 Message 间距统一
+
+- 全量源码核查 27 个含 Alert 的功能页、66 个页面 Alert；其中 54 个为 `.ak-page-container` 内且不由 Ant `Space` 托管的页面消息。新增共享相邻关系规则，使消息与后续 Alert、卡片、筛选、表格、Descriptions 等内容面保持至少 16px 间距。
+- 规则限定在页面容器内，不影响 Modal/Drawer portal；`Space` 包装的提示继续由 `Space` 自己管理间距。升级中心页面 override 与 Admin Master 已同步，新增 2 项 CSS 契约测试。
+- Chromium fixture 在 1440×900、375×812 均实测“uni-app x 仅支持原生版本升级”提示到下方 Card 为 16px；页面无横向溢出、控制台错误为 0、axe serious/critical 为 0。截图和几何结果登记于 `AKADM-page-message-rhythm` artifacts。
+- 隔离提交快照的 Admin 完整门禁通过：36 个测试文件/148 项测试、lint、TypeScript strict、生产构建、bundle、OpenAPI reference/docs 与 Admin Blueprint 均退出 0；当前聚合工作区的跨端 i18n 与补丁格式也已通过。最新 dist 已同步至本地 `http://localhost:4174`。
+- 旧 `e2e_mobile_releases.py` 首轮在应用管理“升级中心”文本按钮定位处退出 1：页面已改为操作下拉菜单而脚本仍使用旧定位；本轮改用独立页面节奏 E2E 完成验收，未把该过期脚本定位失败记为产品失败。Firefox/Safari 未执行。

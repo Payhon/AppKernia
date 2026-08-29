@@ -1,0 +1,36 @@
+{
+  "source_audit": {
+    "page_files_with_alerts": 27,
+    "page_alerts": 66,
+    "page_scoped_non_space_alerts": 54
+  },
+  "zh-CN.light.1440": {
+    "message_gaps": [
+      {
+        "title": "uni-app x 仅支持原生版本升级：Android 可使用内部 APK 或外链，iOS 与 HarmonyOS 使用 HTTPS/应用市场链接。",
+        "nextClass": "ant-card ant-card-bordered css-149w44n css-var-_r_0_",
+        "gap": 16
+      }
+    ],
+    "axe": {
+      "serious_critical": 0,
+      "violations": []
+    },
+    "page_overflow": false
+  },
+  "zh-CN.light.375": {
+    "message_gaps": [
+      {
+        "title": "uni-app x 仅支持原生版本升级：Android 可使用内部 APK 或外链，iOS 与 HarmonyOS 使用 HTTPS/应用市场链接。",
+        "nextClass": "ant-card ant-card-bordered css-149w44n css-var-_r_0_",
+        "gap": 16
+      }
+    ],
+    "axe": {
+      "serious_critical": 0,
+      "violations": []
+    },
+    "page_overflow": false
+  },
+  "console_errors": []
+}
