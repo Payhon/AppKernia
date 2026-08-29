@@ -2576,14 +2576,18 @@ export type AdminBlockRuleRevokeResponse = {
     request_id: string;
 };
 
+export type ContentType = 'article' | 'gallery' | 'video';
+
+export type CommentStatus = 'pending' | 'approved' | 'rejected' | 'hidden' | 'deleted';
+
 export type ContentTranslation = {
     title: string;
     summary: string;
-    body_format: 'markdown' | 'blocks';
+    body_format: 'markdown';
     /**
-     * Restricted Markdown string or validated block array. Client rendering must sanitize Markdown and never render unsafe HTML.
+     * Markdown source. Raw HTML
      */
-    body: unknown;
+    body: string;
 };
 
 export type ContentCategoryTranslation = {
@@ -2603,6 +2607,9 @@ export type AdminContentCategoryTranslations = {
 
 export type AdminContentCategory = {
     id: string;
+    parent_id?: string | null;
+    image_file_id?: string | null;
+    image_url?: string | null;
     slug: string;
     status: 'active' | 'disabled';
     sort_order: number;
@@ -2613,6 +2620,8 @@ export type AdminContentCategory = {
 };
 
 export type AdminContentCategoryRequest = {
+    parent_id?: string | null;
+    image_file_id?: string | null;
     slug: string;
     status: 'active' | 'disabled';
     sort_order: number;
@@ -2626,10 +2635,22 @@ export type AdminContentCategoryUpdateRequest = AdminContentCategoryRequest & {
 
 export type AdminContentArticle = {
     id: string;
+    content_type: ContentType;
+    /**
+     * @deprecated
+     */
     category_id?: string | null;
+    category_ids: Array<string>;
+    topic_id?: string | null;
+    tag_ids: Array<string>;
+    tags: Array<AdminContentTag>;
+    media: Array<ContentMedia>;
     slug: string;
     status: 'draft' | 'published' | 'archived';
+    allow_comments: boolean;
+    pinned: boolean;
     featured: boolean;
+    latest: boolean;
     sort_order: number;
     cover_file_id?: string | null;
     /**
@@ -2637,6 +2658,10 @@ export type AdminContentArticle = {
      */
     cover_url?: string | null;
     reading_minutes: number;
+    video_source_type?: 'upload' | 'external' | null;
+    video_file_id?: string | null;
+    video_external_url?: string | null;
+    video_duration_seconds?: number | null;
     lock_version: number;
     published_at?: string | null;
     translations: AdminContentTranslations;
@@ -2645,12 +2670,27 @@ export type AdminContentArticle = {
 };
 
 export type AdminContentArticleRequest = {
+    content_type: ContentType;
+    /**
+     * @deprecated
+     */
     category_id?: string | null;
+    category_ids: Array<string>;
+    topic_id?: string | null;
+    tag_ids: Array<string>;
+    media: Array<ContentMedia>;
     slug: string;
+    allow_comments: boolean;
+    pinned: boolean;
     featured: boolean;
+    latest: boolean;
     sort_order: number;
     cover_file_id?: string | null;
     reading_minutes: number;
+    video_source_type?: 'upload' | 'external' | null;
+    video_file_id?: string | null;
+    video_external_url?: string | null;
+    video_duration_seconds?: number | null;
     lock_version?: number;
     translations: AdminContentTranslations;
 };
@@ -2701,30 +2741,170 @@ export type AdminContentArticleListResponse = {
     request_id: string;
 };
 
+export type ContentTopicTranslation = {
+    name: string;
+    description: string;
+};
+
+export type AdminContentTopicTranslations = {
+    'zh-CN': ContentTopicTranslation;
+    'en-US': ContentTopicTranslation;
+};
+
+export type AdminContentTopic = {
+    id: string;
+    slug: string;
+    status: 'active' | 'disabled';
+    sort_order: number;
+    cover_file_id?: string | null;
+    cover_url?: string | null;
+    lock_version: number;
+    translations: AdminContentTopicTranslations;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AdminContentTopicRequest = {
+    slug: string;
+    status: 'active' | 'disabled';
+    sort_order: number;
+    cover_file_id?: string | null;
+    lock_version?: number;
+    translations: AdminContentTopicTranslations;
+};
+
+export type AdminContentTopicResponse = {
+    code: string;
+    message: string;
+    data: AdminContentTopic;
+    request_id: string;
+};
+
+export type AdminContentTopicListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AdminContentTopic>;
+        page: number;
+        page_size: number;
+        total: number;
+    };
+    request_id: string;
+};
+
+export type AdminContentTag = {
+    id: string;
+    name: string;
+    status?: 'active' | 'disabled';
+    lock_version?: number;
+    usage_count?: number;
+};
+
+export type AdminContentTagResponse = {
+    code: string;
+    message: string;
+    data: AdminContentTag;
+    request_id: string;
+};
+
+export type AdminContentTagListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AdminContentTag>;
+        page: number;
+        page_size: number;
+        total: number;
+    };
+    request_id: string;
+};
+
+export type ContentMediaTranslation = {
+    alt_text: string;
+};
+
+export type ContentMedia = {
+    id: string;
+    file_id: string;
+    role: 'gallery' | 'inline';
+    sort_order: number;
+    translations: {
+        'zh-CN': ContentMediaTranslation;
+        'en-US': ContentMediaTranslation;
+    };
+};
+
 export type AppArticle = {
     id: string;
     slug: string;
+    content_type: ContentType;
+    allow_comments: boolean;
+    pinned: boolean;
     featured: boolean;
-    published_at: string;
+    latest: boolean;
+    published_at?: string | null;
     title: string;
     summary: string;
-    body_format: 'markdown' | 'blocks';
-    body: unknown;
-    category: AppArticleCategory | null;
-    reading_minutes: number;
+    body_format: 'markdown';
+    body: string;
     /**
-     * Authenticated same-origin article asset path for a published scan-safe image.
+     * @deprecated
      */
+    category?: AppArticleCategory | null;
+    categories: Array<AppArticleCategory>;
+    topic?: PublicContentTopic | null;
+    tags: Array<AdminContentTag>;
+    media: Array<PublicContentMedia>;
+    reading_minutes: number;
     cover_url?: string | null;
-    bookmarked: boolean;
+    video_source_type?: 'upload' | 'external' | null;
+    video_url?: string | null;
+    video_duration_seconds?: number | null;
+    /**
+     * Null for guests and boolean for a valid optional session.
+     */
+    bookmarked: boolean | null;
+};
+
+export type ArticleContentDetail = Omit<AppArticle, 'content_type'> & {
+    content_type: 'ArticleContentDetail';
+    body: string;
+};
+
+export type GalleryContentDetail = Omit<AppArticle, 'content_type'> & {
+    content_type: 'GalleryContentDetail';
+    media: Array<PublicContentMedia>;
+};
+
+export type VideoContentDetail = Omit<AppArticle, 'content_type'> & {
+    content_type: 'VideoContentDetail';
+    video_source_type: 'upload' | 'external';
+    video_url: string;
+};
+
+export type ContentDetail = ({
+    content_type: 'article';
+} & ArticleContentDetail) | ({
+    content_type: 'gallery';
+} & GalleryContentDetail) | ({
+    content_type: 'video';
+} & VideoContentDetail);
+
+export type ContentDetailResponse = {
+    code: string;
+    message: string;
+    data: ContentDetail;
+    request_id: string;
 };
 
 export type AppArticleCategory = {
     id: string;
+    parent_id?: string | null;
     slug: string;
     sort_order: number;
     name: string;
     description: string;
+    image_url?: string | null;
 };
 
 export type AppArticleCategoryListResponse = {
@@ -2760,6 +2940,143 @@ export type AppBookmarkResponse = {
     message: string;
     data: {
         bookmarked: boolean;
+    };
+    request_id: string;
+};
+
+export type PublicContentTopic = {
+    id: string;
+    slug: string;
+    sort_order: number;
+    name: string;
+    description: string;
+    cover_url?: string | null;
+};
+
+export type PublicContentTopicResponse = {
+    code: string;
+    message: string;
+    data: PublicContentTopic;
+    request_id: string;
+};
+
+export type PublicContentTopicListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<PublicContentTopic>;
+    };
+    request_id: string;
+};
+
+export type PublicContentMedia = {
+    id: string;
+    file_id: string;
+    url: string;
+    role: string;
+    sort_order: number;
+    alt_text: string;
+};
+
+export type PublicContentHomeResponse = {
+    code: string;
+    message: string;
+    data: {
+        pinned: Array<AppArticle>;
+        featured: Array<AppArticle>;
+        latest: Array<AppArticle>;
+    };
+    request_id: string;
+};
+
+export type ContentComment = {
+    id: string;
+    article_id: string;
+    author_id: string;
+    author_name: string;
+    author_avatar_url?: string | null;
+    parent_id?: string | null;
+    root_id?: string | null;
+    status: CommentStatus;
+    body: string;
+    moderation_reason?: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type ContentCommentCreateRequest = {
+    parent_id?: string | null;
+    body: string;
+};
+
+export type ContentCommentModerationRequest = {
+    status: 'approved' | 'rejected' | 'hidden' | 'deleted';
+    reason?: string;
+};
+
+export type ContentCommentBatchModerationRequest = {
+    ids: Array<string>;
+    status: 'approved' | 'rejected' | 'hidden';
+    reason: string;
+};
+
+export type ContentCommentResponse = {
+    code: string;
+    message: string;
+    data: ContentComment;
+    request_id: string;
+};
+
+export type ContentCommentListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<ContentComment>;
+        page: number;
+        page_size: number;
+        total: number;
+        next_cursor?: string | null;
+    };
+    request_id: string;
+};
+
+export type ContentCommentReportRequest = {
+    reason: 'spam' | 'harassment' | 'hate' | 'sexual' | 'violence' | 'illegal' | 'privacy' | 'other';
+    details?: string;
+};
+
+export type ContentCommentReport = {
+    id: string;
+    comment_id: string;
+    reporter_id: string;
+    reason: 'spam' | 'abuse' | 'illegal' | 'privacy' | 'other';
+    details: string;
+    status: 'open' | 'resolved' | 'dismissed';
+    resolution: string;
+    created_at: string;
+    resolved_at?: string | null;
+};
+
+export type ContentCommentReportResolutionRequest = {
+    status: 'resolved' | 'dismissed';
+    resolution: string;
+};
+
+export type ContentCommentReportResponse = {
+    code: string;
+    message: string;
+    data: ContentCommentReport;
+    request_id: string;
+};
+
+export type ContentCommentReportListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<ContentCommentReport>;
+        page: number;
+        page_size: number;
+        total: number;
     };
     request_id: string;
 };
@@ -6158,6 +6475,477 @@ export type TransitionAdminAppContentArticleResponses = {
 };
 
 export type TransitionAdminAppContentArticleResponse = TransitionAdminAppContentArticleResponses[keyof TransitionAdminAppContentArticleResponses];
+
+export type ListAdminAppContentItemsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        q?: string;
+        category_id?: string;
+        topic_id?: string;
+        type?: ContentType;
+        status?: 'draft' | 'published' | 'archived';
+        featured?: boolean;
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/items';
+};
+
+export type ListAdminAppContentItemsErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type ListAdminAppContentItemsError = ListAdminAppContentItemsErrors[keyof ListAdminAppContentItemsErrors];
+
+export type ListAdminAppContentItemsResponses = {
+    /**
+     * Content item page.
+     */
+    200: AdminContentArticleListResponse;
+};
+
+export type ListAdminAppContentItemsResponse = ListAdminAppContentItemsResponses[keyof ListAdminAppContentItemsResponses];
+
+export type CreateAdminAppContentItemData = {
+    body: AdminContentArticleRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/items';
+};
+
+export type CreateAdminAppContentItemErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminAppContentItemError = CreateAdminAppContentItemErrors[keyof CreateAdminAppContentItemErrors];
+
+export type CreateAdminAppContentItemResponses = {
+    /**
+     * Created.
+     */
+    201: AdminContentArticleResponse;
+};
+
+export type CreateAdminAppContentItemResponse = CreateAdminAppContentItemResponses[keyof CreateAdminAppContentItemResponses];
+
+export type DeleteAdminAppContentItemData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/items/{id}';
+};
+
+export type DeleteAdminAppContentItemErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminAppContentItemError = DeleteAdminAppContentItemErrors[keyof DeleteAdminAppContentItemErrors];
+
+export type DeleteAdminAppContentItemResponses = {
+    /**
+     * Deleted.
+     */
+    200: AdminDeleteResponse;
+};
+
+export type DeleteAdminAppContentItemResponse = DeleteAdminAppContentItemResponses[keyof DeleteAdminAppContentItemResponses];
+
+export type GetAdminAppContentItemData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/items/{id}';
+};
+
+export type GetAdminAppContentItemErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppContentItemError = GetAdminAppContentItemErrors[keyof GetAdminAppContentItemErrors];
+
+export type GetAdminAppContentItemResponses = {
+    /**
+     * Content item.
+     */
+    200: AdminContentArticleResponse;
+};
+
+export type GetAdminAppContentItemResponse = GetAdminAppContentItemResponses[keyof GetAdminAppContentItemResponses];
+
+export type UpdateAdminAppContentItemData = {
+    body: AdminContentArticleUpdateRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/items/{id}';
+};
+
+export type UpdateAdminAppContentItemErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type UpdateAdminAppContentItemError = UpdateAdminAppContentItemErrors[keyof UpdateAdminAppContentItemErrors];
+
+export type UpdateAdminAppContentItemResponses = {
+    /**
+     * Updated.
+     */
+    200: AdminContentArticleResponse;
+};
+
+export type UpdateAdminAppContentItemResponse = UpdateAdminAppContentItemResponses[keyof UpdateAdminAppContentItemResponses];
+
+export type TransitionAdminAppContentItemData = {
+    body: AdminContentTransitionRequest;
+    path: {
+        app_id: string;
+        id: string;
+        transition: 'publish' | 'unpublish' | 'archive';
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/items/{id}/{transition}';
+};
+
+export type TransitionAdminAppContentItemErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type TransitionAdminAppContentItemError = TransitionAdminAppContentItemErrors[keyof TransitionAdminAppContentItemErrors];
+
+export type TransitionAdminAppContentItemResponses = {
+    /**
+     * Transitioned.
+     */
+    200: AdminContentArticleResponse;
+};
+
+export type TransitionAdminAppContentItemResponse = TransitionAdminAppContentItemResponses[keyof TransitionAdminAppContentItemResponses];
+
+export type ListAdminAppContentTopicsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        q?: string;
+        status?: 'active' | 'disabled';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/topics';
+};
+
+export type ListAdminAppContentTopicsResponses = {
+    /**
+     * Topic page.
+     */
+    200: AdminContentTopicListResponse;
+};
+
+export type ListAdminAppContentTopicsResponse = ListAdminAppContentTopicsResponses[keyof ListAdminAppContentTopicsResponses];
+
+export type CreateAdminAppContentTopicData = {
+    body: AdminContentTopicRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/topics';
+};
+
+export type CreateAdminAppContentTopicResponses = {
+    /**
+     * Created.
+     */
+    201: AdminContentTopicResponse;
+};
+
+export type CreateAdminAppContentTopicResponse = CreateAdminAppContentTopicResponses[keyof CreateAdminAppContentTopicResponses];
+
+export type DeleteAdminAppContentTopicData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/topics/{id}';
+};
+
+export type DeleteAdminAppContentTopicResponses = {
+    /**
+     * Deleted.
+     */
+    200: AdminDeleteResponse;
+};
+
+export type DeleteAdminAppContentTopicResponse = DeleteAdminAppContentTopicResponses[keyof DeleteAdminAppContentTopicResponses];
+
+export type UpdateAdminAppContentTopicData = {
+    body: AdminContentTopicRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/topics/{id}';
+};
+
+export type UpdateAdminAppContentTopicResponses = {
+    /**
+     * Updated.
+     */
+    200: AdminContentTopicResponse;
+};
+
+export type UpdateAdminAppContentTopicResponse = UpdateAdminAppContentTopicResponses[keyof UpdateAdminAppContentTopicResponses];
+
+export type ListAdminAppContentTagsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        q?: string;
+        status?: 'active' | 'disabled';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/tags';
+};
+
+export type ListAdminAppContentTagsResponses = {
+    /**
+     * Tag page.
+     */
+    200: AdminContentTagListResponse;
+};
+
+export type ListAdminAppContentTagsResponse = ListAdminAppContentTagsResponses[keyof ListAdminAppContentTagsResponses];
+
+export type CreateAdminAppContentTagData = {
+    body: {
+        name: string;
+    };
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/tags';
+};
+
+export type CreateAdminAppContentTagResponses = {
+    /**
+     * Tag.
+     */
+    201: AdminContentTagResponse;
+};
+
+export type CreateAdminAppContentTagResponse = CreateAdminAppContentTagResponses[keyof CreateAdminAppContentTagResponses];
+
+export type DeleteAdminAppContentTagData = {
+    body?: never;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/tags/{id}';
+};
+
+export type DeleteAdminAppContentTagResponses = {
+    /**
+     * Deleted.
+     */
+    200: AdminDeleteResponse;
+};
+
+export type DeleteAdminAppContentTagResponse = DeleteAdminAppContentTagResponses[keyof DeleteAdminAppContentTagResponses];
+
+export type UpdateAdminAppContentTagData = {
+    body: AdminContentTag;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/tags/{id}';
+};
+
+export type UpdateAdminAppContentTagResponses = {
+    /**
+     * Updated.
+     */
+    200: AdminContentTagResponse;
+};
+
+export type UpdateAdminAppContentTagResponse = UpdateAdminAppContentTagResponses[keyof UpdateAdminAppContentTagResponses];
+
+export type MergeAdminAppContentTagData = {
+    body: {
+        target_id: string;
+        lock_version: number;
+    };
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/tags/{id}/merge';
+};
+
+export type MergeAdminAppContentTagResponses = {
+    /**
+     * Merged.
+     */
+    200: AdminBooleanResponse;
+};
+
+export type MergeAdminAppContentTagResponse = MergeAdminAppContentTagResponses[keyof MergeAdminAppContentTagResponses];
+
+export type ListAdminAppContentCommentsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        article_id?: string;
+        status?: CommentStatus;
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/comments';
+};
+
+export type ListAdminAppContentCommentsResponses = {
+    /**
+     * Comment page.
+     */
+    200: ContentCommentListResponse;
+};
+
+export type ListAdminAppContentCommentsResponse = ListAdminAppContentCommentsResponses[keyof ListAdminAppContentCommentsResponses];
+
+export type BatchModerateAdminAppContentCommentsData = {
+    body: ContentCommentBatchModerationRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/comments/batch-moderate';
+};
+
+export type BatchModerateAdminAppContentCommentsResponses = {
+    /**
+     * Moderated comments.
+     */
+    200: {
+        [key: string]: unknown;
+    };
+};
+
+export type BatchModerateAdminAppContentCommentsResponse = BatchModerateAdminAppContentCommentsResponses[keyof BatchModerateAdminAppContentCommentsResponses];
+
+export type ModerateAdminAppContentCommentData = {
+    body: ContentCommentModerationRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/comments/{id}/moderate';
+};
+
+export type ModerateAdminAppContentCommentResponses = {
+    /**
+     * Moderated.
+     */
+    200: ContentCommentResponse;
+};
+
+export type ModerateAdminAppContentCommentResponse = ModerateAdminAppContentCommentResponses[keyof ModerateAdminAppContentCommentResponses];
+
+export type ListAdminAppContentCommentReportsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        status?: 'open' | 'resolved' | 'dismissed';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/content/comment-reports';
+};
+
+export type ListAdminAppContentCommentReportsResponses = {
+    /**
+     * Report page.
+     */
+    200: ContentCommentReportListResponse;
+};
+
+export type ListAdminAppContentCommentReportsResponse = ListAdminAppContentCommentReportsResponses[keyof ListAdminAppContentCommentReportsResponses];
+
+export type ResolveAdminAppContentCommentReportData = {
+    body: ContentCommentReportResolutionRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/content/comment-reports/{id}/resolve';
+};
+
+export type ResolveAdminAppContentCommentReportResponses = {
+    /**
+     * Report resolved.
+     */
+    200: ContentCommentReportResponse;
+};
+
+export type ResolveAdminAppContentCommentReportResponse = ResolveAdminAppContentCommentReportResponses[keyof ResolveAdminAppContentCommentReportResponses];
 
 export type ListAdminAppPagesData = {
     body?: never;
@@ -10299,6 +11087,14 @@ export type ListAdminFilesData = {
         scan_status?: 'pending' | 'clean' | 'infected' | 'failed' | 'skipped';
         media_type?: string;
         provider?: string;
+        /**
+         * Inclusive RFC 3339 upload time lower bound.
+         */
+        created_from?: string;
+        /**
+         * Inclusive RFC 3339 upload time upper bound.
+         */
+        created_to?: string;
         page?: number;
         page_size?: number;
     };
@@ -10465,6 +11261,556 @@ export type DownloadAdminFileContentResponses = {
 };
 
 export type DownloadAdminFileContentResponse = DownloadAdminFileContentResponses[keyof DownloadAdminFileContentResponses];
+
+export type GetPublicContentHomeData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: {
+        limit?: number;
+    };
+    url: '/api/v1/public/content/home';
+};
+
+export type GetPublicContentHomeErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type GetPublicContentHomeError = GetPublicContentHomeErrors[keyof GetPublicContentHomeErrors];
+
+export type GetPublicContentHomeResponses = {
+    /**
+     * Guest-readable home feed.
+     */
+    200: PublicContentHomeResponse;
+};
+
+export type GetPublicContentHomeResponse = GetPublicContentHomeResponses[keyof GetPublicContentHomeResponses];
+
+export type ListPublicContentItemsData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: {
+        q?: string;
+        type?: ContentType;
+        category?: string;
+        topic?: string;
+        tag?: string;
+        featured?: boolean;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/public/content/items';
+};
+
+export type ListPublicContentItemsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ListPublicContentItemsError = ListPublicContentItemsErrors[keyof ListPublicContentItemsErrors];
+
+export type ListPublicContentItemsResponses = {
+    /**
+     * Published content page.
+     */
+    200: AppArticleListResponse;
+};
+
+export type ListPublicContentItemsResponse = ListPublicContentItemsResponses[keyof ListPublicContentItemsResponses];
+
+export type SearchPublicContentData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query: {
+        q: string;
+        type?: ContentType;
+        category?: string;
+        topic?: string;
+        tag?: string;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/public/content/search';
+};
+
+export type SearchPublicContentErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type SearchPublicContentError = SearchPublicContentErrors[keyof SearchPublicContentErrors];
+
+export type SearchPublicContentResponses = {
+    /**
+     * Search result page.
+     */
+    200: AppArticleListResponse;
+};
+
+export type SearchPublicContentResponse = SearchPublicContentResponses[keyof SearchPublicContentResponses];
+
+export type GetPublicContentItemData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/api/v1/public/content/items/{slug}';
+};
+
+export type GetPublicContentItemErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetPublicContentItemError = GetPublicContentItemErrors[keyof GetPublicContentItemErrors];
+
+export type GetPublicContentItemResponses = {
+    /**
+     * Content detail discriminated by content_type.
+     */
+    200: ContentDetailResponse;
+};
+
+export type GetPublicContentItemResponse = GetPublicContentItemResponses[keyof GetPublicContentItemResponses];
+
+export type ListPublicContentCommentsData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: {
+        page?: number;
+        page_size?: number;
+    };
+    url: '/api/v1/public/content/items/{id}/comments';
+};
+
+export type ListPublicContentCommentsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ListPublicContentCommentsError = ListPublicContentCommentsErrors[keyof ListPublicContentCommentsErrors];
+
+export type ListPublicContentCommentsResponses = {
+    /**
+     * Approved comment page.
+     */
+    200: ContentCommentListResponse;
+};
+
+export type ListPublicContentCommentsResponse = ListPublicContentCommentsResponses[keyof ListPublicContentCommentsResponses];
+
+export type ListPublicContentCategoriesData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/public/content/categories';
+};
+
+export type ListPublicContentCategoriesErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ListPublicContentCategoriesError = ListPublicContentCategoriesErrors[keyof ListPublicContentCategoriesErrors];
+
+export type ListPublicContentCategoriesResponses = {
+    /**
+     * Active categories.
+     */
+    200: AppArticleCategoryListResponse;
+};
+
+export type ListPublicContentCategoriesResponse = ListPublicContentCategoriesResponses[keyof ListPublicContentCategoriesResponses];
+
+export type ListPublicContentTopicsData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/public/content/topics';
+};
+
+export type ListPublicContentTopicsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ListPublicContentTopicsError = ListPublicContentTopicsErrors[keyof ListPublicContentTopicsErrors];
+
+export type ListPublicContentTopicsResponses = {
+    /**
+     * Active topics.
+     */
+    200: PublicContentTopicListResponse;
+};
+
+export type ListPublicContentTopicsResponse = ListPublicContentTopicsResponses[keyof ListPublicContentTopicsResponses];
+
+export type GetPublicContentTopicData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path: {
+        slug: string;
+    };
+    query?: never;
+    url: '/api/v1/public/content/topics/{slug}';
+};
+
+export type GetPublicContentTopicErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetPublicContentTopicError = GetPublicContentTopicErrors[keyof GetPublicContentTopicErrors];
+
+export type GetPublicContentTopicResponses = {
+    /**
+     * Topic detail.
+     */
+    200: PublicContentTopicResponse;
+};
+
+export type GetPublicContentTopicResponse = GetPublicContentTopicResponses[keyof GetPublicContentTopicResponses];
+
+export type GetPublicContentAssetData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        file_id: string;
+    };
+    query?: never;
+    url: '/api/v1/public/content/assets/{file_id}';
+};
+
+export type GetPublicContentAssetErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetPublicContentAssetError = GetPublicContentAssetErrors[keyof GetPublicContentAssetErrors];
+
+export type GetPublicContentAssetResponses = {
+    /**
+     * Published content image or MP4.
+     */
+    200: Blob | File;
+};
+
+export type GetPublicContentAssetResponse = GetPublicContentAssetResponses[keyof GetPublicContentAssetResponses];
+
+export type ListMyContentBookmarksData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: {
+        q?: string;
+        type?: ContentType;
+        cursor?: string;
+        limit?: number;
+    };
+    url: '/api/v1/me/content-bookmarks';
+};
+
+export type ListMyContentBookmarksErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ListMyContentBookmarksError = ListMyContentBookmarksErrors[keyof ListMyContentBookmarksErrors];
+
+export type ListMyContentBookmarksResponses = {
+    /**
+     * Bookmark page.
+     */
+    200: AppArticleListResponse;
+};
+
+export type ListMyContentBookmarksResponse = ListMyContentBookmarksResponses[keyof ListMyContentBookmarksResponses];
+
+export type RemoveContentItemBookmarkData = {
+    body?: never;
+    path: {
+        article_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/content-bookmarks/{article_id}';
+};
+
+export type RemoveContentItemBookmarkErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type RemoveContentItemBookmarkError = RemoveContentItemBookmarkErrors[keyof RemoveContentItemBookmarkErrors];
+
+export type RemoveContentItemBookmarkResponses = {
+    /**
+     * Bookmark absent.
+     */
+    200: AppBookmarkResponse;
+};
+
+export type RemoveContentItemBookmarkResponse = RemoveContentItemBookmarkResponses[keyof RemoveContentItemBookmarkResponses];
+
+export type BookmarkContentItemData = {
+    body?: never;
+    path: {
+        article_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/content-bookmarks/{article_id}';
+};
+
+export type BookmarkContentItemErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type BookmarkContentItemError = BookmarkContentItemErrors[keyof BookmarkContentItemErrors];
+
+export type BookmarkContentItemResponses = {
+    /**
+     * Bookmark present.
+     */
+    200: AppBookmarkResponse;
+};
+
+export type BookmarkContentItemResponse = BookmarkContentItemResponses[keyof BookmarkContentItemResponses];
+
+export type CreateContentCommentData = {
+    body: ContentCommentCreateRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/content/items/{id}/comments';
+};
+
+export type CreateContentCommentErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type CreateContentCommentError = CreateContentCommentErrors[keyof CreateContentCommentErrors];
+
+export type CreateContentCommentResponses = {
+    /**
+     * Pending comment.
+     */
+    201: ContentCommentResponse;
+};
+
+export type CreateContentCommentResponse = CreateContentCommentResponses[keyof CreateContentCommentResponses];
+
+export type DeleteMyContentCommentData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/comments/{id}';
+};
+
+export type DeleteMyContentCommentErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type DeleteMyContentCommentError = DeleteMyContentCommentErrors[keyof DeleteMyContentCommentErrors];
+
+export type DeleteMyContentCommentResponses = {
+    /**
+     * Deleted.
+     */
+    200: AdminBooleanResponse;
+};
+
+export type DeleteMyContentCommentResponse = DeleteMyContentCommentResponses[keyof DeleteMyContentCommentResponses];
+
+export type ReportContentCommentData = {
+    body: ContentCommentReportRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/comments/{id}/reports';
+};
+
+export type ReportContentCommentErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type ReportContentCommentError = ReportContentCommentErrors[keyof ReportContentCommentErrors];
+
+export type ReportContentCommentResponses = {
+    /**
+     * Report accepted.
+     */
+    201: ContentCommentReportResponse;
+};
+
+export type ReportContentCommentResponse = ReportContentCommentResponses[keyof ReportContentCommentResponses];
+
+export type UnblockContentUserData = {
+    body?: never;
+    path: {
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/blocked-users/{user_id}';
+};
+
+export type UnblockContentUserErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type UnblockContentUserError = UnblockContentUserErrors[keyof UnblockContentUserErrors];
+
+export type UnblockContentUserResponses = {
+    /**
+     * Unblocked.
+     */
+    200: AdminBooleanResponse;
+};
+
+export type UnblockContentUserResponse = UnblockContentUserResponses[keyof UnblockContentUserResponses];
+
+export type BlockContentUserData = {
+    body?: never;
+    path: {
+        user_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/blocked-users/{user_id}';
+};
+
+export type BlockContentUserErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type BlockContentUserError = BlockContentUserErrors[keyof BlockContentUserErrors];
+
+export type BlockContentUserResponses = {
+    /**
+     * Blocked.
+     */
+    200: AdminBooleanResponse;
+};
+
+export type BlockContentUserResponse = BlockContentUserResponses[keyof BlockContentUserResponses];
 
 export type ListAppArticlesData = {
     body?: never;

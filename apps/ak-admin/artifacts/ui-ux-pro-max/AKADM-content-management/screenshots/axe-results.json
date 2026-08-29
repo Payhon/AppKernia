@@ -2,10 +2,33 @@
   "zh-CN.1440": {
     "serious_critical": 0
   },
-  "zh-CN.categories.1440": {
+  "zh-CN.file-picker.thumbnail.1440": {
     "serious_critical": 0
   },
-  "en-US.categories.375": {
-    "serious_critical": 0
+  "file-picker-table-header": {
+    "top_right_radius": "0px"
+  },
+  "file-picker-type-option": {
+    "background": "rgb(220, 234, 255)",
+    "color": "rgb(23, 62, 122)"
+  },
+  "file-picker-resize": {
+    "hover_opacity": "1",
+    "active_corner": "rgb(5, 112, 236)",
+    "before": {
+      "width": 1120,
+      "height": 720
+    },
+    "after": {
+      "width": 1160,
+      "height": 744
+    }
+  },
+  "file-picker-compact-row": {
+    "height": 24
+  },
+  "file-picker-preview-open": {
+    "button_width": 24,
+    "vertical_offset": 0.0
   }
 }

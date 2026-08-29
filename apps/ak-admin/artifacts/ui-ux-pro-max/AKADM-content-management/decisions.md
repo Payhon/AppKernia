@@ -2,5 +2,27 @@
 
 - 使用既有 near-black 主操作、白灰数据 surface 与系统字体；不引入新的品牌色或外部字体。
 - 文章与分类分别由 route permission 阻断，细粒度动作由 `content.*` permission 控制。
-- 当前 OpenAPI 尚未进入此 worktree，使用一个局部 typed adapter seam；生成 API 后应替换此 seam，不修改 generated 文件。
+- OpenAPI 是最终契约；Admin 通过生成类型和局部 API adapter 调用 App 作用域 `/content/items|categories|topics|tags|comments|comment-reports`。
+- 发布后资讯类型不可更改；草稿切换类型由编辑器清理不兼容媒体字段并重新校验。
+- 评论采用先审后发，举报和批量审核保留独立操作与后端审计。
 - 409 由 UI 告知并精确失效相关 content query，禁止自动覆盖。
+- 编辑 Drawer 使用 Meta 信息/内容两个持久 Tab；内容 Tab 继续挂载 RHF 字段，切换双语 locale 不丢失值，校验错误自动定位到对应 Tab。
+- 正文统一使用 `@uiw/react-md-editor@4.0.4` 的受控 Markdown，启用实时预览、全屏和自定义资源插入命令；预览使用 `rehype-sanitize`，外部媒体只接受 HTTPS。
+- 文件选择器采用约 1100px 桌面资源浏览器，查询复用 `media_type` 前缀和现有受权限/扫描门禁保护的下载接口；图片/视频 Blob URL 在替换或关闭时释放。
+- 历史 blocks 由 Backend 确定性转换为 Markdown，读取兼容、首次保存持久化，未编辑数据不做全量改写。
+- 视频来源、上传文件/HTTPS 外链及其播放器归入内容 Tab；相应校验错误也切换到内容 Tab，Meta 只保留分类与发布元信息。
+- 图文编辑加载既有 `media[].file_id` 的受保护 Blob 缩略图，固定 120px 预览区并保留文件标题、排序和删除操作；加载失败显示本地化反馈。
+- 文件选择器的类型筛选、预览标题、空态、错误态和不支持态全部补齐双语键，并同步 Admin 运行时语言包和蓝图 i18n 事实源。
+- Meta 封面选择/预览与发布选项拆为两个独立视觉行；四个发布选项使用可自动换行的最小 150px 网格卡片。字段名放在 Switch 外并作为 accessible name，Switch 内使用现有双语“是/否”键，避免关闭状态只剩无文案灰色控件。
+- 文件选择器左侧文件单元格调整为 88×56、`object-fit: cover` 的受保护图片缩略图，文件名置于下方并省略；表格采用 AntD small 密度和 6px 单元格垂直内边距，上传时间、文件大小、安全扫描分别成列。缩略图继续通过 IntersectionObserver 在进入视口前 120px 时加载，组件卸载时撤销 Blob URL；视频/其他文件保留类型占位。
+- 顶部使用一个上传日期范围控件表达开始/结束约束，开始按本地自然日零点、结束按自然日末尾转换为 RFC 3339 UTC；后端新增包含边界的 `created_from`/`created_to` 查询并校验顺序，复用现有租户时间索引，避免仅过滤前端当前 80 条数据。
+- 文件选择器使用 AntD Modal 自定义 footer：上传器及策略提示位于左侧弹性区域，CancelBtn/OkBtn 保留 AntD 原生行为并组成右侧固定操作组。桌面维持同一行，767px 以下上下堆叠；上传任务卡和状态反馈仍属于上传器，不拆成第二套上传状态。
+- 文件选择器把每个安全可选 `<tr>` 作为统一选择目标：任意单元格 click、Enter 或 Space 都写入同一个 `selected` 状态，radio、行高亮、右侧预览和确认按钮同步更新。行通过 pointer、focus ring、`aria-selected` 表达交互；不可选行不注册选择动作，不能绕过 `ready + clean/skipped` 门禁。
+- 文件选择器选中行不使用由 near-black 主色派生的默认深色背景，改为组件范围内的 `#eff6ff` 浅蓝背景（hover 为 `#e8f2ff`）与 `#171717`/既有深色正文；Radio 和 `aria-selected` 继续提供非颜色状态。上传按钮使用已有 `UploadOutlined`，保留文字标签和 accessible name，不新增依赖。
+- 文件列表/预览采用 Ant Design 6 `Splitter`，桌面水平分隔的最小值为 420/280px，900px 以下转为垂直分隔；预览关闭时释放大图 Blob URL，但保留已选择文件，重新展开后按现有鉴权下载接口加载。
+- 对话框继续使用 Ant Design `Modal`，通过 `width/style/styles/modalRender` 控制尺寸、位置和内部 flex 高度。最大化保存并恢复前一矩形；标题栏 pointer capture 拖动并支持 Alt+方向键，右下角 button 手柄 pointer capture 缩放并支持方向键；所有结果夹在 8px 视口安全边距内。未引入 react-draggable、react-resizable 或第二套弹窗库。
+- 文件视图状态只属于当前打开的选择器，默认 `thumbnail`，关闭重开后复位；`grid/table/thumbnail` 共享同一 Query、selected 文件、右侧预览、确认按钮和 `ready + clean/skipped` 门禁。视图菜单使用 Ant Design Dropdown，三个项目均为一致 SVG 图标加本地化文字。
+- 网格卡片使用缩略图或文件类型图标，文件名常驻底部，类型/上传时间/大小/扫描状态在 hover 或键盘 focus 时以稳定覆盖层出现；紧凑表格使用 16×16px 身份图和约 24px 数据行；原 88×56px 布局作为缩略图视图保留。
+- 预览恢复入口改为列表右侧中部 24×40px 左箭头，文字移入 Tooltip 和 accessible name。Modal 关闭默认按钮被显式窗口操作组替代，与最大化按钮共用 30px 等高容器；已选状态移除 Alert 类，使用 `#f3f4f6` 背景和 `#4b5563` 文字。
+- Ant Design 6 `ModalProps` 不提供原生 resize/resizable 属性，因此将 pointer capture、键盘方向键、最小/最大尺寸和视口约束抽到共享 `AkModal` 的 `resizable` 配置；`AkFilePicker` 仅传入受控宽高与回调。右下角命中区无图标，hover/focus/拖动时由 CSS 伪元素显示与外圆角平行的内侧弧线，拖动中使用焦点蓝高亮。
+- 全局 Select 和可选择 Dropdown/Menu 的选中态统一为浅蓝 surface 与深蓝文字；除 AntD component token 外增加全局 popup 状态覆盖，避免 near-black `colorPrimary` 或 active 状态再次生成深色背景。文件列表最后一个表头单元格的右上圆角在选择器范围内固定为 0。

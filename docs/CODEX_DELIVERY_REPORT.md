@@ -2121,3 +2121,25 @@
 - 功能提交 `676304f6e606ceb03681a9158297e0ddaa80c054`（`feat(docs): enhance homepage hero`）已推送 `origin/main`；GitHub Pages run [`33047259705`](https://github.com/Payhon/AppKernia/actions/runs/33047259705) 成功，build job `98434068813` 用时 45 秒，deploy job `98434231357` 用时 9 秒，workflow head SHA 与功能提交一致。
 - Pages API 回读 `html_url=https://payhon.github.io/AppKernia/`、`build_type=workflow`、`https_enforced=true`、`cname=null`。中英文首页、Admin/Mobile Hero 静态图及 Sitemap 共 5 个 URL 均返回 HTTP 200；自定义域名尚未绑定，不宣称 `appkernia.com` 可访问。
 - 线上 Python Playwright/Chromium 复核 `zh-CN 375 light`、`zh-CN 1440 light`、`en-US 1440 dark` 三个状态：HTTP 200、单一 H1、页面无横向溢出或破图，标签为 19.5px/0 边框，桌面产品图占 Hero 53.7%，两组 Slider 点击和键盘切换成功；axe serious/critical、console error、失败请求/响应均为 0。
+## 2026-08-29 App 内容编辑器与文件选择器升级交付
+
+### 交付内容
+
+- Admin：Meta/内容双 Tab、成熟 Markdown 编辑器、媒体预览、图文缩略图、视频来源归位，以及文件选择器的类型/日期过滤、三视图、整行选择、预览分栏、移动/最大化/缩放和全局下拉选中态修复。
+- Backend/契约：Markdown 请求与旧 blocks 惰性转换、内容媒体关系、资讯内容 API、文件上传时间过滤、OpenAPI 和生成 TypeScript 类型保持一致。
+- 治理：双语运行目录与蓝图事实源、内容管理设计系统 override、UI Skill artifacts、第三方 MIT 许可证记录和门禁产物已同步；未纳入分享配置和 Mobile 并行改造。
+
+### 实际命令与结果
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `npm run check`（干净暂存快照，`apps/ak-admin`） | 0 | OpenAPI/i18n/route 生成无漂移；lint、typecheck、35 个文件/146 项 Vitest、Vite build、bundle、OpenAPI docs/reference 和 Admin Blueprint 通过。 |
+| `go test ./internal/modules/content/... ./internal/modules/storageadmin/... ./internal/modules/storage/... ./internal/bootstrap`（干净暂存快照，`server`） | 0 | content、storageadmin、storage 与 bootstrap 编译/测试通过。 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 39 routes、3 tabs、34 components，0 error / 0 warning。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN`/`en-US` 与 backend/admin/mobile reference packs 校验通过。 |
+| `git diff --cached --check` | 0 | 暂存补丁无空白错误。 |
+
+### 视觉证据与边界
+
+- 内容管理 Skill 截图目录登记了缩略图、网格 Hover、24px 紧凑表格、预览折叠、Select 菜单与窗口缩放状态；Chromium fixture 中 axe serious/critical 为 0。
+- 本地 Admin 已部署并验证 `/healthz`；本次提交验证使用干净暂存快照，未将工作区中其他未提交功能带入结果，也不把 fixture 表述为真实账号或生产对象存储验收。

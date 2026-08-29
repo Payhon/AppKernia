@@ -289,6 +289,8 @@ export interface AdminFileFilters {
   scan_status?: string;
   media_type?: string;
   provider?: string;
+  created_from?: string;
+  created_to?: string;
   page?: number;
   page_size?: number;
 }

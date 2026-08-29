@@ -82,6 +82,8 @@ WHERE f.tenant_id = sqlc.arg('tenant_id') AND f.deleted_at IS NULL
   AND (sqlc.arg('scan_status')::text = '' OR f.scan_status = sqlc.arg('scan_status'))
   AND (sqlc.arg('media_type')::text = '' OR f.media_type ILIKE sqlc.arg('media_type') || '%')
   AND (sqlc.arg('provider')::text = '' OR f.provider = sqlc.arg('provider'))
+  AND (sqlc.narg('created_from')::timestamptz IS NULL OR f.created_at >= sqlc.narg('created_from'))
+  AND (sqlc.narg('created_to')::timestamptz IS NULL OR f.created_at <= sqlc.narg('created_to'))
 ORDER BY f.created_at DESC, f.id DESC
 LIMIT sqlc.arg('page_size') OFFSET sqlc.arg('page_offset');
 
@@ -93,7 +95,9 @@ WHERE f.tenant_id = sqlc.arg('tenant_id') AND f.deleted_at IS NULL
   AND (sqlc.arg('status')::text = '' OR f.status = sqlc.arg('status'))
   AND (sqlc.arg('scan_status')::text = '' OR f.scan_status = sqlc.arg('scan_status'))
   AND (sqlc.arg('media_type')::text = '' OR f.media_type ILIKE sqlc.arg('media_type') || '%')
-  AND (sqlc.arg('provider')::text = '' OR f.provider = sqlc.arg('provider'));
+  AND (sqlc.arg('provider')::text = '' OR f.provider = sqlc.arg('provider'))
+  AND (sqlc.narg('created_from')::timestamptz IS NULL OR f.created_at >= sqlc.narg('created_from'))
+  AND (sqlc.narg('created_to')::timestamptz IS NULL OR f.created_at <= sqlc.narg('created_to'));
 
 -- name: GetAdminFile :one
 SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size_bytes, f.provider, f.bucket_name,

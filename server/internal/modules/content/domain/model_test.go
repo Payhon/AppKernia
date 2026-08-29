@@ -20,7 +20,7 @@ func TestPublicArticleJSONPreservesMobileContractFields(t *testing.T) {
 		Body:           json.RawMessage(`"Body"`),
 		Category:       &PublicCategory{ID: uuid.MustParse("123e4567-e89b-12d3-a456-426614174001"), Slug: "guides", Name: "Guides"},
 		ReadingMinutes: 5,
-		Bookmarked:     true,
+		Bookmarked:     boolPointer(true),
 	}
 	raw, err := json.Marshal(article)
 	if err != nil {
@@ -61,3 +61,4 @@ func TestPublicArticleJSONIncludesNullCategory(t *testing.T) {
 }
 
 func pointer(value time.Time) *time.Time { return &value }
+func boolPointer(value bool) *bool       { return &value }

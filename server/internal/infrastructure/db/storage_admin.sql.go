@@ -62,15 +62,19 @@ WHERE f.tenant_id = $1 AND f.deleted_at IS NULL
   AND ($4::text = '' OR f.scan_status = $4)
   AND ($5::text = '' OR f.media_type ILIKE $5 || '%')
   AND ($6::text = '' OR f.provider = $6)
+  AND ($7::timestamptz IS NULL OR f.created_at >= $7)
+  AND ($8::timestamptz IS NULL OR f.created_at <= $8)
 `
 
 type CountAdminFilesParams struct {
-	TenantID   uuid.UUID `json:"tenant_id"`
-	Query      string    `json:"query"`
-	Status     string    `json:"status"`
-	ScanStatus string    `json:"scan_status"`
-	MediaType  string    `json:"media_type"`
-	Provider   string    `json:"provider"`
+	TenantID    uuid.UUID          `json:"tenant_id"`
+	Query       string             `json:"query"`
+	Status      string             `json:"status"`
+	ScanStatus  string             `json:"scan_status"`
+	MediaType   string             `json:"media_type"`
+	Provider    string             `json:"provider"`
+	CreatedFrom pgtype.Timestamptz `json:"created_from"`
+	CreatedTo   pgtype.Timestamptz `json:"created_to"`
 }
 
 func (q *Queries) CountAdminFiles(ctx context.Context, arg CountAdminFilesParams) (int64, error) {
@@ -81,6 +85,8 @@ func (q *Queries) CountAdminFiles(ctx context.Context, arg CountAdminFilesParams
 		arg.ScanStatus,
 		arg.MediaType,
 		arg.Provider,
+		arg.CreatedFrom,
+		arg.CreatedTo,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -482,19 +488,23 @@ WHERE f.tenant_id = $1 AND f.deleted_at IS NULL
   AND ($4::text = '' OR f.scan_status = $4)
   AND ($5::text = '' OR f.media_type ILIKE $5 || '%')
   AND ($6::text = '' OR f.provider = $6)
+  AND ($7::timestamptz IS NULL OR f.created_at >= $7)
+  AND ($8::timestamptz IS NULL OR f.created_at <= $8)
 ORDER BY f.created_at DESC, f.id DESC
-LIMIT $8 OFFSET $7
+LIMIT $10 OFFSET $9
 `
 
 type ListAdminFilesParams struct {
-	TenantID   uuid.UUID `json:"tenant_id"`
-	Query      string    `json:"query"`
-	Status     string    `json:"status"`
-	ScanStatus string    `json:"scan_status"`
-	MediaType  string    `json:"media_type"`
-	Provider   string    `json:"provider"`
-	PageOffset int32     `json:"page_offset"`
-	PageSize   int32     `json:"page_size"`
+	TenantID    uuid.UUID          `json:"tenant_id"`
+	Query       string             `json:"query"`
+	Status      string             `json:"status"`
+	ScanStatus  string             `json:"scan_status"`
+	MediaType   string             `json:"media_type"`
+	Provider    string             `json:"provider"`
+	CreatedFrom pgtype.Timestamptz `json:"created_from"`
+	CreatedTo   pgtype.Timestamptz `json:"created_to"`
+	PageOffset  int32              `json:"page_offset"`
+	PageSize    int32              `json:"page_size"`
 }
 
 type ListAdminFilesRow struct {
@@ -520,6 +530,8 @@ func (q *Queries) ListAdminFiles(ctx context.Context, arg ListAdminFilesParams) 
 		arg.ScanStatus,
 		arg.MediaType,
 		arg.Provider,
+		arg.CreatedFrom,
+		arg.CreatedTo,
 		arg.PageOffset,
 		arg.PageSize,
 	)

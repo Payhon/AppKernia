@@ -888,6 +888,170 @@ paths:
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: transition, in: path, required: true, schema: {type: string, enum: [publish, unpublish, archive]}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTransitionRequest"}}}}
       responses: {"200": {description: Transitioned., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/content/items:
+    get:
+      summary: List App-scoped information items
+      operationId: listAdminAppContentItems
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: category_id, in: query, schema: {type: string, format: uuid}}, {name: topic_id, in: query, schema: {type: string, format: uuid}}, {name: type, in: query, schema: {$ref: "#/components/schemas/ContentType"}}, {name: status, in: query, schema: {type: string, enum: [draft, published, archived]}}, {name: featured, in: query, schema: {type: boolean}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: Content item page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}}
+    post:
+      summary: Create an App-scoped information item draft
+      operationId: createAdminAppContentItem
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleRequest"}}}}
+      responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/content/items/{id}:
+    get:
+      summary: Read one App-scoped information item
+      operationId: getAdminAppContentItem
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Content item., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update an App-scoped information item using lock_version
+      operationId: updateAdminAppContentItem
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleUpdateRequest"}}}}
+      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+    delete:
+      summary: Delete an App-scoped draft information item
+      operationId: deleteAdminAppContentItem
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/content/items/{id}/{transition}:
+    post:
+      summary: Publish, unpublish, or archive an App-scoped information item
+      operationId: transitionAdminAppContentItem
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: transition, in: path, required: true, schema: {type: string, enum: [publish, unpublish, archive]}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTransitionRequest"}}}}
+      responses: {"200": {description: Transitioned., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/content/topics:
+    get:
+      summary: List App-scoped content topics
+      operationId: listAdminAppContentTopics
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100}}]
+      responses: {"200": {description: Topic page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTopicListResponse"}}}}}
+    post:
+      summary: Create an App-scoped content topic
+      operationId: createAdminAppContentTopic
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTopicRequest"}}}}
+      responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTopicResponse"}}}}}
+  /admin-api/v1/apps/{app_id}/content/topics/{id}:
+    patch:
+      summary: Update an App-scoped content topic
+      operationId: updateAdminAppContentTopic
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTopicRequest"}}}}
+      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTopicResponse"}}}}}
+    delete:
+      summary: Delete an unused App-scoped content topic
+      operationId: deleteAdminAppContentTopic
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}}
+  /admin-api/v1/apps/{app_id}/content/tags:
+    get:
+      summary: List App-scoped content tags
+      operationId: listAdminAppContentTags
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100}}]
+      responses: {"200": {description: Tag page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTagListResponse"}}}}}
+    post:
+      summary: Create or return a normalized App-scoped tag
+      operationId: createAdminAppContentTag
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [name], properties: {name: {type: string, maxLength: 80}}}}}}
+      responses: {"201": {description: Tag., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTagResponse"}}}}}
+  /admin-api/v1/apps/{app_id}/content/tags/{id}:
+    patch:
+      summary: Rename or change status of an App-scoped tag
+      operationId: updateAdminAppContentTag
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTag"}}}}
+      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTagResponse"}}}}}
+    delete:
+      summary: Delete an unused App-scoped tag
+      operationId: deleteAdminAppContentTag
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}}
+  /admin-api/v1/apps/{app_id}/content/tags/{id}/merge:
+    post:
+      summary: Merge an App-scoped tag into another tag
+      operationId: mergeAdminAppContentTag
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [target_id, lock_version], properties: {target_id: {type: string, format: uuid}, lock_version: {type: integer, minimum: 1}}}}}}
+      responses: {"200": {description: Merged., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBooleanResponse"}}}}}
+  /admin-api/v1/apps/{app_id}/content/comments:
+    get:
+      summary: List the App-scoped comment moderation queue
+      operationId: listAdminAppContentComments
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: article_id, in: query, schema: {type: string, format: uuid}}, {name: status, in: query, schema: {$ref: "#/components/schemas/CommentStatus"}}, {name: page, in: query, schema: {type: integer, minimum: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100}}]
+      responses: {"200": {description: Comment page., content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentListResponse"}}}}}
+  /admin-api/v1/apps/{app_id}/content/comments/batch-moderate:
+    post:
+      summary: Moderate up to 100 comments in one operator action
+      operationId: batchModerateAdminAppContentComments
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentBatchModerationRequest"}}}}
+      responses: {"200": {description: Moderated comments., content: {application/json: {schema: {type: object}}}}}
+  /admin-api/v1/apps/{app_id}/content/comments/{id}/moderate:
+    post:
+      summary: Approve, reject, hide, or mark a comment deleted
+      operationId: moderateAdminAppContentComment
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentModerationRequest"}}}}
+      responses: {"200": {description: Moderated., content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentResponse"}}}}}
+  /admin-api/v1/apps/{app_id}/content/comment-reports:
+    get:
+      summary: List App-scoped comment reports
+      operationId: listAdminAppContentCommentReports
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: status, in: query, schema: {type: string, enum: [open, resolved, dismissed]}}, {name: page, in: query, schema: {type: integer, minimum: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100}}]
+      responses: {"200": {description: Report page., content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentReportListResponse"}}}}}
+  /admin-api/v1/apps/{app_id}/content/comment-reports/{id}/resolve:
+    post:
+      summary: Resolve or dismiss an open comment report
+      operationId: resolveAdminAppContentCommentReport
+      tags: [admin-app-content]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentReportResolutionRequest"}}}}
+      responses: {"200": {description: Report resolved., content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentReportResponse"}}}}}
   /admin-api/v1/apps/{app_id}/content/pages:
     get:
       summary: List App-scoped single pages and their current revisions
@@ -2583,7 +2747,7 @@ paths:
       operationId: listAdminFiles
       tags: [admin-storage]
       security: [{adminBearer: []}]
-      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [pending, ready, quarantined]}}, {name: scan_status, in: query, schema: {type: string, enum: [pending, clean, infected, failed, skipped]}}, {name: media_type, in: query, schema: {type: string}}, {name: provider, in: query, schema: {type: string, x-appkernia-dictionary: storage.driver}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [pending, ready, quarantined]}}, {name: scan_status, in: query, schema: {type: string, enum: [pending, clean, infected, failed, skipped]}}, {name: media_type, in: query, schema: {type: string}}, {name: provider, in: query, schema: {type: string, x-appkernia-dictionary: storage.driver}}, {name: created_from, in: query, description: Inclusive RFC 3339 upload time lower bound., schema: {type: string, format: date-time}}, {name: created_to, in: query, description: Inclusive RFC 3339 upload time upper bound., schema: {type: string, format: date-time}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Object keys and checksums are not exposed., content: {application/json: {schema: {$ref: "#/components/schemas/AdminFileListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
   /admin-api/v1/files/{id}:
     parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
@@ -2623,9 +2787,155 @@ paths:
       security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Private binary content., content: {application/octet-stream: {schema: {type: string, format: binary}}}}, "409": {description: Scan gate blocked download., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
+  /api/v1/public/content/home:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: Get deduplicated pinned, featured, and explicitly latest content
+      operationId: getPublicContentHome
+      tags: [public-content]
+      security: [{mobileBearer: []}, {}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 20, default: 10}}]
+      responses: {"200": {description: Guest-readable home feed., content: {application/json: {schema: {$ref: "#/components/schemas/PublicContentHomeResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/public/content/items:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: List published information items with stable cursor pagination
+      operationId: listPublicContentItems
+      tags: [public-content]
+      security: [{mobileBearer: []}, {}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: type, in: query, schema: {$ref: "#/components/schemas/ContentType"}}, {name: category, in: query, schema: {type: string}}, {name: topic, in: query, schema: {type: string}}, {name: tag, in: query, schema: {type: string}}, {name: featured, in: query, schema: {type: boolean}}, {name: cursor, in: query, schema: {type: string}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}]
+      responses: {"200": {description: Published content page., content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/public/content/search:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: Search current-locale published content, tags, categories, and topics
+      operationId: searchPublicContent
+      tags: [public-content]
+      security: [{mobileBearer: []}, {}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, required: true, schema: {type: string, minLength: 1, maxLength: 160}}, {name: type, in: query, schema: {$ref: "#/components/schemas/ContentType"}}, {name: category, in: query, schema: {type: string}}, {name: topic, in: query, schema: {type: string}}, {name: tag, in: query, schema: {type: string}}, {name: cursor, in: query, schema: {type: string}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50, default: 20}}]
+      responses: {"200": {description: Search result page., content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/public/content/items/{slug}:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: Read one published localized information item
+      operationId: getPublicContentItem
+      tags: [public-content]
+      security: [{mobileBearer: []}, {}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}]
+      responses: {"200": {description: Content detail discriminated by content_type., content: {application/json: {schema: {$ref: "#/components/schemas/ContentDetailResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/public/content/items/{id}/comments:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: List approved comments for a published information item
+      operationId: listPublicContentComments
+      tags: [public-content]
+      security: [{mobileBearer: []}, {}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: page, in: query, schema: {type: integer, minimum: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100}}]
+      responses: {"200": {description: Approved comment page., content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/public/content/categories:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: List the two-level published content category tree
+      operationId: listPublicContentCategories
+      tags: [public-content]
+      security: [{mobileBearer: []}, {}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
+      responses: {"200": {description: Active categories., content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleCategoryListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/public/content/topics:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: List published content topics
+      operationId: listPublicContentTopics
+      tags: [public-content]
+      security: [{mobileBearer: []}, {}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
+      responses: {"200": {description: Active topics., content: {application/json: {schema: {$ref: "#/components/schemas/PublicContentTopicListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/public/content/topics/{slug}:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: Get one published content topic
+      operationId: getPublicContentTopic
+      tags: [public-content]
+      security: [{mobileBearer: []}, {}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: slug, in: path, required: true, schema: {type: string}}]
+      responses: {"200": {description: Topic detail., content: {application/json: {schema: {$ref: "#/components/schemas/PublicContentTopicResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/public/content/assets/{file_id}:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: Stream scan-safe media referenced by published content
+      operationId: getPublicContentAsset
+      tags: [public-content]
+      security: [{mobileBearer: []}, {}]
+      parameters: [{name: file_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Published content image or MP4., content: {image/jpeg: {schema: {type: string, format: binary}}, image/png: {schema: {type: string, format: binary}}, image/webp: {schema: {type: string, format: binary}}, video/mp4: {schema: {type: string, format: binary}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/me/content-bookmarks:
+    get:
+      summary: List the current user's bookmarked information items
+      operationId: listMyContentBookmarks
+      tags: [mobile-content]
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: q, in: query, schema: {type: string}}, {name: type, in: query, schema: {$ref: "#/components/schemas/ContentType"}}, {name: cursor, in: query, schema: {type: string}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 50}}]
+      responses: {"200": {description: Bookmark page., content: {application/json: {schema: {$ref: "#/components/schemas/AppArticleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/me/content-bookmarks/{article_id}:
+    put:
+      summary: Bookmark a published information item
+      operationId: bookmarkContentItem
+      tags: [mobile-content]
+      security: [{mobileBearer: []}]
+      parameters: [{name: article_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Bookmark present., content: {application/json: {schema: {$ref: "#/components/schemas/AppBookmarkResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+    delete:
+      summary: Remove an information item bookmark
+      operationId: removeContentItemBookmark
+      tags: [mobile-content]
+      security: [{mobileBearer: []}]
+      parameters: [{name: article_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Bookmark absent., content: {application/json: {schema: {$ref: "#/components/schemas/AppBookmarkResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/content/items/{id}/comments:
+    post:
+      summary: Submit a comment for premoderation
+      operationId: createContentComment
+      tags: [mobile-content]
+      security: [{mobileBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentCreateRequest"}}}}
+      responses: {"201": {description: Pending comment., content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/me/comments/{id}:
+    delete:
+      summary: Delete the current user's comment
+      operationId: deleteMyContentComment
+      tags: [mobile-content]
+      security: [{mobileBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBooleanResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/comments/{id}/reports:
+    post:
+      summary: Report an abusive comment
+      operationId: reportContentComment
+      tags: [mobile-content]
+      security: [{mobileBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentReportRequest"}}}}
+      responses: {"201": {description: Report accepted., content: {application/json: {schema: {$ref: "#/components/schemas/ContentCommentReportResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/me/blocked-users/{user_id}:
+    put:
+      summary: Block a comment author
+      operationId: blockContentUser
+      tags: [mobile-content]
+      security: [{mobileBearer: []}]
+      parameters: [{name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Blocked., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBooleanResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+    delete:
+      summary: Unblock a comment author
+      operationId: unblockContentUser
+      tags: [mobile-content]
+      security: [{mobileBearer: []}]
+      parameters: [{name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Unblocked., content: {application/json: {schema: {$ref: "#/components/schemas/AdminBooleanResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/articles:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
+      deprecated: true
       summary: List published tenant articles localized by Accept-Language
       operationId: listAppArticles
       tags: [public-content]
@@ -2635,6 +2945,7 @@ paths:
   /api/v1/article-categories:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
+      deprecated: true
       summary: List all active tenant article categories localized by Accept-Language
       operationId: listAppArticleCategories
       tags: [public-content]
@@ -2644,6 +2955,7 @@ paths:
   /api/v1/article-assets/{file_id}:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
+      deprecated: true
       summary: Read a scan-safe image used by a published tenant article
       operationId: getAppArticleAsset
       tags: [public-content]
@@ -2653,6 +2965,7 @@ paths:
   /api/v1/articles/{slug}:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
+      deprecated: true
       summary: Read a published localized article
       operationId: getAppArticle
       tags: [public-content]
@@ -2662,6 +2975,7 @@ paths:
   /api/v1/me/article-bookmarks/{article_id}:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     put:
+      deprecated: true
       summary: Bookmark a published tenant article
       operationId: bookmarkAppArticle
       tags: [mobile-content]
@@ -2669,6 +2983,7 @@ paths:
       parameters: [{name: article_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Bookmark present., content: {application/json: {schema: {$ref: "#/components/schemas/AppBookmarkResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
     delete:
+      deprecated: true
       summary: Remove an article bookmark
       operationId: removeAppArticleBookmark
       tags: [mobile-content]
@@ -5929,10 +6244,20 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [id, revoked], properties: {id: {type: string, format: uuid}, revoked: {type: boolean, const: true}}}, request_id: {type: string}}
+    ContentType:
+      type: string
+      enum: [article, gallery, video]
+    CommentStatus:
+      type: string
+      enum: [pending, approved, rejected, hidden, deleted]
     ContentTranslation:
       type: object
       required: [title, summary, body_format, body]
-      properties: {title: {type: string, maxLength: 300}, summary: {type: string, maxLength: 1000}, body_format: {type: string, enum: [markdown, blocks]}, body: {description: Restricted Markdown string or validated block array. Client rendering must sanitize Markdown and never render unsafe HTML.}}
+      properties:
+        title: {type: string, maxLength: 300}
+        summary: {type: string, maxLength: 3000}
+        body_format: {type: string, enum: [markdown]}
+        body: {type: string, maxLength: 100000, description: Markdown source. Raw HTML, base64 media, javascript URLs, and unregistered image references are forbidden. Managed images use the protected content asset path.}
     ContentCategoryTranslation:
       type: object
       required: [name, description]
@@ -5948,11 +6273,11 @@ components:
     AdminContentCategory:
       type: object
       required: [id, slug, status, sort_order, lock_version, translations, created_at, updated_at]
-      properties: {id: {type: string, format: uuid}, slug: {type: string}, status: {type: string, enum: [active, disabled]}, sort_order: {type: integer}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentCategoryTranslations"}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+      properties: {id: {type: string, format: uuid}, parent_id: {type: [string, 'null'], format: uuid}, image_file_id: {type: [string, 'null'], format: uuid}, image_url: {type: [string, 'null']}, slug: {type: string}, status: {type: string, enum: [active, disabled]}, sort_order: {type: integer}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentCategoryTranslations"}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
     AdminContentCategoryRequest:
       type: object
       required: [slug, status, sort_order, translations]
-      properties: {slug: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}, status: {type: string, enum: [active, disabled]}, sort_order: {type: integer}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentCategoryTranslations"}}
+      properties: {parent_id: {type: [string, 'null'], format: uuid}, image_file_id: {type: [string, 'null'], format: uuid}, slug: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}, status: {type: string, enum: [active, disabled]}, sort_order: {type: integer}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentCategoryTranslations"}}
     AdminContentCategoryUpdateRequest:
       allOf:
         - $ref: "#/components/schemas/AdminContentCategoryRequest"
@@ -5961,12 +6286,12 @@ components:
           properties: {lock_version: {type: integer, minimum: 1}}
     AdminContentArticle:
       type: object
-      required: [id, slug, status, featured, sort_order, reading_minutes, lock_version, translations, created_at, updated_at]
-      properties: {id: {type: string, format: uuid}, category_id: {type: [string, 'null'], format: uuid}, slug: {type: string}, status: {type: string, enum: [draft, published, archived]}, featured: {type: boolean}, sort_order: {type: integer}, cover_file_id: {type: [string, 'null'], format: uuid}, cover_url: {type: [string, 'null'], description: Server-derived safe URL only}, reading_minutes: {type: integer, minimum: 1, maximum: 120}, lock_version: {type: integer, minimum: 1}, published_at: {type: [string, 'null'], format: date-time}, translations: {$ref: "#/components/schemas/AdminContentTranslations"}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+      required: [id, content_type, slug, status, category_ids, tag_ids, tags, media, allow_comments, pinned, featured, latest, sort_order, reading_minutes, lock_version, translations, created_at, updated_at]
+      properties: {id: {type: string, format: uuid}, content_type: {$ref: "#/components/schemas/ContentType"}, category_id: {type: [string, 'null'], format: uuid, deprecated: true}, category_ids: {type: array, maxItems: 10, uniqueItems: true, items: {type: string, format: uuid}}, topic_id: {type: [string, 'null'], format: uuid}, tag_ids: {type: array, maxItems: 10, uniqueItems: true, items: {type: string, format: uuid}}, tags: {type: array, items: {$ref: "#/components/schemas/AdminContentTag"}}, media: {type: array, maxItems: 9, items: {$ref: "#/components/schemas/ContentMedia"}}, slug: {type: string}, status: {type: string, enum: [draft, published, archived]}, allow_comments: {type: boolean}, pinned: {type: boolean}, featured: {type: boolean}, latest: {type: boolean}, sort_order: {type: integer}, cover_file_id: {type: [string, 'null'], format: uuid}, cover_url: {type: [string, 'null'], description: Server-derived safe URL only}, reading_minutes: {type: integer, minimum: 1, maximum: 120}, video_source_type: {type: [string, 'null'], enum: [upload, external, null]}, video_file_id: {type: [string, 'null'], format: uuid}, video_external_url: {type: [string, 'null'], format: uri}, video_duration_seconds: {type: [integer, 'null'], minimum: 0}, lock_version: {type: integer, minimum: 1}, published_at: {type: [string, 'null'], format: date-time}, translations: {$ref: "#/components/schemas/AdminContentTranslations"}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
     AdminContentArticleRequest:
       type: object
-      required: [slug, featured, sort_order, reading_minutes, translations]
-      properties: {category_id: {type: [string, 'null'], format: uuid}, slug: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}, featured: {type: boolean}, sort_order: {type: integer}, cover_file_id: {type: [string, 'null'], format: uuid}, reading_minutes: {type: integer, minimum: 1, maximum: 120}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentTranslations"}}
+      required: [content_type, slug, category_ids, tag_ids, media, allow_comments, pinned, featured, latest, sort_order, reading_minutes, translations]
+      properties: {content_type: {$ref: "#/components/schemas/ContentType"}, category_id: {type: [string, 'null'], format: uuid, deprecated: true}, category_ids: {type: array, maxItems: 10, uniqueItems: true, items: {type: string, format: uuid}}, topic_id: {type: [string, 'null'], format: uuid}, tag_ids: {type: array, maxItems: 10, uniqueItems: true, items: {type: string, format: uuid}}, media: {type: array, maxItems: 9, items: {$ref: "#/components/schemas/ContentMedia"}}, slug: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}, allow_comments: {type: boolean}, pinned: {type: boolean}, featured: {type: boolean}, latest: {type: boolean}, sort_order: {type: integer}, cover_file_id: {type: [string, 'null'], format: uuid}, reading_minutes: {type: integer, minimum: 1, maximum: 120}, video_source_type: {type: [string, 'null'], enum: [upload, external, null]}, video_file_id: {type: [string, 'null'], format: uuid}, video_external_url: {type: [string, 'null'], format: uri}, video_duration_seconds: {type: [integer, 'null'], minimum: 0}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentTranslations"}}
     AdminContentArticleUpdateRequest:
       allOf:
         - $ref: "#/components/schemas/AdminContentArticleRequest"
@@ -5993,14 +6318,72 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminContentArticle"}}, page: {type: integer}, page_size: {type: integer}, total: {type: integer}}}, request_id: {type: string}}
+    ContentTopicTranslation:
+      type: object
+      required: [name, description]
+      properties: {name: {type: string, maxLength: 160}, description: {type: string, maxLength: 2000}}
+    AdminContentTopicTranslations:
+      type: object
+      required: [zh-CN, en-US]
+      properties: {zh-CN: {$ref: "#/components/schemas/ContentTopicTranslation"}, en-US: {$ref: "#/components/schemas/ContentTopicTranslation"}}
+    AdminContentTopic:
+      type: object
+      required: [id, slug, status, sort_order, lock_version, translations, created_at, updated_at]
+      properties: {id: {type: string, format: uuid}, slug: {type: string}, status: {type: string, enum: [active, disabled]}, sort_order: {type: integer}, cover_file_id: {type: [string, 'null'], format: uuid}, cover_url: {type: [string, 'null']}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentTopicTranslations"}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+    AdminContentTopicRequest:
+      type: object
+      required: [slug, status, sort_order, translations]
+      properties: {slug: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}, status: {type: string, enum: [active, disabled]}, sort_order: {type: integer, minimum: 0}, cover_file_id: {type: [string, 'null'], format: uuid}, lock_version: {type: integer, minimum: 1}, translations: {$ref: "#/components/schemas/AdminContentTopicTranslations"}}
+    AdminContentTopicResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminContentTopic"}, request_id: {type: string}}
+    AdminContentTopicListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminContentTopic"}}, page: {type: integer}, page_size: {type: integer}, total: {type: integer}}}, request_id: {type: string}}
+    AdminContentTag:
+      type: object
+      required: [id, name]
+      properties: {id: {type: string, format: uuid}, name: {type: string, maxLength: 80}, status: {type: string, enum: [active, disabled]}, lock_version: {type: integer, minimum: 1}, usage_count: {type: integer, minimum: 0}}
+    AdminContentTagResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminContentTag"}, request_id: {type: string}}
+    AdminContentTagListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminContentTag"}}, page: {type: integer}, page_size: {type: integer}, total: {type: integer}}}, request_id: {type: string}}
+    ContentMediaTranslation:
+      type: object
+      required: [alt_text]
+      properties: {alt_text: {type: string, minLength: 1, maxLength: 500}}
+    ContentMedia:
+      type: object
+      required: [id, file_id, role, sort_order, translations]
+      properties: {id: {type: string, format: uuid}, file_id: {type: string, format: uuid}, role: {type: string, enum: [gallery, inline]}, sort_order: {type: integer, minimum: 0}, translations: {type: object, required: [zh-CN, en-US], properties: {zh-CN: {$ref: "#/components/schemas/ContentMediaTranslation"}, en-US: {$ref: "#/components/schemas/ContentMediaTranslation"}}}}
     AppArticle:
       type: object
-      required: [id, slug, featured, published_at, title, summary, body_format, body, category, reading_minutes, bookmarked]
-      properties: {id: {type: string, format: uuid}, slug: {type: string}, featured: {type: boolean}, published_at: {type: string, format: date-time}, title: {type: string}, summary: {type: string}, body_format: {type: string, enum: [markdown, blocks]}, body: {}, category: {oneOf: [{$ref: "#/components/schemas/AppArticleCategory"}, {type: 'null'}]}, reading_minutes: {type: integer, minimum: 1, maximum: 120}, cover_url: {type: [string, 'null'], description: "Authenticated same-origin article asset path for a published scan-safe image."}, bookmarked: {type: boolean}}
+      required: [id, slug, content_type, allow_comments, pinned, featured, latest, title, summary, body_format, body, categories, tags, media, reading_minutes, bookmarked]
+      discriminator: {propertyName: content_type}
+      properties: {id: {type: string, format: uuid}, slug: {type: string}, content_type: {$ref: "#/components/schemas/ContentType"}, allow_comments: {type: boolean}, pinned: {type: boolean}, featured: {type: boolean}, latest: {type: boolean}, published_at: {type: [string, 'null'], format: date-time}, title: {type: string}, summary: {type: string}, body_format: {type: string, enum: [markdown]}, body: {type: string}, category: {oneOf: [{$ref: "#/components/schemas/AppArticleCategory"}, {type: 'null'}], deprecated: true}, categories: {type: array, maxItems: 10, items: {$ref: "#/components/schemas/AppArticleCategory"}}, topic: {oneOf: [{$ref: "#/components/schemas/PublicContentTopic"}, {type: 'null'}]}, tags: {type: array, maxItems: 10, items: {$ref: "#/components/schemas/AdminContentTag"}}, media: {type: array, maxItems: 9, items: {$ref: "#/components/schemas/PublicContentMedia"}}, reading_minutes: {type: integer, minimum: 1, maximum: 120}, cover_url: {type: [string, 'null']}, video_source_type: {type: [string, 'null'], enum: [upload, external, null]}, video_url: {type: [string, 'null']}, video_duration_seconds: {type: [integer, 'null']}, bookmarked: {type: [boolean, 'null'], description: Null for guests and boolean for a valid optional session.}}
+    ArticleContentDetail:
+      allOf: [{$ref: "#/components/schemas/AppArticle"}, {type: object, required: [content_type, body], properties: {content_type: {const: article}, body: {type: string}}}]
+    GalleryContentDetail:
+      allOf: [{$ref: "#/components/schemas/AppArticle"}, {type: object, required: [content_type, media], properties: {content_type: {const: gallery}, media: {type: array, minItems: 1, maxItems: 9, items: {$ref: "#/components/schemas/PublicContentMedia"}}}}]
+    VideoContentDetail:
+      allOf: [{$ref: "#/components/schemas/AppArticle"}, {type: object, required: [content_type, video_source_type, video_url], properties: {content_type: {const: video}, video_source_type: {type: string, enum: [upload, external]}, video_url: {type: string, format: uri}}}]
+    ContentDetail:
+      oneOf: [{$ref: "#/components/schemas/ArticleContentDetail"}, {$ref: "#/components/schemas/GalleryContentDetail"}, {$ref: "#/components/schemas/VideoContentDetail"}]
+      discriminator: {propertyName: content_type, mapping: {article: "#/components/schemas/ArticleContentDetail", gallery: "#/components/schemas/GalleryContentDetail", video: "#/components/schemas/VideoContentDetail"}}
+    ContentDetailResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/ContentDetail"}, request_id: {type: string}}
     AppArticleCategory:
       type: object
       required: [id, slug, sort_order, name, description]
-      properties: {id: {type: string, format: uuid}, slug: {type: string}, sort_order: {type: integer}, name: {type: string}, description: {type: string}}
+      properties: {id: {type: string, format: uuid}, parent_id: {type: [string, 'null'], format: uuid}, slug: {type: string}, sort_order: {type: integer}, name: {type: string}, description: {type: string}, image_url: {type: [string, 'null']}}
     AppArticleCategoryListResponse:
       type: object
       required: [code, message, data, request_id]
@@ -6017,6 +6400,70 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [bookmarked], properties: {bookmarked: {type: boolean}}}, request_id: {type: string}}
+    PublicContentTopic:
+      type: object
+      required: [id, slug, sort_order, name, description]
+      properties: {id: {type: string, format: uuid}, slug: {type: string}, sort_order: {type: integer}, name: {type: string}, description: {type: string}, cover_url: {type: [string, 'null']}}
+    PublicContentTopicResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/PublicContentTopic"}, request_id: {type: string}}
+    PublicContentTopicListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/PublicContentTopic"}}}}, request_id: {type: string}}
+    PublicContentMedia:
+      type: object
+      required: [id, file_id, url, role, sort_order, alt_text]
+      properties: {id: {type: string, format: uuid}, file_id: {type: string, format: uuid}, url: {type: string}, role: {type: string}, sort_order: {type: integer}, alt_text: {type: string}}
+    PublicContentHomeResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [pinned, featured, latest], properties: {pinned: {type: array, items: {$ref: "#/components/schemas/AppArticle"}}, featured: {type: array, items: {$ref: "#/components/schemas/AppArticle"}}, latest: {type: array, items: {$ref: "#/components/schemas/AppArticle"}}}}, request_id: {type: string}}
+    ContentComment:
+      type: object
+      required: [id, article_id, author_id, author_name, status, body, created_at, updated_at]
+      properties: {id: {type: string, format: uuid}, article_id: {type: string, format: uuid}, author_id: {type: string, format: uuid}, author_name: {type: string}, author_avatar_url: {type: [string, 'null']}, parent_id: {type: [string, 'null'], format: uuid}, root_id: {type: [string, 'null'], format: uuid}, status: {$ref: "#/components/schemas/CommentStatus"}, body: {type: string, maxLength: 500}, moderation_reason: {type: [string, 'null']}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+    ContentCommentCreateRequest:
+      type: object
+      required: [body]
+      properties: {parent_id: {type: [string, 'null'], format: uuid}, body: {type: string, minLength: 1, maxLength: 500}}
+    ContentCommentModerationRequest:
+      type: object
+      required: [status]
+      properties: {status: {type: string, enum: [approved, rejected, hidden, deleted]}, reason: {type: string, maxLength: 500}}
+    ContentCommentBatchModerationRequest:
+      type: object
+      required: [ids, status, reason]
+      properties: {ids: {type: array, minItems: 1, maxItems: 100, uniqueItems: true, items: {type: string, format: uuid}}, status: {type: string, enum: [approved, rejected, hidden]}, reason: {type: string, maxLength: 500}}
+    ContentCommentResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/ContentComment"}, request_id: {type: string}}
+    ContentCommentListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/ContentComment"}}, page: {type: integer}, page_size: {type: integer}, total: {type: integer}, next_cursor: {type: [string, 'null']}}}, request_id: {type: string}}
+    ContentCommentReportRequest:
+      type: object
+      required: [reason]
+      properties: {reason: {type: string, enum: [spam, harassment, hate, sexual, violence, illegal, privacy, other]}, details: {type: string, maxLength: 1000}}
+    ContentCommentReport:
+      type: object
+      required: [id, comment_id, reporter_id, reason, details, status, resolution, created_at]
+      properties: {id: {type: string, format: uuid}, comment_id: {type: string, format: uuid}, reporter_id: {type: string, format: uuid}, reason: {type: string, enum: [spam, abuse, illegal, privacy, other]}, details: {type: string}, status: {type: string, enum: [open, resolved, dismissed]}, resolution: {type: string, maxLength: 500}, created_at: {type: string, format: date-time}, resolved_at: {type: [string, 'null'], format: date-time}}
+    ContentCommentReportResolutionRequest:
+      type: object
+      required: [status, resolution]
+      properties: {status: {type: string, enum: [resolved, dismissed]}, resolution: {type: string, minLength: 1, maxLength: 500}}
+    ContentCommentReportResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/ContentCommentReport"}, request_id: {type: string}}
+    ContentCommentReportListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/ContentCommentReport"}}, page: {type: integer}, page_size: {type: integer}, total: {type: integer}}}, request_id: {type: string}}
     AdminOpsStatus:
       type: string
       enum: [ready, degraded, unavailable, not_configured, unknown]

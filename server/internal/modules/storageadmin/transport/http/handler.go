@@ -107,14 +107,28 @@ func (h *Handler) CompleteUpload(r *ghttp.Request) {
 func (h *Handler) List(r *ghttp.Request) {
 	page, e1 := strconv.Atoi(r.GetQuery("page", 1).String())
 	size, e2 := strconv.Atoi(r.GetQuery("page_size", 20).String())
-	if e1 != nil || e2 != nil {
+	createdFrom, e3 := optionalRFC3339(r.GetQuery("created_from").String())
+	createdTo, e4 := optionalRFC3339(r.GetQuery("created_to").String())
+	if e1 != nil || e2 != nil || e3 != nil || e4 != nil {
 		h.fail(r, files.ErrInvalid)
 		return
 	}
-	out, err := h.service.ListFiles(r.Context(), token(r), files.FileFilter{Query: r.GetQuery("q").String(), Status: r.GetQuery("status").String(), ScanStatus: r.GetQuery("scan_status").String(), MediaType: r.GetQuery("media_type").String(), Provider: r.GetQuery("provider").String(), Page: int32(page), PageSize: int32(size)})
+	out, err := h.service.ListFiles(r.Context(), token(r), files.FileFilter{Query: r.GetQuery("q").String(), Status: r.GetQuery("status").String(), ScanStatus: r.GetQuery("scan_status").String(), MediaType: r.GetQuery("media_type").String(), Provider: r.GetQuery("provider").String(), CreatedFrom: createdFrom, CreatedTo: createdTo, Page: int32(page), PageSize: int32(size)})
 	if !h.fail(r, err) {
 		h.ok(r, 200, out)
 	}
+}
+
+func optionalRFC3339(value string) (*time.Time, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, nil
+	}
+	parsed, err := time.Parse(time.RFC3339, value)
+	if err != nil {
+		return nil, err
+	}
+	return &parsed, nil
 }
 func (h *Handler) Get(r *ghttp.Request) {
 	id, ok := routerID(r, "id")

@@ -167,11 +167,12 @@ func (h *Handler) AdminArticles(r *ghttp.Request) {
 	f, ok := pageFilter(r)
 	featured, featuredOK := optionalBool(r, "featured")
 	category, categoryOK := optionalID(r, "category_id")
-	if !ok || !featuredOK || !categoryOK {
+	topic, topicOK := optionalID(r, "topic_id")
+	if !ok || !featuredOK || !categoryOK || !topicOK {
 		h.fail(r, content.ErrInvalid)
 		return
 	}
-	f.Status, f.Sort, f.Featured, f.CategoryID = r.GetQuery("status").String(), r.GetQuery("sort").String(), featured, category
+	f.Status, f.Sort, f.Featured, f.CategoryID, f.TopicID, f.ContentType = r.GetQuery("status").String(), r.GetQuery("sort").String(), featured, category, topic, r.GetQuery("type").String()
 	out, e := h.service.ListArticles(r.Context(), token(r), appID(r), f)
 	if !h.fail(r, e) {
 		h.ok(r, 200, out)

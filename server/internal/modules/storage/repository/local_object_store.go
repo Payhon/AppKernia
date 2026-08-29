@@ -33,7 +33,7 @@ func (store *LocalObjectStore) ResolvePolicy(_ context.Context, _ uuid.UUID) (do
 		Provider: "local", Bucket: "appkernia-local", MaxImageBytes: domain.MaxAvatarBytes,
 		MaxFileBytes:      domain.MaxFileBytes,
 		ImageMediaTypes:   []string{"image/jpeg", "image/png", "image/webp"},
-		FileMediaTypes:    []string{"application/pdf", "application/json", "application/zip", "application/octet-stream", "text/plain", "text/csv", "image/jpeg", "image/png", "image/webp"},
+		FileMediaTypes:    []string{"application/pdf", "application/json", "application/zip", "application/octet-stream", "text/plain", "text/csv", "image/jpeg", "image/png", "image/webp", "video/mp4"},
 		ConfigurationSafe: true,
 	}, nil
 }

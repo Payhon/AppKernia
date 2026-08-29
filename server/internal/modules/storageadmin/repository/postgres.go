@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/netip"
 	"strings"
+	"time"
 
 	db "github.com/appkernia/appkernia/server/internal/infrastructure/db"
 	files "github.com/appkernia/appkernia/server/internal/modules/storageadmin/domain"
@@ -123,12 +124,12 @@ func (r *Postgres) CompleteUpload(ctx context.Context, in files.CompleteUpload) 
 
 func (r *Postgres) ListFiles(ctx context.Context, tenantID uuid.UUID, f files.FileFilter) (files.FilePage, error) {
 	q := db.New(r.pool)
-	params := db.ListAdminFilesParams{TenantID: tenantID, Query: f.Query, Status: f.Status, ScanStatus: f.ScanStatus, MediaType: f.MediaType, Provider: f.Provider, PageOffset: (f.Page - 1) * f.PageSize, PageSize: f.PageSize}
+	params := db.ListAdminFilesParams{TenantID: tenantID, Query: f.Query, Status: f.Status, ScanStatus: f.ScanStatus, MediaType: f.MediaType, Provider: f.Provider, CreatedFrom: nullableTimestamp(f.CreatedFrom), CreatedTo: nullableTimestamp(f.CreatedTo), PageOffset: (f.Page - 1) * f.PageSize, PageSize: f.PageSize}
 	rows, err := q.ListAdminFiles(ctx, params)
 	if err != nil {
 		return files.FilePage{}, err
 	}
-	total, err := q.CountAdminFiles(ctx, db.CountAdminFilesParams{TenantID: tenantID, Query: f.Query, Status: f.Status, ScanStatus: f.ScanStatus, MediaType: f.MediaType, Provider: f.Provider})
+	total, err := q.CountAdminFiles(ctx, db.CountAdminFilesParams{TenantID: tenantID, Query: f.Query, Status: f.Status, ScanStatus: f.ScanStatus, MediaType: f.MediaType, Provider: f.Provider, CreatedFrom: nullableTimestamp(f.CreatedFrom), CreatedTo: nullableTimestamp(f.CreatedTo)})
 	if err != nil {
 		return files.FilePage{}, err
 	}
@@ -137,6 +138,13 @@ func (r *Postgres) ListFiles(ctx context.Context, tenantID uuid.UUID, f files.Fi
 		items = append(items, files.File{ID: row.ID, OwnerUserID: row.OwnerUserID, OriginalName: row.OriginalName, MediaType: stringValue(row.MediaType), Extension: stringValue(row.Extension), SizeBytes: row.SizeBytes, Provider: row.Provider, Status: row.Status, ScanStatus: row.ScanStatus, UsageCount: row.UsageCount, CreatedAt: row.CreatedAt.Time, UpdatedAt: row.UpdatedAt.Time})
 	}
 	return files.FilePage{Items: items, Page: f.Page, PageSize: f.PageSize, Total: total}, nil
+}
+
+func nullableTimestamp(value *time.Time) pgtype.Timestamptz {
+	if value == nil {
+		return pgtype.Timestamptz{}
+	}
+	return pgtype.Timestamptz{Time: *value, Valid: true}
 }
 
 func (r *Postgres) GetFile(ctx context.Context, tenantID, id uuid.UUID) (files.File, error) {

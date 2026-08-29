@@ -1,3 +1,4 @@
+import { UploadOutlined } from "@ant-design/icons";
 import { Alert, Button, Card, Progress, Space, Typography } from "antd";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -9,7 +10,7 @@ import { authSession } from "../features/auth/store";
 
 type UploadState = "idle" | "uploading" | "paused" | "error" | "completed" | "cancelled";
 interface UploadTask { file: File; sessionId?: string; progress: number; state: UploadState }
-interface AkFileUploaderProps { onUploaded?: (file: AdminFile) => void | Promise<void>; compact?: boolean }
+interface AkFileUploaderProps { onUploaded?: (file: AdminFile) => void | Promise<void>; compact?: boolean; mediaTypePrefix?: "image/" | "video/" }
 
 function sizeLabel(bytes: number) {
   if (bytes < 1024) return `${String(bytes)} B`;
@@ -17,7 +18,7 @@ function sizeLabel(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MiB`;
 }
 
-export function AkFileUploader({ onUploaded, compact = false }: AkFileUploaderProps) {
+export function AkFileUploader({ onUploaded, compact = false, mediaTypePrefix }: AkFileUploaderProps) {
   const { t } = useTranslation();
   const policy = useAdminFileUploadPolicy();
   const storageDrivers = useAdminDictionary("storage.driver");
@@ -58,7 +59,8 @@ export function AkFileUploader({ onUploaded, compact = false }: AkFileUploaderPr
   const choose = (file: File | undefined) => {
     if (!file || !policy.data) return;
     const mediaType = file.type || "application/octet-stream";
-    if (file.size <= 0 || file.size > policy.data.max_file_bytes || !policy.data.file_media_types.includes(mediaType)) {
+    const allowedMediaTypes = policy.data.file_media_types.filter((value) => !mediaTypePrefix || value.startsWith(mediaTypePrefix));
+    if (file.size <= 0 || file.size > policy.data.max_file_bytes || !allowedMediaTypes.includes(mediaType)) {
       setFeedback({ key: "system.files.upload.invalid_policy", error: true });
       return;
     }
@@ -82,8 +84,8 @@ export function AkFileUploader({ onUploaded, compact = false }: AkFileUploaderPr
   return (
     <div className={compact ? "ak-file-uploader ak-file-uploader-compact" : "ak-file-uploader"}>
       <Space wrap>
-        <input ref={input} className="ak-sr-only" type="file" accept={policy.data?.file_media_types.join(",")} aria-label={t("system.files.actions.choose")} onChange={(event) => { choose(event.target.files?.[0]); event.currentTarget.value = ""; }} />
-        <Button type="primary" loading={policy.isPending} disabled={!policy.data?.configuration_safe} onClick={() => input.current?.click()}>{t("system.files.actions.upload")}</Button>
+        <input ref={input} className="ak-sr-only" type="file" accept={policy.data?.file_media_types.filter((value) => !mediaTypePrefix || value.startsWith(mediaTypePrefix)).join(",")} aria-label={t("system.files.actions.choose")} onChange={(event) => { choose(event.target.files?.[0]); event.currentTarget.value = ""; }} />
+        <Button type="primary" icon={<UploadOutlined />} loading={policy.isPending} disabled={!policy.data?.configuration_safe} onClick={() => input.current?.click()}>{t("system.files.actions.upload")}</Button>
         {policy.data ? <Typography.Text type="secondary">{t("system.files.upload.policy", { provider: providerLabel, size: sizeLabel(policy.data.max_file_bytes) })}</Typography.Text> : null}
       </Space>
       {policy.isError ? <Alert showIcon type="error" title={t("system.files.upload.policy_error")} action={<Button onClick={() => void policy.refetch()}>{t("common.actions.retry")}</Button>} /> : null}

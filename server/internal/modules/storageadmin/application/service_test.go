@@ -22,6 +22,7 @@ type fakeRepo struct {
 	session   files.UploadSession
 	completed files.File
 	file      files.File
+	filter    files.FileFilter
 }
 
 func (r *fakeRepo) CreateUpload(_ context.Context, in files.CreateUpload) (files.UploadSession, error) {
@@ -48,7 +49,8 @@ func (r *fakeRepo) CompleteUpload(_ context.Context, in files.CompleteUpload) (f
 	r.completed = files.File{ID: uuid.New(), OriginalName: r.session.OriginalName, MediaType: in.MediaType, SizeBytes: in.SizeBytes, Status: "ready", ScanStatus: in.ScanStatus, ObjectKey: in.ObjectKey}
 	return r.completed, nil
 }
-func (r *fakeRepo) ListFiles(context.Context, uuid.UUID, files.FileFilter) (files.FilePage, error) {
+func (r *fakeRepo) ListFiles(_ context.Context, _ uuid.UUID, filter files.FileFilter) (files.FilePage, error) {
+	r.filter = filter
 	return files.FilePage{}, nil
 }
 func (r *fakeRepo) GetFile(context.Context, uuid.UUID, uuid.UUID) (files.File, error) {
@@ -136,6 +138,22 @@ func TestDownloadScanGate(t *testing.T) {
 	service := NewService(fakeAuth{permissions: []string{"storage.file.download"}}, repo, &memoryObjects{values: map[string][]byte{}}, true)
 	if _, _, err := service.OpenDownload(context.Background(), "token", repo.file.ID); err != files.ErrScanBlocked {
 		t.Fatalf("scan gate error=%v", err)
+	}
+}
+
+func TestListFilesValidatesCreatedRange(t *testing.T) {
+	repo := &fakeRepo{}
+	service := NewService(fakeAuth{permissions: []string{"storage.file.read"}}, repo, &memoryObjects{values: map[string][]byte{}}, true)
+	from := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	to := time.Date(2026, 8, 31, 23, 59, 59, 0, time.UTC)
+	if _, err := service.ListFiles(context.Background(), "token", files.FileFilter{CreatedFrom: &from, CreatedTo: &to}); err != nil {
+		t.Fatal(err)
+	}
+	if repo.filter.CreatedFrom == nil || !repo.filter.CreatedFrom.Equal(from) || repo.filter.CreatedTo == nil || !repo.filter.CreatedTo.Equal(to) || repo.filter.Page != 1 || repo.filter.PageSize != 20 {
+		t.Fatalf("unexpected normalized filter %#v", repo.filter)
+	}
+	if _, err := service.ListFiles(context.Background(), "token", files.FileFilter{CreatedFrom: &to, CreatedTo: &from}); err != files.ErrInvalid {
+		t.Fatalf("reversed range error=%v", err)
 	}
 }
 

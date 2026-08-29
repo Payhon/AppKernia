@@ -36,13 +36,15 @@ type Principal struct {
 }
 
 type FileFilter struct {
-	Query      string
-	Status     string
-	ScanStatus string
-	MediaType  string
-	Provider   string
-	Page       int32
-	PageSize   int32
+	Query       string
+	Status      string
+	ScanStatus  string
+	MediaType   string
+	Provider    string
+	CreatedFrom *time.Time
+	CreatedTo   *time.Time
+	Page        int32
+	PageSize    int32
 }
 
 type File struct {

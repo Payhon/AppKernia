@@ -6,6 +6,7 @@
 - Use a neutral white/gray data-dense surface with near-black primary actions and blue informational links.
 - Use the existing system font stack; do not fetch web fonts at runtime.
 - Standard spacing is 4/8/16/24/32 px. Controls are 40 px high, cards use 12 px radius, and focus states remain visible.
+- A page-level Alert/Message must keep at least 16 px of vertical separation from the next card, filter, table, description or other content surface. Consecutive messages use the same minimum rhythm. Apply this through the shared `.ak-page-container` rule; do not add blanket margins to Alerts inside Modal/Drawer or double the spacing already owned by Ant `Space`.
 - Support `zh-CN` and `en-US` at every breakpoint. Labels must wrap without obscuring controls.
 
 ## Interaction
@@ -14,6 +15,15 @@
 - Icon-only actions require an accessible name and tooltip; prefer text actions in data tables.
 - Do not use layout-shifting hover transforms. Respect reduced-motion preferences.
 - Do not encode status using color alone. Pair color with text or an icon.
+- Keep resource-picker tables data-dense without hiding asset identity: use compact rows, a small fixed-ratio thumbnail, separate uploaded-time and size columns, and server-backed date-range filters.
+- In resource-picker modal footers, place upload and its policy hint on the left as a secondary workflow, and keep cancel/confirm grouped on the right; allow the groups to stack on narrow screens without changing action order.
+- Treat selectable resource rows as one interaction target across every cell while retaining the explicit radio control; pair pointer affordance with Enter/Space support, visible focus, `aria-selected`, and unchanged disabled scan-gate behavior.
+- Use a pale informational surface for selected resource rows and preserve dark body text at WCAG AA contrast; the radio remains the non-color selection indicator. Pair the footer upload label with the existing Ant Design upload icon.
+- Prefer the native Ant Design Splitter and Modal extension points for adjustable resource browsers. Keep explicit minimum pane/window sizes, visible drag affordances, keyboard-operable window controls, viewport clamping, a reversible maximize state, and a compact stacked fallback below desktop width.
+- Resource pickers expose grid, compact-table and thumbnail views from one icon dropdown whose menu pairs icons with localized labels. Grid cards keep filenames visible and reveal metadata on hover/focus; compact tables use 16px identities and approximately 24px rows; thumbnail view remains the default visual browser. Preserve one selection and scan gate across all views.
+- When resource preview is collapsed, reopen it with a small edge-mounted directional icon rather than a text button. Present maximize and close as one aligned window-control group, and render selected-file feedback on a neutral gray surface without an outlined alert treatment.
+- Keep light-theme Select and selectable Dropdown/Menu options readable with a pale selected background and dark semantic text; never derive popup selection contrast from the near-black primary action color.
+- Expose dialog resizing through the shared `AkModal` `resizable` capability. Its bottom-right hit area stays visually quiet until hover/focus/drag, then shows an inset rounded corner parallel to the dialog radius; dragging highlights the corner and keyboard arrows remain supported.
 - Preserve keyboard navigation and a visible focus indicator for scrollable tables, category navigation, dialogs, and upload controls.
 - For a single-value field that supports both presets and custom values, use a searchable creatable select. Include an explicit default option, preserve Enter-to-create keyboard behavior, and show text/value alongside any visual swatch.
 - Group editable translations in one shared line-style locale Tabs region. Source locale order, default and labels from the locked `system.language` dictionary; do not stack one card per locale or maintain a page-local language list.
@@ -41,6 +51,8 @@
 - Treat pending verification, enabled and disabled membership states as separate textual status tags. Legal-page publishing must show the document type and immutable published version beside the action.
 
 ## Delivery checks
+
+- The information content workbench additionally follows `pages/content-management.md` for its five-tab taxonomy, editor, moderation and report workflow.
 
 - Verify 1440 px light/dark and 768 px layouts, both locales, loading/error/empty states, keyboard focus, and upload progress/cancel/resume.
 - Keep screenshots and the UI Skill decision trail under `artifacts/ui-ux-pro-max/`.

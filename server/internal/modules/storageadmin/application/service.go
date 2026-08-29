@@ -232,7 +232,7 @@ func (s *Service) ListFiles(ctx context.Context, token string, filter files.File
 	if filter.PageSize == 0 {
 		filter.PageSize = 20
 	}
-	if filter.Page < 1 || filter.PageSize < 1 || filter.PageSize > 100 || len(filter.Query) > 160 || !oneOf(filter.Status, "", "pending", "ready", "quarantined") || !oneOf(filter.ScanStatus, "", "pending", "clean", "infected", "failed", "skipped") || !oneOf(filter.Provider, "", "local", "s3", "minio") {
+	if filter.Page < 1 || filter.PageSize < 1 || filter.PageSize > 100 || len(filter.Query) > 160 || !oneOf(filter.Status, "", "pending", "ready", "quarantined") || !oneOf(filter.ScanStatus, "", "pending", "clean", "infected", "failed", "skipped") || !oneOf(filter.Provider, "", "local", "s3", "minio") || (filter.CreatedFrom != nil && filter.CreatedTo != nil && filter.CreatedFrom.After(*filter.CreatedTo)) {
 		return files.FilePage{}, files.ErrInvalid
 	}
 	return s.repo.ListFiles(ctx, auth.Tenant.ID, filter)

@@ -58,6 +58,11 @@ func TestAdminFileLifecycleIsTenantScopedAuditedAndUsageProtected(t *testing.T) 
 	if err != nil || page.Total != 1 || len(page.Items) != 1 {
 		t.Fatalf("page=%#v err=%v", page, err)
 	}
+	future := time.Now().Add(time.Hour)
+	page, err = repo.ListFiles(ctx, tenant.ID, files.FileFilter{CreatedFrom: &future, Page: 1, PageSize: 20})
+	if err != nil || page.Total != 0 || len(page.Items) != 0 {
+		t.Fatalf("future-filtered page=%#v err=%v", page, err)
+	}
 	if _, err = repo.GetFile(ctx, uuid.New(), file.ID); !errors.Is(err, files.ErrNotFound) {
 		t.Fatalf("cross tenant error=%v", err)
 	}

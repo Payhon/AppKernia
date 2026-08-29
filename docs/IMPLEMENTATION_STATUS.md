@@ -748,3 +748,10 @@
 - 文档全量 check、121 个 API 引用、70 页双语构建、Backend/Admin/Mobile 蓝图、跨端 i18n、UI Skill 与 Python 语法校验均退出 0。本轮没有修改公开文案、Hero 图片、路由、API、数据库、Admin 或 Mobile 公共接口。
 - 功能提交 `676304f6e606ceb03681a9158297e0ddaa80c054`（`feat(docs): enhance homepage hero`）已推送 `origin/main`。GitHub Pages run `33047259705` 的 build/deploy job 均成功，远端 SHA 与发布 SHA 一致。
 - 线上 Chromium 复核中文 375/1440 浅色与英文 1440 深色：HTTP 200、单一 H1、无横向溢出或破图，标签 19.5px/0 边框，桌面截图占比 53.7%，双 Slider 点击/键盘可用，axe serious/critical、console、失败请求均为 0。Pages 仍为 workflow 模式并强制 HTTPS，`cname=null`，因此不宣称 `appkernia.com` 已绑定。
+## 2026-08-29 App 内容编辑器与文件选择器升级
+
+- 状态：本次 Admin、Backend、OpenAPI、双语目录、设计系统和 UI 证据已形成可独立提交边界；分享配置、Mobile 资讯整包和其他并行工作不在本次边界内。
+- 文章 Drawer 已拆分 Meta/内容 Tab，并使用 `@uiw/react-md-editor@4.0.4` 受控 Markdown；图文、上传视频和 HTTPS 视频外链均可在表单内预览，旧 blocks 在后端按需转换并于保存后迁移。
+- 文件选择器支持类型/上传日期筛选、三种视图、受扫描门禁保护的缩略图与视频预览、整行选择、可折叠/可调分栏，以及共享 `AkModal` 的移动、最大化和右下角缩放能力。
+- 干净暂存快照中 Admin `npm run check` 通过：35 个 Vitest 文件、146 项测试，lint、typecheck、production build、OpenAPI reference/docs、bundle 和 Admin Blueprint 全部退出 0；相关 content/storage/bootstrap Go 测试、Mobile Blueprint 与跨端 i18n 校验退出 0。
+- Chromium fixture 已登记表头圆角、浅色下拉选中态、1120×720→1160×744 缩放和 axe serious/critical 0 的证据；fixture 不替代真实账号和对象存储联调。
