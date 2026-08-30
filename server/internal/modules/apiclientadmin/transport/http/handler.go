@@ -110,6 +110,20 @@ func (h *Handler) Permissions(r *ghttp.Request) {
 		h.ok(r, 200, out)
 	}
 }
+func (h *Handler) Applications(r *ghttp.Request) {
+	cid, ok := id(r, "id")
+	var body struct {
+		AppIDs []uuid.UUID `json:"app_ids"`
+	}
+	if !ok || !decode(r, &body) {
+		h.fail(r, clients.ErrInvalid)
+		return
+	}
+	out, e := h.service.Applications(r.Context(), token(r), principal(r), cid, body.AppIDs)
+	if !h.fail(r, e) {
+		h.ok(r, 200, out)
+	}
+}
 func (h *Handler) Token(r *ghttp.Request) {
 	var body struct {
 		ClientID string `json:"client_id"`

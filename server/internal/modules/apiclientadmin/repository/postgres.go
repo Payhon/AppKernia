@@ -21,15 +21,16 @@ func NewPostgres(p *pgxpool.Pool) *Postgres { return &Postgres{p} }
 
 type scanner interface{ Scan(...any) error }
 
-const selectClient = `SELECT c.id,c.client_id::text,c.name,COALESCE(c.description,''),COALESCE(array_to_json(c.allowed_cidrs)::text,'[]'),c.status,c.expires_at,c.created_at,c.updated_at,
+const selectClient = `SELECT c.id,c.tenant_id,c.client_id::text,c.name,COALESCE(c.description,''),COALESCE(array_to_json(c.allowed_cidrs)::text,'[]'),c.status,c.expires_at,c.created_at,c.updated_at,
 COALESCE((SELECT jsonb_agg(jsonb_build_object('id',s.id,'prefix',s.secret_prefix,'created_at',s.created_at,'expires_at',s.expires_at,'revoked_at',s.revoked_at,'last_used_at',s.last_used_at) ORDER BY s.created_at DESC) FROM sys.api_client_secrets s WHERE s.api_client_id=c.id),'[]'::jsonb),
-COALESCE(ARRAY(SELECT p.code::text FROM sys.api_client_permissions cp JOIN iam.permissions p ON p.id=cp.permission_id WHERE cp.tenant_id=c.tenant_id AND cp.api_client_id=c.id ORDER BY p.code::text),'{}'::text[]) FROM sys.api_clients c`
+COALESCE(ARRAY(SELECT p.code::text FROM sys.api_client_permissions cp JOIN iam.permissions p ON p.id=cp.permission_id WHERE cp.tenant_id=c.tenant_id AND cp.api_client_id=c.id ORDER BY p.code::text),'{}'::text[]),
+COALESCE(ARRAY(SELECT ca.app_id FROM sys.api_client_apps ca WHERE ca.tenant_id=c.tenant_id AND ca.api_client_id=c.id ORDER BY ca.app_id),'{}'::uuid[]) FROM sys.api_clients c`
 
 func scanClient(row scanner) (clients.Client, error) {
 	var c clients.Client
 	var cidrs string
 	var secrets []byte
-	if e := row.Scan(&c.ID, &c.ClientID, &c.Name, &c.Description, &cidrs, &c.Status, &c.ExpiresAt, &c.CreatedAt, &c.UpdatedAt, &secrets, &c.Permissions); e != nil {
+	if e := row.Scan(&c.ID, &c.TenantID, &c.ClientID, &c.Name, &c.Description, &cidrs, &c.Status, &c.ExpiresAt, &c.CreatedAt, &c.UpdatedAt, &secrets, &c.Permissions, &c.AppIDs); e != nil {
 		return c, e
 	}
 	if e := json.Unmarshal([]byte(cidrs), &c.AllowedCIDRs); e != nil {
@@ -46,6 +47,9 @@ func scanClient(row scanner) (clients.Client, error) {
 	}
 	if c.Secrets == nil {
 		c.Secrets = []clients.Secret{}
+	}
+	if c.AppIDs == nil {
+		c.AppIDs = []uuid.UUID{}
 	}
 	return c, nil
 }
@@ -215,6 +219,47 @@ func (r *Postgres) ReplacePermissions(ctx context.Context, p clients.Principal, 
 		}
 	}
 	if e = audit(ctx, tx, p, "sys.api_client.assign_permission", id, "PUT", map[string]any{"permission_codes": codes}); e != nil {
+		return clients.Client{}, e
+	}
+	c, e := r.get(ctx, tx, p.TenantID, id)
+	if e != nil {
+		return c, e
+	}
+	return c, tx.Commit(ctx)
+}
+
+func (r *Postgres) ReplaceApps(ctx context.Context, p clients.Principal, id uuid.UUID, appIDs []uuid.UUID) (clients.Client, error) {
+	tx, e := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if e != nil {
+		return clients.Client{}, e
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var exists bool
+	if e = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM sys.api_clients WHERE tenant_id=$1 AND id=$2)`, p.TenantID, id).Scan(&exists); e != nil {
+		return clients.Client{}, e
+	}
+	if !exists {
+		return clients.Client{}, clients.ErrNotFound
+	}
+	if len(appIDs) > 0 {
+		var matched int
+		if e = tx.QueryRow(ctx, `SELECT count(*) FROM app.applications WHERE tenant_id=$1 AND id=ANY($2::uuid[]) AND deleted_at IS NULL`, p.TenantID, appIDs).Scan(&matched); e != nil {
+			return clients.Client{}, e
+		}
+		if matched != len(appIDs) {
+			return clients.Client{}, clients.ErrInvalid
+		}
+	}
+	if _, e = tx.Exec(ctx, `DELETE FROM sys.api_client_apps WHERE tenant_id=$1 AND api_client_id=$2`, p.TenantID, id); e != nil {
+		return clients.Client{}, e
+	}
+	if len(appIDs) > 0 {
+		if _, e = tx.Exec(ctx, `INSERT INTO sys.api_client_apps(tenant_id,api_client_id,app_id,created_by)
+			SELECT $1,$2,unnest($3::uuid[]),$4`, p.TenantID, id, appIDs, p.UserID); e != nil {
+			return clients.Client{}, e
+		}
+	}
+	if e = audit(ctx, tx, p, "sys.api_client.update", id, "PUT", map[string]any{"app_ids": appIDs}); e != nil {
 		return clients.Client{}, e
 	}
 	c, e := r.get(ctx, tx, p.TenantID, id)

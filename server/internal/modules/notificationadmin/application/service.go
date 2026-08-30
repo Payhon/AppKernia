@@ -87,6 +87,7 @@ func normalizePage(f notify.PageFilter) (notify.PageFilter, error) {
 
 func normalizeMessage(in notify.MessageInput, notice bool, now time.Time) (notify.MessageInput, error) {
 	in.Title, in.Body, in.BodyFormat, in.MessageType, in.AudienceScope = strings.TrimSpace(in.Title), strings.TrimSpace(in.Body), strings.TrimSpace(in.BodyFormat), strings.TrimSpace(in.MessageType), strings.TrimSpace(in.AudienceScope)
+	in.PushCategory, in.PushCollapseKey, in.PushRouteKey = strings.TrimSpace(in.PushCategory), strings.TrimSpace(in.PushCollapseKey), strings.TrimSpace(in.PushRouteKey)
 	if notice {
 		in.MessageType = "notice"
 	} else if in.MessageType == "" {
@@ -98,8 +99,25 @@ func normalizeMessage(in notify.MessageInput, notice bool, now time.Time) (notif
 	if in.AudienceScope == "" {
 		in.AudienceScope = "all"
 	}
+	if in.PushCategory == "" {
+		in.PushCategory = "service_security"
+	}
+	if in.MessageType == "marketing" {
+		in.PushCategory = "news_operations"
+	}
+	if in.PushTTLSeconds == 0 {
+		in.PushTTLSeconds = 86400
+	}
 	if len([]rune(in.Title)) < 1 || len([]rune(in.Title)) > 300 || len([]rune(in.Body)) < 1 || len([]rune(in.Body)) > 100_000 || !oneOf(in.BodyFormat, "plain", "markdown", "html") || !oneOf(in.AudienceScope, "all", "selected") || (!notice && !oneOf(in.MessageType, "system", "private", "marketing", "security")) {
 		return in, notify.ErrInvalid
+	}
+	if !oneOf(in.PushCategory, "service_security", "news_operations") || in.PushTTLSeconds < 300 || in.PushTTLSeconds > 604800 || len(in.PushCollapseKey) > 128 || len(in.PushRouteKey) > 96 || !validRouteKey(in.PushRouteKey) || len(in.PushRouteParams) > 8 {
+		return in, notify.ErrInvalid
+	}
+	for key, value := range in.PushRouteParams {
+		if !validRouteKey(key) || len(value) > 128 || strings.Contains(value, "://") || strings.ContainsAny(value, "<>{}") {
+			return in, notify.ErrInvalid
+		}
 	}
 	if in.ScheduledAt != nil && in.ScheduledAt.Before(now.Add(-time.Minute)) || in.ExpiresAt != nil && !in.ExpiresAt.After(now) || in.ScheduledAt != nil && in.ExpiresAt != nil && !in.ExpiresAt.After(*in.ScheduledAt) {
 		return in, notify.ErrInvalid
@@ -221,7 +239,20 @@ func (s *Service) PublishMessage(ctx context.Context, token string, appID uuid.U
 	if id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" {
 		return notify.Message{}, notify.RecipientPreview{}, notify.ErrInvalid
 	}
+	message, err := s.repo.GetMessage(ctx, auth.Tenant.ID, appID, id, notice)
+	if err != nil {
+		return notify.Message{}, notify.RecipientPreview{}, err
+	}
+	if message.PushCategory == "news_operations" && !slices.Contains(auth.Permissions, "notify.operations.publish") {
+		return notify.Message{}, notify.RecipientPreview{}, notify.ErrForbidden
+	}
 	return s.repo.PublishMessage(ctx, principal(auth, appID, p), id, notice)
+}
+
+var notificationRouteKey = regexp.MustCompile(`^[a-z][a-z0-9_.-]{1,95}$`)
+
+func validRouteKey(value string) bool {
+	return value == "" || notificationRouteKey.MatchString(value)
 }
 
 func (s *Service) CancelMessage(ctx context.Context, token string, appID uuid.UUID, p notify.Principal, id uuid.UUID, notice bool) (notify.Message, error) {

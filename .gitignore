@@ -19,3 +19,9 @@ server/bin/
 server/coverage.out
 apps/ak-mobile/unpackage/
 apps/ak-mobile/.hbuilderx/
+apps/ak-mobile/uni_modules/ak-push/utssdk/app-android/config.json
+apps/ak-mobile/uni_modules/ak-push/utssdk/app-android/AndroidManifest.xml
+apps/ak-mobile/.push-build/
+apps/ak-mobile/nativeResources/android/google-services.json
+apps/ak-mobile/nativeResources/android/agconnect-services.json
+apps/ak-mobile/nativeResources/android/mcs-services.json

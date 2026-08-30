@@ -1,0 +1,20 @@
+{
+  "id": "ak-permissions",
+  "displayName": "AK Permissions",
+  "version": "1.0.0",
+  "description": "Compile-time permission capability registry for AppKernia uni-app x builds.",
+  "engines": { "HBuilderX": "^5.06", "uni-app-x": "^5.06" },
+  "dcloudext": {
+    "type": "uts",
+    "declaration": {
+      "ads": "none",
+      "data": "Reads operating-system permission state locally and never uploads it.",
+      "permissions": "Notification permission is requested only after an explicit user action."
+    }
+  },
+  "uni_modules": {
+    "dependencies": [],
+    "encrypt": [],
+    "platforms": { "client": { "uni-app-x": { "app": { "android": "√", "ios": "√", "harmony": "√" } } } }
+  }
+}

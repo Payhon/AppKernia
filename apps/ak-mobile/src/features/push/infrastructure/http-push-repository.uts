@@ -1,0 +1,25 @@
+import { AkError } from '../../../core/errors/ak-error.uts'
+import { akI18n } from '../../../core/i18n/ak-i18n.uts'
+import { AkHttpPort, HttpCancellation, HttpRequest } from '../../../core/network/http-port.uts'
+import { PushRegistration } from '../../../../uni_modules/ak-push/utssdk/interface.uts'
+
+export type PushDevice = { readonly id: string; readonly provider: string; readonly platform: string; readonly buildVariant: string; readonly locale: string; readonly sdkVersion: string; readonly appVersion: string; readonly status: string }
+type PushDeviceWire = { readonly id: string; readonly provider: string; readonly platform: string; readonly build_variant: string; readonly locale: string; readonly sdk_version: string; readonly app_version: string; readonly status: string }
+type CurrentWire = { readonly device: PushDeviceWire | null }
+type RegisterWire = { readonly provider: string; readonly platform: string; readonly build_variant: string; readonly token: string; readonly locale: string; readonly sdk_version: string; readonly app_version: string }
+
+export class HttpPushRepository {
+  private readonly http: AkHttpPort
+  constructor(http: AkHttpPort) { this.http = http }
+  current(ok: (device: PushDevice | null) => void, fail: (error: AkError) => void): HttpCancellation {
+    return this.http.execute<UTSJSONObject, CurrentWire>(this.request('GET','/me/push-devices/current',{} as UTSJSONObject), response => ok(response.data.device == null ? null : this.map(response.data.device!)), fail)
+  }
+  register(value: PushRegistration, appVersion: string, ok: (device: PushDevice) => void, fail: (error: AkError) => void): HttpCancellation {
+    const body: RegisterWire = { provider:value.provider, platform:value.platform, build_variant:value.buildVariant, token:value.token, locale:akI18n.getLocale(), sdk_version:value.sdkVersion, app_version:appVersion }
+    return this.http.execute<RegisterWire, PushDeviceWire>(this.request('POST','/me/push-devices',body), response => ok(this.map(response.data)), fail)
+  }
+  disable(id: string, ok: () => void, fail: (error: AkError) => void): HttpCancellation { return this.http.execute<UTSJSONObject, UTSJSONObject>(this.request('DELETE','/me/push-devices/'+encodeURIComponent(id),{} as UTSJSONObject), _response => ok(), fail) }
+  opened(deliveryId: string, ok: () => void, fail: (error: AkError) => void): HttpCancellation { return this.http.execute<UTSJSONObject, UTSJSONObject>(this.request('POST','/me/push-deliveries/'+encodeURIComponent(deliveryId)+'/opened',{} as UTSJSONObject), _response => ok(), fail) }
+  private request<T>(method: 'GET'|'POST'|'DELETE', path: string, body: T): HttpRequest<T> { return { method,path,query:new Map<string,string>(),headers:new Map<string,string>(),retryOnUnauthorized:method=='GET',body,locale:akI18n.getLocale() } }
+  private map(value: PushDeviceWire): PushDevice { return { id:value.id,provider:value.provider,platform:value.platform,buildVariant:value.build_variant,locale:value.locale,sdkVersion:value.sdk_version,appVersion:value.app_version,status:value.status } }
+}

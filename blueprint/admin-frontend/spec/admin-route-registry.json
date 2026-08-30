@@ -65,6 +65,21 @@
       "active_menu_code": "system.settings.dictionaries"
     },
     {
+      "component_key": "system.settings.share-configs",
+      "path": "/system/settings/share-configs",
+      "file": "src/routes/system.settings.share-configs.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "sys.share_config.read"
+      ],
+      "title_key": "routes.system.settings.share_configs.title",
+      "menu_code": "system.settings.share-configs",
+      "active_menu_code": "system.settings.share-configs"
+    },
+    {
       "component_key": "system.settings.regions",
       "path": "/system/settings/regions",
       "file": "src/routes/_app/system/settings/regions.tsx",
@@ -255,13 +270,45 @@
       "layout": "app",
       "auth": "required",
       "phase": "P2",
-      "kind": "page",
+      "kind": "redirect",
       "permissions": [
         "notify.delivery.read"
       ],
       "title_key": "routes.system.notifications.deliveries.title",
-      "menu_code": "system.notifications.deliveries",
-      "active_menu_code": "system.notifications.deliveries",
+      "menu_code": null,
+      "active_menu_code": "system.notifications.operations",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.notifications.operations",
+      "path": "/system/notifications/operations",
+      "file": "src/routes/system.notifications.operations.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "notify.observability.read"
+      ],
+      "title_key": "routes.system.notifications.operations.title",
+      "menu_code": "system.notifications.operations",
+      "active_menu_code": "system.notifications.operations",
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.notifications.push-channels",
+      "path": "/system/notifications/push-channels",
+      "file": "src/routes/system.notifications.push-channels.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "notify.push_provider.read"
+      ],
+      "title_key": "routes.system.notifications.push_channels.title",
+      "menu_code": "system.notifications.push-channels",
+      "active_menu_code": "system.notifications.push-channels",
       "backend_status": "existing"
     },
     {

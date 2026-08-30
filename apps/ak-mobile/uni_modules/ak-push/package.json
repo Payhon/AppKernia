@@ -1,0 +1,20 @@
+{
+  "id": "ak-push",
+  "displayName": "AK Push",
+  "version": "1.0.0",
+  "description": "Consent-gated multi-provider offline push port for AppKernia uni-app x builds.",
+  "engines": { "HBuilderX": "^5.06", "uni-app-x": "^5.06" },
+  "dcloudext": {
+    "type": "uts",
+    "declaration": {
+      "ads": "none",
+      "data": "Obtains an opaque provider registration token only after explicit user opt-in and uploads it through AppKernia authenticated APIs.",
+      "permissions": "Notification permission is requested only from the notification settings screen."
+    }
+  },
+  "uni_modules": {
+    "dependencies": ["ak-permissions"],
+    "encrypt": [],
+    "platforms": { "client": { "uni-app-x": { "app": { "android": "√", "ios": "√", "harmony": "√" } } } }
+  }
+}

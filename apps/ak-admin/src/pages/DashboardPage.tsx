@@ -1,4 +1,4 @@
-import { useNavigate, useSearch } from '@tanstack/react-router'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import type { TableColumnsType } from 'antd'
 import { Alert, Button, Card, Col, Empty, Row, Segmented, Skeleton, Space, Statistic, Table, Tag, Typography } from 'antd'
 import { lazy, Suspense, useEffect, useMemo, type ReactNode } from 'react'
@@ -138,7 +138,7 @@ export function DashboardPage() {
         <Typography.Title id="quick-access-title" level={2}>{t('dashboard.quick_access')}</Typography.Title>
         {quickAccess.length === 0 ? <Card><Empty description={t('common.states.empty')} /></Card> : (
           <div className="ak-quick-grid">
-            {quickAccess.map((item) => <a className="ak-quick-link" href={item.path} key={item.code}><span>{t(item.i18nKey)}</span><ArrowRightIcon /></a>)}
+            {quickAccess.map((item) => <Link className="ak-quick-link" key={item.code} to={item.path as never}><span>{t(item.i18nKey)}</span><ArrowRightIcon /></Link>)}
           </div>
         )}
       </section>

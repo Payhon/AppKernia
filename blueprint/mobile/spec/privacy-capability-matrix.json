@@ -33,9 +33,9 @@
       "key": "push_notifications",
       "core_use": "消息提醒（可选）",
       "request_time": "用户在通知设置中明确开启时",
-      "android": "platform/version dependent",
-      "ios": "notification authorization",
-      "harmony": "notification authorization",
+      "android": "Android 13+ POST_NOTIFICATIONS; app notification settings with application-details fallback",
+      "ios": "not_determined/authorized/limited/denied/restricted; notification-specific settings preferred",
+      "harmony": "notificationManager query/request/settings with controlled fallback",
       "default": "feature_flag_off"
     },
     {

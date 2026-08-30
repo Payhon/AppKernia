@@ -1,0 +1,76 @@
+<template>
+  <ak-theme-root
+    ><scroll-view
+      class="page"
+      scroll-y
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="reload"
+      ><text class="title">{{ t("information.topics.title", null) }}</text
+      ><ak-status-view
+        v-if="state !== 'content'"
+        :state="state"
+        :title="stateTitle"
+        :description="t('information.state.description', null)"
+        @retry="reload" /><view v-else
+        ><ak-card
+          v-for="topic in topics"
+          :key="topic.id"
+          class="topic"
+          @click="open(topic.slug)"
+          ><image
+            v-if="topic.coverUrl != null"
+            class="cover"
+            :src="asset(topic.coverUrl)"
+            mode="aspectFill"
+            :alt="topic.name" /><view class="copy"
+            ><text class="topic-title">{{ topic.name }}</text
+            ><text class="description">{{ topic.description }}</text></view
+          ><ak-icon
+            name="chevron-right"
+            tone="muted" /></ak-card></view></scroll-view
+  ></ak-theme-root>
+</template>
+<script lang="uts">
+import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{articleRuntime}from'../../src/features/articles/infrastructure/article-runtime.uts';import{ContentTopic}from'../../src/features/articles/domain/models.uts';export default{data(){return{state:'loading',refreshing:false,topics:[]as Array<ContentTopic>}},computed:{t(){return akI18n.t},stateTitle():string{return akI18n.t(this.state==='offline'?'state.offline.title':this.state==='empty'?'state.empty.title':'state.error.title',null)}},onLoad(){this.reload()},methods:{asset(value:string|null):string{return articleRuntime.assetUrl(value)},reload(){const repo=articleRuntime.getRepository();if(repo==null){this.state='error';return};this.refreshing=true;repo.listTopics((value:Array<ContentTopic>)=>{this.topics=value;this.state=value.length==0?'empty':'content';this.refreshing=false},error=>{this.state=error.kind==='network_unavailable'?'offline':'error';this.refreshing=false})},open(slug:string){uni.navigateTo({url:'/pages/topics/detail/index?slug='+encodeURIComponent(slug)})}}}
+</script>
+<style lang="scss">
+.page {
+  height: 100%;
+  background: var(--ak-page);
+  padding: 24px 20px 120px;
+}
+.title {
+  font-size: 38px;
+  line-height: 46px;
+  font-weight: 800;
+  color: var(--ak-text);
+  margin-bottom: 24px;
+}
+.topic {
+  padding: 0;
+  overflow: hidden;
+  margin-bottom: 16px;
+  flex-direction: row;
+  align-items: center;
+}
+.cover {
+  width: 124px;
+  height: 112px;
+}
+.copy {
+  flex: 1;
+  padding: 16px;
+}
+.topic-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ak-text);
+}
+.description {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ak-muted);
+  margin-top: 6px;
+}
+</style>

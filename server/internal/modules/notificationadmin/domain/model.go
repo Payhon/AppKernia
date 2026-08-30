@@ -19,13 +19,34 @@ var (
 	ErrDeliveryUnavailable = errors.New("notification delivery adapter unavailable")
 )
 
-const DeliveryJobKind = "appkernia-notification-delivery"
+const (
+	DeliveryJobKind       = "appkernia-notification-delivery"
+	MessagePublishJobKind = "appkernia-message-publish"
+	PushFanoutJobKind     = "appkernia-push-fanout"
+)
 
 type DeliveryJobArgs struct {
 	DeliveryID uuid.UUID `json:"delivery_id"`
 }
 
 func (DeliveryJobArgs) Kind() string { return DeliveryJobKind }
+
+type MessagePublishJobArgs struct {
+	TenantID  uuid.UUID `json:"tenant_id"`
+	AppID     uuid.UUID `json:"app_id"`
+	MessageID uuid.UUID `json:"message_id"`
+}
+
+func (MessagePublishJobArgs) Kind() string { return MessagePublishJobKind }
+
+type PushFanoutJobArgs struct {
+	TenantID      uuid.UUID `json:"tenant_id"`
+	AppID         uuid.UUID `json:"app_id"`
+	MessageID     uuid.UUID `json:"message_id"`
+	AfterDeviceID uuid.UUID `json:"after_device_id,omitempty"`
+}
+
+func (PushFanoutJobArgs) Kind() string { return PushFanoutJobKind }
 
 type Principal struct {
 	TenantID  uuid.UUID
@@ -48,31 +69,41 @@ type PageFilter struct {
 }
 
 type Message struct {
-	ID              uuid.UUID   `json:"id"`
-	AppID           uuid.UUID   `json:"app_id"`
-	MessageType     string      `json:"message_type"`
-	Title           string      `json:"title"`
-	Body            string      `json:"body"`
-	BodyFormat      string      `json:"body_format"`
-	Status          string      `json:"status"`
-	AudienceScope   string      `json:"audience_scope"`
-	AudienceUserIDs []uuid.UUID `json:"audience_user_ids"`
-	ScheduledAt     *time.Time  `json:"scheduled_at,omitempty"`
-	PublishedAt     *time.Time  `json:"published_at,omitempty"`
-	ExpiresAt       *time.Time  `json:"expires_at,omitempty"`
-	CreatedAt       time.Time   `json:"created_at"`
-	UpdatedAt       time.Time   `json:"updated_at"`
+	ID              uuid.UUID         `json:"id"`
+	AppID           uuid.UUID         `json:"app_id"`
+	MessageType     string            `json:"message_type"`
+	Title           string            `json:"title"`
+	Body            string            `json:"body"`
+	BodyFormat      string            `json:"body_format"`
+	Status          string            `json:"status"`
+	AudienceScope   string            `json:"audience_scope"`
+	AudienceUserIDs []uuid.UUID       `json:"audience_user_ids"`
+	ScheduledAt     *time.Time        `json:"scheduled_at,omitempty"`
+	PublishedAt     *time.Time        `json:"published_at,omitempty"`
+	ExpiresAt       *time.Time        `json:"expires_at,omitempty"`
+	PushCategory    string            `json:"push_category"`
+	PushTTLSeconds  int32             `json:"push_ttl_seconds"`
+	PushCollapseKey string            `json:"push_collapse_key,omitempty"`
+	PushRouteKey    string            `json:"push_route_key,omitempty"`
+	PushRouteParams map[string]string `json:"push_route_params"`
+	CreatedAt       time.Time         `json:"created_at"`
+	UpdatedAt       time.Time         `json:"updated_at"`
 }
 
 type MessageInput struct {
-	MessageType     string      `json:"message_type"`
-	Title           string      `json:"title"`
-	Body            string      `json:"body"`
-	BodyFormat      string      `json:"body_format"`
-	AudienceScope   string      `json:"audience_scope"`
-	AudienceUserIDs []uuid.UUID `json:"audience_user_ids"`
-	ScheduledAt     *time.Time  `json:"scheduled_at,omitempty"`
-	ExpiresAt       *time.Time  `json:"expires_at,omitempty"`
+	MessageType     string            `json:"message_type"`
+	Title           string            `json:"title"`
+	Body            string            `json:"body"`
+	BodyFormat      string            `json:"body_format"`
+	AudienceScope   string            `json:"audience_scope"`
+	AudienceUserIDs []uuid.UUID       `json:"audience_user_ids"`
+	ScheduledAt     *time.Time        `json:"scheduled_at,omitempty"`
+	ExpiresAt       *time.Time        `json:"expires_at,omitempty"`
+	PushCategory    string            `json:"push_category"`
+	PushTTLSeconds  int32             `json:"push_ttl_seconds"`
+	PushCollapseKey string            `json:"push_collapse_key,omitempty"`
+	PushRouteKey    string            `json:"push_route_key,omitempty"`
+	PushRouteParams map[string]string `json:"push_route_params,omitempty"`
 }
 
 type MessagePage struct {
@@ -141,18 +172,24 @@ type Delivery struct {
 	ID                uuid.UUID  `json:"id"`
 	AppID             *uuid.UUID `json:"app_id,omitempty"`
 	MessageID         *uuid.UUID `json:"message_id,omitempty"`
+	MessageRunID      *uuid.UUID `json:"message_run_id,omitempty"`
+	TaskRunID         *uuid.UUID `json:"task_run_id,omitempty"`
 	UserID            *uuid.UUID `json:"user_id,omitempty"`
 	TemplateID        *uuid.UUID `json:"template_id,omitempty"`
 	Channel           string     `json:"channel"`
 	TargetHint        string     `json:"target_hint"`
 	Provider          string     `json:"provider"`
 	ProviderMessageID string     `json:"provider_message_id,omitempty"`
+	Environment       string     `json:"environment"`
+	ProviderResult    string     `json:"provider_result,omitempty"`
 	Status            string     `json:"status"`
 	AttemptCount      int32      `json:"attempt_count"`
 	MaxAttempts       int32      `json:"max_attempts"`
 	ScheduledAt       time.Time  `json:"scheduled_at"`
 	NextAttemptAt     *time.Time `json:"next_attempt_at,omitempty"`
 	SentAt            *time.Time `json:"sent_at,omitempty"`
+	AcceptedAt        *time.Time `json:"accepted_at,omitempty"`
+	OpenedAt          *time.Time `json:"opened_at,omitempty"`
 	ErrorCode         string     `json:"error_code,omitempty"`
 	ErrorSummary      string     `json:"error_summary,omitempty"`
 	Retryable         bool       `json:"retryable"`
@@ -212,6 +249,7 @@ type DeliveryPage struct {
 }
 
 type Repository interface {
+	OperationsRepository
 	ListMessages(context.Context, uuid.UUID, uuid.UUID, bool, PageFilter) (MessagePage, error)
 	GetMessage(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, bool) (Message, error)
 	CreateMessage(context.Context, Principal, bool, MessageInput) (Message, error)

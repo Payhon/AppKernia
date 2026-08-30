@@ -12,7 +12,9 @@ import (
 	iamapp "github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	iamdomain "github.com/appkernia/appkernia/server/internal/modules/iam/domain"
 	iamrepo "github.com/appkernia/appkernia/server/internal/modules/iam/repository"
+	"github.com/appkernia/appkernia/server/internal/modules/notificationadmin/jobdefs"
 	settingsrepo "github.com/appkernia/appkernia/server/internal/modules/systemsettings/repository"
+	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -64,7 +66,8 @@ func TestPasswordResetNotifierEncryptsAndAtomicallyQueuesDelivery(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	notifier, err := NewPasswordResetNotifier(pool, riverClient, sealer, "https://admin.example.test")
+	trackedQueue := jobqueue.NewRiverAdapter(pool, riverClient, jobdefs.Registry())
+	notifier, err := NewPasswordResetNotifier(pool, trackedQueue, sealer, "https://admin.example.test")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,0 +1,54 @@
+<template>
+  <ak-theme-root
+    ><scroll-view class="page" scroll-y
+      ><view class="nav"
+        ><ak-back-button /><text class="nav-title">{{ topicName }}</text
+        ><view class="nav-space" /></view
+      ><view class="hero"
+        ><text class="title">{{ topicName }}</text
+        ><text class="description">{{ topicDescription }}</text></view
+      ><section-list
+        :title="t('information.topic.items', null)"
+        :items="items"
+        @open="open" /></scroll-view
+  ></ak-theme-root>
+</template>
+<script lang="uts">
+import{akI18n}from'../../../src/core/i18n/ak-i18n.uts';import{articleRuntime}from'../../../src/features/articles/infrastructure/article-runtime.uts';import{ArticlePage,ArticleQuery,ArticleSummary,ContentTopic}from'../../../src/features/articles/domain/models.uts';import{navigateArticleDetail}from'../../../src/core/navigation/app-routes.uts';export default{data(){return{slug:'',topicName:'',topicDescription:'',items:[]as Array<ArticleSummary>}},computed:{t(){return akI18n.t}},onLoad(options:UTSJSONObject){const raw=options.getString('slug');this.slug=raw!=null?raw:'';this.reload()},methods:{reload(){const repo=articleRuntime.getRepository();if(repo==null)return;repo.listTopics((topics:Array<ContentTopic>)=>{const found=topics.find((x:ContentTopic)=>x.slug==this.slug);if(found!=null){this.topicName=found.name;this.topicDescription=found.description}},()=>{});const query:ArticleQuery={query:null,category:null,topic:this.slug,tag:null,contentType:null,featured:null,cursor:null,limit:50};repo.list(query,(page:ArticlePage)=>{this.items=page.items},()=>{})},open(slug:string){navigateArticleDetail(slug)}}}
+</script>
+<style lang="scss">
+.page {
+  height: 100%;
+  background: var(--ak-page);
+  padding: 0 20px 48px;
+}
+.nav {
+  height: 56px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ak-text);
+}
+.nav-space {
+  width: 44px;
+}
+.hero {
+  padding: 28px 4px;
+}
+.title {
+  font-size: 34px;
+  line-height: 42px;
+  font-weight: 800;
+  color: var(--ak-text);
+}
+.description {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--ak-muted);
+  margin-top: 10px;
+}
+</style>

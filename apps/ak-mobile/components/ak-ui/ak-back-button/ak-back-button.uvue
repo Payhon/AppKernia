@@ -1,17 +1,22 @@
 <template>
-  <image
-    class="ak-back-button"
-    src="/static/ak-icons/back.svg"
-    mode="aspectFit"
-    @click="goBack"
-  />
+  <view class="ak-back-button" role="button" :aria-label="accessibleLabel" @click="goBack">
+    <image class="ak-back-button__icon" src="/static/ak-icons/back.svg" mode="aspectFit" />
+  </view>
 </template>
 
 <script lang="uts">
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+
 export default {
   props: {
     delta: { type: Number, default: 1 },
     fallbackUrl: { type: String, default: '/pages/home/index' },
+    label: { type: String, default: '' },
+  },
+  computed: {
+    accessibleLabel(): string {
+      return this.label.length > 0 ? this.label : akI18n.t('common.back', null)
+    },
   },
   methods: {
     goBack() {
@@ -31,7 +36,11 @@ export default {
 .ak-back-button {
   width: 44px;
   height: 44px;
-  padding: 10px;
-  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+}
+.ak-back-button__icon {
+  width: 16px;
+  height: 16px;
 }
 </style>

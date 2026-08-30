@@ -13,7 +13,7 @@ const tokens = new MemoryTokenStore()
 const configuredApiBaseUrl: unknown = import.meta.env['VITE_AK_API_BASE_URL']
 const apiBaseUrl = typeof configuredApiBaseUrl === 'string'
   ? configuredApiBaseUrl
-  : 'http://localhost:8080/admin-api/v1'
+  : '/admin-api/v1'
 
 export const authSession = new AuthSession({
   baseUrl: apiBaseUrl,

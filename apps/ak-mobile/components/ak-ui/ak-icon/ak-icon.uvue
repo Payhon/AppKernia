@@ -1,5 +1,5 @@
 <template>
-  <image class="ak-icon" :src="source" mode="aspectFit" />
+  <image class="ak-icon" :src="source" :style="iconStyle" mode="aspectFit" />
 </template>
 <script lang="uts">
 export default {
@@ -7,8 +7,13 @@ export default {
     name: { type: String, default: 'chevron-right' },
     tone: { type: String, default: 'primary' },
     filled: { type: Boolean, default: false },
+    size: { type: Number, default: 24 },
   },
   computed: {
+    iconStyle(): string {
+      const value: number = this.size > 0 ? this.size : 24
+      return 'width:' + value.toString() + 'px;height:' + value.toString() + 'px;'
+    },
     source(): string {
       if (this.filled) {
         if (this.name == 'home') return '/static/ak-icons/home-filled.svg'
@@ -22,6 +27,14 @@ export default {
       }
       if (this.name == 'back') return '/static/ak-icons/back.svg'
       if (this.name == 'bookmark') return '/static/ak-icons/bookmark.svg'
+      if (this.name == 'filter') return '/static/ak-icons/filter.svg'
+      if (this.name == 'share') return '/static/ak-icons/share.svg'
+      if (this.name == 'comment') return '/static/ak-icons/comment.svg'
+      if (this.name == 'edit') return '/static/ak-icons/edit.svg'
+      if (this.name == 'close') return '/static/ak-icons/close.svg'
+      if (this.name == 'layout-horizontal') return '/static/ak-icons/layout-horizontal.svg'
+      if (this.name == 'layout-vertical') return '/static/ak-icons/layout-vertical.svg'
+      if (this.name == 'play') return '/static/ak-icons/play.svg'
       if (this.name == 'search') return '/static/ak-icons/search.svg'
       if (this.name == 'bell') return '/static/ak-icons/bell.svg'
       if (this.name == 'home') return '/static/ak-icons/home.svg'

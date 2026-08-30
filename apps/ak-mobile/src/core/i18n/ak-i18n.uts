@@ -28,6 +28,13 @@ export class AkI18n {
     this.locale = locale
   }
 
+  formatDateTime(value: string): string {
+    const parsed = new Date(value)
+    if (isNaN(parsed.getTime())) return value
+    const pad = (part: number): string => part < 10 ? '0' + part.toString() : part.toString()
+    return parsed.getFullYear().toString() + '-' + pad(parsed.getMonth() + 1) + '-' + pad(parsed.getDate()) + ' ' + pad(parsed.getHours()) + ':' + pad(parsed.getMinutes())
+  }
+
   private translate(key: string, params: Map<string, string> | null): string {
     const catalog: CatalogValues = this.locale == 'en-US' ? enUS : zhCN
     const stored: string | null = catalog.get(key)

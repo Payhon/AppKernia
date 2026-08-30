@@ -52,8 +52,9 @@ export class ThemeStore {
     if (!this.tabBarReady) return
     uni.setTabBarStyle({ color: dark ? '#8E8E93' : '#8E8E93', selectedColor: dark ? '#4D8DFF' : '#246BFE', backgroundColor: dark ? '#1C1C1E' : '#FFFFFF', borderStyle: dark ? 'black' : 'white' })
     uni.setTabBarItem({ index: 0, iconPath: '/static/ak-tabbar/home-default.png', selectedIconPath: dark ? '/static/ak-tabbar/home-selected-dark.png' : '/static/ak-tabbar/home-selected.png' })
-    uni.setTabBarItem({ index: 1, iconPath: '/static/ak-tabbar/notifications-default.png', selectedIconPath: dark ? '/static/ak-tabbar/notifications-selected-dark.png' : '/static/ak-tabbar/notifications-selected.png' })
-    uni.setTabBarItem({ index: 2, iconPath: '/static/ak-tabbar/profile-default.png', selectedIconPath: dark ? '/static/ak-tabbar/profile-selected-dark.png' : '/static/ak-tabbar/profile-selected.png' })
+    uni.setTabBarItem({ index: 1, iconPath: '/static/ak-tabbar/browse-default.png', selectedIconPath: dark ? '/static/ak-tabbar/browse-selected-dark.png' : '/static/ak-tabbar/browse-selected.png' })
+    uni.setTabBarItem({ index: 2, iconPath: '/static/ak-tabbar/topics-default.png', selectedIconPath: dark ? '/static/ak-tabbar/topics-selected-dark.png' : '/static/ak-tabbar/topics-selected.png' })
+    uni.setTabBarItem({ index: 3, iconPath: '/static/ak-tabbar/profile-default.png', selectedIconPath: dark ? '/static/ak-tabbar/profile-selected-dark.png' : '/static/ak-tabbar/profile-selected.png' })
   }
 }
 

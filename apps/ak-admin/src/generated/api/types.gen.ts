@@ -6,6 +6,25 @@ export type ClientOptions = {
 
 export type SupportedLocale = 'zh-CN' | 'en-US';
 
+/**
+ * custom is a read-only legacy compatibility value and cannot be registered or configured by new APIs.
+ */
+export type PushProvider = 'apns' | 'fcm' | 'huawei_android' | 'honor' | 'xiaomi' | 'oppo' | 'vivo' | 'meizu' | 'harmony' | 'custom';
+
+export type PushWritableProvider = 'apns' | 'fcm' | 'huawei_android' | 'honor' | 'xiaomi' | 'oppo' | 'vivo' | 'meizu' | 'harmony';
+
+export type PushPlatform = 'ios' | 'android' | 'harmony';
+
+export type PushStoredPlatform = 'ios' | 'android' | 'harmony' | 'unknown';
+
+export type PushBuildVariant = 'ios' | 'android_google' | 'android_china' | 'harmony';
+
+export type PushStoredBuildVariant = 'ios' | 'android_google' | 'android_china' | 'harmony' | 'legacy';
+
+export type PushMessageCategory = 'service_security' | 'news_operations';
+
+export type PushEnvironment = 'development' | 'test' | 'staging' | 'production';
+
 export type AdminSwitchTenantRequest = {
     tenant_id: string;
 };
@@ -31,6 +50,145 @@ export type AppPublicConfigResponse = {
         registration_enabled: boolean;
         registration_verification_mode: 'none' | 'email_otp';
         startup: AppPublicStartup;
+        share: {
+            providers: Array<PublicShareProvider>;
+        };
+        push: PublicPushRuntime;
+    };
+    request_id: string;
+};
+
+export type PublicShareProvider = PublicWechatShareProvider;
+
+export type PublicWechatShareProvider = {
+    provider_code: 'wechat';
+    enabled: boolean;
+    scenes: Array<'session' | 'timeline' | 'favorite'>;
+    fallback_mode: 'system';
+};
+
+export type PublicPushRuntime = {
+    enabled: boolean;
+    environment: PushEnvironment;
+    providers: Array<PushProvider>;
+    build_variants: Array<PushBuildVariant>;
+};
+
+export type AdminPushProviderCatalogItem = {
+    provider: PushWritableProvider;
+    platforms: Array<PushPlatform>;
+    build_variants: Array<PushBuildVariant>;
+    public_fields: Array<string>;
+    /**
+     * Field names only; secret values are never returned.
+     */
+    secret_fields: Array<string>;
+    supports_preflight: boolean;
+    supports_test: boolean;
+    config_schema_version: 1;
+};
+
+export type AdminPushProviderCatalogResponse = {
+    code: 'OK';
+    message: string;
+    data: {
+        items: Array<AdminPushProviderCatalogItem>;
+    };
+    request_id: string;
+};
+
+/**
+ * Strict provider-specific string fields advertised by the provider catalog; unknown fields are rejected server-side.
+ */
+export type AdminPushPublicConfig = {
+    [key: string]: string;
+};
+
+export type AdminPushProviderConfig = {
+    id: string;
+    app_id: string;
+    environment: PushEnvironment;
+    provider: PushWritableProvider;
+    config_schema_version: 1;
+    public_config: AdminPushPublicConfig;
+    secret_field_names: Array<string>;
+    has_secret: boolean;
+    readonly credential_fingerprint?: string;
+    status: 'draft' | 'active' | 'disabled' | 'faulted';
+    last_preflight_at?: string | null;
+    last_preflight_status?: '' | 'ready' | 'failed';
+    last_preflight_issues: Array<string>;
+    lock_version: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AdminPushProviderConfigRequest = {
+    environment: PushEnvironment;
+    config_schema_version: 1;
+    public_config: AdminPushPublicConfig;
+    lock_version?: number;
+};
+
+export type AdminPushSecretRotationRequest = {
+    lock_version: number;
+};
+
+export type AdminPushProviderConfigResponse = {
+    code: 'OK';
+    message: string;
+    data: AdminPushProviderConfig;
+    request_id: string;
+};
+
+export type AdminPushProviderConfigListResponse = {
+    code: 'OK';
+    message: string;
+    data: {
+        items: Array<AdminPushProviderConfig>;
+    };
+    request_id: string;
+};
+
+export type AdminPushTestRequest = {
+    push_device_id: string;
+    title: string;
+    body: string;
+};
+
+export type AdminPushTestResponse = {
+    code: 'OK';
+    message: string;
+    data: {
+        id: string;
+        status: 'pending';
+    };
+    request_id: string;
+};
+
+export type AdminPushTestDeviceListResponse = {
+    code: 'OK';
+    message: string;
+    data: {
+        items: Array<MobilePushDevice>;
+    };
+    request_id: string;
+};
+
+export type AdminPushDeliverySummaryItem = {
+    provider: PushProvider;
+    category: PushMessageCategory;
+    result: 'pending' | 'processing' | 'sent' | 'failed' | 'skipped' | 'accepted' | 'invalid_token' | 'throttled' | 'transient' | 'permanent' | 'auth_config_error' | 'unknown_after_write';
+    count: number;
+    opened_count: number;
+};
+
+export type AdminPushDeliverySummaryResponse = {
+    code: 'OK';
+    message: string;
+    data: {
+        items: Array<AdminPushDeliverySummaryItem>;
+        window_days: 30;
     };
     request_id: string;
 };
@@ -1720,6 +1878,13 @@ export type AdminNotificationMessage = {
     scheduled_at?: string | null;
     published_at?: string | null;
     expires_at?: string | null;
+    push_category: PushMessageCategory;
+    push_ttl_seconds: number;
+    push_collapse_key?: string;
+    push_route_key?: '' | 'notification.detail';
+    push_route_params: {
+        [key: string]: string;
+    };
     created_at: string;
     updated_at: string;
 };
@@ -1733,6 +1898,13 @@ export type AdminNotificationMessageRequest = {
     audience_user_ids: Array<string>;
     scheduled_at?: string | null;
     expires_at?: string | null;
+    push_category: PushMessageCategory;
+    push_ttl_seconds: number;
+    push_collapse_key?: string;
+    push_route_key?: '' | 'notification.detail';
+    push_route_params?: {
+        [key: string]: string;
+    };
 };
 
 export type AdminNotificationRecipient = {
@@ -2199,6 +2371,141 @@ export type AdminConfigListResponse = {
     request_id: string;
 };
 
+export type SharePlatformIdentity = {
+    enabled: boolean;
+    package_name?: string;
+    /**
+     * Public Android application signature registered with WeChat; it is not an AppSecret.
+     */
+    signature?: string;
+    bundle_id?: string;
+    universal_link?: string;
+    bundle_name?: string;
+};
+
+export type WechatSharePublicConfig = {
+    android: SharePlatformIdentity;
+    ios: SharePlatformIdentity;
+    harmony: SharePlatformIdentity;
+};
+
+export type AdminShareConfigBase = {
+    id: string;
+    tenant_id: string;
+    name: string;
+    description: string;
+    provider_code: 'wechat';
+    external_app_id: string;
+    config_schema_version: 1;
+    /**
+     * Names only; secret plaintext and ciphertext are never returned.
+     */
+    secret_field_names: Array<string>;
+    has_secret: boolean;
+    status: 'draft' | 'active' | 'disabled';
+    binding_count: number;
+    lock_version: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AdminWechatShareConfig = AdminShareConfigBase & {
+    provider_code: 'wechat';
+    public_config: WechatSharePublicConfig;
+};
+
+export type AdminShareConfig = AdminWechatShareConfig;
+
+export type AdminShareConfigInputBase = {
+    name: string;
+    description: string;
+    provider_code: 'wechat';
+    external_app_id: string;
+    config_schema_version: 1;
+    public_config: WechatSharePublicConfig;
+    lock_version?: number;
+};
+
+export type AdminShareConfigInput = AdminShareConfigInputBase;
+
+export type AdminShareSecretInput = {
+    lock_version: number;
+};
+
+export type AdminShareConfigPage = {
+    items: Array<AdminShareConfig>;
+    page: number;
+    page_size: number;
+    total: number;
+};
+
+export type AdminShareConfigResponse = {
+    code: string;
+    message: string;
+    data: AdminShareConfig;
+    request_id: string;
+};
+
+export type AdminShareConfigListResponse = {
+    code: string;
+    message: string;
+    data: AdminShareConfigPage;
+    request_id: string;
+};
+
+export type AdminShareBinding = {
+    id: string;
+    app_id: string;
+    provider_code: 'wechat';
+    share_config_id: string;
+    share_config_name: string;
+    config_status: 'draft' | 'active' | 'disabled';
+    enabled: boolean;
+    scenes: Array<'session' | 'timeline' | 'favorite'>;
+    share_origin: string;
+    fallback_mode: 'system';
+    lock_version: number;
+    updated_at: string;
+};
+
+export type AdminShareBindingInput = {
+    share_config_id: string;
+    enabled: boolean;
+    scenes: Array<'session' | 'timeline' | 'favorite'>;
+    share_origin: string;
+    fallback_mode: 'system';
+    lock_version?: number;
+};
+
+export type AdminSharePreflight = {
+    ready: boolean;
+    provider_code: 'wechat';
+    platforms: Array<'android' | 'ios' | 'harmony'>;
+    scenes: Array<'session' | 'timeline' | 'favorite'>;
+    issues: Array<string>;
+};
+
+export type AdminShareBindingResponse = {
+    code: string;
+    message: string;
+    data: AdminShareBinding;
+    request_id: string;
+};
+
+export type AdminShareBindingListResponse = {
+    code: string;
+    message: string;
+    data: Array<AdminShareBinding>;
+    request_id: string;
+};
+
+export type AdminSharePreflightResponse = {
+    code: string;
+    message: string;
+    data: AdminSharePreflight;
+    request_id: string;
+};
+
 export type AdminDictionaryType = {
     id: string;
     tenant_id: string | null;
@@ -2346,6 +2653,10 @@ export type AdminApiClient = {
     updated_at: string;
     secrets: Array<AdminApiClientSecret>;
     permissions: Array<string>;
+    /**
+     * Explicit application allowlist. Empty denies all Apps.
+     */
+    app_ids: Array<string>;
 };
 
 export type AdminApiClientRequest = {
@@ -2362,6 +2673,10 @@ export type AdminApiClientSecretRequest = {
 
 export type AdminApiClientPermissionsRequest = {
     permission_codes: Array<string>;
+};
+
+export type AdminApiClientAppsRequest = {
+    app_ids: Array<string>;
 };
 
 export type AdminApiClientPage = {
@@ -2410,6 +2725,290 @@ export type ApiClientTokenResponse = {
     code: string;
     message: string;
     data: ApiClientToken;
+    request_id: string;
+};
+
+export type LocalizedNotificationText = {
+    'zh-CN': string;
+    'en-US': string;
+};
+
+export type ApplicationNotificationAudience = unknown & {
+    type: 'users' | 'all_active_app_users';
+    user_ids?: Array<string>;
+};
+
+export type ApplicationNotificationInlineContent = {
+    title: LocalizedNotificationText;
+    body: LocalizedNotificationText;
+};
+
+export type ApplicationNotificationTemplateContent = {
+    code: string;
+    variables?: {
+        [key: string]: string;
+    };
+};
+
+export type ApplicationNotificationContent = ({
+    type?: 'inline';
+} | {
+    type?: 'template';
+}) & {
+    type: 'inline' | 'template';
+    inline?: ApplicationNotificationInlineContent;
+    template?: ApplicationNotificationTemplateContent;
+};
+
+export type ApplicationNotificationSubmitRequest = {
+    source: string;
+    business_event_id: string;
+    category: 'service_security' | 'news_operations';
+    audience: ApplicationNotificationAudience;
+    content: ApplicationNotificationContent;
+    push: boolean;
+    scheduled_at?: string;
+    expires_at?: string;
+    ttl_seconds?: number;
+    collapse_key?: string;
+    thread_key?: string;
+    route_key?: string;
+    resource_id?: string;
+    route_params?: {
+        [key: string]: string;
+    };
+};
+
+export type ApplicationNotificationSubmission = {
+    message_id: string;
+    run_id: string;
+    status: 'scheduled' | 'queued';
+    status_url: string;
+    created_at: string;
+};
+
+export type ApplicationNotificationStatus = {
+    message_id: string;
+    run_id: string;
+    status: NotificationMessageRunStatus;
+    created_at: string;
+    recipient_count: number;
+    evaluated_count: number;
+    delivery_count: number;
+    accepted_count: number;
+    failed_count: number;
+    invalid_token_count: number;
+    opened_count: number;
+    skipped_count: number;
+    scheduled_at?: string | null;
+    completed_at?: string | null;
+};
+
+export type ApplicationNotificationSubmissionResponse = {
+    code: string;
+    message: string;
+    data: ApplicationNotificationSubmission;
+    request_id: string;
+};
+
+export type ApplicationNotificationStatusResponse = {
+    code: string;
+    message: string;
+    data: ApplicationNotificationStatus;
+    request_id: string;
+};
+
+export type ApplicationNotificationCancelResponse = {
+    code: string;
+    message: string;
+    data: {
+        cancelled: true;
+        message_id: string;
+    };
+    request_id: string;
+};
+
+export type NotificationMessageRunStatus = 'scheduled' | 'queued' | 'running' | 'completed' | 'completed_with_failures' | 'failed' | 'cancelled' | 'expired';
+
+export type NotificationTaskRunStatus = 'scheduled' | 'queued' | 'running' | 'retry_wait' | 'succeeded' | 'failed' | 'cancelled';
+
+export type AdminNotificationOperationsSummary = {
+    queued: number;
+    running: number;
+    retry_waiting: number;
+    accepted: number;
+    failed: number;
+    invalid_tokens: number;
+    skipped: number;
+    opened: number;
+    open_rate: number;
+    oldest_waiting_seconds: number;
+    p95_queue_delay_ms: number;
+    has_unfinished_work: boolean;
+};
+
+export type AdminNotificationTrendBucket = {
+    bucket: string;
+    accepted: number;
+    failed: number;
+    invalid_tokens: number;
+    opened: number;
+    skipped: number;
+};
+
+export type AdminNotificationRun = {
+    id: string;
+    message_id: string;
+    message_title: string;
+    category: 'service_security' | 'news_operations';
+    trigger_type: 'admin' | 'scheduled' | 'api_client' | 'internal';
+    status: NotificationMessageRunStatus;
+    recipient_count: number;
+    evaluated_count: number;
+    delivery_count: number;
+    accepted_count: number;
+    failed_count: number;
+    invalid_token_count: number;
+    opened_count: number;
+    skipped_count: number;
+    started_at?: string | null;
+    completed_at?: string | null;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AdminNotificationTaskAttempt = {
+    attempt_number: number;
+    status: string;
+    result_class?: string;
+    error_code?: string;
+    error_summary?: string;
+    external_request_id?: string;
+    trace_id?: string;
+    started_at: string;
+    finished_at?: string | null;
+    duration_ms?: number | null;
+    next_retry_at?: string | null;
+};
+
+export type AdminNotificationTask = {
+    id: string;
+    task_kind: string;
+    queue_name: string;
+    resource_type: string;
+    resource_id?: string | null;
+    correlation_id?: string | null;
+    status: NotificationTaskRunStatus;
+    scheduled_at: string;
+    started_at?: string | null;
+    finalized_at?: string | null;
+    next_retry_at?: string | null;
+    attempt_count: number;
+    max_attempts: number;
+    last_result_class?: string;
+    last_error_code?: string;
+    last_error_summary?: string;
+    trace_id?: string;
+    retryable: boolean;
+    retry_risk: 'none' | 'duplicate_possible' | 'manual_review';
+    attempts?: Array<AdminNotificationTaskAttempt>;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AdminNotificationFailure = AdminNotificationTask & {
+    message_id?: string | null;
+    message_title?: string;
+    provider?: string;
+    channel?: string;
+};
+
+export type AdminNotificationTaskRetryRequest = {
+    items: Array<{
+        task_id: string;
+    }>;
+    acknowledge_duplicate_risk: boolean;
+};
+
+export type AdminNotificationTaskRetryResult = {
+    task_id: string;
+    accepted: boolean;
+    new_task_id?: string | null;
+    reason?: string;
+};
+
+export type AdminNotificationOperationsSummaryResponse = {
+    code: string;
+    message: string;
+    data: AdminNotificationOperationsSummary;
+    request_id: string;
+};
+
+export type AdminNotificationTrendListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AdminNotificationTrendBucket>;
+    };
+    request_id: string;
+};
+
+export type AdminNotificationRunPageResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AdminNotificationRun>;
+        page: number;
+        page_size: number;
+        total: number;
+    };
+    request_id: string;
+};
+
+export type AdminNotificationRunResponse = {
+    code: string;
+    message: string;
+    data: AdminNotificationRun;
+    request_id: string;
+};
+
+export type AdminNotificationTaskPageResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AdminNotificationTask>;
+        page: number;
+        page_size: number;
+        total: number;
+    };
+    request_id: string;
+};
+
+export type AdminNotificationTaskResponse = {
+    code: string;
+    message: string;
+    data: AdminNotificationTask;
+    request_id: string;
+};
+
+export type AdminNotificationFailurePageResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AdminNotificationFailure>;
+        page: number;
+        page_size: number;
+        total: number;
+    };
+    request_id: string;
+};
+
+export type AdminNotificationTaskRetryResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<AdminNotificationTaskRetryResult>;
+    };
     request_id: string;
 };
 
@@ -3275,6 +3874,8 @@ export type MobilePreferences = {
     notification_preferences: {
         in_app?: boolean;
         push?: boolean;
+        push_service?: boolean;
+        push_operations?: boolean;
         email?: boolean;
     };
 };
@@ -3285,6 +3886,8 @@ export type MobilePreferencesUpdateRequest = {
     notification_preferences?: {
         in_app?: boolean;
         push?: boolean;
+        push_service?: boolean;
+        push_operations?: boolean;
         email?: boolean;
     };
 };
@@ -3300,6 +3903,8 @@ export type MobileNotificationPreferences = {
     notification_preferences: {
         in_app?: boolean;
         push?: boolean;
+        push_service?: boolean;
+        push_operations?: boolean;
         email?: boolean;
     };
 };
@@ -3409,6 +4014,52 @@ export type MobileNotificationPageResponse = {
     request_id: string;
 };
 
+export type MobileNotificationResponse = {
+    code: string;
+    message: string;
+    data: MobileNotification;
+    request_id: string;
+};
+
+export type MobilePushDevice = {
+    id: string;
+    provider: PushProvider;
+    platform: PushStoredPlatform;
+    build_variant: PushStoredBuildVariant;
+    locale: SupportedLocale;
+    sdk_version: string;
+    app_version: string;
+    status: 'active' | 'invalid' | 'disabled';
+    registered_at: string;
+    token_updated_at: string;
+    invalidated_at?: string | null;
+};
+
+export type MobilePushDeviceRegisterRequest = {
+    provider: PushWritableProvider;
+    platform: PushPlatform;
+    build_variant: PushBuildVariant;
+    locale: SupportedLocale;
+    sdk_version: string;
+    app_version: string;
+};
+
+export type MobilePushDeviceResponse = {
+    code: string;
+    message: string;
+    data: MobilePushDevice;
+    request_id: string;
+};
+
+export type MobileCurrentPushDeviceResponse = {
+    code: string;
+    message: string;
+    data: {
+        device: MobilePushDevice | null;
+    };
+    request_id: string;
+};
+
 export type AdminMobileRelease = {
     id: string;
     app_id: string;
@@ -3502,6 +4153,47 @@ export type LockVersionRequest = {
     lock_version: number;
 };
 
+export type AdminPushProviderConfigWritable = {
+    id: string;
+    app_id: string;
+    environment: PushEnvironment;
+    provider: PushWritableProvider;
+    config_schema_version: 1;
+    public_config: AdminPushPublicConfig;
+    secret_field_names: Array<string>;
+    has_secret: boolean;
+    status: 'draft' | 'active' | 'disabled' | 'faulted';
+    last_preflight_at?: string | null;
+    last_preflight_status?: '' | 'ready' | 'failed';
+    last_preflight_issues: Array<string>;
+    lock_version: number;
+    created_at: string;
+    updated_at: string;
+};
+
+export type AdminPushSecretRotationRequestWritable = {
+    values: {
+        [key: string]: string;
+    };
+    lock_version: number;
+};
+
+export type AdminPushProviderConfigResponseWritable = {
+    code: 'OK';
+    message: string;
+    data: AdminPushProviderConfigWritable;
+    request_id: string;
+};
+
+export type AdminPushProviderConfigListResponseWritable = {
+    code: 'OK';
+    message: string;
+    data: {
+        items: Array<AdminPushProviderConfigWritable>;
+    };
+    request_id: string;
+};
+
 export type AdminUserCreateRequestWritable = {
     email: string;
     display_name: string;
@@ -3563,6 +4255,13 @@ export type AdminConfigWriteRequestWritable = {
 export type AdminConfigSecretRequestWritable = {
     secret_value: string;
     version: number;
+};
+
+export type AdminShareSecretInputWritable = {
+    values: {
+        [key: string]: string;
+    };
+    lock_version: number;
 };
 
 export type AdminApiClientSecretCreatedWritable = {
@@ -3627,6 +4326,19 @@ export type AdminBlockRuleCreateRequestWritable = {
     status: 'active' | 'disabled';
 };
 
+export type MobilePushDeviceRegisterRequestWritable = {
+    provider: PushWritableProvider;
+    platform: PushPlatform;
+    build_variant: PushBuildVariant;
+    /**
+     * Opaque renewable provider registration token.
+     */
+    token: string;
+    locale: SupportedLocale;
+    sdk_version: string;
+    app_version: string;
+};
+
 export type AcceptLanguage = string;
 
 /**
@@ -3647,6 +4359,20 @@ export type OrgResourceId = string;
 
 export type TenantResourceId = string;
 
+export type NotificationOperationsAppId = string;
+
+export type NotificationOperationsEnvironment = PushEnvironment;
+
+export type NotificationOperationsFrom = string;
+
+export type NotificationOperationsTo = string;
+
+export type NotificationOperationsStatus = string;
+
+export type NotificationOperationsPage = number;
+
+export type NotificationOperationsPageSize = number;
+
 export type TenantMemberUserId = string;
 
 export type RoleResourceId = string;
@@ -3660,6 +4386,38 @@ export type UserResourceId = string;
 export type OrgUserResourceId = string;
 
 export type UserSessionResourceId = string;
+
+export type GetPublicContentSharePageData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path: {
+        slug: string;
+    };
+    query: {
+        app_id: string;
+    };
+    url: '/s/{slug}';
+};
+
+export type GetPublicContentSharePageErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetPublicContentSharePageError = GetPublicContentSharePageErrors[keyof GetPublicContentSharePageErrors];
+
+export type GetPublicContentSharePageResponses = {
+    /**
+     * HTML landing page with Open Graph metadata and a controlled App deep link.
+     */
+    200: string;
+};
+
+export type GetPublicContentSharePageResponse = GetPublicContentSharePageResponses[keyof GetPublicContentSharePageResponses];
 
 export type GetLivenessData = {
     body?: never;
@@ -4730,6 +5488,43 @@ export type ListMobileNotificationsResponses = {
 
 export type ListMobileNotificationsResponse = ListMobileNotificationsResponses[keyof ListMobileNotificationsResponses];
 
+export type GetMobileNotificationData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/notifications/{id}';
+};
+
+export type GetMobileNotificationErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetMobileNotificationError = GetMobileNotificationErrors[keyof GetMobileNotificationErrors];
+
+export type GetMobileNotificationResponses = {
+    /**
+     * Notification detail scoped to the authenticated user and App.
+     */
+    200: MobileNotificationResponse;
+};
+
+export type GetMobileNotificationResponse = GetMobileNotificationResponses[keyof GetMobileNotificationResponses];
+
 export type MarkMobileNotificationReadData = {
     body?: never;
     headers: {
@@ -4766,6 +5561,150 @@ export type MarkMobileNotificationReadResponses = {
 };
 
 export type MarkMobileNotificationReadResponse = MarkMobileNotificationReadResponses[keyof MarkMobileNotificationReadResponses];
+
+export type GetMobileCurrentPushDeviceData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/push-devices/current';
+};
+
+export type GetMobileCurrentPushDeviceErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type GetMobileCurrentPushDeviceError = GetMobileCurrentPushDeviceErrors[keyof GetMobileCurrentPushDeviceErrors];
+
+export type GetMobileCurrentPushDeviceResponses = {
+    /**
+     * Current installation binding
+     */
+    200: MobileCurrentPushDeviceResponse;
+};
+
+export type GetMobileCurrentPushDeviceResponse = GetMobileCurrentPushDeviceResponses[keyof GetMobileCurrentPushDeviceResponses];
+
+export type RegisterMobilePushDeviceData = {
+    body: MobilePushDeviceRegisterRequestWritable;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/push-devices';
+};
+
+export type RegisterMobilePushDeviceErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * Push capability unavailable.
+     */
+    503: unknown;
+};
+
+export type RegisterMobilePushDeviceError = RegisterMobilePushDeviceErrors[keyof RegisterMobilePushDeviceErrors];
+
+export type RegisterMobilePushDeviceResponses = {
+    /**
+     * Active push binding; token is never returned.
+     */
+    200: MobilePushDeviceResponse;
+};
+
+export type RegisterMobilePushDeviceResponse = RegisterMobilePushDeviceResponses[keyof RegisterMobilePushDeviceResponses];
+
+export type DisableMobilePushDeviceData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        push_device_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/push-devices/{push_device_id}';
+};
+
+export type DisableMobilePushDeviceErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type DisableMobilePushDeviceError = DisableMobilePushDeviceErrors[keyof DisableMobilePushDeviceErrors];
+
+export type DisableMobilePushDeviceResponses = {
+    /**
+     * Binding disabled.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type DisableMobilePushDeviceResponse = DisableMobilePushDeviceResponses[keyof DisableMobilePushDeviceResponses];
+
+export type MarkMobilePushDeliveryOpenedData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        delivery_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/push-deliveries/{delivery_id}/opened';
+};
+
+export type MarkMobilePushDeliveryOpenedErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type MarkMobilePushDeliveryOpenedError = MarkMobilePushDeliveryOpenedErrors[keyof MarkMobilePushDeliveryOpenedErrors];
+
+export type MarkMobilePushDeliveryOpenedResponses = {
+    /**
+     * Open event recorded; this does not mark the message read.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type MarkMobilePushDeliveryOpenedResponse = MarkMobilePushDeliveryOpenedResponses[keyof MarkMobilePushDeliveryOpenedResponses];
 
 export type ListMobileLoginEventsData = {
     body?: never;
@@ -5267,6 +6206,609 @@ export type UpdateAdminAppResponses = {
 };
 
 export type UpdateAdminAppResponse = UpdateAdminAppResponses[keyof UpdateAdminAppResponses];
+
+export type ListAdminAppPushProviderCatalogData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/push-provider-catalog';
+};
+
+export type ListAdminAppPushProviderCatalogErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type ListAdminAppPushProviderCatalogError = ListAdminAppPushProviderCatalogErrors[keyof ListAdminAppPushProviderCatalogErrors];
+
+export type ListAdminAppPushProviderCatalogResponses = {
+    /**
+     * Push provider catalog.
+     */
+    200: AdminPushProviderCatalogResponse;
+};
+
+export type ListAdminAppPushProviderCatalogResponse = ListAdminAppPushProviderCatalogResponses[keyof ListAdminAppPushProviderCatalogResponses];
+
+export type ListAdminAppPushProviderConfigsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query: {
+        environment: PushEnvironment;
+    };
+    url: '/admin-api/v1/apps/{app_id}/push-provider-configs';
+};
+
+export type ListAdminAppPushProviderConfigsErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListAdminAppPushProviderConfigsError = ListAdminAppPushProviderConfigsErrors[keyof ListAdminAppPushProviderConfigsErrors];
+
+export type ListAdminAppPushProviderConfigsResponses = {
+    /**
+     * Provider configurations.
+     */
+    200: AdminPushProviderConfigListResponse;
+};
+
+export type ListAdminAppPushProviderConfigsResponse = ListAdminAppPushProviderConfigsResponses[keyof ListAdminAppPushProviderConfigsResponses];
+
+export type ListAdminAppPushTestDevicesData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query: {
+        provider: PushWritableProvider;
+    };
+    url: '/admin-api/v1/apps/{app_id}/push-devices';
+};
+
+export type ListAdminAppPushTestDevicesErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListAdminAppPushTestDevicesError = ListAdminAppPushTestDevicesErrors[keyof ListAdminAppPushTestDevicesErrors];
+
+export type ListAdminAppPushTestDevicesResponses = {
+    /**
+     * Opaque test device choices.
+     */
+    200: AdminPushTestDeviceListResponse;
+};
+
+export type ListAdminAppPushTestDevicesResponse = ListAdminAppPushTestDevicesResponses[keyof ListAdminAppPushTestDevicesResponses];
+
+export type GetAdminAppPushDeliverySummaryData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/push-delivery-summary';
+};
+
+export type GetAdminAppPushDeliverySummaryErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type GetAdminAppPushDeliverySummaryError = GetAdminAppPushDeliverySummaryErrors[keyof GetAdminAppPushDeliverySummaryErrors];
+
+export type GetAdminAppPushDeliverySummaryResponses = {
+    /**
+     * Push delivery summary with no token or user metric labels.
+     */
+    200: AdminPushDeliverySummaryResponse;
+};
+
+export type GetAdminAppPushDeliverySummaryResponse = GetAdminAppPushDeliverySummaryResponses[keyof GetAdminAppPushDeliverySummaryResponses];
+
+export type GetAdminNotificationOperationsSummaryData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        environment?: PushEnvironment;
+        from?: string;
+        to?: string;
+    };
+    url: '/admin-api/v1/apps/{app_id}/notification-operations/summary';
+};
+
+export type GetAdminNotificationOperationsSummaryErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type GetAdminNotificationOperationsSummaryError = GetAdminNotificationOperationsSummaryErrors[keyof GetAdminNotificationOperationsSummaryErrors];
+
+export type GetAdminNotificationOperationsSummaryResponses = {
+    /**
+     * Safe notification operations summary.
+     */
+    200: AdminNotificationOperationsSummaryResponse;
+};
+
+export type GetAdminNotificationOperationsSummaryResponse = GetAdminNotificationOperationsSummaryResponses[keyof GetAdminNotificationOperationsSummaryResponses];
+
+export type GetAdminNotificationOperationsTrendsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        environment?: PushEnvironment;
+        from?: string;
+        to?: string;
+    };
+    url: '/admin-api/v1/apps/{app_id}/notification-operations/trends';
+};
+
+export type GetAdminNotificationOperationsTrendsErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type GetAdminNotificationOperationsTrendsError = GetAdminNotificationOperationsTrendsErrors[keyof GetAdminNotificationOperationsTrendsErrors];
+
+export type GetAdminNotificationOperationsTrendsResponses = {
+    /**
+     * Daily application notification trends.
+     */
+    200: AdminNotificationTrendListResponse;
+};
+
+export type GetAdminNotificationOperationsTrendsResponse = GetAdminNotificationOperationsTrendsResponses[keyof GetAdminNotificationOperationsTrendsResponses];
+
+export type ListAdminNotificationRunsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        environment?: PushEnvironment;
+        from?: string;
+        to?: string;
+        status?: string;
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/notification-runs';
+};
+
+export type ListAdminNotificationRunsErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListAdminNotificationRunsError = ListAdminNotificationRunsErrors[keyof ListAdminNotificationRunsErrors];
+
+export type ListAdminNotificationRunsResponses = {
+    /**
+     * App-scoped message runs.
+     */
+    200: AdminNotificationRunPageResponse;
+};
+
+export type ListAdminNotificationRunsResponse = ListAdminNotificationRunsResponses[keyof ListAdminNotificationRunsResponses];
+
+export type GetAdminNotificationRunData = {
+    body?: never;
+    path: {
+        app_id: string;
+        run_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/notification-runs/{run_id}';
+};
+
+export type GetAdminNotificationRunErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminNotificationRunError = GetAdminNotificationRunErrors[keyof GetAdminNotificationRunErrors];
+
+export type GetAdminNotificationRunResponses = {
+    /**
+     * Message pipeline run.
+     */
+    200: AdminNotificationRunResponse;
+};
+
+export type GetAdminNotificationRunResponse = GetAdminNotificationRunResponses[keyof GetAdminNotificationRunResponses];
+
+export type ListAdminNotificationTasksData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        from?: string;
+        to?: string;
+        status?: string;
+        task_kind?: string;
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/notification-tasks';
+};
+
+export type ListAdminNotificationTasksErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListAdminNotificationTasksError = ListAdminNotificationTasksErrors[keyof ListAdminNotificationTasksErrors];
+
+export type ListAdminNotificationTasksResponses = {
+    /**
+     * Safe task run page without River args.
+     */
+    200: AdminNotificationTaskPageResponse;
+};
+
+export type ListAdminNotificationTasksResponse = ListAdminNotificationTasksResponses[keyof ListAdminNotificationTasksResponses];
+
+export type GetAdminNotificationTaskData = {
+    body?: never;
+    path: {
+        app_id: string;
+        task_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/notification-tasks/{task_id}';
+};
+
+export type GetAdminNotificationTaskErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminNotificationTaskError = GetAdminNotificationTaskErrors[keyof GetAdminNotificationTaskErrors];
+
+export type GetAdminNotificationTaskResponses = {
+    /**
+     * Task run with safe attempt summaries.
+     */
+    200: AdminNotificationTaskResponse;
+};
+
+export type GetAdminNotificationTaskResponse = GetAdminNotificationTaskResponses[keyof GetAdminNotificationTaskResponses];
+
+export type ListAdminNotificationFailuresData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        from?: string;
+        to?: string;
+        provider?: PushProvider;
+        channel?: 'in_app' | 'email' | 'sms' | 'push' | 'webhook';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/notification-failures';
+};
+
+export type ListAdminNotificationFailuresErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListAdminNotificationFailuresError = ListAdminNotificationFailuresErrors[keyof ListAdminNotificationFailuresErrors];
+
+export type ListAdminNotificationFailuresResponses = {
+    /**
+     * Terminal failure page with safe errors.
+     */
+    200: AdminNotificationFailurePageResponse;
+};
+
+export type ListAdminNotificationFailuresResponse = ListAdminNotificationFailuresResponses[keyof ListAdminNotificationFailuresResponses];
+
+export type RetryAdminNotificationTasksData = {
+    body: AdminNotificationTaskRetryRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/notification-retries';
+};
+
+export type RetryAdminNotificationTasksErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type RetryAdminNotificationTasksError = RetryAdminNotificationTasksErrors[keyof RetryAdminNotificationTasksErrors];
+
+export type RetryAdminNotificationTasksResponses = {
+    /**
+     * Per-task retry decisions.
+     */
+    202: AdminNotificationTaskRetryResponse;
+};
+
+export type RetryAdminNotificationTasksResponse = RetryAdminNotificationTasksResponses[keyof RetryAdminNotificationTasksResponses];
+
+export type UpsertAdminAppPushProviderConfigData = {
+    body: AdminPushProviderConfigRequest;
+    path: {
+        app_id: string;
+        provider: PushWritableProvider;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/push-provider-configs/{provider}';
+};
+
+export type UpsertAdminAppPushProviderConfigErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpsertAdminAppPushProviderConfigError = UpsertAdminAppPushProviderConfigErrors[keyof UpsertAdminAppPushProviderConfigErrors];
+
+export type UpsertAdminAppPushProviderConfigResponses = {
+    /**
+     * Provider configuration metadata.
+     */
+    200: AdminPushProviderConfigResponse;
+};
+
+export type UpsertAdminAppPushProviderConfigResponse = UpsertAdminAppPushProviderConfigResponses[keyof UpsertAdminAppPushProviderConfigResponses];
+
+export type RotateAdminAppPushProviderSecretData = {
+    body: AdminPushSecretRotationRequestWritable;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/rotate-secret';
+};
+
+export type RotateAdminAppPushProviderSecretErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type RotateAdminAppPushProviderSecretError = RotateAdminAppPushProviderSecretErrors[keyof RotateAdminAppPushProviderSecretErrors];
+
+export type RotateAdminAppPushProviderSecretResponses = {
+    /**
+     * Updated credential metadata.
+     */
+    200: AdminPushProviderConfigResponse;
+};
+
+export type RotateAdminAppPushProviderSecretResponse = RotateAdminAppPushProviderSecretResponses[keyof RotateAdminAppPushProviderSecretResponses];
+
+export type PreflightAdminAppPushProviderConfigData = {
+    body: LockVersionRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/preflight';
+};
+
+export type PreflightAdminAppPushProviderConfigErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type PreflightAdminAppPushProviderConfigError = PreflightAdminAppPushProviderConfigErrors[keyof PreflightAdminAppPushProviderConfigErrors];
+
+export type PreflightAdminAppPushProviderConfigResponses = {
+    /**
+     * Updated preflight state.
+     */
+    200: AdminPushProviderConfigResponse;
+};
+
+export type PreflightAdminAppPushProviderConfigResponse = PreflightAdminAppPushProviderConfigResponses[keyof PreflightAdminAppPushProviderConfigResponses];
+
+export type ActivateAdminAppPushProviderConfigData = {
+    body: LockVersionRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/activate';
+};
+
+export type ActivateAdminAppPushProviderConfigErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type ActivateAdminAppPushProviderConfigError = ActivateAdminAppPushProviderConfigErrors[keyof ActivateAdminAppPushProviderConfigErrors];
+
+export type ActivateAdminAppPushProviderConfigResponses = {
+    /**
+     * Active provider configuration.
+     */
+    200: AdminPushProviderConfigResponse;
+};
+
+export type ActivateAdminAppPushProviderConfigResponse = ActivateAdminAppPushProviderConfigResponses[keyof ActivateAdminAppPushProviderConfigResponses];
+
+export type DisableAdminAppPushProviderConfigData = {
+    body: LockVersionRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/disable';
+};
+
+export type DisableAdminAppPushProviderConfigErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DisableAdminAppPushProviderConfigError = DisableAdminAppPushProviderConfigErrors[keyof DisableAdminAppPushProviderConfigErrors];
+
+export type DisableAdminAppPushProviderConfigResponses = {
+    /**
+     * Disabled provider configuration.
+     */
+    200: AdminPushProviderConfigResponse;
+};
+
+export type DisableAdminAppPushProviderConfigResponse = DisableAdminAppPushProviderConfigResponses[keyof DisableAdminAppPushProviderConfigResponses];
+
+export type TestAdminAppPushProviderConfigData = {
+    body: AdminPushTestRequest;
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/test';
+};
+
+export type TestAdminAppPushProviderConfigErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type TestAdminAppPushProviderConfigError = TestAdminAppPushProviderConfigErrors[keyof TestAdminAppPushProviderConfigErrors];
+
+export type TestAdminAppPushProviderConfigResponses = {
+    /**
+     * Test delivery queued.
+     */
+    202: AdminPushTestResponse;
+};
+
+export type TestAdminAppPushProviderConfigResponse = TestAdminAppPushProviderConfigResponses[keyof TestAdminAppPushProviderConfigResponses];
 
 export type BatchDeleteAdminAppsData = {
     body: UuidBatchRequest;
@@ -13589,6 +15131,355 @@ export type RotateAdminConfigSecretResponses = {
 
 export type RotateAdminConfigSecretResponse = RotateAdminConfigSecretResponses[keyof RotateAdminConfigSecretResponses];
 
+export type ListAdminShareConfigsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        q?: string;
+        provider_code?: 'wechat';
+        status?: 'draft' | 'active' | 'disabled';
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/share-configs';
+};
+
+export type ListAdminShareConfigsErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type ListAdminShareConfigsError = ListAdminShareConfigsErrors[keyof ListAdminShareConfigsErrors];
+
+export type ListAdminShareConfigsResponses = {
+    /**
+     * Secret values and ciphertext are never returned.
+     */
+    200: AdminShareConfigListResponse;
+};
+
+export type ListAdminShareConfigsResponse = ListAdminShareConfigsResponses[keyof ListAdminShareConfigsResponses];
+
+export type CreateAdminShareConfigData = {
+    body: AdminShareConfigInput;
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/share-configs';
+};
+
+export type CreateAdminShareConfigErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminShareConfigError = CreateAdminShareConfigErrors[keyof CreateAdminShareConfigErrors];
+
+export type CreateAdminShareConfigResponses = {
+    /**
+     * Draft created.
+     */
+    201: AdminShareConfigResponse;
+};
+
+export type CreateAdminShareConfigResponse = CreateAdminShareConfigResponses[keyof CreateAdminShareConfigResponses];
+
+export type DeleteAdminShareConfigData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/share-configs/{id}';
+};
+
+export type DeleteAdminShareConfigErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminShareConfigError = DeleteAdminShareConfigErrors[keyof DeleteAdminShareConfigErrors];
+
+export type DeleteAdminShareConfigResponses = {
+    /**
+     * Deleted.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type DeleteAdminShareConfigResponse = DeleteAdminShareConfigResponses[keyof DeleteAdminShareConfigResponses];
+
+export type GetAdminShareConfigData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/share-configs/{id}';
+};
+
+export type GetAdminShareConfigErrors = {
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminShareConfigError = GetAdminShareConfigErrors[keyof GetAdminShareConfigErrors];
+
+export type GetAdminShareConfigResponses = {
+    /**
+     * Configuration without secrets.
+     */
+    200: AdminShareConfigResponse;
+};
+
+export type GetAdminShareConfigResponse = GetAdminShareConfigResponses[keyof GetAdminShareConfigResponses];
+
+export type UpdateAdminShareConfigData = {
+    body: AdminShareConfigInput;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/share-configs/{id}';
+};
+
+export type UpdateAdminShareConfigErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateAdminShareConfigError = UpdateAdminShareConfigErrors[keyof UpdateAdminShareConfigErrors];
+
+export type UpdateAdminShareConfigResponses = {
+    /**
+     * Updated configuration.
+     */
+    200: AdminShareConfigResponse;
+};
+
+export type UpdateAdminShareConfigResponse = UpdateAdminShareConfigResponses[keyof UpdateAdminShareConfigResponses];
+
+export type ActivateAdminShareConfigData = {
+    body: LockVersionRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/share-configs/{id}/activate';
+};
+
+export type ActivateAdminShareConfigErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ActivateAdminShareConfigError = ActivateAdminShareConfigErrors[keyof ActivateAdminShareConfigErrors];
+
+export type ActivateAdminShareConfigResponses = {
+    /**
+     * Configuration activated.
+     */
+    200: AdminShareConfigResponse;
+};
+
+export type ActivateAdminShareConfigResponse = ActivateAdminShareConfigResponses[keyof ActivateAdminShareConfigResponses];
+
+export type DisableAdminShareConfigData = {
+    body: LockVersionRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/share-configs/{id}/disable';
+};
+
+export type DisableAdminShareConfigErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DisableAdminShareConfigError = DisableAdminShareConfigErrors[keyof DisableAdminShareConfigErrors];
+
+export type DisableAdminShareConfigResponses = {
+    /**
+     * Configuration disabled.
+     */
+    200: AdminShareConfigResponse;
+};
+
+export type DisableAdminShareConfigResponse = DisableAdminShareConfigResponses[keyof DisableAdminShareConfigResponses];
+
+export type RotateAdminShareConfigSecretData = {
+    body: AdminShareSecretInputWritable;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/share-configs/{id}/rotate-secret';
+};
+
+export type RotateAdminShareConfigSecretErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type RotateAdminShareConfigSecretError = RotateAdminShareConfigSecretErrors[keyof RotateAdminShareConfigSecretErrors];
+
+export type RotateAdminShareConfigSecretResponses = {
+    /**
+     * Secret envelope rotated without returning secret values.
+     */
+    200: AdminShareConfigResponse;
+};
+
+export type RotateAdminShareConfigSecretResponse = RotateAdminShareConfigSecretResponses[keyof RotateAdminShareConfigSecretResponses];
+
+export type ListAdminAppShareBindingsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/share-bindings';
+};
+
+export type ListAdminAppShareBindingsErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type ListAdminAppShareBindingsError = ListAdminAppShareBindingsErrors[keyof ListAdminAppShareBindingsErrors];
+
+export type ListAdminAppShareBindingsResponses = {
+    /**
+     * App share bindings.
+     */
+    200: AdminShareBindingListResponse;
+};
+
+export type ListAdminAppShareBindingsResponse = ListAdminAppShareBindingsResponses[keyof ListAdminAppShareBindingsResponses];
+
+export type DeleteAdminAppShareBindingData = {
+    body?: never;
+    path: {
+        app_id: string;
+        provider_code: 'wechat';
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}';
+};
+
+export type DeleteAdminAppShareBindingErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type DeleteAdminAppShareBindingError = DeleteAdminAppShareBindingErrors[keyof DeleteAdminAppShareBindingErrors];
+
+export type DeleteAdminAppShareBindingResponses = {
+    /**
+     * Binding removed.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type DeleteAdminAppShareBindingResponse = DeleteAdminAppShareBindingResponses[keyof DeleteAdminAppShareBindingResponses];
+
+export type PutAdminAppShareBindingData = {
+    body: AdminShareBindingInput;
+    path: {
+        app_id: string;
+        provider_code: 'wechat';
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}';
+};
+
+export type PutAdminAppShareBindingErrors = {
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type PutAdminAppShareBindingError = PutAdminAppShareBindingErrors[keyof PutAdminAppShareBindingErrors];
+
+export type PutAdminAppShareBindingResponses = {
+    /**
+     * Bound after server-side preflight.
+     */
+    200: AdminShareBindingResponse;
+};
+
+export type PutAdminAppShareBindingResponse = PutAdminAppShareBindingResponses[keyof PutAdminAppShareBindingResponses];
+
+export type PreflightAdminAppShareBindingData = {
+    body: AdminShareBindingInput;
+    path: {
+        app_id: string;
+        provider_code: 'wechat';
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight';
+};
+
+export type PreflightAdminAppShareBindingErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type PreflightAdminAppShareBindingError = PreflightAdminAppShareBindingErrors[keyof PreflightAdminAppShareBindingErrors];
+
+export type PreflightAdminAppShareBindingResponses = {
+    /**
+     * Machine-readable readiness without mutation.
+     */
+    200: AdminSharePreflightResponse;
+};
+
+export type PreflightAdminAppShareBindingResponse = PreflightAdminAppShareBindingResponses[keyof PreflightAdminAppShareBindingResponses];
+
 export type ListAdminDictionaryTypesData = {
     body?: never;
     headers?: {
@@ -13865,12 +15756,6 @@ export type UpdateAdminDictionaryItemResponse = UpdateAdminDictionaryItemRespons
 
 export type CreateApiClientTokenData = {
     body: ApiClientTokenRequestWritable;
-    headers: {
-        /**
-         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
-         */
-        'X-AppID': string;
-    };
     path?: never;
     query?: never;
     url: '/api/v1/auth/client-token';
@@ -13893,6 +15778,124 @@ export type CreateApiClientTokenResponses = {
 };
 
 export type CreateApiClientTokenResponse = CreateApiClientTokenResponses[keyof CreateApiClientTokenResponses];
+
+export type SubmitApplicationNotificationData = {
+    body: ApplicationNotificationSubmitRequest;
+    headers: {
+        'Idempotency-Key': string;
+    };
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/api/v1/apps/{app_id}/notifications';
+};
+
+export type SubmitApplicationNotificationErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type SubmitApplicationNotificationError = SubmitApplicationNotificationErrors[keyof SubmitApplicationNotificationErrors];
+
+export type SubmitApplicationNotificationResponses = {
+    /**
+     * Notification accepted into the asynchronous pipeline.
+     */
+    202: ApplicationNotificationSubmissionResponse;
+};
+
+export type SubmitApplicationNotificationResponse = SubmitApplicationNotificationResponses[keyof SubmitApplicationNotificationResponses];
+
+export type GetApplicationNotificationStatusData = {
+    body?: never;
+    path: {
+        app_id: string;
+        message_id: string;
+    };
+    query?: never;
+    url: '/api/v1/apps/{app_id}/notifications/{message_id}';
+};
+
+export type GetApplicationNotificationStatusErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetApplicationNotificationStatusError = GetApplicationNotificationStatusErrors[keyof GetApplicationNotificationStatusErrors];
+
+export type GetApplicationNotificationStatusResponses = {
+    /**
+     * Current asynchronous notification status.
+     */
+    200: ApplicationNotificationStatusResponse;
+};
+
+export type GetApplicationNotificationStatusResponse = GetApplicationNotificationStatusResponses[keyof GetApplicationNotificationStatusResponses];
+
+export type CancelApplicationNotificationData = {
+    body?: never;
+    path: {
+        app_id: string;
+        message_id: string;
+    };
+    query?: never;
+    url: '/api/v1/apps/{app_id}/notifications/{message_id}/cancel';
+};
+
+export type CancelApplicationNotificationErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+};
+
+export type CancelApplicationNotificationError = CancelApplicationNotificationErrors[keyof CancelApplicationNotificationErrors];
+
+export type CancelApplicationNotificationResponses = {
+    /**
+     * Notification cancellation accepted.
+     */
+    200: ApplicationNotificationCancelResponse;
+};
+
+export type CancelApplicationNotificationResponse = CancelApplicationNotificationResponses[keyof CancelApplicationNotificationResponses];
 
 export type ListAdminApiClientsData = {
     body?: never;
@@ -14148,6 +16151,45 @@ export type ReplaceAdminApiClientPermissionsResponses = {
 };
 
 export type ReplaceAdminApiClientPermissionsResponse = ReplaceAdminApiClientPermissionsResponses[keyof ReplaceAdminApiClientPermissionsResponses];
+
+export type ReplaceAdminApiClientAppsData = {
+    body: AdminApiClientAppsRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/api-clients/{id}/apps';
+};
+
+export type ReplaceAdminApiClientAppsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ReplaceAdminApiClientAppsError = ReplaceAdminApiClientAppsErrors[keyof ReplaceAdminApiClientAppsErrors];
+
+export type ReplaceAdminApiClientAppsResponses = {
+    /**
+     * Application allowlist replaced; an empty list denies every App.
+     */
+    200: AdminApiClientResponse;
+};
+
+export type ReplaceAdminApiClientAppsResponse = ReplaceAdminApiClientAppsResponses[keyof ReplaceAdminApiClientAppsResponses];
 
 export type ListAdminWebhooksData = {
     body?: never;

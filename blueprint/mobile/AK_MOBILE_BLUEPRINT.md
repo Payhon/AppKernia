@@ -17,6 +17,7 @@ Core 1.0 交付以下闭环：
 - TOTP MFA、恢复码、OAuth Provider 抽象。
 - 静态路由、Feature Flag、页面/动作权限。
 - 站内消息、未读计数、通知偏好与可选 Push。
+- 多厂商 Push 通过 `ak-push` Port 隔离业务页面：iOS 使用 APNs，Android Google/China 为互斥变体，HarmonyOS NEXT 使用 Push Kit；法定同意和用户主动开启前不得初始化、申请权限或上传 Token。
 - 语言、主题基础设施、法律文档、版本检查。
 - 多租户切换、账号注销。
 - Android、iOS、HarmonyOS 构建与真机验收矩阵。

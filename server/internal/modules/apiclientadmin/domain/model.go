@@ -40,17 +40,19 @@ type Secret struct {
 	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
 }
 type Client struct {
-	ID           uuid.UUID  `json:"id"`
-	ClientID     string     `json:"client_id"`
-	Name         string     `json:"name"`
-	Description  string     `json:"description"`
-	AllowedCIDRs []string   `json:"allowed_cidrs"`
-	Status       string     `json:"status"`
-	ExpiresAt    *time.Time `json:"expires_at,omitempty"`
-	CreatedAt    time.Time  `json:"created_at"`
-	UpdatedAt    time.Time  `json:"updated_at"`
-	Secrets      []Secret   `json:"secrets"`
-	Permissions  []string   `json:"permissions"`
+	ID           uuid.UUID   `json:"id"`
+	TenantID     uuid.UUID   `json:"-"`
+	ClientID     string      `json:"client_id"`
+	Name         string      `json:"name"`
+	Description  string      `json:"description"`
+	AllowedCIDRs []string    `json:"allowed_cidrs"`
+	Status       string      `json:"status"`
+	ExpiresAt    *time.Time  `json:"expires_at,omitempty"`
+	CreatedAt    time.Time   `json:"created_at"`
+	UpdatedAt    time.Time   `json:"updated_at"`
+	Secrets      []Secret    `json:"secrets"`
+	Permissions  []string    `json:"permissions"`
+	AppIDs       []uuid.UUID `json:"app_ids"`
 }
 type Page struct {
 	Items    []Client `json:"items"`
@@ -68,6 +70,13 @@ type Credential struct {
 	IPAddress  string
 }
 
+type MachinePrincipal struct {
+	TenantID    uuid.UUID
+	ClientID    uuid.UUID
+	AppID       uuid.UUID
+	Permissions []string
+}
+
 type Repository interface {
 	List(context.Context, uuid.UUID, Filter) (Page, error)
 	Get(context.Context, uuid.UUID, uuid.UUID) (Client, error)
@@ -76,5 +85,6 @@ type Repository interface {
 	CreateSecret(context.Context, Principal, uuid.UUID, string, []byte, *time.Time) (Secret, error)
 	RevokeSecret(context.Context, Principal, uuid.UUID, uuid.UUID) error
 	ReplacePermissions(context.Context, Principal, uuid.UUID, []string) (Client, error)
+	ReplaceApps(context.Context, Principal, uuid.UUID, []uuid.UUID) (Client, error)
 	Authenticate(context.Context, Credential) (Client, error)
 }

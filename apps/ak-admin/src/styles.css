@@ -190,6 +190,11 @@ a,
   gap: 12px;
   margin: 0 0 16px;
 }
+.ak-rich-editor { border: 1px solid var(--ak-color-border, #d9d9d9); border-radius: 8px; padding: 12px; }
+.ak-rich-editor [role="toolbar"] { margin-bottom: 12px; }
+.ak-rich-editor .tiptap { min-height: 280px; padding: 12px; border-radius: 6px; outline: none; line-height: 1.75; }
+.ak-rich-editor .tiptap:focus-visible { box-shadow: 0 0 0 3px rgba(22, 119, 255, .2); }
+.ak-rich-editor .tiptap img { max-width: 100%; height: auto; }
 .ak-content-slug { margin-top: 3px; color: var(--ak-muted); font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
 .ak-content-stale { margin-top: 10px; color: var(--ak-muted); font-size: 13px; }
 @media (max-width: 991px) { .ak-content-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -992,6 +997,106 @@ a,
 .ak-page-container .ant-alert + * {
   margin-block-start: 16px;
 }
+.ak-share-guide-trigger {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--ak-muted);
+  cursor: pointer;
+}
+.ak-share-guide-trigger:hover,
+.ak-share-guide-trigger:focus-visible { color: var(--ak-focus); }
+.ak-share-guide-modal .ant-modal-body {
+  max-height: min(72vh, 720px);
+  padding-inline-end: 4px;
+  overflow-y: auto;
+}
+.ak-share-guide-steps { margin-top: 24px; }
+.ak-share-guide-modal .ant-steps-item-wait .ant-steps-item-title {
+  color: var(--ak-ink) !important;
+  font-weight: 600;
+}
+.ak-share-guide-step { padding: 2px 0 16px; }
+.ak-share-guide-step .ant-typography { margin-bottom: 8px; }
+.ak-share-guide-step .ant-typography-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #003e7e;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ak-share-guide-step .ant-typography-link:hover { color: #002f61; }
+.ak-share-guide-list {
+  padding-inline-start: 20px;
+  margin: 0 0 12px;
+  color: var(--ak-body);
+  line-height: 1.65;
+}
+.ak-share-guide-list li + li { margin-top: 4px; }
+.ak-share-guide-checklist { margin-bottom: 20px; }
+.ak-push-page-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.ak-push-page-heading-actions { flex: 0 0 auto; }
+.ak-push-guide-trigger {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  min-height: 40px;
+  color: var(--ak-muted);
+  cursor: pointer;
+}
+.ak-push-guide-trigger:hover,
+.ak-push-guide-trigger:focus-visible { color: var(--ak-focus); }
+.ak-push-guide-modal .ant-modal-body {
+  max-height: min(74vh, 760px);
+  overflow-y: auto;
+}
+.ak-push-guide-tabs { margin-top: 20px; }
+.ak-push-guide-tabs > .ant-tabs-nav { min-width: 196px; }
+.ak-push-guide-panel { min-width: 0; padding-inline: 8px 4px; }
+.ak-push-guide-provider-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ak-push-guide-provider-heading .ant-typography { margin-top: 0; }
+.ak-push-guide-provider-heading .ant-tag { flex: 0 0 auto; white-space: normal; }
+.ak-push-guide-steps { margin: 12px 0 20px; }
+.ak-push-guide-steps .ant-steps-item-wait .ant-steps-item-title {
+  color: var(--ak-ink) !important;
+  font-weight: 600;
+}
+.ak-push-guide-steps .ant-steps-item-description {
+  max-width: 72ch !important;
+  color: var(--ak-body) !important;
+  line-height: 1.6;
+}
+.ak-push-guide-fields { margin: 12px 0 20px; }
+.ak-push-guide-fields .ant-descriptions-item-label {
+  width: min(34%, 220px);
+  color: var(--ak-ink);
+  font-weight: 600;
+}
+.ak-push-guide-fields .ant-descriptions-item-content {
+  overflow-wrap: anywhere;
+  color: var(--ak-body);
+}
+.ak-push-guide-note { margin-bottom: 20px; }
+.ak-push-guide-panel .ant-typography-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #003e7e;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ak-push-guide-panel .ant-typography-link:hover { color: #002f61; }
 .ak-page-heading {
   margin-bottom: 28px;
 }
@@ -1011,6 +1116,17 @@ a,
   color: var(--ak-body);
   font-size: 15px;
   line-height: 1.65;
+}
+@media (max-width: 767px) {
+  .ak-push-page-heading { flex-direction: column; gap: 12px; }
+  .ak-push-page-heading-actions { width: 100%; }
+  .ak-push-page-heading-actions .ant-select { flex: 1 1 auto; min-width: 0; }
+  .ak-push-guide-modal { max-width: calc(100vw - 24px); margin: 12px auto; }
+  .ak-push-guide-modal .ant-modal-body { max-height: calc(100vh - 190px); }
+  .ak-push-guide-tabs > .ant-tabs-nav { min-width: 0; }
+  .ak-push-guide-panel { padding-inline: 0; }
+  .ak-push-guide-provider-heading { flex-direction: column; gap: 4px; }
+  .ak-push-guide-fields .ant-descriptions-item-label { width: 40%; }
 }
 .ak-org-heading {
   display: flex;
@@ -1511,6 +1627,69 @@ a,
 .ak-dashboard-chart {
   width: 100%;
   height: 360px;
+}
+
+.ak-notification-operations-page .ant-tabs-nav {
+  margin-bottom: 20px;
+}
+
+.ak-notification-operations-filters .ant-card-body {
+  padding: 16px;
+}
+
+.ak-operations-filter-grid {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(220px, 1.35fr) repeat(4, minmax(150px, 1fr));
+}
+
+.ak-operations-filter-grid > div:first-child {
+  display: grid;
+  gap: 8px;
+}
+
+.ak-notification-operations-chart {
+  height: 360px;
+  width: 100%;
+}
+
+.ak-operations-batch-bar {
+  align-items: center;
+  background: var(--ak-surface, #fff);
+  border: 1px solid var(--ak-border, #d9d9d9);
+  border-radius: 10px;
+  bottom: 16px;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 12%);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 12px 16px;
+  position: sticky;
+  z-index: 10;
+}
+
+@media (max-width: 1100px) {
+  .ak-operations-filter-grid {
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .ak-operations-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ak-notification-operations-chart {
+    height: 300px;
+    margin-inline: -12px;
+    width: calc(100% + 24px);
+  }
+
+  .ak-operations-batch-bar {
+    align-items: stretch;
+    flex-direction: column;
+  }
 }
 
 .ak-file-picker-modal .ant-modal-render,

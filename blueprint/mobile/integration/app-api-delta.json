@@ -15,6 +15,12 @@
       "phase": "P0"
     },
     {
+      "method": "GET",
+      "path": "/api/v1/me/push-devices/current",
+      "purpose": "读取当前业务设备的 Push 注册状态，不返回 Token。",
+      "phase": "P2"
+    },
+    {
       "method": "POST",
       "path": "/api/v1/auth/switch-tenant",
       "purpose": "切换活动租户并轮换移动端 Access/Refresh Token。",
@@ -118,7 +124,7 @@
     },
     {
       "method": "DELETE",
-      "path": "/api/v1/me/push-devices/{device_id}",
+      "path": "/api/v1/me/push-devices/{push_device_id}",
       "purpose": "注销当前设备 Push Token。",
       "phase": "P2"
     },
@@ -206,7 +212,24 @@
       "purpose": "在冷静期内撤销账号注销申请。",
       "phase": "P2"
     },
-    { "method": "GET", "path": "/api/v1/article-categories", "purpose": "读取当前租户所有启用文章分类的本地化筛选项。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/public/content/home", "purpose": "游客可读的置顶、精选、最新去重首页聚合。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/public/content/items", "purpose": "游客可读的三类型资讯筛选与稳定游标分页。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/public/content/search", "purpose": "按当前语言搜索资讯、标签、分类和专题。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/public/content/items/{slug}", "purpose": "读取文章、图文或视频联合详情。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/public/content/categories", "purpose": "读取两级资讯分类。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/public/content/topics", "purpose": "读取专题列表。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/public/content/topics/{slug}", "purpose": "读取专题详情。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/public/content/items/{id}/comments", "purpose": "公开读取已通过评论。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/public/content/assets/{file_id}", "purpose": "读取已发布资讯引用的安全媒体。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/me/content-bookmarks", "purpose": "查询自己的资讯收藏。", "phase": "P1" },
+    { "method": "PUT", "path": "/api/v1/me/content-bookmarks/{article_id}", "purpose": "收藏资讯。", "phase": "P1" },
+    { "method": "DELETE", "path": "/api/v1/me/content-bookmarks/{article_id}", "purpose": "取消收藏资讯。", "phase": "P1" },
+    { "method": "POST", "path": "/api/v1/content/items/{id}/comments", "purpose": "提交待审核评论。", "phase": "P1" },
+    { "method": "DELETE", "path": "/api/v1/me/comments/{id}", "purpose": "删除自己的评论。", "phase": "P1" },
+    { "method": "POST", "path": "/api/v1/comments/{id}/reports", "purpose": "举报评论。", "phase": "P1" },
+    { "method": "PUT", "path": "/api/v1/me/blocked-users/{user_id}", "purpose": "屏蔽评论用户。", "phase": "P1" },
+    { "method": "DELETE", "path": "/api/v1/me/blocked-users/{user_id}", "purpose": "解除屏蔽评论用户。", "phase": "P1" },
+    { "method": "GET", "path": "/api/v1/article-categories", "purpose": "兼容周期内读取旧文章分类。", "phase": "P1" },
     { "method": "GET", "path": "/api/v1/article-assets/{file_id}", "purpose": "使用移动会话读取当前租户已发布文章引用的安全图片封面。", "phase": "P1" },
     { "method": "GET", "path": "/api/v1/articles", "purpose": "按本地化投影游标检索文章。", "phase": "P1" },
     { "method": "GET", "path": "/api/v1/articles/{slug}", "purpose": "读取一篇已发布文章。", "phase": "P1" },

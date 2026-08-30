@@ -1,0 +1,120 @@
+<template>
+  <ak-theme-root>
+    <view class="search-page">
+      <view class="glass-layer">
+        <view class="search-header">
+          <ak-search-field :model-value="query" :placeholder="t('information.search.placeholder', null)" :label="t('information.search', null)" :clear-label="t('information.search.clear', null)" focus @update:modelValue="onQuery" @confirm="submit" @clear="clearResults" />
+          <text class="cancel" role="button" @click="close">{{ t('common.cancel', null) }}</text>
+        </view>
+        <scroll-view class="search-content" scroll-y>
+          <view v-if="query.trim().length == 0">
+            <view class="section-heading"><text class="section-title">{{ t('information.search.recent', null) }}</text><text v-if="recents.length > 0" class="clear" role="button" @click="clearRecents">{{ t('information.search.clear', null) }}</text></view>
+            <view v-if="recents.length > 0" class="recent-wrap">
+              <view v-for="value in recents" :key="value" class="recent-chip" @click="choose(value)"><text class="recent-text">{{ value }}</text></view>
+            </view>
+            <text v-else class="empty-recent">{{ t('information.search.noRecent', null) }}</text>
+            <text class="trending-title">{{ t('information.search.trending', null) }}</text>
+            <view v-for="topic in topics" :key="topic.id" class="trending-row" @click="choose(topic.name)"><text class="trending-text">{{ topic.name }}</text><ak-icon name="chevron-right" tone="muted" :size="16" /></view>
+          </view>
+          <ak-status-view v-else-if="state !== 'content'" :state="state" :title="stateTitle" :description="t('information.state.description', null)" @retry="submit" />
+          <section-list v-else :title="t('information.search.results', null)" :items="items" @open="open" />
+        </scroll-view>
+      </view>
+    </view>
+  </ak-theme-root>
+</template>
+
+<script lang="uts">
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+import { AkError } from '../../../src/core/errors/ak-error.uts'
+import { HttpCancellation } from '../../../src/core/network/http-port.uts'
+import { navigateArticleDetail } from '../../../src/core/navigation/app-routes.uts'
+import { ArticlePage, ArticleQuery, ArticleSummary, ContentTopic } from '../../../src/features/articles/domain/models.uts'
+import { articleRuntime } from '../../../src/features/articles/infrastructure/article-runtime.uts'
+
+let searchTimer: number = 0
+let searchTask: HttpCancellation | null = null
+let sessionRecents: Array<string> = []
+
+function copyRecents(): Array<string> {
+  const output: Array<string> = []
+  for (let index = 0; index < sessionRecents.length; index++) output.push(sessionRecents[index])
+  return output
+}
+
+function currentDialogPage(): UniPage | null {
+  const pages = getCurrentPages()
+  if (pages.length == 0) return null
+  const dialogs = pages[pages.length - 1].getDialogPages()
+  return dialogs.length > 0 ? dialogs[dialogs.length - 1] : null
+}
+
+export default {
+  data() { return { query: '', state: 'idle', items: [] as Array<ArticleSummary>, topics: [] as Array<ContentTopic>, recents: copyRecents() as Array<string> } },
+  computed: {
+    t() { return akI18n.t },
+    stateTitle(): string { return akI18n.t(this.state === 'offline' ? 'state.offline.title' : this.state === 'empty' ? 'information.search.empty' : 'state.error.title', null) },
+  },
+  onLoad() { this.loadTopics() },
+  onUnload() { if (searchTimer != 0) clearTimeout(searchTimer); searchTimer = 0; const active = searchTask; if (active != null) active.cancel(); searchTask = null },
+  onBackPress() { this.close(); return true },
+  methods: {
+    loadTopics() {
+      const repo = articleRuntime.getRepository()
+      if (repo == null) return
+      repo.listTopics((value: Array<ContentTopic>) => { this.topics = value }, () => {})
+    },
+    onQuery(value: string) {
+      this.query = value
+      if (searchTimer != 0) clearTimeout(searchTimer)
+      const active = searchTask
+      if (active != null) active.cancel()
+      searchTask = null
+      if (value.trim().length == 0) { this.clearResults(); return }
+      searchTimer = setTimeout(() => { searchTimer = 0; this.execute(false) }, 300)
+    },
+    clearResults() { this.items = []; this.state = 'idle' },
+    submit() { if (searchTimer != 0) clearTimeout(searchTimer); searchTimer = 0; this.execute(true) },
+    choose(value: string) { this.query = value; this.execute(true) },
+    remember(value: string) {
+      const next: Array<string> = [value]
+      for (let index = 0; index < sessionRecents.length && next.length < 8; index++) if (sessionRecents[index] !== value) next.push(sessionRecents[index])
+      sessionRecents = next
+      this.recents = copyRecents()
+    },
+    clearRecents() { sessionRecents = []; this.recents = [] },
+    execute(remember: boolean) {
+      const value = this.query.trim()
+      if (value.length == 0) { this.clearResults(); return }
+      const repo = articleRuntime.getRepository()
+      if (repo == null) { this.state = 'error'; return }
+      const active = searchTask
+      if (active != null) active.cancel()
+      if (remember) this.remember(value)
+      this.state = 'loading'
+      const query: ArticleQuery = { query: value, category: null, topic: null, tag: null, contentType: null, featured: null, cursor: null, limit: 30 }
+      searchTask = repo.search(query, (page: ArticlePage) => { this.items = page.items; this.state = page.items.length == 0 ? 'empty' : 'content'; searchTask = null }, (error: AkError) => { this.state = error.kind === 'network_unavailable' ? 'offline' : 'error'; searchTask = null })
+    },
+    open(slug: string) { this.close(); setTimeout(() => { navigateArticleDetail(slug) }, 240) },
+    close() { const dialog = currentDialogPage(); if (dialog != null) uni.closeDialogPage({ dialogPage: dialog }) },
+  },
+}
+</script>
+
+<style lang="scss">
+.search-page { height: 100%; flex: 1; background: rgba(242,242,247,0.78); }
+.glass-layer { height: 100%; flex: 1; padding: 14px 20px 0; background: rgba(255,255,255,0.72); }
+.search-header { height: 56px; flex-direction: row; align-items: center; }
+.cancel { width: 68px; height: 48px; margin-left: 8px; color: var(--ak-text); font-size: 16px; line-height: 48px; text-align: right; }
+.search-content { flex: 1; padding-top: 24px; }
+.section-heading { height: 36px; flex-direction: row; align-items: center; justify-content: space-between; }
+.section-title, .trending-title { color: var(--ak-text); font-size: 22px; font-weight: 800; }
+.clear { min-width: 44px; height: 44px; color: var(--ak-muted); line-height: 44px; text-align: right; font-size: 14px; }
+.recent-wrap { flex-direction: row; flex-wrap: wrap; margin-top: 10px; margin-right: -8px; }
+.recent-chip { min-height: 40px; padding: 0 14px; margin: 0 8px 8px 0; border-radius: 20px; justify-content: center; background: var(--ak-surface-subtle); border: 1px solid var(--ak-border); }
+.recent-text { color: var(--ak-text); font-size: 14px; }
+.empty-recent { color: var(--ak-text-tertiary); font-size: 14px; margin-top: 10px; }
+.trending-title { margin-top: 34px; margin-bottom: 10px; }
+.trending-row { min-height: 58px; flex-direction: row; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--ak-border); }
+.trending-text { color: var(--ak-text); font-size: 17px; }
+</style>

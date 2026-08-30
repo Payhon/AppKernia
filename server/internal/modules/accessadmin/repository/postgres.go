@@ -22,7 +22,7 @@ var registeredComponentKeys = map[string]struct{}{
 	"dashboard": {}, "system.settings.configs": {}, "system.settings.dictionaries": {}, "system.settings.regions": {},
 	"system.users.departments": {}, "system.users.accounts": {}, "system.users.positions": {}, "system.users.tenants": {},
 	"system.access.roles": {}, "system.access.permissions": {}, "system.access.menus": {}, "system.storage.files": {},
-	"system.notifications.notices": {}, "system.notifications.messages": {}, "system.notifications.templates": {}, "system.notifications.deliveries": {},
+	"system.notifications.notices": {}, "system.notifications.messages": {}, "system.notifications.templates": {}, "system.notifications.operations": {}, "system.notifications.push-channels": {},
 	"system.integrations.schedules": {}, "system.integrations.api-clients": {}, "system.integrations.webhooks": {},
 	"system.security.operation-logs": {}, "system.security.login-logs": {}, "system.security.events": {}, "system.security.block-rules": {},
 	"system.monitoring.sessions": {}, "system.monitoring.health": {},

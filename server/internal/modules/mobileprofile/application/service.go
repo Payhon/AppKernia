@@ -477,7 +477,7 @@ func (service *Service) UpdatePreferences(ctx context.Context, token, requestID 
 		return profile.Preferences{}, ErrInvalidPreferences
 	}
 	for key := range notifications {
-		if key != "in_app" && key != "push" && key != "email" {
+		if key != "in_app" && key != "push" && key != "push_service" && key != "push_operations" && key != "email" {
 			return profile.Preferences{}, ErrInvalidPreferences
 		}
 	}
@@ -529,6 +529,17 @@ func (service *Service) Notifications(ctx context.Context, token, cursor string,
 		return profile.NotificationPage{}, err
 	}
 	return service.repository.Notifications(ctx, p.User.ID, p.Tenant.ID, *p.AppID, cursor, limit)
+}
+func (service *Service) Notification(ctx context.Context, token, id string) (profile.Notification, error) {
+	messageID, err := uuid.Parse(id)
+	if err != nil {
+		return profile.Notification{}, ErrInvalidPreferences
+	}
+	p, err := service.authenticate(ctx, token)
+	if err != nil {
+		return profile.Notification{}, err
+	}
+	return service.repository.Notification(ctx, p.User.ID, p.Tenant.ID, *p.AppID, messageID)
 }
 func (service *Service) MarkNotificationRead(ctx context.Context, token, requestID, id string) error {
 	messageID, err := uuid.Parse(id)

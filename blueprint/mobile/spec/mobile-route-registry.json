@@ -208,17 +208,91 @@
       "route_key": "home",
       "path": "pages/home/index",
       "file": "apps/ak-mobile/pages/home/index.uvue",
-      "access": "authenticated",
+      "access": "public",
       "kind": "tab",
       "title_key": "routes.home.title",
       "phase": "P0",
       "required_permissions": [],
       "apis": [
-        "GET /api/v1/auth/context",
-        "GET /api/v1/me/notifications/unread-count"
+        "GET /api/v1/public/content/home"
       ],
       "feature_flag": null,
       "tab_key": "home",
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "content.browse",
+      "path": "pages/browse/index",
+      "file": "apps/ak-mobile/pages/browse/index.uvue",
+      "access": "public",
+      "kind": "tab",
+      "title_key": "information.browse.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": ["GET /api/v1/public/content/items", "GET /api/v1/public/content/search", "GET /api/v1/public/content/categories"],
+      "feature_flag": null,
+      "tab_key": "browse",
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "content.browse-search",
+      "path": "pages/browse/search/index",
+      "file": "apps/ak-mobile/pages/browse/search/index.uvue",
+      "access": "public",
+      "kind": "modal-page",
+      "title_key": "information.search",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": ["GET /api/v1/public/content/search", "GET /api/v1/public/content/topics"],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "content.topics",
+      "path": "pages/topics/index",
+      "file": "apps/ak-mobile/pages/topics/index.uvue",
+      "access": "public",
+      "kind": "tab",
+      "title_key": "information.topics.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": ["GET /api/v1/public/content/topics"],
+      "feature_flag": null,
+      "tab_key": "topics",
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "content.topic-detail",
+      "path": "pages/topics/detail/index",
+      "file": "apps/ak-mobile/pages/topics/detail/index.uvue",
+      "access": "public",
+      "kind": "page",
+      "title_key": "information.topics.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": ["GET /api/v1/public/content/topics", "GET /api/v1/public/content/items"],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {"slug": "slug"},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "content.bookmarks",
+      "path": "pages/bookmarks/index",
+      "file": "apps/ak-mobile/pages/bookmarks/index.uvue",
+      "access": "public",
+      "kind": "page",
+      "title_key": "profile.bookmarks",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": ["GET /api/v1/me/content-bookmarks", "DELETE /api/v1/me/content-bookmarks/{article_id}"],
+      "feature_flag": null,
+      "tab_key": null,
       "params": {},
       "ui_skill_required": true
     },
@@ -227,7 +301,7 @@
       "path": "pages/notifications/index",
       "file": "apps/ak-mobile/pages/notifications/index.uvue",
       "access": "authenticated",
-      "kind": "tab",
+      "kind": "page",
       "title_key": "routes.notifications.title",
       "phase": "P1",
       "required_permissions": [
@@ -238,7 +312,7 @@
         "POST /api/v1/me/notifications/read-all"
       ],
       "feature_flag": null,
-      "tab_key": "notifications",
+      "tab_key": null,
       "params": {},
       "ui_skill_required": true
     },
@@ -269,13 +343,11 @@
       "route_key": "profile.index",
       "path": "pages/profile/index",
       "file": "apps/ak-mobile/pages/profile/index.uvue",
-      "access": "authenticated",
+      "access": "mixed",
       "kind": "tab",
       "title_key": "routes.profile.title",
       "phase": "P0",
-      "required_permissions": [
-        "iam.user.read_self"
-      ],
+      "required_permissions": [],
       "apis": [
         "GET /api/v1/me"
       ],
@@ -493,6 +565,29 @@
       "ui_skill_required": true
     },
     {
+      "route_key": "settings.permissions",
+      "path": "pages/settings/permissions/index",
+      "file": "apps/ak-mobile/pages/settings/permissions/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.settings.permissions.title",
+      "phase": "P2",
+      "required_permissions": [
+        "notify.preference.manage_self"
+      ],
+      "apis": [
+        "GET /api/v1/me/notification-preferences",
+        "PATCH /api/v1/me/notification-preferences",
+        "GET /api/v1/me/push-devices/current",
+        "POST /api/v1/me/push-devices",
+        "DELETE /api/v1/me/push-devices/{push_device_id}"
+      ],
+      "feature_flag": "push_notifications",
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
       "route_key": "settings.theme",
       "path": "pages/settings/theme/index",
       "file": "apps/ak-mobile/pages/settings/theme/index.uvue",
@@ -526,8 +621,9 @@
       "apis": [
         "GET /api/v1/me/notification-preferences",
         "PATCH /api/v1/me/notification-preferences",
+        "GET /api/v1/me/push-devices/current",
         "POST /api/v1/me/push-devices",
-        "DELETE /api/v1/me/push-devices/{device_id}"
+        "DELETE /api/v1/me/push-devices/{push_device_id}"
       ],
       "feature_flag": "push_notifications",
       "tab_key": null,
@@ -684,8 +780,8 @@
       "kind": "page",
       "title_key": "routes.articles.list.title",
       "phase": "P1",
-      "required_permissions": ["content.article.read"],
-      "apis": ["GET /api/v1/article-categories", "GET /api/v1/article-assets/{file_id}", "GET /api/v1/articles"],
+      "required_permissions": [],
+      "apis": ["GET /api/v1/public/content/categories", "GET /api/v1/public/content/items"],
       "feature_flag": null,
       "tab_key": null,
       "params": {},
@@ -695,12 +791,12 @@
       "route_key": "articles.detail",
       "path": "pages/articles/detail/index",
       "file": "apps/ak-mobile/pages/articles/detail/index.uvue",
-      "access": "authenticated",
+      "access": "public",
       "kind": "page",
       "title_key": "routes.articles.detail.title",
       "phase": "P1",
-      "required_permissions": ["content.article.read", "content.article.bookmark_self"],
-      "apis": ["GET /api/v1/article-assets/{file_id}", "GET /api/v1/articles/{slug}", "PUT /api/v1/me/article-bookmarks/{article_id}", "DELETE /api/v1/me/article-bookmarks/{article_id}"],
+      "required_permissions": ["content.article.bookmark_self"],
+      "apis": ["GET /api/v1/public/content/items/{slug}", "GET /api/v1/public/content/items/{id}/comments", "PUT /api/v1/me/content-bookmarks/{article_id}", "DELETE /api/v1/me/content-bookmarks/{article_id}"],
       "feature_flag": null,
       "tab_key": null,
       "params": {"slug": "slug"},

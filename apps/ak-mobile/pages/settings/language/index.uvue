@@ -29,7 +29,7 @@ export default {
       const repository = preferencesRuntime.getRepository()
       const currentPrefs: Prefs | null = prefs
       if (repository == null || currentPrefs == null) return
-      repository.put({locale:locale, appearance:currentPrefs.appearance, email:currentPrefs.email, push:currentPrefs.push, inApp:currentPrefs.inApp}, saved => {
+      repository.put({locale:locale, appearance:currentPrefs.appearance, email:currentPrefs.email, push:currentPrefs.push, pushService:currentPrefs.pushService, pushOperations:currentPrefs.pushOperations, inApp:currentPrefs.inApp}, saved => {
         prefs=saved
         this.locale=saved.locale
         new NavigationLocaleSync(akI18n).apply(saved.locale, 'routes.settings.language.title')

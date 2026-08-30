@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "AK Mobile 默认三 Tab。使用静态 pages.json tabBar；业务页面不得从服务端动态注入 Tab。",
+  "description": "应核资讯 App 固定四 Tab：首页、浏览、专题、我的。使用静态 pages.json tabBar；业务页面不得从服务端动态注入 Tab。",
   "tabs": [
     {
       "tab_key": "home",
@@ -10,19 +10,25 @@
       "sort": 10
     },
     {
-      "tab_key": "notifications",
-      "route_key": "notifications.list",
-      "text_key": "tabs.notifications",
-      "icon_token": "bell",
-      "badge_source": "GET /api/v1/me/notifications/unread-count",
+      "tab_key": "browse",
+      "route_key": "content.browse",
+      "text_key": "tabs.browse",
+      "icon_token": "browse",
       "sort": 20
+    },
+    {
+      "tab_key": "topics",
+      "route_key": "content.topics",
+      "text_key": "tabs.topics",
+      "icon_token": "topics",
+      "sort": 30
     },
     {
       "tab_key": "profile",
       "route_key": "profile.index",
       "text_key": "tabs.profile",
       "icon_token": "account",
-      "sort": 30
+      "sort": 40
     }
   ]
 }

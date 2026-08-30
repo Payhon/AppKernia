@@ -1,0 +1,25 @@
+appId: com.appkernia.mobile
+name: 应核资讯 App 评论区验收
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "首页"
+    timeout: 15000
+- tapOn: "浏览"
+- tapOn:
+    point: "50%,53%"
+- waitForAnimationToEnd
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 500
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 500
+- swipe:
+    start: "50%,78%"
+    end: "50%,28%"
+    duration: 500
+- takeScreenshot: output/playwright/ak-news-ios-comments

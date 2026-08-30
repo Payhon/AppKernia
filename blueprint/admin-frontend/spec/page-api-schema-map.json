@@ -45,6 +45,27 @@
       "backend_status": "existing"
     },
     {
+      "component_key": "system.settings.share-configs",
+      "title": "分享配置",
+      "phase": "P2",
+      "schema": ["sys.share_configs", "app.application_share_bindings", "app.applications"],
+      "endpoints": [
+        "GET /admin-api/v1/share-configs",
+        "POST /admin-api/v1/share-configs",
+        "GET /admin-api/v1/share-configs/{id}",
+        "PATCH /admin-api/v1/share-configs/{id}",
+        "DELETE /admin-api/v1/share-configs/{id}",
+        "POST /admin-api/v1/share-configs/{id}/activate",
+        "POST /admin-api/v1/share-configs/{id}/disable",
+        "POST /admin-api/v1/share-configs/{id}/rotate-secret",
+        "GET /admin-api/v1/apps/{app_id}/share-bindings",
+        "PUT /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
+        "DELETE /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
+        "POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight"
+      ],
+      "backend_status": "existing"
+    },
+    {
       "component_key": "system.settings.dictionaries",
       "title": "字典管理",
       "phase": "P2",
@@ -313,6 +334,54 @@
       "backend_status": "existing"
     },
     {
+      "component_key": "system.notifications.operations",
+      "title": "消息运营",
+      "phase": "P2",
+      "schema": [
+        "jobs.task_runs",
+        "jobs.task_attempts",
+        "notify.message_runs",
+        "notify.delivery_daily_metrics",
+        "notify.deliveries",
+        "notify.recipients",
+        "notify.messages"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/apps/{app_id}/notification-operations/summary",
+        "GET /admin-api/v1/apps/{app_id}/notification-operations/trends",
+        "GET /admin-api/v1/apps/{app_id}/notification-runs",
+        "GET /admin-api/v1/apps/{app_id}/notification-runs/{run_id}",
+        "GET /admin-api/v1/apps/{app_id}/notification-tasks",
+        "GET /admin-api/v1/apps/{app_id}/notification-tasks/{task_id}",
+        "GET /admin-api/v1/apps/{app_id}/notification-failures",
+        "POST /admin-api/v1/apps/{app_id}/notification-retries"
+      ],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "system.notifications.push-channels",
+      "title": "推送渠道",
+      "phase": "P2",
+      "schema": [
+        "notify.push_provider_configs",
+        "notify.push_devices",
+        "notify.deliveries"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/apps/{app_id}/push-provider-catalog",
+        "GET /admin-api/v1/apps/{app_id}/push-provider-configs",
+        "PUT /admin-api/v1/apps/{app_id}/push-provider-configs/{provider}",
+        "POST /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/rotate-secret",
+        "POST /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/preflight",
+        "POST /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/activate",
+        "POST /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/disable",
+        "GET /admin-api/v1/apps/{app_id}/push-devices",
+        "POST /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/test",
+        "GET /admin-api/v1/apps/{app_id}/push-delivery-summary"
+      ],
+      "backend_status": "existing"
+    },
+    {
       "component_key": "system.integrations.schedules",
       "title": "定时任务",
       "phase": "P2",
@@ -340,7 +409,8 @@
       "schema": [
         "sys.api_clients",
         "sys.api_client_secrets",
-        "sys.api_client_permissions"
+        "sys.api_client_permissions",
+        "sys.api_client_apps"
       ],
       "endpoints": [
         "GET /admin-api/v1/api-clients",
@@ -349,7 +419,8 @@
         "PATCH /admin-api/v1/api-clients/{id}",
         "POST /admin-api/v1/api-clients/{id}/secrets",
         "DELETE /admin-api/v1/api-clients/{id}/secrets/{secret_id}",
-        "PUT /admin-api/v1/api-clients/{id}/permissions"
+        "PUT /admin-api/v1/api-clients/{id}/permissions",
+        "PUT /admin-api/v1/api-clients/{id}/apps"
       ],
       "backend_status": "existing"
     },
@@ -639,12 +710,14 @@
       "phase": "P2",
       "schema": [
         "app.application_assets",
-        "app.application_channels",
-        "app.application_store_listings",
+    "app.application_channels",
+    "app.application_share_bindings",
+    "app.application_store_listings",
         "app.application_team_members",
         "app.applications",
         "storage.file_usages",
-        "storage.files"
+    "storage.files",
+    "sys.share_configs"
       ],
       "endpoints": [
         "GET /admin-api/v1/apps",
@@ -654,7 +727,11 @@
         "PATCH /admin-api/v1/apps/{app_id}",
         "DELETE /admin-api/v1/apps/{app_id}",
         "POST /admin-api/v1/apps/{app_id}/enable",
-        "POST /admin-api/v1/apps/{app_id}/disable"
+    "POST /admin-api/v1/apps/{app_id}/disable",
+    "GET /admin-api/v1/apps/{app_id}/share-bindings",
+    "PUT /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
+    "DELETE /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
+    "POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight"
       ],
       "backend_status": "existing"
     },

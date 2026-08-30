@@ -14,28 +14,28 @@ import (
 
 	iamapp "github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	notify "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/domain"
+	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/riverqueue/river"
 )
 
 type PasswordResetNotifier struct {
 	pool   *pgxpool.Pool
-	river  *river.Client[pgx.Tx]
+	queue  jobqueue.Enqueuer
 	sealer notify.TargetSealer
 	origin *url.URL
 }
 
-func NewPasswordResetNotifier(pool *pgxpool.Pool, riverClient *river.Client[pgx.Tx], sealer notify.TargetSealer, adminOrigin string) (*PasswordResetNotifier, error) {
+func NewPasswordResetNotifier(pool *pgxpool.Pool, queue jobqueue.Enqueuer, sealer notify.TargetSealer, adminOrigin string) (*PasswordResetNotifier, error) {
 	origin, err := url.Parse(strings.TrimSpace(adminOrigin))
 	if err != nil || origin.Scheme == "" || origin.Host == "" || origin.User != nil || origin.RawQuery != "" || origin.Fragment != "" || (origin.Scheme != "https" && origin.Hostname() != "localhost") {
 		return nil, errors.New("password reset notifier requires a secure admin origin")
 	}
-	if pool == nil || riverClient == nil || sealer == nil {
+	if pool == nil || queue == nil || sealer == nil {
 		return nil, errors.New("password reset notifier dependencies are incomplete")
 	}
-	return &PasswordResetNotifier{pool: pool, river: riverClient, sealer: sealer, origin: origin}, nil
+	return &PasswordResetNotifier{pool: pool, queue: queue, sealer: sealer, origin: origin}, nil
 }
 
 var resetPlaceholder = regexp.MustCompile(`\{\{\s*([a-zA-Z][a-zA-Z0-9_.-]*)\s*\}\}`)
@@ -89,8 +89,15 @@ func (n *PasswordResetNotifier) SendPasswordReset(ctx context.Context, input iam
 	if err != nil {
 		return fmt.Errorf("create password reset delivery: %w", err)
 	}
-	if _, err = n.river.InsertTx(ctx, tx, notify.DeliveryJobArgs{DeliveryID: deliveryID}, &river.InsertOpts{Queue: "notifications", MaxAttempts: 5, UniqueOpts: river.UniqueOpts{ByArgs: true}}); err != nil {
-		return fmt.Errorf("enqueue password reset delivery: %w", err)
+	run, enqueueErr := n.queue.EnqueueTx(ctx, tx, jobqueue.Spec{
+		Scope: jobqueue.Scope{TenantID: input.TenantID, ModuleCode: "notify", ResourceType: "notification_delivery", ResourceID: &deliveryID},
+		Args:  notify.DeliveryJobArgs{DeliveryID: deliveryID}, Queue: "notifications", MaxAttempts: 5, UniqueByArgs: true,
+	})
+	if enqueueErr != nil {
+		return fmt.Errorf("enqueue password reset delivery: %w", enqueueErr)
+	}
+	if _, err = tx.Exec(ctx, `UPDATE notify.deliveries SET task_run_id=$2 WHERE id=$1`, deliveryID, run.ID); err != nil {
+		return fmt.Errorf("record password reset task: %w", err)
 	}
 	return tx.Commit(ctx)
 }

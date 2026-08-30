@@ -55,7 +55,7 @@ apps/ak-mobile/locale/zh-CN.json
 apps/ak-mobile/locale/en-US.json
 ```
 
-基础命名空间：`common`、`auth`、`navigation`、`validation`、`errors`、`profile`、`settings`、`system`、`notifications`、`content`、`mobile_releases`、`apps`、`openapi`、`api_reference`。其中 `api_reference` 只由独立 OpenAPI 文档入口加载，不得进入 Admin 主 SPA；业务模块使用自己的 namespace，不把所有字符串堆到 `common`。
+基础命名空间：`common`、`auth`、`navigation`、`validation`、`errors`、`profile`、`settings`、`system`、`notifications`、`content`、`mobile_releases`、`apps`、`share_configs`、`push_channels`、`openapi`、`api_reference`。其中 `api_reference` 只由独立 OpenAPI 文档入口加载，不得进入 Admin 主 SPA；分享配置、推送渠道等业务模块使用自己的 namespace，不把所有字符串堆到 `common`。
 
 ## 4. 翻译键
 

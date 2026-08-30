@@ -70,6 +70,8 @@
     "content",
     "mobile_releases",
     "apps",
+    "share_configs",
+    "push_channels",
     "openapi",
     "api_reference"
   ],

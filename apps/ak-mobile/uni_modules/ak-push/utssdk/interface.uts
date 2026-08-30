@@ -1,0 +1,56 @@
+export type PushAuthorizationStatus = 'not_determined' | 'authorized' | 'limited' | 'denied' | 'restricted' | 'unavailable'
+export type PushPlatform = 'ios' | 'android' | 'harmony'
+export type PushBuildVariant = 'ios' | 'android_google' | 'android_china' | 'harmony'
+export type PushProvider = 'apns' | 'fcm' | 'huawei_android' | 'honor' | 'xiaomi' | 'oppo' | 'vivo' | 'meizu' | 'harmony'
+export type PushErrorCode = 'consent_required' | 'permission_denied' | 'adapter_unavailable' | 'configuration_missing' | 'native_failure'
+
+export class PushCapability {
+  readonly available: boolean
+  readonly platform: PushPlatform
+  readonly buildVariant: PushBuildVariant
+  readonly provider: PushProvider | null
+  readonly authorization: PushAuthorizationStatus
+  readonly reason: PushErrorCode | null
+  constructor(available: boolean, platform: PushPlatform, buildVariant: PushBuildVariant, provider: PushProvider | null, authorization: PushAuthorizationStatus, reason: PushErrorCode | null) {
+    this.available = available; this.platform = platform; this.buildVariant = buildVariant; this.provider = provider; this.authorization = authorization; this.reason = reason
+  }
+}
+
+export class PushRegistration {
+  readonly provider: PushProvider
+  readonly platform: PushPlatform
+  readonly buildVariant: PushBuildVariant
+  readonly token: string
+  readonly sdkVersion: string
+  constructor(provider: PushProvider, platform: PushPlatform, buildVariant: PushBuildVariant, token: string, sdkVersion: string) {
+    this.provider = provider; this.platform = platform; this.buildVariant = buildVariant; this.token = token; this.sdkVersion = sdkVersion
+  }
+}
+
+export class PushOpenEvent {
+  readonly schemaVersion: number
+  readonly deliveryId: string
+  readonly messageId: string
+  readonly routeKey: string
+  readonly routeParams: Map<string, string>
+  constructor(schemaVersion: number, deliveryId: string, messageId: string, routeKey: string, routeParams: Map<string, string>) {
+    this.schemaVersion = schemaVersion; this.deliveryId = deliveryId; this.messageId = messageId; this.routeKey = routeKey; this.routeParams = routeParams
+  }
+}
+
+export type PushFailure = (code: PushErrorCode) => void
+export type PushCapabilitySuccess = (capability: PushCapability) => void
+export type PushRegistrationSuccess = (registration: PushRegistration) => void
+export type PushSuccess = () => void
+export type PushTokenListener = (registration: PushRegistration) => void
+export type PushOpenListener = (event: PushOpenEvent) => void
+export type PushForegroundListener = (event: PushOpenEvent) => void
+
+export type GetPushCapability = (success: PushCapabilitySuccess, failure: PushFailure) => void
+export type RequestPushAuthorization = (success: PushCapabilitySuccess, failure: PushFailure) => void
+export type RegisterPush = (success: PushRegistrationSuccess, failure: PushFailure) => void
+export type UnregisterPush = (success: PushSuccess, failure: PushFailure) => void
+export type OpenPushSystemSettings = () => boolean
+export type OnPushTokenChanged = (listener: PushTokenListener | null) => void
+export type OnNotificationOpened = (listener: PushOpenListener | null) => void
+export type OnForegroundMessage = (listener: PushForegroundListener | null) => void

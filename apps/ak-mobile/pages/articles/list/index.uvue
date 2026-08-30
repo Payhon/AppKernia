@@ -22,7 +22,7 @@
         <ak-card v-for="article in articles" :key="article.id" class="article" @click="openArticle(article.slug)">
           <view class="cover"><image v-if="coverPath(article.id)" class="cover-image" :src="coverPath(article.id)" mode="aspectFill" /><view v-else class="cover-fallback" /></view>
           <view class="article-content">
-            <view class="article-top"><text class="category">{{ article.categoryName }}</text><ak-icon class="bookmark" name="bookmark" @click.stop="toggleBookmark(article)" /></view>
+            <view class="article-top"><text class="category">{{ article.categoryName }}</text><ak-icon-button class="bookmark" name="bookmark" :active="article.bookmarked" :label="article.bookmarked ? t('common.bookmarked', null) : t('common.bookmark', null)" @click="toggleBookmark(article)" /></view>
             <text class="article-title">{{ article.title }}</text>
             <text class="article-summary">{{ article.summary }}</text>
             <text class="article-meta">{{ t('articles.readMinutes', readingParams(article.readingMinutes)) }}</text>
@@ -110,7 +110,7 @@ export default {
         this.loadingMore = false
         return
       }
-      const request: ArticleQuery = { query: this.query.length > 0 ? this.query : null, category: this.selectedCategory.length > 0 ? this.selectedCategory : null, featured: null, cursor: cursor, limit: 20 }
+      const request: ArticleQuery = { query: this.query.length > 0 ? this.query : null, category: this.selectedCategory.length > 0 ? this.selectedCategory : null, topic: null, tag: null, contentType: null, featured: null, cursor: cursor, limit: 20 }
       pendingList = repository.list(request, (page) => {
         this.articles = append ? this.articles.concat(page.items) : page.items
         this.loadCovers(page.items)
@@ -130,7 +130,7 @@ export default {
       const repository = articleRuntime.getRepository()
       if (repository == null) return
       pendingCategories = repository.listCategories((items: Array<ArticleCategory>) => {
-        const all: ArticleCategory = { id: '', slug: '', sortOrder: 0, name: '', description: '' }
+        const all: ArticleCategory = { id: '', parentId: null, slug: '', sortOrder: 0, name: '', description: '', imageUrl: null }
         this.categories = [all].concat(items)
         pendingCategories = null
       }, () => { pendingCategories = null })
@@ -149,7 +149,7 @@ export default {
       if (repository == null) return
       this.mutatingId = article.id
       repository.setBookmark(article.id, !article.bookmarked, () => {
-        this.articles = this.articles.map((item: ArticleSummary) => item.id == article.id ? { id: item.id, slug: item.slug, featured: item.featured, publishedAt: item.publishedAt, coverUrl: item.coverUrl, title: item.title, summary: item.summary, categorySlug: item.categorySlug, categoryName: item.categoryName, bookmarked: !item.bookmarked, readingMinutes: item.readingMinutes } : item)
+        this.articles = this.articles.map((item: ArticleSummary) => item.id == article.id ? { id: item.id, slug: item.slug, contentType: item.contentType, allowComments: item.allowComments, pinned: item.pinned, featured: item.featured, latest: item.latest, publishedAt: item.publishedAt, coverUrl: item.coverUrl, title: item.title, summary: item.summary, categorySlug: item.categorySlug, categoryName: item.categoryName, bookmarked: !item.bookmarked, bookmarkKnown: true, readingMinutes: item.readingMinutes } : item)
         this.mutatingId = ''
       }, () => { this.mutatingId = '' })
     },

@@ -5,6 +5,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"time"
 
@@ -41,6 +42,7 @@ import (
 	mobileprofilerepo "github.com/appkernia/appkernia/server/internal/modules/mobileprofile/repository"
 	mobileprofilehttp "github.com/appkernia/appkernia/server/internal/modules/mobileprofile/transport/http"
 	notificationadminapp "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/application"
+	notificationjobdefs "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/jobdefs"
 	notificationadminrepo "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/repository"
 	notificationadminhttp "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/transport/http"
 	opsadminapp "github.com/appkernia/appkernia/server/internal/modules/opsadmin/application"
@@ -51,9 +53,17 @@ import (
 	orghttp "github.com/appkernia/appkernia/server/internal/modules/org/transport/http"
 	platformapp "github.com/appkernia/appkernia/server/internal/modules/platform/application"
 	platformhttp "github.com/appkernia/appkernia/server/internal/modules/platform/transport/http"
+	pushapp "github.com/appkernia/appkernia/server/internal/modules/push/application"
+	pushdomain "github.com/appkernia/appkernia/server/internal/modules/push/domain"
+	pushprovider "github.com/appkernia/appkernia/server/internal/modules/push/provider"
+	pushrepo "github.com/appkernia/appkernia/server/internal/modules/push/repository"
+	pushhttp "github.com/appkernia/appkernia/server/internal/modules/push/transport/http"
 	sessionadminapp "github.com/appkernia/appkernia/server/internal/modules/sessionadmin/application"
 	sessionadminrepo "github.com/appkernia/appkernia/server/internal/modules/sessionadmin/repository"
 	sessionadminhttp "github.com/appkernia/appkernia/server/internal/modules/sessionadmin/transport/http"
+	shareconfigapp "github.com/appkernia/appkernia/server/internal/modules/shareconfig/application"
+	shareconfigrepo "github.com/appkernia/appkernia/server/internal/modules/shareconfig/repository"
+	shareconfighttp "github.com/appkernia/appkernia/server/internal/modules/shareconfig/transport/http"
 	storageapp "github.com/appkernia/appkernia/server/internal/modules/storage/application"
 	storagedomain "github.com/appkernia/appkernia/server/internal/modules/storage/domain"
 	storagerepo "github.com/appkernia/appkernia/server/internal/modules/storage/repository"
@@ -75,10 +85,14 @@ import (
 	webhookadminrepo "github.com/appkernia/appkernia/server/internal/modules/webhookadmin/repository"
 	webhookadminhttp "github.com/appkernia/appkernia/server/internal/modules/webhookadmin/transport/http"
 	"github.com/appkernia/appkernia/server/internal/platform/config"
+	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
+	platformnotification "github.com/appkernia/appkernia/server/internal/platform/notification"
+	platformnotificationhttp "github.com/appkernia/appkernia/server/internal/platform/notification/transport/http"
 	"github.com/appkernia/appkernia/server/internal/shared/httpx"
 	"github.com/appkernia/appkernia/server/internal/shared/i18n"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/net/ghttp"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
@@ -104,6 +118,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		pool.Close()
 		return nil, fmt.Errorf("create River insert client: %w", err)
 	}
+	trackedQueue := jobqueue.NewRiverAdapter(pool, riverInsertClient, notificationjobdefs.Registry())
 	catalog, err := i18n.LoadCatalog()
 	if err != nil {
 		pool.Close()
@@ -119,7 +134,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	if cfg.Environment == "development" && cfg.PasswordRecoveryAdapter == "local" {
 		resetNotifier = iamrepo.NewLocalPasswordResetNotifier()
 	} else if cfg.PasswordRecoveryAdapter == "notification" {
-		resetNotifier, err = notificationadminrepo.NewPasswordResetNotifier(pool, riverInsertClient, settingsSealer, cfg.AdminOrigin)
+		resetNotifier, err = notificationadminrepo.NewPasswordResetNotifier(pool, trackedQueue, settingsSealer, cfg.AdminOrigin)
 		if err != nil {
 			pool.Close()
 			return nil, fmt.Errorf("create password reset notifier: %w", err)
@@ -150,11 +165,12 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		"multi_tenant":       cfg.MultiTenantEnabled,
 		"api_clients":        cfg.APIClientsEnabled,
 		"webhooks":           cfg.WebhooksEnabled,
+		"push_notifications": cfg.PushEnabled,
 		"mfa":                cfg.MFAEnabled,
 		"oauth":              cfg.OAuthEnabled,
 	}
 	authHandler := iamhttp.NewHandler(authService, catalog, cfg.AdminOrigin, cfg.Environment != "development", featureFlags)
-	appOTPNotifier, err := notificationadminrepo.NewAppOTPNotifier(riverInsertClient, settingsSealer)
+	appOTPNotifier, err := notificationadminrepo.NewAppOTPNotifier(trackedQueue, settingsSealer)
 	if err != nil {
 		pool.Close()
 		return nil, fmt.Errorf("create app OTP notifier: %w", err)
@@ -174,9 +190,44 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 			return nil, fmt.Errorf("create object storage adapter: %w", err)
 		}
 	}
+	shareConfigRepository := shareconfigrepo.NewPostgres(pool)
+	shareConfigService := shareconfigapp.NewService(authService, shareConfigRepository, settingsSealer)
+	shareConfigHandler := shareconfighttp.NewHandler(shareConfigService, catalog)
+	pushTokenHashKey, err := derivePushTokenHashKey(cfg)
+	if err != nil {
+		pool.Close()
+		return nil, err
+	}
+	pushRepository := pushrepo.NewPostgres(pool, trackedQueue)
+	var pushPreflighter pushdomain.Preflighter
+	if cfg.PushAdapter == "local-mock" {
+		pushPreflighter = pushprovider.NewMockSender()
+	} else {
+		pushPreflighter = pushprovider.NewOfficialSender(pool, settingsSealer, cfg.Environment)
+	}
+	pushService := pushapp.NewService(authService, pushRepository, settingsSealer, pushTokenHashKey, cfg.Environment, cfg.PushEnabled, pushPreflighter)
+	pushHandler := pushhttp.NewHandler(pushService, catalog)
 	appManagementService := appmanagementapp.NewService(pool, authService,
 		appmanagementapp.WithOTPNotifier(appOTPNotifier),
 		appmanagementapp.WithObjectStore(objectStore),
+		appmanagementapp.WithShareRuntime(func(ctx context.Context, appID uuid.UUID) ([]appmanagementapp.ShareRuntimeProvider, error) {
+			providers, loadErr := shareConfigService.Runtime(ctx, appID)
+			if loadErr != nil {
+				return nil, loadErr
+			}
+			out := make([]appmanagementapp.ShareRuntimeProvider, 0, len(providers))
+			for _, provider := range providers {
+				out = append(out, appmanagementapp.ShareRuntimeProvider{ProviderCode: provider.ProviderCode, Enabled: provider.Enabled, Scenes: provider.Scenes, FallbackMode: provider.FallbackMode})
+			}
+			return out, nil
+		}),
+		appmanagementapp.WithPushRuntime(func(ctx context.Context, appID uuid.UUID) (appmanagementapp.PushRuntime, error) {
+			capability, loadErr := pushService.RuntimeCapability(ctx, appID)
+			if loadErr != nil {
+				return appmanagementapp.PushRuntime{}, loadErr
+			}
+			return appmanagementapp.PushRuntime{Enabled: capability.Enabled, Environment: capability.Environment, Providers: capability.Providers, BuildVariants: capability.BuildVariants}, nil
+		}),
 	)
 	appManagementHandler := appmanagementhttp.NewHandler(appManagementService, catalog)
 	downloadKeyMaterial, err := base64.StdEncoding.DecodeString(cfg.LoginProtectionKeyBase64)
@@ -223,7 +274,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		MFAEnabled: cfg.MFAEnabled, OAuthEnabled: cfg.OAuthEnabled, OAuthAdapter: cfg.OAuthAdapter, AdminOrigin: cfg.AdminOrigin,
 	})
 	identitySecurityHandler := identitysecurityhttp.NewHandler(identitySecurityService, catalog)
-	notificationAdminRepository := notificationadminrepo.NewPostgres(pool, riverInsertClient)
+	notificationAdminRepository := notificationadminrepo.NewPostgres(pool, trackedQueue)
 	notificationAdminService := notificationadminapp.NewService(authService, notificationAdminRepository, notificationadminapp.WithDictionaryResolver(settingsRepository), notificationadminapp.WithTargetSealer(settingsSealer))
 	notificationAdminHandler := notificationadminhttp.NewHandler(notificationAdminService, catalog)
 	contentRepository := contentrepo.NewPostgres(pool, objectStore)
@@ -235,6 +286,9 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	apiClientAdminRepository := apiclientadminrepo.NewPostgres(pool)
 	apiClientAdminService := apiclientadminapp.NewService(authService, apiClientAdminRepository, issuer)
 	apiClientAdminHandler := apiclientadminhttp.NewHandler(apiClientAdminService, catalog)
+	machineAuthenticator := apiclientadminapp.NewMachineAuthenticator(apiClientAdminRepository, issuer)
+	notificationService := platformnotification.NewPostgresService(pool, trackedQueue)
+	notificationAPIHandler := platformnotificationhttp.NewHandler(machineAuthenticator, notificationService, catalog)
 	webhookAdminRepository := webhookadminrepo.NewPostgres(pool)
 	var webhookAdapter webhookadmindomain.Adapter
 	if cfg.WebhookAdapter == "local-mock" {
@@ -251,15 +305,25 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	opsAdminService := opsadminapp.NewService(authService, opsAdminRepository)
 	opsAdminHandler := opsadminhttp.NewHandler(opsAdminService, catalog)
 	health := platformapp.NewHealthService(pool, 2*time.Second)
-	handler := platformhttp.NewHandler(health, catalog, featureFlags, settingsRepository)
+	handler := platformhttp.NewHandler(health, catalog, featureFlags, settingsRepository, pool)
 
 	server := g.Server("ak-api")
 	server.SetAddr(cfg.HTTPAddr)
 	server.Use(httpx.RequestContext)
+	server.Group("/", func(group *ghttp.RouterGroup) {
+		group.GET("/s/{slug}", contentHandler.PublicShare)
+		group.GET("/s/assets/{app_id}/{file_id}", contentHandler.PublicShareAsset)
+	})
 	server.Group("/internal/v1", func(group *ghttp.RouterGroup) {
 		group.GET("/health/live", handler.Live)
 		group.GET("/health/ready", handler.Ready)
 		group.GET("/metrics", handler.Metrics)
+	})
+	server.Group("/api/v1", func(group *ghttp.RouterGroup) {
+		group.POST("/auth/client-token", apiClientAdminHandler.Token)
+		group.POST("/apps/{app_id}/notifications", notificationAPIHandler.Submit)
+		group.GET("/apps/{app_id}/notifications/{message_id}", notificationAPIHandler.Status)
+		group.POST("/apps/{app_id}/notifications/{message_id}/cancel", notificationAPIHandler.Cancel)
 	})
 	server.Group("/api/v1", func(group *ghttp.RouterGroup) {
 		group.Middleware(appManagementHandler.RequireMobileApp)
@@ -304,10 +368,14 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.PATCH("/me/notification-preferences", mobileProfileHandler.UpdateNotificationPreferences)
 		group.GET("/me/notifications/unread-count", mobileProfileHandler.UnreadCount)
 		group.GET("/me/notifications", mobileProfileHandler.Notifications)
+		group.GET("/me/notifications/{id}", mobileProfileHandler.Notification)
 		group.PATCH("/me/notifications/{id}/read", mobileProfileHandler.MarkNotificationRead)
+		group.GET("/me/push-devices/current", pushHandler.CurrentDevice)
+		group.POST("/me/push-devices", pushHandler.RegisterDevice)
+		group.DELETE("/me/push-devices/{push_device_id}", pushHandler.DisableDevice)
+		group.POST("/me/push-deliveries/{delivery_id}/opened", pushHandler.MarkOpened)
 		group.GET("/me/login-events", mobileProfileHandler.LoginEvents)
 		group.GET("/me/security-events", mobileProfileHandler.SecurityEvents)
-		group.POST("/auth/client-token", apiClientAdminHandler.Token)
 		group.GET("/article-categories", contentHandler.ArticleCategories)
 		group.GET("/article-assets/{file_id}", contentHandler.ArticleAsset)
 		group.GET("/articles", contentHandler.Articles)
@@ -336,6 +404,28 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/context", authHandler.Context)
 	})
 	server.Group("/admin-api/v1", func(group *ghttp.RouterGroup) {
+		group.GET("/share-configs", shareConfigHandler.Configs)
+		group.POST("/share-configs", shareConfigHandler.CreateConfig)
+		group.GET("/share-configs/{id}", shareConfigHandler.Config)
+		group.PATCH("/share-configs/{id}", shareConfigHandler.Config)
+		group.DELETE("/share-configs/{id}", shareConfigHandler.Config)
+		group.POST("/share-configs/{id}/activate", shareConfigHandler.Activate)
+		group.POST("/share-configs/{id}/disable", shareConfigHandler.Disable)
+		group.POST("/share-configs/{id}/rotate-secret", shareConfigHandler.RotateSecret)
+		group.GET("/apps/{app_id}/share-bindings", shareConfigHandler.Bindings)
+		group.PUT("/apps/{app_id}/share-bindings/{provider_code}", shareConfigHandler.Binding)
+		group.DELETE("/apps/{app_id}/share-bindings/{provider_code}", shareConfigHandler.Binding)
+		group.POST("/apps/{app_id}/share-bindings/{provider_code}/preflight", shareConfigHandler.Preflight)
+		group.GET("/apps/{app_id}/push-provider-catalog", pushHandler.Catalog)
+		group.GET("/apps/{app_id}/push-provider-configs", pushHandler.Configs)
+		group.GET("/apps/{app_id}/push-devices", pushHandler.TestDevices)
+		group.GET("/apps/{app_id}/push-delivery-summary", pushHandler.DeliverySummary)
+		group.PUT("/apps/{app_id}/push-provider-configs/{provider}", pushHandler.UpsertConfig)
+		group.POST("/apps/{app_id}/push-provider-configs/{id}/rotate-secret", pushHandler.RotateSecret)
+		group.POST("/apps/{app_id}/push-provider-configs/{id}/preflight", pushHandler.Preflight)
+		group.POST("/apps/{app_id}/push-provider-configs/{id}/activate", pushHandler.Activate)
+		group.POST("/apps/{app_id}/push-provider-configs/{id}/disable", pushHandler.Disable)
+		group.POST("/apps/{app_id}/push-provider-configs/{id}/test", pushHandler.Test)
 		group.GET("/apps", appManagementHandler.AdminApps)
 		group.POST("/apps", appManagementHandler.AdminApps)
 		group.GET("/apps/{app_id}", appManagementHandler.AdminApp)
@@ -369,6 +459,14 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/apps/{app_id}/messages/{id}/publish", notificationAdminHandler.PublishMessage)
 		group.POST("/apps/{app_id}/messages/{id}/cancel", notificationAdminHandler.CancelMessage)
 		group.GET("/apps/{app_id}/messages/{id}/recipients", notificationAdminHandler.MessageRecipients)
+		group.GET("/apps/{app_id}/notification-operations/summary", notificationAdminHandler.NotificationOperationsSummary)
+		group.GET("/apps/{app_id}/notification-operations/trends", notificationAdminHandler.NotificationOperationsTrends)
+		group.GET("/apps/{app_id}/notification-runs", notificationAdminHandler.NotificationRuns)
+		group.GET("/apps/{app_id}/notification-runs/{run_id}", notificationAdminHandler.NotificationRun)
+		group.GET("/apps/{app_id}/notification-tasks", notificationAdminHandler.NotificationTasks)
+		group.GET("/apps/{app_id}/notification-tasks/{task_id}", notificationAdminHandler.NotificationTask)
+		group.GET("/apps/{app_id}/notification-failures", notificationAdminHandler.NotificationFailures)
+		group.POST("/apps/{app_id}/notification-retries", notificationAdminHandler.RetryNotificationTasks)
 		group.GET("/apps/{app_id}/content/categories", contentHandler.Categories)
 		group.POST("/apps/{app_id}/content/categories", contentHandler.CreateCategory)
 		group.GET("/apps/{app_id}/content/categories/{id}", contentHandler.Category)
@@ -583,6 +681,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/api-clients/{id}/secrets", apiClientAdminHandler.CreateSecret)
 		group.DELETE("/api-clients/{id}/secrets/{secret_id}", apiClientAdminHandler.RevokeSecret)
 		group.PUT("/api-clients/{id}/permissions", apiClientAdminHandler.Permissions)
+		group.PUT("/api-clients/{id}/apps", apiClientAdminHandler.Applications)
 		group.GET("/webhooks", webhookAdminHandler.List)
 		group.POST("/webhooks", webhookAdminHandler.Create)
 		group.PATCH("/webhooks/{id}", webhookAdminHandler.Update)
@@ -612,6 +711,16 @@ func configSecretSealer(cfg config.Config) (*settingsrepo.AESGCMSealer, error) {
 		return nil, fmt.Errorf("configure config secret sealer: %w", err)
 	}
 	return sealer, nil
+}
+
+func derivePushTokenHashKey(cfg config.Config) ([]byte, error) {
+	key, err := base64.StdEncoding.DecodeString(cfg.ConfigMasterKeyBase64)
+	if err != nil || len(key) != 32 {
+		return nil, errors.New("configure push token hash key: AK_CONFIG_MASTER_KEY_BASE64 must encode exactly 32 bytes")
+	}
+	mac := hmac.New(sha256.New, key)
+	_, _ = mac.Write([]byte("appkernia:push-token-hash:v1"))
+	return mac.Sum(nil), nil
 }
 
 func tokenIssuer(cfg config.Config) (*iamapp.TokenIssuer, error) {

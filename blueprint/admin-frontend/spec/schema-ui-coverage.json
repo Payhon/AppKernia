@@ -248,7 +248,8 @@
       "table": "notify.deliveries",
       "coverage": "page_backed",
       "pages": [
-        "system.notifications.deliveries"
+        "system.notifications.deliveries",
+        "system.notifications.operations"
       ],
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
     },
@@ -258,7 +259,8 @@
       "pages": [
         "dashboard",
         "system.notifications.messages",
-        "system.notifications.notices"
+        "system.notifications.notices",
+        "system.notifications.operations"
       ],
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
     },
@@ -271,11 +273,20 @@
       "reason": "通知模板页按租户管理已审核的供应商模板绑定。"
     },
     {
+      "table": "notify.push_provider_configs",
+      "coverage": "page_backed",
+      "pages": [
+        "system.notifications.push-channels"
+      ],
+      "reason": "推送渠道页管理应用和环境级厂商配置，秘密字段保持只写且不回显。"
+    },
+    {
       "table": "notify.push_devices",
       "coverage": "indirect_aggregate",
       "pages": [
         "system.users.accounts",
-        "system.notifications.deliveries"
+        "system.notifications.deliveries",
+        "system.notifications.push-channels"
       ],
       "reason": "仅展示推送设备数量、平台、最近活跃与投递状态；Push Token 不进入通用列表或前端日志，也不提供直接 CRUD。"
     },
@@ -284,7 +295,8 @@
       "coverage": "page_backed",
       "pages": [
         "system.notifications.messages",
-        "system.notifications.notices"
+        "system.notifications.notices",
+        "system.notifications.operations"
       ],
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
     },
@@ -394,6 +406,12 @@
         "system.settings.configs"
       ],
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
+    },
+    {
+      "table": "sys.share_configs",
+      "coverage": "page_backed",
+      "pages": ["system.settings.share-configs", "app.applications"],
+      "reason": "租户级可复用 Provider 配置由系统设置维护，密钥仅显示已配置字段名。"
     },
     {
       "table": "sys.dict_items",
@@ -569,6 +587,12 @@
       "reason": "App 管理范围与受保护内容的后端数据边界。"
     },
     {
+      "table": "app.application_share_bindings",
+      "coverage": "page_backed",
+      "pages": ["app.applications", "system.settings.share-configs"],
+      "reason": "应用管理维护每个 Provider 的唯一当前绑定、场景、落地域名及系统分享降级策略。"
+    },
+    {
       "table": "app.application_team_members",
       "coverage": "page_backed",
       "pages": [
@@ -639,6 +663,46 @@
         "app.content.pages"
       ],
       "reason": "App 管理范围与受保护内容的后端数据边界。"
+    },
+    {
+      "table": "sys.api_client_apps",
+      "coverage": "page_backed",
+      "pages": [
+        "system.integrations.api-clients"
+      ],
+      "reason": "API Client 管理页显式授予可访问的 App，空授权默认拒绝。"
+    },
+    {
+      "table": "jobs.task_runs",
+      "coverage": "page_backed",
+      "pages": [
+        "system.notifications.operations"
+      ],
+      "reason": "消息运营工作台展示租户与 App 隔离的通知任务业务索引。"
+    },
+    {
+      "table": "jobs.task_attempts",
+      "coverage": "page_backed",
+      "pages": [
+        "system.notifications.operations"
+      ],
+      "reason": "任务详情抽屉展示脱敏的追加式尝试历史。"
+    },
+    {
+      "table": "notify.message_runs",
+      "coverage": "page_backed",
+      "pages": [
+        "system.notifications.operations"
+      ],
+      "reason": "发布运行 Tab 展示消息从计划到投递完成的阶段计数。"
+    },
+    {
+      "table": "notify.delivery_daily_metrics",
+      "coverage": "page_backed",
+      "pages": [
+        "system.notifications.operations"
+      ],
+      "reason": "概览与趋势图读取已脱敏的每日聚合统计。"
     }
   ]
 }

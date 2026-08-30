@@ -1,16 +1,63 @@
 # AppKernia 实施状态
 
-更新时间：2026-08-27（Asia/Shanghai）
+更新时间：2026-08-29（Asia/Shanghai）
 
 ## 总体状态
 
 | Surface             | 当前可交付状态                                                                                                                                                                                                         | 下一依赖                                                                                                  |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`：认证、自作用域、业务管理、API Client/Webhook、访问规则/服务状态、完整 MFA/OAuth 绑定均形成真实闭环                                                                    | 当前 Admin backlog 已收口；生产 Adapter 联调见风险                                                        |
-| Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁；公开 `/openapi/` 与侧栏底部文档/System 工具入口已完成 Node 24、Docker/Nginx 和 Chromium 验收                                                      | 生产部署、真实 Bearer 手工调用、第三方 Scalar 请求客户端瞬态 axe 与跨浏览器验收见风险                     |
-| Mobile              | 30 个页面已完成 AK UI 统一刷新；Android/iOS/Harmony 自定义原生产物统一为 `com.appkernia.mobile` 与 AppKernia 品牌，Android vivo 真机、iOS 18.6 模拟器、HarmonyOS API 22 官方模拟器均完成匿名首帧运行验证 | iOS/Harmony 真机签名、三端安全存储/商店跳转/升级/完整交互仍需物理设备验收；Harmony 自动签名需连接在线设备 |
+| Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`；通知中心已补齐多厂商推送、通用 JobQueue、运行/尝试历史、统计聚合、M2M NotificationService 与消息运营 API                                           | 各厂商生产凭据、权益、频控和真实外网预检仍需外部账号联调                                                 |
+| Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁；应用级“推送渠道”与四 Tab“消息运营”工作台已接入真实 API、权限、筛选与安全重试                                                       | 消息运营/推送页登录态双语浏览器截图、axe/键盘实测及生产配置联调                                           |
+| Mobile              | 36 个页面及统一 `ak-push`、`ak-permissions` Port 已覆盖 iOS、Android Google/China 双变体和 Harmony；权限检查、系统设置恢复、Token 生命周期、受控点击路由与站内消息回退已接线                              | APNs/FCM/国内六厂商/Harmony 签名包与真机矩阵；Google/China 最终产物依赖隔离需真实 SDK/凭据后验证            |
 | Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：70 个静态页面、零门槛向导、核心 API、在线 OpenAPI/System 菜单指南、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；首页包含 9 个内容区、6 张特性卡、9 项技术栈、Admin/Mobile 双 Slider 及放大的真实产品 Hero | Hero 视觉优化已由 GitHub Pages run `33047259705` 发布并完成线上 Chromium 验收；`appkernia.com` 待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
+
+## 2026-08-29 消息推送运行时、可观测与统一权限中心
+
+- 保留 PostgreSQL + River，新增内部 `platform/jobqueue` Port 与不可变编译期 Registry。通知发布、Push 扇出和单设备投递必须命中已注册的 task kind、固定队列、最大尝试次数、Worker 超时及自动重试分类；业务层不再持有 River Client。`jobs.task_runs` 与追加式 `jobs.task_attempts` 只保存租户/App/资源关联、状态、耗时、Trace/厂商请求 ID 和脱敏错误摘要，不保存 Args、Token、完整载荷、密钥或响应正文。
+- 新增 `notify.message_runs` 发布流水线记录和 `notify.delivery_daily_metrics` 日聚合；统一 Worker 尝试追踪、River 对账、90 天终止明细清理、13 个月统计清理及 Prometheus 队列深度、最老等待、排队/执行/厂商/流水线延迟、重试和永久失败指标。管理员重试保留原任务，批量上限 100；`unknown_after_write` 只允许单条显式确认，鉴权错误要求配置恢复并预检通过。
+- 新增中立的 `platform/notification.Service`，`SubmitTx` 将通知、收件人冻结、运行记录和 River 入队放在调用方同一 pgx 事务。M2M API 使用短期 `ak-api` JWT、真实 tenant claim、Machine Principal、CIDR/状态/到期/权限校验及 `sys.api_client_apps` 显式 App allowlist；提交必须带幂等键，广播和运营消息分别要求附加权限。
+- Admin 新增 `/system/notifications/operations`，提供概览、发布运行、队列任务、失败中心四个 URL 可恢复 Tab，以及 App/环境/时间/分类/渠道/Provider/任务类型/结果筛选。页面可见且存在未完成任务时每 15 秒刷新；趋势图有同数据表格，失败中心支持安全单条/批量重试，旧投递路由兼容跳转。
+- Mobile 新增 `uni_modules/ak-permissions` 编译期能力 Registry 与“设置 → 应用权限”。首期只展示实际启用的通知权限；页面加载只查询，用户主动操作后才检查隐私同意、申请 OS 权限并注册 Push。从系统设置返回自动刷新，`ak-push` 委托统一权限源；相机、照片、文件选择、麦克风、定位和蓝牙仅预留，未使用时不展示、不申请。
+- PostgreSQL 18 独立临时库完成 24 组迁移、Core Seed 和真实 NotificationService/Repository/Worker 集成测试：同事务入队、幂等复用/冲突、tenant+app 隔离、回滚不可见、取消、OTP/密码重置加密入队，以及“提交 → 发布 → 扇出 → Mock Provider 受理 → opened → 运营汇总”全部通过。测试发现并修复 M2M 写入旧 audience 列、空 Push 路由参数以及历史测试状态预期三处 Schema 漂移；临时库已删除。
+- 本地 `appkernia-news-demo` 已重建并保持运行：数据库 `24|false`，6 项新增权限和 5 张运行时表存在，PostgreSQL/API/Admin healthy、Worker running；`http://127.0.0.1:4174/system/notifications/operations` 可访问，未登录的运营 API 与 M2M 提交均按预期返回 401。浏览器当前停在该路由的登录重定向页，未使用或重置用户凭据，因此登录态双语/axe/窄屏截图仍待人工登录后验收。
+- 最终门禁：Backend `make check/build`、214 项默认测试/43 个包、5 个高风险包 race、5 项真实数据库集成流程；Admin 44 文件/168 项测试、strict lint/typecheck/build；Mobile 45 routes/4 tabs/58 API delta/11 permission delta/40 components；Backend/Admin/Mobile/i18n 校验及补丁格式均通过。此前完成的 HBuilderX 5.24 Android/iOS/Harmony 36 页面源码编译仍有效，Harmony 仅为未签名 HAP。
+- 外部门禁未变化：没有九渠道生产账号/凭据、发布签名包、TestFlight 或物理设备权限/到达/点击矩阵，不能把 Mock、源码编译或未签名 HAP 表述为生产验收。
+
+## 2026-08-28 “应核 AppKernia”资讯 App 一期
+
+- Backend 已从单分类文章扩展为 `ContentItem` 领域：文章/图文/视频、两级分类、多分类、专题、标签、首页三属性、受控双语内容、媒体引用、公开可选认证、稳定游标搜索、收藏、评论先审、举报、拉黑、敏感词、限流/重复检测和审核审计；旧 `/articles` 保留兼容周期。
+- 新增 PostgreSQL `000019_information_content` 双向迁移和公开分享页 `/s/{slug}`；视频上传限制 MP4/500 MiB，外链必须为 HTTPS MP4/HLS 且命中 App 级域名白名单。
+- Admin 已形成资讯、分类、专题、标签、评论审核五个工作区；文章编辑升级为 Meta/内容双 Tab，正文使用 `@uiw/react-md-editor` Markdown，支持资源库插图、九图排序、媒体预览、视频来源、草稿/发布分级双语校验、逐条/批量审核和举报处置。
+- Mobile 正式名称为“应核 AppKernia”，调整为首页、浏览、专题、我的四 Tab；游客可读，收藏/评论/安全入口触发统一半高认证 Sheet，并由单飞 `AuthPromptCoordinator` 避免并发 401 重复弹层；三类详情、搜索、专题、收藏、正文原生插图和微信/系统分享均已接线。
+- PostgreSQL 18.6 新库 19 个迁移、18→19 旧文章升级及 19 down 边界均真实通过。Backend `make check`、Admin 30 文件/131 测试全量 check、Mobile 静态门禁与三端 HBuilderX 5.24 最终源码编译均退出 0；HarmonyOS 未签名 HAP 制作成功。
+- 本地 `appkernia-news-demo` PostgreSQL/API/Admin/Worker 栈已启动并保持运行；通过真实 Admin API 发布文章、九图图文和外链视频各 1 篇，同时创建两级分类、专题、3 个标签、收藏及评论审核数据。公开首页、列表、搜索、专题、分类、三类详情、评论和 `/s/{slug}` 分享页均读取同一数据库。
+- Admin 使用真实 Chromium 验收资讯、分类和待审评论页面，覆盖 1440/768/375 视口；7 个内容 API 均返回 200、浏览器 console error 为 0。iOS 18.6 / iPhone 16 Pro 模拟器使用 HBuilderX 5.24 自定义基座，Maestro 覆盖四 Tab、游客登录 Sheet、登录与收藏、搜索/文章/分享、评论读取与提交、图文/视频筛选和详情；修复公开路由守卫、公开媒体头、文本框确认事件及 `uni-video`/`uni-loading` 自定义基座依赖后复验。
+- 外链视频初始使用的 Google 示例资源对 Range 请求返回 403；演示数据已通过真实 Admin PATCH 切换到 App 白名单内、支持 Range 206 的 W3C HTTPS MP4。iOS 自定义基座中完成播放、等待 10 秒、画面推进和原地暂停取证，且无 `uni-video`/`uni-loading` 缺模块错误。动态字号、VoiceOver/TalkBack、iOS/Android/Harmony 物理设备、微信真实分享、签名产物、商店上传与审核仍需真实设备和第三方配置，不能由模拟器、系统分享降级或编译证据替代。
+
+## 2026-08-29 多厂商离线消息推送
+
+- 新增 ADR-0021 和 PostgreSQL `000021_multi_provider_push` 双向迁移：稳定枚举覆盖 `apns`、`fcm`、华为 Android、荣耀、小米、OPPO、vivo、魅族及 Harmony，历史 `hms` 确定性迁移为 `huawei_android`，`custom` 仅保留旧数据读取；配置按 Tenant/App/环境/Provider 唯一，凭据、Token 和推送载荷使用既有密钥信封加密，Token 仅以 App/Provider 域隔离 HMAC 查重。
+- Backend 新增统一 Push Provider Port 及九个官方协议 Adapter：APNs HTTP/2 + ES256 短期 JWT、FCM HTTP v1 + OAuth2、六家国内厂商和 Harmony 官方 REST；APNs 按 Team/Key/Topic/环境隔离连接池。结果统一为 accepted、invalid token、限流、瞬态、永久、配置鉴权及写出后未知，只有明确成功码才记厂商受理，unknown-after-write 不自动重放。
+- 发布、定时发布、站内可见、批量扇出和单设备 Push Delivery 已接入 River；取消/过期/重复 Job 安全 no-op，扇出同时检查应用、成员、总开关、分类偏好、有效期、活跃设备及预检通过配置。无 Token 或渠道不可用只记录 skip reason，不影响站内消息；`sent` 仅表示厂商受理，打开与已读分离。
+- Mobile `/api/v1` 已提供当前设备状态、幂等注册/停用、归属校验后的 opened 回传及单条站内消息详情。`tenant_id/app_id/user_id/device_id` 均从 Mobile 会话派生；同一安装切换用户或厂商时事务停用旧绑定。偏好扩展为总开关、服务安全和资讯运营三层，运营默认关闭。
+- `uni_modules/ak-push` 统一 APNs、FCM、国内 Android 与 Harmony 原生能力；设置页按“法定同意 → OS 授权 → 唯一 Adapter → Token → 服务端注册 → 偏好”执行并在失败时回滚。通知点击只接受版本、delivery/message ID、白名单 `route_key` 与不透明参数；前台事件进入站内提示，点击打开不自动标记已读。
+- Android 构建参数 `AK_ANDROID_PUSH_VARIANT=google|china` 生成互斥依赖和公开客户端配置，FCM 自动初始化关闭，China 版不依赖 GMS；版本必须精确固定，生产缺配置直接失败，并提供 APK/AAB 禁止依赖标记扫描。当前仅完成无 Push SDK 的 development/disabled 源码编译；尚无凭据生成真实 Google/China 签名产物，因此不能声明最终依赖树验收通过。
+- Admin 新增应用级推送渠道页及 6 个权限，包含厂商目录、环境状态、强类型公开字段、64 KiB write-only 凭据轮换、指纹、预检、启停、注册设备测试与 30 天受理/失败/Token 失效/打开统计；资讯运营发布需要独立权限。`zh-CN`/`en-US`、设计系统 override 和 UI Skill 产物已同步，但登录态浏览器截图及 axe/键盘实测尚未执行。
+- PostgreSQL 18 临时库完成空库 `21 up → down → up`、含旧 `hms` 与同设备重复活跃绑定的 `20 → 21 → 20 → 21`，最终 `version=21 dirty=false`；迁移会保留最近绑定并安全停用旧绑定，临时库已删除。Go `make check`、191 项默认测试、sqlc 生成、Admin 40 文件/160 项测试及构建、Mobile 静态门禁、Android/iOS 编译、Harmony 未签名 HAP、三套 Blueprint 和 i18n 校验均退出 0。
+- 生产边界仍未满足：没有厂商账号/权益、APNs/FCM/国内/Harmony 生产凭据、签名包、TestFlight 或物理设备；Harmony 构建明确无数字证书。Mock、单测、源码编译和未签名 HAP 均不替代计划中的九渠道真机矩阵，也不构成生产送达声明。
+
+## 2026-08-29 分享配置管理与 App 绑定
+
+- 新增租户级 `sys.share_configs` 与 App 级 `app.application_share_bindings`，一期仅注册代码内置 `wechat` Provider；公开参数采用版本化 JSON，未来敏感字段使用统一加密信封，微信 AppSecret 明确不采集、不下发。
+- Admin 在“系统 → 系统设置 → 分享配置”提供草稿、激活、停用、删除和三端身份校验；应用管理增加独立绑定 Drawer，可选择好友、朋友圈、收藏场景、HTTPS 分享落地域名、系统分享降级并在保存前执行预检。
+- 新增 7 个权限、12 个 Admin API、公开配置最小化投影、审计脱敏、乐观锁、租户隔离、同 App/Provider 唯一性和被绑定配置删除保护；停用配置后公开运行时不再声明微信可用，Mobile 自动回退系统分享。
+- 新增 `ak-cli app-share export` / `--check`，只更新三端 Manifest 的 `uni-share.weixin` 和 iOS Associated Domains，保留其他 Provider 与无关配置；导出前严格核对 Android 包名/签名、iOS Bundle ID、Harmony Bundle Name，重复执行幂等。本地数据库 fixture 在临时目录完成导出与漂移检查后已清理，测试 AppID 未写入项目 Manifest。
+- Mobile 在 Android/iOS/Harmony 运行时调用 `uni.getProviderSync({ service: "share" })` 检查随包微信 Provider，缺失、停用或分享失败统一走系统分享。后台保存不会改变已安装 App，必须在真实审核 AppID 与发布身份就绪后重新导出、制作自定义基座并打包。
+- PostgreSQL 18 真实执行 20 up、20 down、再次 up；重复绑定、跨租户绑定、Provider 一致性、非法场景和非 HTTPS 落地域名约束均已验证。Go 全量测试、Admin 36 文件/149 项测试、Mobile/Backend/i18n 契约门禁及 HBuilderX 5.24 Android/iOS/Harmony 35 页面源码编译均通过；Harmony 仅制作未签名 HAP。真实微信三场景、三端带 Provider 自定义基座、签名包和物理设备仍等待外部资料，未以 Mock、普通源码编译或系统分享代替验收。
+- 修复 Admin 已实现路由白名单遗漏：`system.settings.share-configs` 现在能通过后端菜单、权限和客户端实现注册的完整导航契约；生产静态包已重新部署至本地 `4174` 容器，容器健康且目标路由返回 HTTP 200。
+- App 管理表格操作列由 300px 多文字按钮收敛为 112px 单一下拉菜单；编辑、升级中心、内容管理、分享配置、启停和删除均配置语义图标并保留权限、禁用态与危险确认，移动卡片复用同一动作模型。
+- 分享配置页已从无外层间距的全宽 `Space` 根节点切换为标准 `.ak-page-container` 和统一页头；Chromium 实测桌面左右 padding/右侧留白均为 48px、375px 左右 padding 均为 16px，与其他 Admin 页面一致。
 
 ## 2026-08-15 快学AI微信公众号草稿工作流
 
@@ -748,13 +795,130 @@
 - 文档全量 check、121 个 API 引用、70 页双语构建、Backend/Admin/Mobile 蓝图、跨端 i18n、UI Skill 与 Python 语法校验均退出 0。本轮没有修改公开文案、Hero 图片、路由、API、数据库、Admin 或 Mobile 公共接口。
 - 功能提交 `676304f6e606ceb03681a9158297e0ddaa80c054`（`feat(docs): enhance homepage hero`）已推送 `origin/main`。GitHub Pages run `33047259705` 的 build/deploy job 均成功，远端 SHA 与发布 SHA 一致。
 - 线上 Chromium 复核中文 375/1440 浅色与英文 1440 深色：HTTP 200、单一 H1、无横向溢出或破图，标签 19.5px/0 边框，桌面截图占比 53.7%，双 Slider 点击/键盘可用，axe serious/critical、console、失败请求均为 0。Pages 仍为 workflow 模式并强制 HTTPS，`cname=null`，因此不宣称 `appkernia.com` 已绑定。
-## 2026-08-29 App 内容编辑器与文件选择器升级
 
-- 状态：本次 Admin、Backend、OpenAPI、双语目录、设计系统和 UI 证据已形成可独立提交边界；分享配置、Mobile 资讯整包和其他并行工作不在本次边界内。
-- 文章 Drawer 已拆分 Meta/内容 Tab，并使用 `@uiw/react-md-editor@4.0.4` 受控 Markdown；图文、上传视频和 HTTPS 视频外链均可在表单内预览，旧 blocks 在后端按需转换并于保存后迁移。
-- 文件选择器支持类型/上传日期筛选、三种视图、受扫描门禁保护的缩略图与视频预览、整行选择、可折叠/可调分栏，以及共享 `AkModal` 的移动、最大化和右下角缩放能力。
-- 干净暂存快照中 Admin `npm run check` 通过：35 个 Vitest 文件、146 项测试，lint、typecheck、production build、OpenAPI reference/docs、bundle 和 Admin Blueprint 全部退出 0；相关 content/storage/bootstrap Go 测试、Mobile Blueprint 与跨端 i18n 校验退出 0。
-- Chromium fixture 已登记表头圆角、浅色下拉选中态、1120×720→1160×744 缩放和 axe serious/critical 0 的证据；fixture 不替代真实账号和对象存储联调。
+## 2026-08-28 Mobile 资讯界面精修与内容查看器
+
+### 状态：代码、契约和三平台编译完成；新自定义基座运行验收待补
+
+- 全局顶部/操作按钮改为 44px 触控目标内的 14–16px 图标；首页搜索/消息、基本资料编辑、详情分享/收藏及 Sheet 关闭已图标化，登录、保存、提交、应用筛选与危险操作继续保留文字。
+- 浏览页重构为文章右图卡、图文沉浸大图卡和视频 16:9 封面卡；搜索/筛选收纳在右上角，筛选采用草稿/应用模式。新增从右侧进入的全屏透明 DialogPage 搜索页，包含 300ms 防抖、会话级最近搜索、热门专题和结果状态；固定 VDOM 使用半透明分层模拟玻璃，不使用不受支持的 `backdrop-filter`。
+- TabBar 使用首页、指南针浏览、叠层专题、个人资料四套本地原创几何图标，并同步 `pages.json`、主题切换和 `zh-CN/en-US` 原生标签。
+- 新增 `ak-content-viewer`、`ak-article-viewer`、`ak-imagetext-viewer`、`ak-video-viewer`。2026-08-28 测试发现 `uni.getVideoInfo` 会在缺少可选 `uni-media` 的 iOS 自定义基座中运行时崩溃，现已移除该依赖；视频以封面自然宽高判断默认方向，无封面时回退横屏，用户可切换且列表不自动播放。
+- Mobile route/API/permission、组件兼容矩阵、runtime Catalog、blueprint i18n、设计系统和 UI Skill 证据均已同步；当前 44 条移动路由、40 个组件契约。
+
+### 验证与边界
+
+- `apps/ak-mobile/scripts/check-project.sh`、Mobile blueprint、跨端 i18n、生成 Catalog/API Client、升级与打包脚本静态测试均退出 0；HBuilderX 5.24 Android/iOS/HarmonyOS 均完成 35 页面编译，HarmonyOS 额外生成未签名调试 HAP。
+- 额外执行的 `verify-mobile-framework.py` 仍停留在 Phase 0 文章数组、旧 Home/Profile 和 authenticated asset-loader 字符串断言，首个过期断言退出 1；它不在当前 `check-project.sh` 门禁内，需单独按 Information App 架构重写。
+- iOS 18.6 iPhone 16 Pro 模拟器仍安装旧的 30 页面自定义基座。把 35 页面新资源同步进去会因缺少本轮新增 UVue 原生类出现白屏；已从备份恢复旧资源并截图确认旧环境可用。该失败不计作本轮新界面验收。
+- 未重建 Android/iOS 自定义基座，未执行本轮新界面的模拟器/真机截图、动态字号、VoiceOver/TalkBack、键盘、视频横竖切换和真实分享 Provider 验收。本轮未 commit、未 push，保留用户原有未提交修改。
+
+### 2026-08-28 内容查看器测试反馈修复
+
+- 视频详情挂载链路不再调用 `uni.getVideoInfo`，因此不会再解析缺失的 `UTSSDKModulesDCloudUniMediaIndexSwift`；移动静态门禁新增反向断言，禁止内容查看器重新引入该可选模块依赖。
+- 图文轮播图和无图集时的封面均接入 `uni.previewImage`；轮播图按展示顺序提供 URL，平台全屏预览负责双指缩放和左右切换。
+- 竖屏视频舞台改为直接 class 并全屏 `justify-content: center`。播放器按封面比例和窗口尺寸计算高度，横向视频切换后使用 `contain` 完整显示并垂直居中；修复前未生效的 UVue 后代选择器已删除。
+- `check-project.sh`、Mobile Blueprint、跨端 i18n、4 项打包脚本测试及 `git diff --check` 退出 0；HBuilderX 5.24 的 Android class、iOS UTS、HarmonyOS 项目编译均退出 0。生成的 iOS `app-service.js` 包含新预览/居中逻辑且不含 `getVideoInfo` 或 `DCloudUniMedia`。
+- HBuilderX CLI 对当前 custom/standard playground 均完成编译后报告“已停止运行”，没有完成资源启动，因此本轮不能声明新补丁已在模拟器或物理设备交互通过；修复后图片缩放/切换、视频竖屏居中及控制台无崩溃仍需匹配的新自定义基座运行复测。
+
+### 2026-08-28 Bottom Sheet 标题栏纠正
+
+- `ak-bottom-sheet` 原标题栏异常标签换行产生了独立的 `>` 文本节点；它作为第三个 flex 子项显示为无作用箭头，并把关闭按钮挤到中间。
+- 标题栏已改为规范 UVue 结构，标题占据剩余空间，唯一关闭按钮位于最右侧并继续保持 44×44px 触控区域和双语读屏标签；登录提示、评论、分享等公共 Sheet 同步生效。
+- information app override 和 UI Skill 五类证据已同步；静态门禁新增独立尖括号文本节点、唯一关闭操作、右侧布局与触控尺寸断言。
+- `check-project.sh`、Mobile Blueprint、跨端 i18n 和 HBuilderX 5.24 的 iOS/Android/HarmonyOS 35 页面编译均退出 0；iOS/HarmonyOS 编译产物确认标题栏只生成标题和关闭按钮两个子节点，未再生成多余文本节点。
+- 匹配当前原生类的自定义基座运行截图、动态字号、VoiceOver/TalkBack 和三端物理设备复测仍待执行，不把编译结果记作运行验收。
+## 2026-08-28 App 内容管理文章编辑表单
+
+- 状态：核心代码与契约同步完成，运行时浏览器/真实对象存储验收待环境可用后补。
+- Admin 文章 Drawer 已拆为 Meta/内容 Tab，正文统一为 `@uiw/react-md-editor@4.0.4` Markdown；文件选择器支持类型筛选、扫描门禁和图片/视频预览。
+- Backend 支持旧 blocks 惰性转 Markdown，首次保存持久化；Mobile 按真实 `body_format` 读取并渲染 HTTPS/受保护资源图片。
+
+### 2026-08-28 测试反馈修复
+
+- 文件选择器补齐类型筛选和预览区域的 9 组 `zh-CN`/`en-US` 文案，运行时不再显示 `system.files.picker.*` 原始 key。
+- 视频来源、上传/HTTPS 外链和播放器从 Meta 移至内容 Tab，相关校验错误同步定位到内容 Tab。
+- 编辑已有图文时根据 `media[].file_id` 自动读取受权限保护的 Blob 缩略图；卡片保留固定预览区、文件标题、排序、删除以及加载失败反馈。
+- Admin lint、typecheck、32 个 Vitest 文件/133 项测试、生产构建、Admin Blueprint、跨端 i18n 和补丁格式均通过；最新 dist 已同步至本地 `http://localhost:4174`，Admin/API 健康。用户真实账号下的修复后截图仍待复测登记。
+
+### 2026-08-28 Meta 排版反馈修复
+
+- Meta Tab 的封面选择/预览与发布选项已拆为两个独立视觉行；评论、置顶、精选、最新使用响应式网格，在窄屏自动换行。
+- Switch 字段名在开关两种状态下始终可见，控件内同步显示本地化“是/否”，并为每个 Switch 提供与字段名一致的 accessible name。
+- 新增组件回归断言；Admin lint、typecheck、32 个 Vitest 文件/134 项测试、生产构建、Admin Blueprint、跨端 i18n 和补丁格式均通过。最新 dist 已同步至本地 `http://localhost:4174`，Admin/API 健康且宿主/容器入口哈希一致。
+
+### 2026-08-28 文章编辑保存接口修复
+
+- 定位到更新请求适配器把 UI 内部 `version` 原样展开到 JSON，同时又发送契约字段 `lock_version`；后端 `DisallowUnknownFields` 在业务校验前拒绝未知 `version`，统一返回 `VALIDATION.FAILED`。
+- `articleRequest` 现显式剥离 `version`，仅按 OpenAPI 契约发送 `lock_version`；新增 PATCH 请求回归测试，断言乐观锁版本正确且请求体不存在 `version`。
+- Admin lint、typecheck、32 个 Vitest 文件/135 项测试、生产构建、后端 content 模块 Go 测试、Admin/Mobile Blueprint、跨端 i18n 与补丁格式通过。新 dist 已部署到本地 `http://localhost:4174`，Admin/API 均为 healthy。
+- 浏览器原登录会话在刷新后已过期，未代替用户输入凭据或提交文章；真实登录态 PATCH 保存由用户重新登录后复测。
+
+### 2026-08-28 文件选择器缩略图反馈修复
+
+- 文件选择器左侧文件列改为缩略图优先布局：图片显示 112×72px 真实内容缩略图，文件名作为次级信息放在缩略图下方；视频和其他文件保留类型占位，避免误导为可用图片。
+- 缩略图沿用受权限和扫描门禁保护的 Admin 下载接口，进入可视区域附近才加载 Blob；行移除或弹框关闭时撤销 Blob URL，避免大文件列表产生无效请求和对象 URL 泄漏。
+- 新增组件回归测试覆盖缩略图位置、受保护下载和 URL 生命周期。Admin lint、typecheck、32 个 Vitest 文件/136 项测试、生产构建、Admin/Mobile Blueprint、跨端 i18n 与补丁格式均通过；最新 dist 已同步至本地 `http://localhost:4174`，Admin/API 端点可达且宿主/容器入口哈希一致。
+
+### 2026-08-28 文件选择器紧凑列表与时间筛选
+
+- 左侧资源表格改为 small 密度，图片缩略图由 112×72 调整为 88×56，单元格垂直内边距收紧至 6px；文件名继续位于缩略图下方。新增“上传时间”和格式化“大小”列，扫描状态保持独立展示。
+- 顶部筛选行新增上传开始/结束日期范围，文件名搜索使用 `useDeferredValue`；日期按本地自然日起止转换为 RFC 3339，并通过新增的 `created_from`/`created_to` 参数查询完整租户文件列表，不对当前 80 条结果做前端伪过滤。
+- Backend 在 HTTP 层校验 RFC 3339、Application 层校验时间顺序，PostgreSQL 复用现有 `(tenant_id, created_at DESC)` 部分索引；无数据库迁移、权限或对象存储策略变更。
+- Admin lint/typecheck、32 个 Vitest 文件/137 项测试、生产构建、后端全仓 `go test ./...`、storageadmin go vet、OpenAPI reference/docs、bundle、UI Skill、Admin/Mobile Blueprint、跨端 i18n 和补丁格式均通过。API 与 Admin 已部署到本地 `http://localhost:4174`，两个容器均 healthy。
+
+### 2026-08-28 文件选择器 footer 操作分组
+
+- “上传文件”按钮及存储驱动/最大文件提示已从 Modal body 移至 footer 左侧；“取消、选择”继续使用 AntD 原生 CancelBtn/OkBtn 并组成右侧操作组，桌面同一行、767px 以下上下堆叠。
+- 上传权限隐藏、文件类型限制、上传后刷新/选中、进度卡和错误反馈行为保持不变；新增组件回归测试验证上传器不再位于 body、footer 左右 DOM 顺序及默认操作按钮保留。
+- Admin lint、typecheck、32 个 Vitest 文件/138 项测试、生产构建、Admin/Mobile Blueprint、跨端 i18n、UI Skill 和补丁格式均通过。最新 dist 已同步到本地 `http://localhost:4174`，Admin healthy 且宿主/容器入口哈希一致。
+
+### 2026-08-28 文件选择器整行选择
+
+- 可选择文件的表格行现在支持点击任意单元格完成选择，不再要求精确点击最左侧 Radio；Radio、右侧预览、“已选择”提示和确认按钮继续共享同一选择状态。
+- 可选行支持键盘聚焦，并可用 Enter 或 Space 选择；同步设置 `aria-selected` 和可见焦点样式。不可用、扫描未通过或状态未就绪的文件仍不可选择，整行点击不会绕过既有安全门禁。
+- `AkFilePicker` 针对性测试 5 项、Admin 全量 32 个文件/139 项测试、lint、typecheck、生产构建、Admin/Mobile Blueprint、跨端 i18n、UI Skill 和补丁格式均通过。
+- 最新 Admin dist 已同步到本地 `http://localhost:4174`；容器为 `running healthy`，`/healthz` 与 API public-config 可达，宿主/容器入口 SHA-256 均为 `963df6c732eeb924766367d5d68a0b32013fe61aa93d4a35f6835b6d3c74803e`。
+
+### 2026-08-28 文件选择器选中态与上传图标
+
+- 文件选择器选中行由 near-black 默认背景改为组件范围内的浅蓝背景：常态 `#eff6ff`、hover `#e8f2ff`，文件名、上传时间和大小统一保持深色可读；Radio 与 `aria-selected` 继续提供非颜色选中指示。
+- `#171717` 主文字和 `#4d4d4d` 次级文字在选中背景上的对比度分别为 16.47:1 和 7.77:1，均高于 WCAG AA 普通文字 4.5:1 门槛。
+- footer 左侧“上传文件”按钮增加现有 `UploadOutlined` SVG 图标，保留双语文字、上传权限、策略校验和原有 accessible name，无新增运行时依赖。
+- 针对性 2 个文件/6 项测试、Admin 全量 33 个文件/140 项测试、lint、typecheck、生产构建、Admin/Mobile Blueprint、跨端 i18n、UI Skill 和补丁格式均通过。最新 dist 已部署到 `http://localhost:4174`，Admin `running healthy`，宿主/容器入口 SHA-256 均为 `1454df53e162698b444d1e359e0c0454c07e664653990f881f43914abe81132f`。
+
+### 2026-08-29 文件选择器可调窗口与分栏
+
+- 文件列表与文件预览改为 Ant Design `Splitter`：桌面端左右分栏最小宽度分别为 420px/280px，900px 以下自动切换为上下分栏并保留最小高度；拖动分隔条可按需调整空间。
+- 预览面板可关闭和重新展开。关闭时立即释放当前大图/视频 Blob URL，保留文件选中状态；重新展开后按既有鉴权与扫描门禁重新加载预览。
+- 选择文件 Modal 复用 `width`、`style`、`styles` 和 `modalRender` 扩展点，新增最大化/还原、标题栏拖动移动以及右下角拖动缩放；窗口始终限制在视口 8px 安全边距内，最小尺寸为 800×520px，窄屏按可用视口收缩。
+- 拖动标题栏和缩放手柄均使用 Pointer Events，额外支持 `Alt + 方向键` 移动及方向键缩放；最大化时隐藏缩放手柄。未新增第三方拖拽或分栏依赖。
+- 双语 Catalog、Admin Master/内容管理 override 和 UI Skill artifacts 已同步。针对性 2 个文件/8 项测试、Admin 全量 33 个文件/142 项测试、lint、typecheck、生产构建、Admin/Mobile Blueprint、跨端 i18n、UI Skill 与补丁格式均通过。
+- 最新 Admin dist 已部署至 `http://localhost:4174`；容器为 `running healthy`，`/healthz` 与 API public-config 可达，宿主/容器入口 SHA-256 均为 `9f65d8bf0695d0223d437f80f118edda2827dda4be11d8a8c168281c04c374db`。真实登录态下的鼠标手感、375/768/1440 视觉与 axe 验收仍待复测，不以组件测试替代浏览器验收。
+
+### 2026-08-29 文件选择器多视图与操作样式
+
+- 筛选行最右侧新增图标下拉，提供网格、表格、缩略图三种双语视图；默认缩略图保留 88×56px 当前布局。网格以缩略图/文件类型图标和常驻文件名呈现，hover/focus 显示类型、上传时间、大小与扫描状态；紧凑表格使用 16×16px 文件身份和实测 24px 行高。
+- 三种视图共享同一个列表 Query、文件选择、右侧预览、确认按钮和 `ready + clean/skipped` 扫描门禁。文件视图在每次打开选择器时复位为缩略图，不产生跨场景错误记忆。
+- 预览折叠入口改为列表右边缘垂直居中的 24px 左箭头；已选提示改为 `#f3f4f6` 浅灰背景和 `#4b5563` 深灰文字且无边框；最大化/关闭按钮合并为右上角 30px 等高窗口操作组。
+- 同步补齐资讯筛选区四个 Select 的双语 accessible name。针对性 2 个文件/9 项测试、Admin 全量 33 个文件/143 项测试、lint、typecheck、生产构建、Admin/Mobile Blueprint、跨端 i18n 与 UI Skill 门禁均通过。
+- 真实 Chromium fixture 验证通过：选择器范围 axe serious/critical 为 0，紧凑行高 24px，预览箭头垂直偏移 0；已登记 1440×900 缩略图、网格 Hover、紧凑表格选中态及预览折叠截图。该证据不冒充真实账号/对象存储联调，英文长文件名、暗色模式和 768/375 仍待复测。
+- 最终 Admin dist 已部署至 `http://localhost:4174`；容器 `running healthy`，宿主/容器入口 SHA-256 均为 `08dbfca1a86eac67146dc7a7ea1b40512b7ac24915d85629b2d13011b62828fb`。本轮没有重启 API、改写数据库或对象存储。
+
+### 2026-08-29 文件选择器表头、全局下拉与共享缩放能力
+
+- 文件表格最后一个表头右上圆角已取消。Admin 全局 Select 及 selectable Dropdown/Menu 选中项统一为浅蓝背景和深蓝文字，修复 near-black 主色派生的暗背景可读性问题。
+- Ant Design 6 Modal 无原生 resize 属性，新增共享 `AkModal.resizable` 受控能力；文件选择器移除十字图标，右下角仅在 hover/focus/拖动时显示内侧圆角弧线，拖动中高亮，并保留方向键缩放。
+- Admin 35 个测试文件/146 项测试、lint、typecheck、生产构建、Admin Blueprint、跨端 i18n 与补丁格式均通过。Chromium fixture 实测表头圆角 0px、下拉浅色选中态、弧线 hover/active 和 1120×720→1160×744 拖拽缩放，选择器 axe serious/critical 为 0。
+- 最新 dist 已部署至 `http://localhost:4174`；Admin 容器 healthy，`/healthz` 返回 `ok`，宿主/容器入口 SHA-256 均为 `785da6c799011790f965c7fba8cb38acdfb7729b46048b413da8d59a4c45272a`。
+
+### 2026-08-29 微信分享配置申请指引
+
+- 分享配置新建/编辑 Drawer 标题旁新增带 Tooltip 和 accessible name 的问号按钮；点击后打开五步微信开放平台申请指引，不会离开或重置当前表单。
+- 指引覆盖开发者资质、创建移动应用、Android/iOS/HarmonyOS 原生身份、提交审核获取 AppID、AppKernia 绑定/预检/重新打包与真机验收。8 个微信/DCloud HTTPS 资源均使用新浏览上下文和 `noopener noreferrer`。
+- 所有用户文案独立存放于 `zh-CN`/`en-US` Catalog，Provider URL 与步骤结构独立存放于 typed registry；明确说明内容分享无需 AppSecret，客户端不得保存 AppSecret。
+- Chromium fixture 已验证 1440/375 中文与 375 英文：弹框移动端无横向溢出，8 个外链属性正确，8 个页面/弹框范围 axe serious/critical 均为 0，控制台错误为 0。
+- Admin 全量门禁通过：37 个测试文件/151 项测试、lint、TypeScript strict、生产构建、bundle budget、OpenAPI docs/reference、Admin Blueprint 与跨端 i18n 均通过；最新 dist 已部署到 `http://localhost:4174`，Admin 容器 healthy。
 
 ### 2026-08-29 Admin 页面 Message 间距统一
 
@@ -763,3 +927,26 @@
 - Chromium fixture 在 1440×900、375×812 均实测“uni-app x 仅支持原生版本升级”提示到下方 Card 为 16px；页面无横向溢出、控制台错误为 0、axe serious/critical 为 0。截图和几何结果登记于 `AKADM-page-message-rhythm` artifacts。
 - 隔离提交快照的 Admin 完整门禁通过：36 个测试文件/148 项测试、lint、TypeScript strict、生产构建、bundle、OpenAPI reference/docs 与 Admin Blueprint 均退出 0；当前聚合工作区的跨端 i18n 与补丁格式也已通过。最新 dist 已同步至本地 `http://localhost:4174`。
 - 旧 `e2e_mobile_releases.py` 首轮在应用管理“升级中心”文本按钮定位处退出 1：页面已改为操作下拉菜单而脚本仍使用旧定位；本轮改用独立页面节奏 E2E 完成验收，未把该过期脚本定位失败记为产品失败。Firefox/Safari 未执行。
+
+### 2026-08-29 推送渠道申请与对接指引
+
+- 推送渠道页标题右上角新增带 Tooltip、40px 命中区和 accessible name 的问号按钮；弹框按稳定顺序提供 APNs、FCM、华为 Android、荣耀、小米、OPPO、vivo、魅族、HarmonyOS NEXT 九个 Tab。
+- 每个渠道均提供账号资质、四步申请/开通流程、当前配置表单逐字段取值说明、保存前检查和三条官方 HTTPS 资料；桌面使用 start-side Tabs，767px 以下切换顶部可滚动 Tabs，弹框内容独立滚动。
+- 官方资料于 2026-08-29 核验。核验同时修正后端荣耀 IAM 为 `iam.developer.honor.com`，并将小米新加坡、欧洲、印度、俄罗斯服务端更新为当前 `xmpush.global.xiaomi.com` 官方主机；新增回归测试锁定地址。
+- 双语源 Catalog、生成语言包、Push 页面 Design System override 和 `ui-ux-pro-max` 五类 artifacts 已同步。Admin 全量 42 个测试文件/164 项测试、lint、TypeScript strict、生产构建、Bundle、OpenAPI、Admin Blueprint、跨端 i18n、Mobile/Backend Blueprint 与 Go 全仓测试均通过。
+- 本地 `appkernia-news-demo` 的 Admin/API/Worker 已重新构建并启动；Admin/API healthy，`/healthz`、Admin public-config、API live/ready 均返回 200。当前浏览器位于登录页，真实登录态双语截图、键盘和 axe 浏览器验收留待用户登录后复测，不把 jsdom 或构建结果当视觉验收。
+
+### 2026-08-29 App 消息推送现状架构图
+
+- 已按当前代码绘制并保存 `docs/manual/app-message-push-architecture.md`，覆盖消息发布、站内消息、River PostgreSQL 队列、定时发布、500 设备分页扇出、单设备投递、九个 Provider Adapter、重试/失效 Token/故障配置和 opened 统计。
+- 源码审计确认发布 HTTP 请求不直接调用厂商：即时消息事务内写 `PushFanoutJob`，定时消息先写 `MessagePublishJob`，扇出后为每台设备写唯一 Delivery 和 `DeliveryJob`；`notifications` 队列当前配置 8 个并发 Worker。
+- 本地 `appkernia-news-demo` Worker 正在运行，但容器未设置 `AK_PUSH_ENABLED`，默认 Kill Switch 为 false；开发环境未设置 Adapter 时默认为 `local-mock`，所以当前本地不会向真实厂商发消息。
+- 文档中的 Mermaid 源码已使用仓库现有 Mermaid 10.9.8 parser 实际解析通过；8 个相对代码索引均存在，`git diff --check` 通过。
+
+### 2026-08-30 iOS 启动公开配置兼容修复
+
+- iOS 模拟器启动崩溃已定位为版本错配：当前本地 `GET /api/v1/public/config` 虽返回 HTTP 200，但运行中的旧 API 响应只包含 `startup`，尚无当前 OpenAPI 已要求的 `share` 与 `push`；新 Mobile 代码直接读取 `response.data.share.providers`，因此触发 `undefined is not an object`。
+- Mobile 公开配置适配器现先归一化可选能力块：缺少 `share` 时共享 Provider 列表为空；缺少 `push` 或其列表时 Push 保持关闭、Provider/构建变体为空。应用核心启动、站内内容和认证不再被可选能力阻断，新能力仍遵循 fail-closed。
+- `check-project.sh` 新增回归门禁，禁止再次直接解引用 `response.data.share.providers` 或 `response.data.push.*`，并要求保留兼容归一化与 Push 默认关闭。
+- HBuilderX 5.24 完成 36 页面 iOS 编译；iPhone 16 Pro / iOS 18.6 模拟器使用 `com.appkernia.mobile` 自定义基座安装、同步并启动成功。在本地 API 仍缺少两个能力块的条件下进入资讯浏览页，最近 10 分钟进程日志中原 TypeError、`share.providers`/`push.enabled` 访问异常及 fatal/exception 均为 0。
+- 模拟器截图保存为 `output/playwright/ak-ios-public-config-compatibility.png`，SHA-256 `b69aacd487396ce5072d00cebb130faeea424d481bc3757039321c323c894493`。本结果是 iOS 模拟器运行验收，不替代 iOS 真机、签名归档或 Push 厂商生产验收。

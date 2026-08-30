@@ -1,7 +1,142 @@
 # AppKernia Codex 交付报告
 
-日期：2026-08-11
-范围：Backend + Admin frontend 完成性与 GitHub 开源开发体验；未自动 commit、push 或部署。
+日期：2026-08-29
+范围：AppKernia 全仓交付记录；本轮未自动 commit、push 或外部部署。
+
+## 2026-08-29 消息推送运行时、可观测工作台与统一权限中心
+
+### 已交付
+
+- Backend：新增 `jobqueue.Enqueuer`/River Adapter、编译期任务 Registry、任务运行/尝试安全投影、消息流水线、日统计、Worker Middleware、对账/聚合/保留任务和低基数 Prometheus 指标。发布、扇出、投递分别固定到 `notifications` 队列、5 次最大尝试及 30/90/90 秒 Worker 超时；未注册 kind、错误队列或超限尝试在写入 River 前拒绝。
+- 通知门面与 M2M：新增 `platform/notification.Service` 的 `Submit/SubmitTx/Status/Cancel`，支持受控双语内联或模板内容、用户/广播收件人、站内基础渠道、可选 Push、计划/过期/TTL/collapse/thread/受控路由和严格幂等。`ak-api` Machine Principal 使用真实 Tenant、API Client subject、短期无 Refresh JWT，并强制 Client 状态、到期、CIDR、权限和 App allowlist。
+- Admin：新增 App 级消息运营 8 个 API 与四 Tab 工作台，覆盖摘要/趋势、发布运行、队列任务、失败中心、URL 筛选恢复、可见性/积压驱动轮询、手动刷新、可访问数据表和安全重试。新增 `notify.observability.read`、`notify.task.retry`；旧投递路由保留兼容跳转。
+- Mobile：新增 `ak-permissions` Port、稳定状态与编译期能力 Registry，完成 iOS/Android/Harmony 通知权限查询、用户主动申请、通知专属设置优先和通用设置回退；应用权限页联动 Push 总开关、Provider 通道、设备注册和通知偏好。页面加载不申请权限，OS 状态不上传服务端。
+- 数据与运维：新增 22—24 号双向迁移、ADR-0022、消息推送架构图、M2M 使用手册、消息运营 Runbook、Mobile 权限中心手册及三端蓝图/权限/i18n/设计系统同步。
+
+### 实际验证
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| PostgreSQL 18 独立临时库：24 组 migration + Core Seed + `go test -tags=integration` | 0 | 5 条实际数据库通知流程及相关单元/重试子用例通过；覆盖 `SubmitTx`、幂等复用/冲突、tenant+app 隔离、事务回滚、取消、River task projection、OTP/密码重置加密入队，以及提交→发布→扇出→Mock 受理→opened→运营汇总；临时库已删除。 |
+| `make check && make build`（server） | 0 | gofmt、vet、全包测试及 API/Worker/CLI 三个二进制构建通过。 |
+| `go test -count=1 -json ./...` 统计 | 0 | 214 项 test pass events、43 个通过包、0 failed。 |
+| `go test -race` 高风险范围 | 0 | JobQueue、NotificationService、Machine Auth、通知 Repository、通知 Worker 共 5 个包通过。 |
+| `npm run check`（Admin） | 0 | OpenAPI/i18n/routes 生成、360 个接口标题本地化、lint、strict typecheck、44 个 Vitest 文件/168 项测试、production build、bundle、OpenAPI docs 和 Admin Blueprint 全通过。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | 45 routes、4 tabs、58 API delta、11 permission delta、40 components、11 privacy capabilities、26 tasks、3 platforms；i18n/client/startup snapshot/upgrade/Node tests 通过。 |
+| Backend/Admin/Mobile/i18n validators + `git diff --check` | 0 | 24 up/down migrations、109 张总表、165 indexes、66 triggers、244 FK references；48 menus、59 routes、163 permissions、215 existing APIs + 13 deltas及双语契约均通过。 |
+| HBuilderX 5.24 Android/iOS/Harmony 构建 | 0 / 0 / 0 | 本轮前序最终态 36 页面三端源码编译通过；Harmony 完成依赖与未签名 HAP，未配置数字证书。 |
+| `docker compose -p appkernia-news-demo up -d --build seed api worker admin` | 0 | Node 24.18.1 Admin 与 Go 1.26.5 API/Worker 镜像完成；PostgreSQL/API/Admin healthy、Worker running，数据库 `24|false`。 |
+| 本地 HTTP/数据库安全探针 | 0 | health、运营页面、OpenAPI 为 200；未认证运营 API/M2M 提交为 401；6 项权限和 5 张运行时表存在，近 5 分钟 API/Worker 日志无 panic/fatal/error。 |
+
+本地最终镜像摘要：Admin `sha256:5b43d2387450...`、API `sha256:346c34c2bc9a...`、Worker `sha256:f20b85733a86...`。升级前备份为 `tmp/local-backups/appkernia-news-demo-before-notification-runtime-v24-20260829.dump`（637,381 B，SHA-256 `11636715525c0f12307166fd60dfc2b39b14a2c06156645cb76776c309fe1e3e`）；24→23→24 往返和唯一统计触发器此前已通过。
+
+验证过程中的失败已如实处理：临时库首轮错误使用 `AK_ENV=test`，配置按设计因缺少外部 JWT 私钥退出 1，改为隔离的 development 临时库；随后真实集成测试暴露旧 audience 列写入、空 `push_route_params` 及旧 pending 断言，修复后从干净临时库完整重跑通过。Admin 首轮曾暴露新增 OpenAPI 分组/中文标题缺失及 42 个 lint 问题，修复后完整 `npm run check` 通过；Mobile 首轮 Android/iOS 分别暴露 UTS 类型冲突和 Swift 参数标签问题，修复后各平台重跑通过。失败结果未写成成功。
+
+### 未完成的外部门禁与风险
+
+- 当前浏览器停在 `http://127.0.0.1:4174/login?redirect=%2Fsystem%2Fnotifications%2Foperations`。没有读取、输入或重置用户凭据，因此消息运营和应用权限页的登录态双语、1440/768/375、暗色、axe、键盘/读屏截图尚未完成。
+- 未取得九渠道生产账号/凭据、生产签名包、TestFlight 或厂商物理设备；没有执行真实 APNs/FCM/国内厂商/Harmony 到达、权限恢复和点击矩阵。Mock、源码编译和未签名 HAP 不构成生产验收。
+- 本轮没有 commit、push 或生产部署；当前本地 `4174` 栈已更新，所有既有无关工作树修改保持原状。
+
+## 2026-08-29 多厂商离线消息推送
+
+### 已交付
+
+- Backend：在既有 `notify.messages/recipients/deliveries/push_devices` 上完成 21 号迁移、九厂商稳定枚举、加密 Provider 配置和 Token、Mobile/Admin API、权限与审计、发布/定时/扇出/投递 River Worker、全局 Kill Switch、用户分类偏好及受理/失效/打开统计。APNs 使用 HTTP/2 + ES256 短期 JWT，FCM 使用 HTTP v1 + OAuth2，其余渠道使用各厂商 REST；鉴权故障会 fault 配置，写出后结果未知不自动重放。内部 Prometheus 暴露按 App/Provider/Category/Result 的投递与打开计数、队列等待 sum/count、积压及故障配置，不使用 Token/User 标签。
+- Mobile：新增统一 `ak-push` UTS Port、iOS APNs 生命周期、Android FCM/华为/荣耀/小米/OPPO/vivo/魅族唯一通道选择、Harmony Push Kit、Token 更新注册、系统设置恢复、前台事件、冷/热启动点击、受控路由和 opened 回传。设置页新增 Push 总开关、服务安全及资讯运营偏好，先过隐私同意与 OS 权限，失败会回滚且不影响站内消息。
+- 构建：新增 `AK_ANDROID_PUSH_VARIANT=google|china` 互斥生成器、精确版本门禁、Firebase 自动初始化禁用、China/GMS 边界和 APK/AAB marker 扫描；公开构建字段与服务端 Secret 分离。当前仓库默认仍为 `disabled` development 变体，避免无真实配置时误打生产包。
+- Admin：新增应用级“推送渠道”页面、强类型 Provider 表单、64 KiB write-only 凭据轮换、指纹、预检、启停、已注册设备测试和准确结果统计；同步 6 个权限、OpenAPI/生成 Client、双语 Catalog、设计系统及 UI Skill 产物。没有提供原始 Token 输入或任意 JSON 编辑器。
+- 文档：新增 ADR-0021、厂商 SDK/许可证/隐私清单、构建和生产发布手册、三端蓝图及机器可读契约。DCloud 原生插件需要自定义基座或云打包，厂商版本/隐私信息必须在获得正式 SDK 后补齐并固定。
+
+### 实际验证
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| PostgreSQL 18 临时库：`migrate up` → `down 1` → `up` | 0 | 空库双向迁移通过；`notify.push_provider_configs` 存在、6 个新权限存在、最终 `21:false`。 |
+| 最终 PostgreSQL 18 原生 SQL：`000001..000021 up` → `000021 down` → `000021 up` | 0 | 回滚后 `notify.push_provider_configs` 不存在，再升级后存在；六个 Push 权限精确计数为 6。临时容器已删除。 |
+| PostgreSQL 20 fixture：旧 `hms` + 同 App/设备双活 → 21 → 20 → 21 | 0 | `hms` 转为 `huawei_android/android/android_china`；较旧绑定停用并标记 `migration_replaced_duplicate`；down 恢复 `hms`，再 up 后 `version=21 dirty=false`。临时数据库已删除。 |
+| `make -C server sqlc-generate` | 0 | 21 号 Schema 的 Provider 配置、Push Device、Delivery、Message/Template 字段同步到 sqlc models。 |
+| `make -C server check` | 0 | gofmt、go vet、后端全包默认测试通过。 |
+| `go test -count=1 -json ./... \| jq -s ...` | 0 | 191 个 test pass events、39 个通过包、0 failed；包含 Provider 响应/重试分类、unknown-after-write、APNs 连接隔离、Prometheus 标签脱敏、发布取消及扇出状态测试。 |
+| `pnpm --dir apps/ak-admin check` | 0 | OpenAPI/i18n/routes 生成、reference、lint、TypeScript strict、40 个 Vitest 文件/160 项测试、Vite production build、bundle、OpenAPI docs 和 Admin Blueprint 全通过。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile Blueprint、双语 key/placeholder、生成 API Client、Push/Upgrade 静态门禁通过；Node 专项 4/4。 |
+| `apps/ak-mobile/scripts/build-platform.sh android` | 0 | HBuilderX 5.24、35 页面、development `disabled` 变体源码编译通过；不是 Google/China 厂商 SDK 产物。 |
+| `AK_REQUIRE_PUSH_CONFIG=1 AK_ANDROID_PUSH_VARIANT=disabled ...` 反向门禁及默认配置恢复 | 0（门禁按预期拒绝） | 生产模式拒绝 disabled；恢复后的配置只有 `minSdkVersion=26`，摘要为 disabled 且声明不含服务端 Secret。 |
+| `apps/ak-mobile/scripts/build-platform.sh ios` | 0 | HBuilderX 5.24、35 页面及 `ak-push` iOS 13+ 源码编译通过；无 APNs 签名/TestFlight/真机。 |
+| `apps/ak-mobile/scripts/build-platform.sh harmony` | 0 | HBuilderX 5.24、35 页面编译及未签名 `.hap` 制作成功；工具明确提示未配置数字证书。 |
+| Mobile/Admin Blueprint、统一 i18n、`git diff --check` | 0 | 44 Mobile routes、57 API delta、48 Admin menus、58 Admin routes、158 permissions、206 APIs + 13 deltas及双语契约通过；补丁格式通过。 |
+| `python3 blueprint/backend/tools/validate_blueprint.py` | 0 | 21 对 up/down migration、104 张表、156 个索引、63 个触发器、229 个外键引用，0 error / 0 warning。 |
+
+验证过程中的失败已如实处理：首次 Go JSON 统计因漏写 `jq -s` 退出 5，修正后重新执行并得到上表统计；迁移 fixture 首两次插入因遗漏既有设备/成员外键退出 3，补齐完整 Tenant/App/User/Member/Device 事实链后从干净的 20 号状态执行并通过；最终审计曾误用不存在的 Backend validator 旧路径而退出 2，改用仓库真实 `blueprint/backend/tools/validate_blueprint.py` 后发现 down migration 缺少静态门禁要求的 `IF EXISTS`，补齐后静态与 PostgreSQL 18 往返均通过。首个最终权限探针用 `LIKE 'notify.push%'`，不会命中 `notify.operations.publish`，因此组合布尔值为 false；改成六项精确集合后计数为 6。上述诊断步骤均未被写成成功。
+
+### 未完成的外部门禁与风险
+
+- 未获得 APNs/FCM/华为 Android/荣耀/小米/OPPO/vivo/魅族/Harmony 的生产账号、证书、权益或频控授权；Provider 预检当前证明配置结构、密钥可解密及可解析，不能替代厂商控制台与真实外网鉴权验收。
+- 未生成真实 `android_google` / `android_china` APK/AAB，因而尚未对最终安装包执行互斥 SDK marker 扫描；环境注入的国内 SDK 坐标、校验和、许可证与隐私清单必须在正式接入账号后锁定。
+- 未执行任何渠道的物理设备前台/后台/被终止/离线恢复、权限拒绝与设置恢复、重装/升级/Token 刷新、双语点击跳转；iOS 编译和 Harmony 未签名 HAP 不能替代这些验收。
+- 推送渠道 Admin 页和 Mobile 设置页尚无本轮登录态双语截图、375px 长英文、axe、键盘或读屏证据；对应 Skill screenshot index 明确登记为未取证，不伪造完成状态。
+- Admin 全量检查运行在 Node 26.5.0，仓库声明范围为 `>=24 <25`；所有门禁退出 0，但正式 CI/发布仍应使用 Node 24。没有 commit、push、生产部署或真实厂商请求，原有无关工作树修改全部保留。
+
+### 本地后台环境更新
+
+- 已在既有 `appkernia-news-demo` Compose 项目内更新 `migrate`、`seed`、`api`、`worker`、`admin`，保留 PostgreSQL 与对象存储数据卷；未改动独立运行并占用宿主机 `8080` 的 `appkernia-news-demo-api-host` 容器。
+- 升级前使用 `pg_dump -Fc` 生成 `tmp/local-backups/appkernia-news-demo-before-push-v21-20260829.dump`，大小 584 KiB，SHA-256 为 `7226bce4d2b3f09bc7ecc2e280eccd2702a31501c91b2606f695b13044feb937`。
+- `AK_ADMIN_PORT=4174 docker compose -p appkernia-news-demo up -d --build postgres migrate seed api worker admin` 退出 0；Node 24.18.1 Admin production build与 Go 1.26.5 API/CLI/Worker 镜像构建成功。
+- 运行态为 PostgreSQL/API/Admin healthy、Worker running、migrate/seed Exited (0)；应用迁移为 `21:false`，新表存在，六个 Push 权限均已 Seed，`super-admin` 映射数量为 6。
+- `http://127.0.0.1:4174/healthz`、Admin public config、`/system/notifications/push-channels` 与 `/openapi/` 均为 HTTP 200；未登录读取 Push Provider 配置返回预期 HTTP 401。Admin/API/Worker 镜像摘要分别为 `ee913e0c...`、`4cbdc271...`、`29caeb21...`。
+
+## 2026-08-29 分享配置管理与 App 绑定
+
+本轮完成租户级可复用分享配置、App/Provider 唯一绑定、三端身份预检、最小化公开运行配置、Admin 管理页与 App 绑定 Drawer、构建导出 CLI，以及 Mobile 微信 Provider 检测和系统分享降级。微信 Provider 为代码注册能力，后台不能注入任意 Provider 或动态代码；微信 AppSecret 不进入本系统。
+
+| 命令/验收 | 退出码 | 结果 |
+|---|---:|---|
+| PostgreSQL 18 `000020 up → down → up` | 0 | 两张表、7 个权限和菜单可双向迁移；最终 `schema_migrations=20, dirty=false` |
+| PostgreSQL 回滚事务约束探针 | 0 | 同 App/Provider 重复、跨租户配置、非法场景及非 HTTPS 落地域名均被拒绝，事务最终回滚 |
+| `go test ./...`（`server`） | 0 | Backend、CLI 与全仓 Go 测试通过；分享模块覆盖严格配置、危险 URL、预检最小化和导出幂等 |
+| `go test ./cmd/ak-cli ./internal/modules/shareconfig/...` | 0 | 4 个 CLI/3 个应用层专项测试通过；保留无关 Manifest Provider 与 Entitlements，身份不匹配失败 |
+| 本地数据库 fixture `app-share export` + `--check` | 0 / 0 | 临时目录生成 Android/iOS/Harmony `uni-share.weixin` 与 `applinks:share.example.com`；漂移检查通过，fixture 随后从数据库清理 |
+| `pnpm check`（`apps/ak-admin`）及分享菜单回归 | 0 | 36 个 Vitest 文件/149 项测试、OpenAPI 生成、双语 Catalog、57 路由、lint、typecheck、production build、bundle、文档和 Admin 蓝图通过；新增测试锁定分享配置路由权限与可见性及 App 操作菜单图标/权限规则 |
+| `./scripts/check-project.sh`（Mobile） | 0 | 运行配置 DTO、生成客户端、三端 Provider 检测与系统降级接线通过静态门禁 |
+| Backend/Admin/Mobile/i18n validators | 0 | 20 组迁移、47 菜单、57 路由、152 权限、77 Schema、333 OpenAPI operation 和双语 parity 通过 |
+| HBuilderX 5.24 Android/iOS/Harmony 编译 | 0 / 0 / 0 | 35 页面三端源码编译成功；Harmony 依赖安装和未签名 HAP 制作成功，未配置数字证书 |
+| Chromium UI fixture + axe | 0 | 1440/768/375、zh-CN/en-US 共 5 张截图；4 个 axe 范围 serious/critical=0，console error=0 |
+| 本地 Admin 菜单可见性修复与部署 | 0 | 修复 `system.settings.share-configs` 客户端已实现路由白名单遗漏；数据库菜单、父级链和 `super-admin` 授权均有效，新生产包已同步至 `4174`，容器 healthy，目标路由 HTTP 200 |
+| App 管理操作下拉菜单 Chromium 验收 | 0 | 操作列实测 112px；当前权限下 5 个菜单项全部带图标，axe serious/critical 0，console error 0；编辑、升级、内容、分享配置与停用入口均可见 |
+| 分享配置页容器间距 Chromium 验收 | 0 | 页面根节点切换为共享 `.ak-page-container`；1440px 下左右 padding 与右侧实际留白均为 48px，375px 下左右 padding 均为 16px，axe serious/critical 0，console error 0 |
+
+编译补充：Android 首轮被既有资讯 Markdown 图片正则捕获的 `String?` 类型错误阻断；将捕获组显式收窄后，Android、iOS、Harmony 最终均退出 0。外部边界：当前仓库没有已审核微信开放平台 AppID、Android 发布签名、iOS Universal Link/Associated Domains、Harmony Bundle Name 对应的正式配置，因此只用本地数据库 fixture 验证了导出/漂移，没有把测试 AppID 写入项目 Manifest，也没有执行带微信 Provider 的三端自定义基座编译或物理设备三场景分享。本轮不把 fixture、普通源码编译或系统分享降级表述为微信直分享验收；正式配置后台保存后仍必须重新导出和打包。
+
+## 2026-08-28 “应核 AppKernia”资讯 App 一期功能闭环
+
+本轮完成 Backend、Admin、Mobile、OpenAPI、迁移、i18n、设计系统和发布文档的同一契约闭环：三种资讯、两级分类、多分类、专题、标签、搜索、收藏、首页聚合、评论先审、举报/拉黑、统一登录 Sheet、四 Tab、三类详情和跨平台分享。附件只作为信息层级参考，未复制 Apple 品牌或素材。
+
+| 命令/验收 | 退出码 | 结果 |
+|---|---:|---|
+| `make check`（`server`） | 0 | gofmt、Go vet、全量 Go 测试通过；内容模块与 bootstrap 编译通过 |
+| PostgreSQL 18.6 新库顺序执行 `000001`—`000019` | 0 | 19 个 up migration；专题、举报、视频白名单、敏感词与 trigram 索引存在 |
+| PostgreSQL 18→19 旧文章升级 + `000019.down.sql` | 0 | 旧文章保留并默认为 `article`、分类关系回填；down 后旧文章仍在且一期新表移除 |
+| `pnpm run check`（`apps/ak-admin`） | 0 | 30 个 Vitest 文件、131 tests；OpenAPI 321 操作映射、lint、typecheck、production build、bundle、文档与 Admin 蓝图通过 |
+| `bash scripts/check-project.sh`（Mobile） | 0 | 43 routes、4 tabs、57 API delta、34 components；i18n/catalog/client/启动快照与静态测试通过 |
+| Backend/Admin/Mobile/i18n validators | 0 | Backend 19 up/down、Admin 56 routes/145 permissions、Mobile 与双语契约通过 |
+| `bash scripts/build-platform.sh android` | 0 | HBuilderX 5.24，34 页面 Android class 最终源码编译成功，最终态 `ready in 28409ms` |
+| `bash scripts/build-platform.sh ios` | 0 | HBuilderX 5.24，34 页面 iOS 最终源码编译成功，最终态 `ready in 29723ms` |
+| `bash scripts/build-platform.sh harmony` | 0 | HBuilderX `ready in 28413ms`；34 页面编译、DevEco 6.0.2.640 依赖和未签名 `.hap` 制作成功；未配置数字证书 |
+| `docker compose -p appkernia-news-demo up -d --build ...` + migration/seed/bootstrap | 0 | PostgreSQL 18、API、Worker、Admin 均 healthy；数据库 version=19、dirty=false，Admin 对外地址为 `http://127.0.0.1:4174` |
+| 真实 Admin/Mobile API 演示数据脚本 | 0 | 发布 article/gallery/video 各 1 篇，创建两级分类、1 个专题、3 个标签；收藏、评论创建、待审、后台通过、公开读取闭环通过 |
+| 公开 API 与分享页 curl 探针 | 0 | 首页去重、列表、搜索、分类、专题、三类详情、公开媒体、评论和 `/s/{slug}` 均返回预期状态；公开接口不要求登录，失效 Bearer 返回 401 |
+| Python Playwright + Chromium | 0 | Admin 资讯/分类/评论在 1440、资讯列表在 768/375、公开分享页在 390 完成截图；7 个内容 API 为 200，console error=0 |
+| HBuilderX 5.24 iOS 自定义基座云制作、安装与同步 | 0 | `com.appkernia.mobile` 安装到 iPhone 16 Pro / iOS 18.6；最终基座依赖同时包含 `uni-video`、`uni-loading`，34 页面同步并启动成功 |
+| Maestro 2.3.0 iOS 模拟器流程 | 0 | 四 Tab、游客认证 Sheet、登录/收藏、搜索/文章/分享、评论读取/提交、图文/视频类型筛选与详情、视频进度及暂停流程完成；10 份有效 JUnit 均 failures=0 |
+| `go test -race ./... -count=1` | 0 | Backend 全包 race 回归通过 |
+| `pnpm --dir apps/ak-admin run check` | 0 | 30 个 Vitest 文件、131 tests、lint/typecheck/build、OpenAPI/蓝图和 bundle 门禁通过；宿主 Node 26 仅产生 `>=24 <25` engine warning |
+| Mobile project check + Backend/Mobile/i18n validators + `git diff --check` | 0 | 43 routes、4 tabs、57 API delta、34 components、19 migrations及双语契约通过；工作树补丁格式通过 |
+
+补充收口：草稿允许 `zh-CN`、`en-US` 独立未完成保存；发布会重新读取当前锁版本，并在同一数据库事务中复核双语完整性、活动分类/专题/标签、媒体扫描状态、500 MiB MP4 限制和外链白名单。Admin 发布前会定位缺失语言字段；正文插图只保存受控文件 ID，Mobile 通过公开媒体投影映射为原生图片节点。
+
+环境偏差：Admin 仓库要求 Node `>=24 <25`，本轮宿主为 Node 26.5.0 / pnpm 11.18.0，完整命令虽退出 0，但正式 CI 应继续使用 Node 24。Playwright Skill wrapper 不可用，本轮使用本机 Python Playwright 驱动真实 Chromium；Computer Use 无法稳定取得模拟器窗口，移动端改用本机 Maestro 2.3.0 运行真实 iOS 模拟器流程。
+
+运行补充：初始 Google 示例 MP4 对 Range 请求已返回 403，导致播放器持续 loading；演示数据通过真实 Admin PATCH 改为 App 白名单内、Range 206 的 W3C HTTPS MP4。iOS 模拟器随后取得开始播放、等待 10 秒后不同视频帧、原地暂停三段证据，HBuilderX 日志无 `uni-video`/`uni-loading` 缺模块错误。未执行 Android/Harmony 资讯运行时、三端物理设备、动态字号和读屏验收；微信 AppID、Android 签名、iOS Universal Link 未配置，微信三场景直分享、签名包、商店上传与审核均未执行。本轮未 commit、未 push；本地演示栈保持运行。
 
 ## 2026-08-10 本地管理员与安全 Seed 引导
 
@@ -2121,28 +2256,330 @@
 - 功能提交 `676304f6e606ceb03681a9158297e0ddaa80c054`（`feat(docs): enhance homepage hero`）已推送 `origin/main`；GitHub Pages run [`33047259705`](https://github.com/Payhon/AppKernia/actions/runs/33047259705) 成功，build job `98434068813` 用时 45 秒，deploy job `98434231357` 用时 9 秒，workflow head SHA 与功能提交一致。
 - Pages API 回读 `html_url=https://payhon.github.io/AppKernia/`、`build_type=workflow`、`https_enforced=true`、`cname=null`。中英文首页、Admin/Mobile Hero 静态图及 Sitemap 共 5 个 URL 均返回 HTTP 200；自定义域名尚未绑定，不宣称 `appkernia.com` 可访问。
 - 线上 Python Playwright/Chromium 复核 `zh-CN 375 light`、`zh-CN 1440 light`、`en-US 1440 dark` 三个状态：HTTP 200、单一 H1、页面无横向溢出或破图，标签为 19.5px/0 边框，桌面产品图占 Hero 53.7%，两组 Slider 点击和键盘切换成功；axe serious/critical、console error、失败请求/响应均为 0。
-## 2026-08-29 App 内容编辑器与文件选择器升级交付
+
+## 2026-08-28 Mobile 资讯界面精修交付报告
 
 ### 交付内容
 
-- Admin：Meta/内容双 Tab、成熟 Markdown 编辑器、媒体预览、图文缩略图、视频来源归位，以及文件选择器的类型/日期过滤、三视图、整行选择、预览分栏、移动/最大化/缩放和全局下拉选中态修复。
-- Backend/契约：Markdown 请求与旧 blocks 惰性转换、内容媒体关系、资讯内容 API、文件上传时间过滤、OpenAPI 和生成 TypeScript 类型保持一致。
-- 治理：双语运行目录与蓝图事实源、内容管理设计系统 override、UI Skill artifacts、第三方 MIT 许可证记录和门禁产物已同步；未纳入分享配置和 Mobile 并行改造。
+- 统一 `ak-icon-button` 和缩小后的 `ak-icon`/返回图标：视觉 14–16px，触控目标保持 44px；首页、详情、资料页和 Sheet 的明确操作改为图标按钮。
+- 重做浏览页三类内容卡、右上角筛选浮层和右滑全屏搜索 DialogPage；搜索查询不落盘，避免把潜在敏感内容写入普通存储。
+- 重绘四栏 TabBar 语义图标并同步主题/i18n；新增搜索路由及 route/API/permission 契约。
+- 建立 `ak-content-viewer` 分派层和文章、图文、视频三个独立查看器。2026-08-28 测试确认原 `uni.getVideoInfo` 方案在缺少可选 `uni-media` 的自定义基座中会运行时崩溃，已改为无该模块依赖的封面自然尺寸判定与稳定横屏回退。
+- 更新 Mobile design system、information override、40 项组件兼容矩阵和独立 UI Skill request/output/decisions/review/screenshot index。
 
 ### 实际命令与结果
 
 | 命令 / 阶段 | Exit | 真实结果 |
 |---|---:|---|
-| `npm run check`（干净暂存快照，`apps/ak-admin`） | 0 | OpenAPI/i18n/route 生成无漂移；lint、typecheck、35 个文件/146 项 Vitest、Vite build、bundle、OpenAPI docs/reference 和 Admin Blueprint 通过。 |
-| `go test ./internal/modules/content/... ./internal/modules/storageadmin/... ./internal/modules/storage/... ./internal/bootstrap`（干净暂存快照，`server`） | 0 | content、storageadmin、storage 与 bootstrap 编译/测试通过。 |
-| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 39 routes、3 tabs、34 components，0 error / 0 warning。 |
-| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN`/`en-US` 与 backend/admin/mobile reference packs 校验通过。 |
-| `git diff --cached --check` | 0 | 暂存补丁无空白错误。 |
+| `ui-ux-pro-max` mobile news / search / video / accessibility 查询 | 0 | 采用 editorial minimalism、44px 触控目标、8px 邻接间距、无自动播放和明确状态反馈。 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 44 routes、4 tabs、40 components、3 platforms，0 error / 0 warning。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN` / `en-US` 及 reference pack parity 通过。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Blueprint、i18n Catalog、API Client、startup snapshot、6 项升级契约、4 项打包脚本测试和静态门禁通过。 |
+| `python3 apps/ak-mobile/scripts/verify-mobile-framework.py` | 1 | 额外旧框架检查仍断言 Phase 0 的 `Array<ArticleWireBlock>`、旧 Home/Profile/asset-loader 结构；当前 Phase 1 使用 `ArticleDocument` 与资讯首页，因此在首个过期断言停止。它不在 `check-project.sh` 门禁内，未将失败写成通过。 |
+| `apps/ak-mobile/scripts/build-platform.sh android` | 0 | HBuilderX 5.24 完成 35 页面 Android class 编译；修正跨组件反射、视频元数据事件和搜索数组类型后通过。 |
+| `apps/ak-mobile/scripts/build-platform.sh ios` | 0 | HBuilderX 5.24 完成 35 页面 iOS UVue/UTS 编译。 |
+| `apps/ak-mobile/scripts/build-platform.sh harmony` | 0 | 35 页面项目编译成功，OHPM 依赖安装成功并生成未签名调试 HAP。 |
+| iOS 18.6 模拟器资源同步 | 未通过 | 已安装旧自定义基座缺少新增 UVue 原生类，新资源启动为白屏；不计作运行通过。同步前资源已备份并恢复，旧环境恢复截图正常。 |
 
-### 视觉证据与边界
+### 截图、未完成项与风险
 
-- 内容管理 Skill 截图目录登记了缩略图、网格 Hover、24px 紧凑表格、预览折叠、Select 菜单与窗口缩放状态；Chromium fixture 中 axe serious/critical 为 0。
-- 本地 Admin 已部署并验证 `/healthz`；本次提交验证使用干净暂存快照，未将工作区中其他未提交功能带入结果，也不把 fixture 表述为真实账号或生产对象存储验收。
+- UI Skill 索引：[request](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-information-ui-refinement/request.md)、[skill output](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-information-ui-refinement/skill-output.md)、[decisions](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-information-ui-refinement/decisions.md)、[review checklist](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-information-ui-refinement/review-checklist.md)、[screenshot index](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-information-ui-refinement/screenshot-index.md)。
+- 新界面仍需重建 35 页面 Android/iOS 自定义基座并在 iOS/Android/HarmonyOS 运行；现有 `restore-check` 仅证明模拟器旧资源已恢复，不代表新界面。
+- 视频默认方向现在以封面自然尺寸为无额外原生模块的安全提示；封面与视频方向不一致时可能需要用户手动切换。后续若服务端提供可信视频宽高，应优先透传该元数据。仍需用实际 CDN 视频在三端验证方向、切换过程中的进度保持和离页暂停。
+- `verify-mobile-framework.py` 仍需按当前 Information App 架构重写断言；本轮没有通过删除安全检查或伪造旧字符串来让它变绿。
+- 未执行物理设备、动态字号、读屏、键盘、真实微信分享、Release 签名或生产部署。本轮未 commit、未 push。
+
+## 2026-08-28 内容查看器测试反馈修复
+
+### 交付内容
+
+- 移除视频详情 mounted/watch 链路中的 `uni.getVideoInfo`，从根源消除未包含 `uni-media` 时的 `UTSSDKModulesDCloudUniMediaIndexSwift` 缺类崩溃；不以 try/catch 掩盖原生模块缺失。
+- 视频默认方向改为读取已展示封面的自然尺寸，高大于宽时进入竖屏，否则稳定回退横屏；用户手动切换后封面异步完成不会覆盖选择。
+- 竖屏舞台使用直接 UVue class、全屏居中和按当前窗口/封面比例计算的播放器高度；横向视频切到竖屏后采用 `contain`，完整画面位于垂直中心。
+- 图文轮播图与回退封面接入 `uni.previewImage`，支持原生全屏预览、双指缩放和按原顺序左右切换。
+- 更新 information app 页面设计约束、原设计纠正记录、UI Skill request/output/decisions/review/screenshot index，并在 `check-project.sh` 新增回归门禁。
+
+### 实际命令与结果
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `ui-ux-pro-max --design-system` + UX/SwiftUI 查询 | 0 | 采用 44px 触控、无自动播放、响应式媒体尺寸和标准系统手势；继续使用仓库 AK 蓝与系统字体。 |
+| `bash apps/ak-mobile/scripts/check-project.sh`（补丁后最终） | 0 | 44 routes、4 tabs、40 components、3 platforms；Mobile Blueprint/i18n、生成 Catalog/API Client、startup snapshot、6 项升级契约、4 项打包脚本测试及新增媒体查看器门禁全部通过。 |
+| `bash apps/ak-mobile/scripts/build-platform.sh ios` | 0 | HBuilderX 5.24 完成 35 页面 iOS UTS 编译；`UniImageLoadEvent`、`uni.previewImage` 与播放器动态布局类型通过。 |
+| `bash apps/ak-mobile/scripts/build-platform.sh android` | 0 | 完成 35 页面 Android class 编译。 |
+| `bash apps/ak-mobile/scripts/build-platform.sh harmony` | 0 | 完成 35 页面 HarmonyOS 项目编译并进入原生工程构建阶段。 |
+| 生成物符号检查 | 0 | `unpackage/dist/dev/app-ios/app-service.js` 包含 `previewImage`、`video-stage-vertical`、`orientation-probe`，不含 `getVideoInfo` 或 `DCloudUniMedia`。 |
+| HBuilderX custom/standard playground 启动尝试 | 0（CLI） | 两次均完成编译后报告“已停止运行”，未形成应用启动/页面交互/控制台运行证据。 |
+| `git diff --check` | 0 | 当前工作树补丁无空白错误。 |
+
+### 截图、未完成项与风险
+
+- 设计证据见 [request](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-information-viewer-feedback/request.md)、[skill output](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-information-viewer-feedback/skill-output.md)、[decisions](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-information-viewer-feedback/decisions.md)、[review checklist](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-information-viewer-feedback/review-checklist.md) 与 [screenshot index](../apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-information-viewer-feedback/screenshot-index.md)。索引只登记用户提供的修复前截图，没有把编译或旧资源画面冒充修复后运行证据。
+- 需要用包含当前 35 页面 UVue 类的匹配自定义基座复测：进入视频详情无崩溃、横转竖后垂直居中、图集全屏缩放/左右切换、视频进度保持和离页暂停。Android/HarmonyOS 真机与 iOS 真机同样未执行。
+- 封面尺寸是兼容旧基座的安全方向提示，不是视频码流元数据；若内容封面与视频方向不一致，默认方向可能需要手动切换。精确自动方向应在上传/内容 API 中提供可信 `video_width`/`video_height` 后再接入，不应重新引入可选客户端原生模块。
+- 本轮未 commit、未 push，并保留其他既有未提交修改。
+
+## 2026-08-28 Bottom Sheet 标题栏纠正交付报告
+
+### 交付内容
+
+- 修复 `ak-bottom-sheet` 标题栏的异常 UVue 标签换行，移除被渲染为无作用箭头的独立 `>` 文本节点。
+- 标题改为占据剩余宽度，关闭按钮成为最后一个且唯一的标题栏操作，稳定放在最右侧；继续保留至少 44×44px 触控区域和 `common.close` 读屏标签。
+- 同步 Mobile 设计 override、UI Skill request/output/decisions/review/screenshot index，并加入静态回归门禁。
+
+### 验证与边界
+
+- `bash apps/ak-mobile/scripts/check-project.sh` 退出 0：44 routes、40 components、3 platforms，Mobile Blueprint/i18n、生成 Catalog/API Client、启动快照、6 项升级契约、4 项打包脚本测试和新增 Sheet 门禁均通过。
+- `bash apps/ak-mobile/scripts/build-platform.sh ios` 退出 0：HBuilderX 5.24 完成 35 页面 iOS UVue/UTS 编译。
+- `bash apps/ak-mobile/scripts/build-platform.sh android` 退出 0：完成 35 页面 Android class 编译。
+- `bash apps/ak-mobile/scripts/build-platform.sh harmony` 退出 0：完成 35 页面 HarmonyOS 编译、依赖安装并生成未签名调试 HAP。
+- 编译产物检查确认 iOS/HarmonyOS 的 `ak-sheet-header` 只包含标题文本和关闭按钮两个子节点；`git diff --check` 退出 0。
+- 用户附件已登记为修复前证据；修复后仍需匹配当前 35 页面 UVue 类的自定义基座运行截图，编译不能替代实际交互验收。
+- 未执行动态字号、VoiceOver/TalkBack 或三端物理设备复测；本轮未 commit、未 push。
+## 2026-08-28 App 内容管理文章编辑表单
+
+### 变更
+
+- `ArticleDrawer` 使用 Meta/内容双 Tab 和双语 Markdown 编辑；上传图片、图集、MP4 与 HTTPS MP4/HLS 外链可在表单预览。
+- `AkFilePicker` 扩大为资源浏览器，复用现有文件查询、下载和扫描门禁；增加全部/图片/视频/其他筛选与 Blob URL 生命周期清理。
+- OpenAPI、Admin adapter/generated types、Backend blocks-to-Markdown 惰性转换、Mobile 真实 body_format 读取及视频上传策略已同步。
+
+### 当前验证边界
+
+- 已执行并通过：`pnpm install`、Admin typecheck、Admin Vitest（130 tests）、`go test ./internal/modules/content/... ./internal/modules/storage/...`、`gofmt`。
+- 待继续执行：Admin lint/build、蓝图/i18n/OpenAPI 门禁及可用后端 fixture 下的 Playwright/axe/375/768/1440 截图；未将静态或 Mock 结果当作运行验收。
+
+### 测试反馈修复交付
+
+- 补齐 `system.files.picker.type.*` 与 `system.files.picker.preview.*` 双语键，并同步运行时 namespace Catalog 和蓝图 i18n 事实源。
+- 调整 Article Drawer 信息架构：视频来源、视频文件/外链和预览播放器归入内容 Tab；已有图文媒体在 Drawer 打开时主动下载 Blob 缩略图，关闭期间完成的异步下载会撤销 URL，避免泄漏和旧会话回写。
+- 新增 `AkFilePicker.test.tsx` 和 `ArticleDrawer.test.tsx`，覆盖原始多语言 key 不泄漏、既有图文缩略图加载和视频字段 Tab 归属。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run ...` | 0 | 3 个文件、8 项针对性测试通过；首轮仅因 Node 26 jsdom 无 `localStorage` 的测试清理代码失败，移除无必要清理后通过。 |
+| `pnpm --filter @appkernia/admin lint` | 0 | ESLint 0 error / 0 warning。 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 路由生成和 TypeScript strict 检查通过。 |
+| `pnpm --filter @appkernia/admin test` | 0 | 32 个测试文件、133 项测试全部通过。 |
+| `pnpm --filter @appkernia/admin generate:i18n` | 0 | 28 个 Admin namespace Catalog 重新生成。 |
+| `VITE_AK_API_BASE_URL=/admin-api/v1 pnpm --filter @appkernia/admin build` | 0 | Vite 生产构建成功，9,936 modules transformed。 |
+| Admin Blueprint / 跨端 i18n / `git diff --check` | 0 | 56 routes、145 permissions、双语 parity 和补丁格式通过。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | Admin healthy，`/admin-api/v1/auth/public-config` 可达；宿主和容器 `index.html` SHA-256 一致。 |
+
+- 当前本地服务已经更新，可在 `http://localhost:4174` 强制刷新后复测。尚未使用用户真实账号生成修复后 375/768/1440 双语截图或 axe 报告，因此不把组件测试与静态产物检查表述为真实浏览器视觉验收。
+
+### Meta 排版反馈修复交付
+
+- 封面按钮和缩略图组成独立封面行，发布选项组成第二个响应式网格行；四个选项具有 44px 最小高度、稳定间距和窄屏自动换行。
+- 评论、置顶、精选、最新的字段名不再塞入仅选中态可见的 `checkedChildren`；字段名改为常驻外置标签，Switch 内使用现有双语“是/否”，并补齐 accessible name。
+- `ui-ux-pro-max` 设计系统与 React accessibility 查询、页面 override、request/output/decisions/review/screenshot index 已同步。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run src/components/ArticleDrawer.test.tsx` | 0 | 1 个文件、3 项测试通过，包含封面/选项分行、四个开关标签与关闭态文案断言。 |
+| `pnpm --filter @appkernia/admin lint` | 0 | ESLint 0 error / 0 warning。 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 56 routes 生成完成，TypeScript strict 检查通过。 |
+| `pnpm --filter @appkernia/admin test` | 0 | 32 个测试文件、134 项测试全部通过。 |
+| `VITE_AK_API_BASE_URL=/admin-api/v1 pnpm --filter @appkernia/admin build` | 0 | Vite 生产构建成功，9,936 modules transformed。 |
+| Admin Blueprint / 跨端 i18n / `git diff --check` | 0 | 56 routes、145 permissions、双语 parity 和补丁格式通过。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | Admin 容器 `running healthy`，`/healthz` 与 `/admin-api/v1/auth/public-config` 可达；宿主和容器 `index.html` SHA-256 均为 `c20b8325f4b3c7b061553b4c681097f878e996729eb6e134fdecac4fc3cff23c`。 |
+
+- 本次使用用户附件作为修复前问题证据；修复后真实账号下的 375/768/1440、双语和 axe 浏览器验证仍待复测，不以 jsdom 或生产构建替代视觉验收。
+
+### 文章编辑保存接口修复交付
+
+- 根因是 Admin API adapter 将表单内部 `version` 与后端要求的 `lock_version` 一起发送；后端 HTTP 解码器启用 `DisallowUnknownFields`，因此请求尚未进入文章业务校验就因未知字段 `version` 返回 `VALIDATION.FAILED`。
+- 修复后更新请求只发送 OpenAPI 允许的 `lock_version`，Markdown、媒体与其他文章字段保持不变；新增回归测试验证请求体不再泄漏 `version`。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run src/features/content/model.test.ts` | 0 | 1 个文件、6 项测试通过，包含 PATCH 乐观锁字段映射回归。 |
+| `pnpm --filter @appkernia/admin lint` | 0 | ESLint 0 error / 0 warning。 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 56 routes 生成完成，TypeScript strict 检查通过。 |
+| `pnpm --filter @appkernia/admin test` | 0 | 32 个测试文件、135 项测试全部通过。 |
+| `VITE_AK_API_BASE_URL=/admin-api/v1 pnpm --filter @appkernia/admin build` | 0 | Vite 生产构建成功，9,936 modules transformed。 |
+| 根目录执行 `GOTOOLCHAIN=local go test ./internal/modules/content/...` | 1 | 工作目录不包含 `server/go.mod`；属于命令目录错误，未执行模块测试。 |
+| `GOTOOLCHAIN=local go test ./internal/modules/content/...`（`server`） | 1 | 本机 local Go 1.24.5 低于仓库要求的 1.26.5；未执行测试。 |
+| `go test ./internal/modules/content/...`（`server`，自动工具链） | 0 | application、domain、repository 通过；transport/http 当前无测试文件。 |
+| Admin/Mobile Blueprint、跨端 i18n、`git diff --check` | 0 | 56 routes、145 permissions、44 Mobile routes、双语 parity 与补丁格式通过。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | Admin/API 容器均 `running healthy`，入口 SHA-256 宿主/容器一致：`868c28b57c1c4dd310c29c4fd9b6d0c00825e031a94eeeced41fe32776c262c2`。 |
+
+- 已复用本地 Chrome 的文章管理页检查部署结果；刷新后原登录会话过期并跳转登录页，因此没有输入用户凭据或提交会改变文章数据的 PATCH。用户重新登录后可直接复测保存。
+
+### 文件选择器缩略图反馈修复交付
+
+- 左侧文件表格将图片内容提升为主信息：每行显示 112×72px、`object-fit: cover` 的真实缩略图，文件名位于其下并在过长时省略；扫描状态仍独立显示，选中逻辑与安全门禁不变。
+- 图片缩略图使用现有鉴权下载接口生成 Blob URL，并通过 `IntersectionObserver` 延迟到行接近可视区域时加载；不支持观察器的环境即时加载，关闭弹框或卸载行时统一释放 URL。
+- 已按 `ui-ux-pro-max` 流程同步内容管理页面 override、request、skill output、decisions、review checklist 和 screenshot index。用户附件仅作为修复前问题证据，未将组件测试当作真实浏览器截图。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run src/components/AkFilePicker.test.tsx` | 0 | 1 个文件、2 项测试通过，覆盖双语 key 防泄漏和缩略图下载/排列/URL 回收。 |
+| `pnpm --filter @appkernia/admin lint` | 0 | 首轮因测试直接引用未绑定的 `URL.revokeObjectURL` 触发 1 个 lint error；改为断言 mock 引用后复跑通过，0 error / 0 warning。 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 56 routes 生成完成，TypeScript strict 检查通过。 |
+| `pnpm --filter @appkernia/admin test` | 0 | 32 个测试文件、136 项测试全部通过。 |
+| `VITE_AK_API_BASE_URL=/admin-api/v1 pnpm --filter @appkernia/admin build` | 0 | Vite 生产构建成功，9,936 modules transformed。 |
+| Admin/Mobile Blueprint、跨端 i18n、`git diff --check` | 0 | 56 Admin routes、44 Mobile routes、双语 parity 与补丁格式通过。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | `/healthz` 与 `/admin-api/v1/auth/public-config` 可达；宿主和容器 `index.html` SHA-256 均为 `361968f9ecd95a9a79fcfdee5f174a6a2e40e81c8f72da7e7bb9a6457c23b877`。 |
+
+- 本地地址为 `http://localhost:4174`。当前浏览器登录会话已过期，未使用用户凭据进入选择器生成修复后视觉截图；登录后的实际缩略图内容、英文长文件名和窄屏布局仍由用户复测确认。
+
+### 文件选择器紧凑列表与上传时间筛选交付
+
+- 任务目标：缩小资源选择器行高与缩略图，增加上传时间/文件大小列，并允许按上传开始、结束日期筛选完整文件集合。
+- Admin：缩略图调整为 88×56，表格使用 small 密度和 6px 单元格纵向内边距；上传时间使用当前 locale 格式化，文件大小显示 B/KiB/MiB；搜索、日期范围和类型筛选组成可换行的顶部筛选行。
+- API：`GET /admin-api/v1/files` 新增可选 `created_from`、`created_to` RFC 3339 参数，边界均包含。Transport 拒绝无效时间，Application 拒绝倒置区间，Repository 的列表与计数 SQL 使用相同条件和租户过滤。
+- 数据库与安全：没有迁移；复用 `idx_files_tenant_time`。权限仍为 `storage.file.read`，只查询认证上下文租户，扫描门禁、下载鉴权、对象存储和文件选择规则均未改变。
+- `ui-ux-pro-max` 的 Data-Dense Dashboard 建议用于收紧列表密度和保持筛选可见；营销 Hero、外部字体与推荐配色未用于 Admin。Master、内容页面 override 及 request/output/decisions/review/screenshot index 已同步。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `make sqlc-generate`（`server`） | 0 | 使用固定 sqlc v1.31.1 生成可空 `created_from`/`created_to` timestamptz 参数。 |
+| `pnpm --filter @appkernia/admin generate:api` / `generate:i18n` | 0 | OpenAPI 类型与 28 个 Admin namespace Catalog 已重新生成。 |
+| `pnpm --filter @appkernia/admin exec vitest run src/components/AkFilePicker.test.tsx` | 0 | 最终 1 个文件、3 项测试通过。首轮因 AntD 固定列表生成隐藏辅助表头导致文本匹配到两处，调整断言后通过；第二轮因 hook mock 不是 spy 退出 1，改为 `vi.fn` 后通过。 |
+| `pnpm --filter @appkernia/admin lint` | 0 | ESLint 0 error / 0 warning。 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 56 routes 生成完成，TypeScript strict 检查通过。 |
+| `pnpm --filter @appkernia/admin test` | 0 | 32 个测试文件、137 项测试全部通过。 |
+| `VITE_AK_API_BASE_URL=/admin-api/v1 pnpm --filter @appkernia/admin build` | 0 | Vite 生产构建成功，9,936 modules transformed；Node 26.5.0 仍提示项目期望 >=24 <25，但未影响退出码。 |
+| `go test ./...`（`server`） | 0 | 后端全仓测试与编译通过，包含新增时间范围校验和 HTTP RFC 3339 解析测试。 |
+| `go vet ./internal/modules/storageadmin/...` | 0 | storageadmin 静态检查通过。 |
+| OpenAPI reference/docs、bundle、UI Skill | 0 | 321 operations 本地化契约、canonical OpenAPI 字节一致、bundle budgets 和 Skill 安装门禁通过。 |
+| Admin/Mobile Blueprint、跨端 i18n、`git diff --check` | 0 | 56 Admin routes、44 Mobile routes、双语 key/placeholder parity 与补丁格式通过。 |
+| `docker compose -p appkernia-news-demo build api` 与 `up -d --no-deps api` | 0 | 只重建/替换 API，不重建 PostgreSQL 或对象存储卷；API healthy。 |
+| 同步 Admin dist 并重启容器 | 0 | Admin healthy，`/healthz` 与 `/admin-api/v1/auth/public-config` 可达；宿主/容器 `index.html` SHA-256 均为 `b00c6630fe2226d351e727cc09079239bf45c45256fdda99d16a028560ae5588`。 |
+
+- 当前本地地址：`http://localhost:4174`。登录会话未用于生成修复后真实资源列表截图，因此 375/768/1440、暗色模式、英文长文件名和实际日期筛选结果仍由登录态浏览器复测，不以 jsdom 或 build 结果替代视觉验收。
+
+### 文件选择器 footer 操作分组交付
+
+- Modal 使用自定义 footer：上传器及策略提示位于左侧弹性区域，取消/选择位于右侧固定操作组。桌面保持同一行；767px 以下改为上下分组，右侧动作顺序不变。
+- 继续复用原 `AkFileUploader`，因此上传权限、image/video 类型限制、进度、暂停/恢复/取消、错误反馈及上传后列表刷新没有复制第二套状态逻辑。
+- `ui-ux-pro-max` 用于确认辅助上传操作与主要提交操作的左右分组、窄屏堆叠和键盘行为；未采用与 Admin Master 不一致的玻璃拟态、外部字体或新配色。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run src/components/AkFilePicker.test.tsx` | 0 | 1 个文件、4 项测试通过，新增 footer 左右分组、body 移除上传器和原生操作按钮断言。 |
+| `pnpm --filter @appkernia/admin lint` | 0 | 首轮测试写法先触发 `non-nullable-type-assertion-style`，改用 `!` 后又触发仓库禁用非空断言规则；最终改为显式 guard，复跑 0 error / 0 warning。 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 56 routes 生成完成，TypeScript strict 检查通过。 |
+| `pnpm --filter @appkernia/admin test` | 0 | 32 个测试文件、138 项测试全部通过。 |
+| `VITE_AK_API_BASE_URL=/admin-api/v1 pnpm --filter @appkernia/admin build` | 0 | Vite 生产构建成功，9,936 modules transformed。 |
+| Admin/Mobile Blueprint、跨端 i18n、UI Skill、`git diff --check` | 0 | 蓝图、双语 parity、Skill 安装和补丁格式通过。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | Admin healthy，`/healthz` 与 API public-config 可达；宿主/容器 `index.html` SHA-256 均为 `965e4483944845b5c6aa83ec27fa8fe569aff4dad7c38e21c78d9340ead7f3e5`。 |
+
+- 本轮只更新 Admin 静态资源，没有重启 API、改写数据库或对象存储。修复后真实登录态桌面/窄屏截图仍待用户复测，不以组件 DOM 测试替代视觉验收。
+
+### 文件选择器整行选择交付
+
+- 对所有满足 `ready + clean/skipped` 门禁的资源行启用整行交互：点击文件、上传时间、大小、扫描状态等任意列都会选中该文件；最左侧 Radio 继续保留为明确的选中状态指示。
+- 可选行加入 pointer、键盘焦点和 Enter/Space 操作，并通过 `aria-selected` 向辅助技术同步状态。不可选行保持禁用光标且不会响应点击或键盘，扫描门禁没有放宽。
+- `ui-ux-pro-max` 用于核对数据表格整行交互、可见焦点和键盘可达性；保留既有 Admin Master，不引入新的视觉语言。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run src/components/AkFilePicker.test.tsx` | 0 | 1 个文件、5 项测试通过；新增任意列点击、`aria-selected`、Space 键和确认按钮联动断言。 |
+| `pnpm --filter @appkernia/admin lint` | 0 | ESLint 0 error / 0 warning。 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 56 routes 生成完成，TypeScript strict 检查通过。 |
+| `pnpm --filter @appkernia/admin test` | 0 | 32 个测试文件、139 项测试全部通过。 |
+| `VITE_AK_API_BASE_URL=/admin-api/v1 pnpm --filter @appkernia/admin build` | 0 | Vite 生产构建成功，9,936 modules transformed；Node 26.5.0 仍提示项目期望 >=24 <25，但未影响退出码。 |
+| Admin/Mobile Blueprint、跨端 i18n、UI Skill、`git diff --check` | 0 | 蓝图、双语 parity、Skill 安装与补丁格式通过。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | 容器 `running healthy`，`/healthz` 与 API public-config 可达；宿主/容器入口 SHA-256 均为 `963df6c732eeb924766367d5d68a0b32013fe61aa93d4a35f6835b6d3c74803e`。 |
+
+- 本轮只部署 Admin 静态资源，没有重启 API、改写数据库或对象存储。真实登录态视觉与 axe 验收仍待复测，不以组件测试替代浏览器验收。
+
+### 文件选择器选中态与上传图标交付
+
+- 选中行背景从 Ant Design 根据 near-black 主色派生的深色值，改为文件选择器局部浅蓝 `#eff6ff`；hover 使用 `#e8f2ff`。主文字/次级文字对比度实测为 16.47:1/7.77:1，文件名、时间和大小均保持可读。
+- Radio、`aria-selected`、整行 click 和 Enter/Space 行为不变，选中状态不只依赖背景色；`ready + clean/skipped` 安全门禁没有放宽。
+- `AkFileUploader` 的文字按钮加入已有 `UploadOutlined` SVG 图标，未添加 emoji 或新包，原上传权限、文件类型限制、策略提示、进度与恢复逻辑不变。
+- `ui-ux-pro-max` 用于核对 4.5:1 对比度、非颜色状态指示和一致 SVG 图标；OLED 深色推荐与营销比较表结构不适用于本页，继续服从 Admin Master。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run src/components/AkFilePicker.test.tsx src/components/AkFileUploader.test.tsx` | 0 | 2 个文件、6 项测试通过；覆盖选中行状态类和上传 SVG 图标。 |
+| `pnpm --filter @appkernia/admin lint` | 0 | ESLint 0 error / 0 warning。 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 56 routes 生成完成，TypeScript strict 检查通过。 |
+| `pnpm --filter @appkernia/admin test` | 0 | 33 个测试文件、140 项测试全部通过。 |
+| `VITE_AK_API_BASE_URL=/admin-api/v1 pnpm --filter @appkernia/admin build` | 0 | Vite 生产构建成功，9,936 modules transformed；Node 26.5.0 仍提示仓库期望 >=24 <25，但未影响退出码。 |
+| Admin/Mobile Blueprint、跨端 i18n、UI Skill、`git diff --check` | 0 | 蓝图、双语 parity、Skill 安装与补丁格式通过。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | 容器 `running healthy`，`/healthz` 与 API public-config 可达；宿主/容器入口 SHA-256 均为 `1454df53e162698b444d1e359e0c0454c07e664653990f881f43914abe81132f`。 |
+
+- 本轮只部署 Admin 静态资源，没有重启 API、改写数据库或对象存储。用户附件作为修复前证据；真实登录态视觉与 axe 验收仍待复测，不以 jsdom 断言替代浏览器验收。
+
+### 文件选择器可调窗口与分栏交付
+
+- 左侧文件列表与右侧预览使用 Ant Design `Splitter`，桌面端最小宽度为 420px/280px；窄于 900px 时转为上下布局并设置 180px/140px 最小高度。分隔条可使用鼠标拖动，左右内容不会被压缩到不可用。
+- 右侧预览新增关闭与重新展开操作。关闭只回收大预览 Blob URL，不清空已选文件；重开后继续通过原鉴权下载接口和扫描安全门禁加载图片或视频。
+- Modal 使用现有 `width`、`style`、`styles`、`modalRender` 完成可调窗口：右上角最大化/还原，标题栏 Pointer Events 拖动移动，右下角手柄拖动缩放；几何状态按视口变化重新约束，保留 8px 边距和 800×520px 桌面最小尺寸。
+- 键盘路径包括最大化按钮、预览开关、`Alt + 方向键` 移动和方向键缩放；焦点样式与双语 accessible name 已补齐。未引入 react-draggable、react-resizable 等新依赖。
+- `ui-ux-pro-max` 用于核对分栏最小尺寸、焦点可见性、拖动手柄和状态恢复；未采用其与 Admin Master 不一致的营销视觉和高饱和配色建议。Master、页面 override、request、skill output、decisions、review checklist 和 screenshot index 已同步。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run src/components/AkFilePicker.test.tsx src/components/AkFileUploader.test.tsx` | 0 | 2 个文件、8 项测试通过；覆盖分隔条、预览关闭/展开、最大化/还原、标题栏拖动和右下角缩放。 |
+| `pnpm --filter @appkernia/admin lint` | 0 | ESLint 0 error / 0 warning。 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 56 routes 生成完成，TypeScript strict 检查通过。 |
+| `pnpm --filter @appkernia/admin test` | 0 | 33 个测试文件、142 项测试全部通过。 |
+| `VITE_AK_API_BASE_URL=/admin-api/v1 pnpm --filter @appkernia/admin build` | 0 | Vite 生产构建成功，9,936 modules transformed；Node 26.5.0 仍提示仓库期望 >=24 <25，但未影响退出码。 |
+| Admin/Mobile Blueprint、跨端 i18n、UI Skill、`git diff --check` | 0 | 蓝图、双语 key/placeholder parity、Skill 安装和补丁格式通过。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | Admin `running healthy`，`/healthz` 与 API public-config 可达；宿主/容器入口 SHA-256 均为 `9f65d8bf0695d0223d437f80f118edda2827dda4be11d8a8c168281c04c374db`。 |
+
+- 本轮仅更新 Admin 静态资源，没有重启 API、改写数据库或对象存储。真实登录态下的拖拽手感、375/768/1440、暗色模式和 axe 结果仍待浏览器复测，不把 jsdom 或构建结果表述为视觉验收。
+
+### 文件选择器多视图与操作样式交付
+
+- 筛选行最右侧使用 Ant Design Dropdown 切换 `grid/table/thumbnail`，三个菜单项均由语义 SVG 图标和双语文字组成。默认缩略图视图保持 88×56px；网格卡片保持文件名常驻底部并在 hover/focus 覆盖层显示文件类型、上传时间、大小和扫描状态；表格视图使用 16×16px 图片/类型图标与实测 24px 数据行。
+- 三种视图不复制数据或安全状态：继续使用同一个 `useAdminFiles` Query、`selected`、预览 Blob 生命周期、确认按钮及 `ready + clean/skipped` 门禁。视图切换卸载旧缩略图时会撤销 Blob URL。
+- 折叠后的预览恢复按钮改为右边缘垂直居中的 icon-only 左箭头，Tooltip 与 accessible name 保留完整双语说明；已选提示移除 Alert 边框/彩色表面，使用浅灰底和深灰字；Modal 关闭默认按钮由最大化/关闭等高组合按钮替代。
+- 浏览器 axe 首轮暴露资讯筛选区四个既有 Select 缺少 accessible name，已使用现有字段翻译键补齐；文件选择器 axe 严格限定选择器范围，避免把背景 Drawer 的既有表单问题混入本轮结果。
+- `ui-ux-pro-max` 用于核对 Data-Dense Dashboard、稳定 Hover、图标一致性、焦点和对比度；未采用其玫红品牌色、外部字体或营销 Portfolio 页面结构。Master、内容页面 override 和五类 artifacts 已同步。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run src/components/AkFilePicker.test.tsx src/components/AkFileUploader.test.tsx` | 0 | 2 个文件、9 项测试通过；覆盖三种视图切换、网格 Meta、16px 表格身份、预览箭头、已选提示和窗口操作组。 |
+| `pnpm --filter @appkernia/admin lint` | 0 | ESLint 0 error / 0 warning。 |
+| `pnpm --filter @appkernia/admin typecheck` | 0 | 56 routes 生成完成，TypeScript strict 检查通过。 |
+| `pnpm --filter @appkernia/admin test` | 0 | 33 个测试文件、143 项测试全部通过。 |
+| `VITE_AK_API_BASE_URL=/admin-api/v1 pnpm --filter @appkernia/admin build` | 0 | Vite 8.1.5 生产构建成功，9,936 modules transformed；既有大 chunk warning 和 Node 26.5.0/仓库 Node 24 范围 warning 不影响退出码。 |
+| `AK_E2E_BASE_URL=http://127.0.0.1:4174 AK_E2E_FILE_PICKER_ONLY=1 /Users/payhon/.venv/3.12/bin/python apps/ak-admin/scripts/e2e_content_management.py` | 0 | 真实 Chromium + API fixture 通过；选择器 axe serious/critical 0，行高 24px，箭头宽 24px且垂直偏移 0，输出 4 张 1440×900 截图。 |
+| Admin/Mobile Blueprint、跨端 i18n、UI Skill | 0 | 蓝图、双语 key/placeholder parity 和 Skill 安装检查通过。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | Admin `running healthy`，`/healthz` 返回 `ok`；宿主/容器入口 SHA-256 均为 `08dbfca1a86eac67146dc7a7ea1b40512b7ac24915d85629b2d13011b62828fb`。 |
+
+- 浏览器证据位于 `apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-content-management/screenshots/`，使用的是受控 API fixture；真实账号、实际对象存储、英文长文件名、暗色模式和 768/375 验收仍需登录态复测。本轮仅更新 Admin 静态资源，API、数据库和对象存储未重启或改写。
+
+### 文件选择器表头、全局下拉与共享缩放能力交付
+
+- 文件列表表头与预览分界处的右上圆角已清零。Select 和 selectable Dropdown/Menu 通过 AntD token 与全局 popup 状态共同使用浅蓝选中背景、深蓝文字，避免 active 状态再次退回暗背景。
+- 核实 Ant Design 6 `ModalProps` 无 resize 属性后，新增共享 `AkModal`：调用方通过 `resizable` 传入宽高、最小尺寸和更新回调。右下角 30px 命中区没有图标，弧线仅在 hover/focus/drag 可见，拖动时高亮；支持 Pointer Capture 和方向键调整。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm exec vitest run src/components/AkModal.test.tsx src/components/AkFilePicker.test.tsx src/app/theme.test.ts` | 0 | 3 个文件、11 项测试通过；覆盖共享缩放指针/键盘、禁用态、文件选择器集成和全局主题 token。 |
+| `pnpm lint` / `pnpm typecheck` | 0 | ESLint 0 error / 0 warning；56 routes 生成与 TypeScript strict 检查通过。 |
+| `pnpm test` | 0 | 35 个测试文件、146 项测试全部通过。 |
+| `pnpm build` | 0 | Vite 8.1.5 生产构建成功，9,937 modules transformed；既有大 chunk 与 Node 26/项目 Node 24 范围 warning 不影响退出码。 |
+| Admin Blueprint、跨端 i18n、`git diff --check` | 0 | 契约、双语 parity 与补丁格式通过。 |
+| `AK_E2E_BASE_URL=http://127.0.0.1:4174 AK_E2E_FILE_PICKER_ONLY=1 ... e2e_content_management.py` | 0 | Chromium + API fixture 通过：表头圆角 0px，下拉背景/文字为 `rgb(220,234,255)`/`rgb(23,62,122)`，窗口 1120×720→1160×744，axe serious/critical 0。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | Admin healthy，`/healthz` 返回 `ok`；宿主/容器入口 SHA-256 均为 `785da6c799011790f965c7fba8cb38acdfb7729b46048b413da8d59a4c45272a`。 |
+
+- 截图证据新增 `file-picker-select-menu-zh-CN.png`、`file-picker-select-open-zh-CN-1440.png` 与 `file-picker-resize-active-zh-CN-1440.png`。本轮未重启 API、改写数据库或对象存储；fixture 证据不冒充真实账号/对象存储联调。
+
+### 微信分享配置申请指引交付
+
+- 在分享配置 Drawer 标题旁增加问号帮助按钮；弹框以五步纵向流程解释微信开放平台申请、三端身份、审核/AppID、AppKernia 绑定/预检/重新打包和真机验收。
+- 文案与视图解耦：双语说明进入 `share_configs` Catalog，8 个已核验为 HTTP 200 的微信开放平台/DCloud HTTPS 地址进入 typed Provider registry。所有链接带外链图标并安全打开新浏览上下文。
+- 首轮 axe 暴露 waiting Steps 与默认链接对比度不足，已在 guide modal 局部改为深色标题和带下划线深蓝链接；最终桌面/移动端 serious/critical 均为 0。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/admin exec vitest run src/components/WechatShareApplicationGuide.test.tsx` | 0 | 1 个文件、2 项测试通过；覆盖双语弹框、五步内容和 8 个安全新窗口链接。 |
+| `pnpm --filter @appkernia/admin lint` / `typecheck` / `build` | 0 | ESLint、TypeScript strict 和 Vite 8.1.5 生产构建通过。 |
+| `pnpm --filter @appkernia/admin check` | 0 | 37 个测试文件/151 项测试、bundle budget、OpenAPI docs/reference 和 Admin Blueprint 全部通过。 |
+| 跨端 i18n、Admin Blueprint、`git diff --check` | 0 | 双语 key/placeholder parity、47 menus/57 routes/152 permissions 等契约和补丁格式通过。 |
+| 8 个外部文档地址逐一 `curl -L` | 0 | 微信开放平台首页/应用中心/创建指引/三端接入/分享收藏以及 DCloud 构建配置均返回 HTTP 200。 |
+| `AK_E2E_BASE_URL=http://127.0.0.1:4174 ... e2e_share_configuration.py` | 0 | Chromium + API fixture：1440/375 中文及 375 英文指引通过；8 个 scoped axe serious/critical 0，控制台错误 0。 |
+| 同步 dist、重启 `appkernia-news-demo-admin-1` | 0 | 本地 Admin 页面 HTTP 200，容器 `running healthy`；宿主/容器入口 SHA-256 均为 `1e7af837cbd1b17443c966c80fd9757b3238f883965eadff031efbb7bd813b00`。 |
+
+- 截图新增 `share-guide-zh-CN-1440.png`、`share-guide-zh-CN-375.png`、`share-guide-en-US-375.png`。这是浏览器 UI/契约证据，不替代微信已审核 AppID、发布签名、Universal Link 和安装微信真机上的分享验收。
 
 ### Admin 页面 Message 垂直节奏交付
 
@@ -2161,3 +2598,51 @@
 | 同步 Admin dist 并重启本地容器 | 0 | `http://localhost:4174/healthz` 返回 `ok`，Admin 容器 healthy。 |
 
 - 截图：[桌面 1440](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-page-message-rhythm/screenshots/upgrade-center.zh-CN.light.1440.png)、[移动 375](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-page-message-rhythm/screenshots/upgrade-center.zh-CN.light.375.png)、[几何与 axe 结果](../apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-page-message-rhythm/screenshots/e2e-results.json)。受控 API fixture 不代表生产账号联调；Firefox/Safari 未验证。
+
+### 推送渠道申请与对接指引交付
+
+- 页面标题最右侧增加问号帮助按钮，打开后以九个 Provider Tab 呈现申请步骤、表单字段来源、风险检查和官方资源。帮助不依赖当前 App 选择，不会读取或显示任何现有凭据。
+- 178 个 guide 翻译键分别进入权威 `zh-CN`/`en-US` Admin Catalog 并生成独立 `push_channels` 语言包；Provider 顺序、字段清单和 URL 由 typed registry 管理，官方域名通过 allowlist 测试。
+- `ui-ux-pro-max` 用于核对帮助入口、弹框信息层次、键盘 Tabs、外链辨识、72ch 可读宽度和 375px 布局；设计决策和未完成的登录态截图门禁已记录到 `AKADM-push-channels` artifacts。
+- 官方资料核验发现并修复两个服务端漂移：荣耀 OAuth 地址从已失效的 `.com.cn` 改为官方 `.com`；小米四个海外区域改为当前 `sgp/fr/idmb/ru-api.xmpush.global.xiaomi.com`，中国区维持 `api.xmpush.xiaomi.com`。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `vitest run ...provider-application-guides.test.ts ...PushProviderApplicationGuide.test.tsx` + `go test ./internal/modules/push/provider` | 0 | Admin 2 个文件/4 项测试通过；Provider 包通过。首次 jsdom 缺少 `ResizeObserver` 导致 2 项失败，补齐测试环境并迁移到 AntD 6 非废弃属性后复跑通过。 |
+| `npm --prefix apps/ak-admin run check` | 0 | generate、OpenAPI reference、lint、TypeScript strict、42 个测试文件/164 项测试、Vite production build（9,961 modules）、bundle、OpenAPI docs 和 Admin Blueprint 全部通过。 |
+| `go test ./...` | 0 | Go 全仓所有含测试包通过；Push Provider 地址回归测试包含在内。 |
+| i18n、Mobile Blueprint、Backend Blueprint、`git diff --check` | 0 | 双语 key/placeholder parity、44 Mobile routes、21 对迁移及补丁格式通过。Backend 首次误用不存在的 `scripts/validate_blueprint_specs.py` 路径退出 2，随后使用实际 `tools/validate_blueprint.py` 复跑通过。 |
+| `docker compose -p appkernia-news-demo build api worker admin` + `up -d --no-deps api worker admin` | 0 | 三个本地镜像重建并替换，PostgreSQL 未重启、未执行数据改写。 |
+| 本地 HTTP 与容器检查 | 0 | Admin/API healthy，Worker running；Push SPA route、`/healthz`、`/admin-api/v1/auth/public-config`、API live/ready 均为 HTTP 200。首次探测了不存在的 `/admin-api/v1/config/public` 并得到预期 404，随后按 OpenAPI 更正路径。 |
+
+- 当前用户浏览器仍在登录路由，因此本轮没有伪造登录态截图或 axe 结果。登录后需人工确认九个 Tab、官方外链、英文长文案及 375px 实际视觉；厂商账号审批、凭据预检和真机推送不属于本次 UI 帮助弹框验收。
+
+### App 消息推送现状架构图交付
+
+- 新增 `docs/manual/app-message-push-architecture.md`。架构图以当前实现而非目标蓝图为准，区分同步 API 事务、River 异步边界、站内消息与离线 Push、Provider 受理与设备展示、opened 与已读。
+- 文档明确 River 直接使用 PostgreSQL `river_job`，不是 Redis 队列；三类 Job 均在 `notifications` 队列消费，Worker 并发为 8，扇出分页为 500，单设备投递和 River Job 的最大尝试均为 5。
+- 运行态检查确认本地 Worker 存活，但 `AK_PUSH_ENABLED` 与 `AK_PUSH_ADAPTER` 均未显式设置：Push Kill Switch 默认为 false，开发 Adapter 默认为 `local-mock`。因此未宣称本地当前会调用真实厂商。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `rg` / `sed` 审计 notificationadmin、push、bootstrap、ak-worker、迁移与配置 | 0 | 确认发布事务、三类 River Job、分页扇出、单设备发送、归一结果、重试和打开统计调用链。 |
+| API/Worker 容器环境白名单检查 | 0 | 未发现 `AK_PUSH_ENABLED` 或 `AK_PUSH_ADAPTER` 显式值；结合 `optionalBool` 和开发默认逻辑，确定当前为 Kill Switch off + local-mock。未输出其他环境变量或秘密。 |
+| Mermaid 10.9.8 `parse` | 0 | 架构图语法解析通过。首次直接解析缺少 DOM，随后使用仓库已有 jsdom 提供解析环境后通过；未安装新依赖。 |
+| 相对链接存在性检查、`git diff --check` | 0 | 8 个代码索引全部存在，Markdown 代码围栏完整且补丁格式通过。 |
+
+### iOS 启动公开配置向后兼容修复
+
+- 根因：本地运行中的 API 版本落后于当前 Mobile/OpenAPI。实测 `GET /api/v1/public/config` 返回 HTTP 200，但 `data` 只有 `startup`，没有 `share` 和 `push`；UTS 泛型强转不做运行时字段补齐，直接解引用导致 iOS 报 `undefined is not an object`。
+- 修复：公开配置 Repository 对 `share`、`push` 及其列表做显式兼容归一化。缺字段时共享和 Push 能力均安全关闭，不影响应用主启动；当前完整响应仍按原协议映射。
+- 回归：Mobile 静态门禁禁止直接访问未归一化的 `response.data.share.providers` / `response.data.push.*`，并锁定 Push 默认 `false`。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| 本地 `curl GET /api/v1/public/config` | 0 | HTTP 200；`data_keys` 为 `app_id/app_type/appid/default_locale/name/registration_enabled/registration_verification_mode/startup`，`share`/`push` 均缺失，复现真实版本错配。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile Blueprint 45 routes、跨端 i18n、生成 Client、快照、升级 6 个 SemVer case、打包脚本 4 项测试及新增兼容门禁通过。 |
+| `apps/ak-mobile/scripts/build-platform.sh ios` | 0 | HBuilderX 5.24 完成 36 页面和 `ak-permissions`/`ak-push` iOS UTS 编译，`ready in 64976ms`。 |
+| HBuilderX custom playground + iPhone 16 Pro / iOS 18.6 | 0 | 自定义基座重签、安装、36 页面资源同步和启动成功；在旧 API 缺字段条件下进入浏览页。 |
+| Simulator unified log 定向检查 | 0 | 最近 10 分钟匹配 `TypeError`、`undefined is not an object`、`share.providers`、`push.enabled`、fatal、exception 为 0。 |
+| `git diff --check`（本轮文件） | 0 | 补丁格式通过。 |
+
+- 运行截图：`output/playwright/ak-ios-public-config-compatibility.png`，SHA-256 `b69aacd487396ce5072d00cebb130faeea424d481bc3757039321c323c894493`。这是本地 iOS 模拟器证据；未执行 iOS 真机、Archive/TestFlight 或真实 APNs/厂商 Push 验收。

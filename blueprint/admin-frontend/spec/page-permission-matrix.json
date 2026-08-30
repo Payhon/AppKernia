@@ -26,6 +26,27 @@
       }
     },
     {
+      "component_key": "system.settings.share-configs",
+      "view": ["sys.share_config.read"],
+      "actions": {
+        "create": "sys.share_config.create",
+        "update": "sys.share_config.update",
+        "delete": "sys.share_config.delete",
+        "rotateSecret": "sys.share_config.rotate_secret",
+        "readAppBinding": "app.share_binding.read",
+        "updateAppBinding": "app.share_binding.update"
+      },
+      "permission_status": {
+        "sys.share_config.read": "existing",
+        "sys.share_config.create": "existing",
+        "sys.share_config.update": "existing",
+        "sys.share_config.delete": "existing",
+        "sys.share_config.rotate_secret": "existing",
+        "app.share_binding.read": "existing",
+        "app.share_binding.update": "existing"
+      }
+    },
+    {
       "component_key": "system.settings.dictionaries",
       "view": [
         "sys.dictionary.read"
@@ -284,6 +305,38 @@
       "permission_status": {
         "notify.delivery.read": "existing",
         "notify.delivery.retry": "existing"
+      }
+    },
+    {
+      "component_key": "system.notifications.operations",
+      "view": [
+        "notify.observability.read"
+      ],
+      "actions": {
+        "retryTask": "notify.task.retry"
+      },
+      "permission_status": {
+        "notify.observability.read": "existing",
+        "notify.task.retry": "existing"
+      }
+    },
+    {
+      "component_key": "system.notifications.push-channels",
+      "view": [
+        "notify.push_provider.read"
+      ],
+      "actions": {
+        "manage": "notify.push_provider.manage",
+        "rotateSecret": "notify.push_provider.rotate_secret",
+        "preflight": "notify.push.preflight",
+        "test": "notify.push.test"
+      },
+      "permission_status": {
+        "notify.push_provider.read": "existing",
+        "notify.push_provider.manage": "existing",
+        "notify.push_provider.rotate_secret": "existing",
+        "notify.push.preflight": "existing",
+        "notify.push.test": "existing"
       }
     },
     {

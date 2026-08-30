@@ -11,10 +11,14 @@ import (
 	"time"
 
 	jobworker "github.com/appkernia/appkernia/server/internal/modules/jobadmin/worker"
+	notificationjobdefs "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/jobdefs"
 	notificationworker "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/worker"
+	pushdomain "github.com/appkernia/appkernia/server/internal/modules/push/domain"
+	pushprovider "github.com/appkernia/appkernia/server/internal/modules/push/provider"
 	settingsrepo "github.com/appkernia/appkernia/server/internal/modules/systemsettings/repository"
 	"github.com/appkernia/appkernia/server/internal/platform/buildinfo"
 	"github.com/appkernia/appkernia/server/internal/platform/config"
+	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
@@ -53,7 +57,20 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("create configuration secret sealer: %w", err)
 	}
-	river.AddWorker(workers, notificationworker.NewDeliveryWorker(pool, sealer, cfg.Environment))
+	insertClient, err := river.NewClient(riverpgxv5.New(pool), &river.Config{SkipUnknownJobCheck: true})
+	if err != nil {
+		return fmt.Errorf("create River insert client: %w", err)
+	}
+	trackedQueue := jobqueue.NewRiverAdapter(pool, insertClient, notificationjobdefs.Registry())
+	var pushSender pushdomain.Sender
+	if cfg.PushAdapter == "local-mock" {
+		pushSender = pushprovider.NewMockSender()
+	} else {
+		pushSender = pushprovider.NewOfficialSender(pool, sealer, cfg.Environment)
+	}
+	river.AddWorker(workers, notificationworker.NewDeliveryWorker(pool, sealer, cfg.Environment, cfg.PushEnabled, pushSender))
+	river.AddWorker(workers, notificationworker.NewMessagePublishWorker(pool, trackedQueue))
+	river.AddWorker(workers, notificationworker.NewPushFanoutWorker(pool, trackedQueue, sealer, cfg.Environment, cfg.PushEnabled))
 	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
 		Queues:          map[string]river.QueueConfig{"default": {MaxWorkers: 4}, "notifications": {MaxWorkers: 8}},
 		Workers:         workers,
@@ -68,6 +85,8 @@ func run() error {
 	}
 	scheduler := jobworker.NewScheduler(pool, client, 15*time.Second)
 	go scheduler.Run(ctx)
+	maintenance := notificationworker.NewOperationsMaintenance(pool, cfg.Environment, time.Hour)
+	go maintenance.Run(ctx)
 	<-ctx.Done()
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()

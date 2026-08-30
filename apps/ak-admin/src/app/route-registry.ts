@@ -13,6 +13,7 @@ const implementedComponentKeys = new Set([
   "profile.connections",
   "auth.oauth-callback",
   "system.settings.configs",
+  "system.settings.share-configs",
   "system.settings.dictionaries",
   "system.settings.regions",
   "system.storage.files",
@@ -20,6 +21,8 @@ const implementedComponentKeys = new Set([
   "system.notifications.messages",
   "system.notifications.templates",
   "system.notifications.deliveries",
+  "system.notifications.operations",
+  "system.notifications.push-channels",
   "system.integrations.schedules",
   "system.integrations.api-clients",
   "system.integrations.webhooks",
@@ -228,6 +231,8 @@ export function isSafeInternalRedirect(
   | "/system/notifications/messages"
   | "/system/notifications/templates"
   | "/system/notifications/deliveries"
+  | "/system/notifications/operations"
+  | "/system/notifications/push-channels"
   | "/system/integrations/schedules"
   | "/system/integrations/api-clients"
   | "/system/integrations/webhooks" {
@@ -262,6 +267,8 @@ export function isSafeInternalRedirect(
     value === "/system/notifications/messages" ||
     value === "/system/notifications/templates" ||
     value === "/system/notifications/deliveries" ||
+    value === "/system/notifications/operations" ||
+    value === "/system/notifications/push-channels" ||
     value === "/system/integrations/schedules" ||
     value === "/system/integrations/api-clients" ||
     value === "/system/integrations/webhooks"

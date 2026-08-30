@@ -59,6 +59,7 @@
   "menu.system.monitoring.sessions": "在线会话",
   "menu.system.notifications": "通知中心",
   "menu.system.notifications.deliveries": "投递记录",
+  "menu.system.notifications.push_channels": "推送渠道",
   "menu.system.notifications.messages": "站内消息",
   "menu.system.notifications.notices": "公告管理",
   "menu.system.notifications.templates": "通知模板",
@@ -111,6 +112,7 @@
   "routes.system.monitoring.health.title": "服务状态",
   "routes.system.monitoring.sessions.title": "在线会话",
   "routes.system.notifications.deliveries.title": "投递记录",
+  "routes.system.notifications.push_channels.title": "推送渠道",
   "routes.system.notifications.message-detail.title": "消息详情",
   "routes.system.notifications.messages.title": "站内消息",
   "routes.system.notifications.notice-detail.title": "公告详情",
@@ -162,5 +164,9 @@
   "routes.app.upgrade_center.title": "App升级中心",
   "routes.app.users.title": "App 用户管理",
   "routes.app.content.articles.title": "App 文章管理",
-  "routes.app.content.pages.title": "App 单页内容"
+  "routes.app.content.pages.title": "App 单页内容",
+  "menu.system.settings.share_configs": "分享配置",
+  "routes.system.settings.share_configs.title": "分享配置",
+  "menu.system.notifications.operations": "消息运营",
+  "routes.system.notifications.operations.title": "消息运营"
 }

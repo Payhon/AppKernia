@@ -1,0 +1,28 @@
+<template>
+  <view class="content-viewer">
+    <ak-imagetext-viewer v-if="contentType === 'gallery'" :category="category" :title="title" :summary="summary" :meta="meta" :cover="cover" :blocks="blocks" :media="media" :tags="tags" />
+    <ak-video-viewer
+      v-else-if="contentType === 'video'"
+      ref="videoViewer"
+      :category="category" :title="title" :summary="summary" :meta="meta" :cover="cover" :video-url="videoUrl" :blocks="blocks" :tags="tags"
+      :bookmarked="bookmarked" :bookmark-loading="bookmarkLoading" :bookmark-label="bookmarkLabel" :comment-label="commentLabel" :share-label="shareLabel" :horizontal-label="horizontalLabel" :vertical-label="verticalLabel"
+      @mode-change="$emit('mode-change', $event)" @video-error="$emit('video-error')" @bookmark="$emit('bookmark')" @comments="$emit('comments')" @share="$emit('share')"
+    />
+    <ak-article-viewer v-else :category="category" :title="title" :meta="meta" :cover="cover" :blocks="blocks" :tags="tags" />
+  </view>
+</template>
+
+<script lang="uts">
+import { ArticleBodyBlock } from '../../../src/features/articles/application/article-body-renderer.uts'
+import { ContentMedia, ContentTag } from '../../../src/features/articles/domain/models.uts'
+export default {
+  props: {
+    contentType: { type: String, default: 'article' }, category: { type: String, default: '' }, title: { type: String, default: '' }, summary: { type: String, default: '' }, meta: { type: String, default: '' }, cover: { type: String, default: '' }, videoUrl: { type: String, default: '' },
+    bookmarked: { type: Boolean, default: false }, bookmarkLoading: { type: Boolean, default: false }, bookmarkLabel: { type: String, default: '' }, commentLabel: { type: String, default: '' }, shareLabel: { type: String, default: '' }, horizontalLabel: { type: String, default: '' }, verticalLabel: { type: String, default: '' },
+    blocks: { type: Array<ArticleBodyBlock>, default: () => [] as Array<ArticleBodyBlock> }, media: { type: Array<ContentMedia>, default: () => [] as Array<ContentMedia> }, tags: { type: Array<ContentTag>, default: () => [] as Array<ContentTag> },
+  },
+  emits: ['mode-change', 'video-error', 'bookmark', 'comments', 'share'],
+}
+</script>
+
+<style lang="scss">.content-viewer { width: 100%; }</style>

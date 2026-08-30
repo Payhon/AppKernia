@@ -1,0 +1,25 @@
+export type PermissionKey = 'notifications' | 'camera' | 'photos' | 'file_picker' | 'microphone' | 'location' | 'bluetooth'
+export type PermissionStatus = 'not_determined' | 'authorized' | 'limited' | 'denied' | 'restricted' | 'unavailable'
+export type PermissionErrorCode = 'invalid_capability' | 'request_unavailable' | 'settings_unavailable' | 'native_failure'
+
+export class PermissionCapability {
+  readonly key: PermissionKey
+  readonly status: PermissionStatus
+  readonly canRequest: boolean
+  readonly canOpenSettings: boolean
+  readonly platform: string
+  readonly checkedAt: number
+  constructor(key: PermissionKey, status: PermissionStatus, canRequest: boolean, canOpenSettings: boolean, platform: string, checkedAt: number) {
+    this.key=key;this.status=status;this.canRequest=canRequest;this.canOpenSettings=canOpenSettings;this.platform=platform;this.checkedAt=checkedAt
+  }
+}
+
+export type PermissionFailure = (code: PermissionErrorCode) => void
+export type PermissionCapabilitiesSuccess = (capabilities: Array<PermissionCapability>) => void
+export type PermissionCapabilitySuccess = (capability: PermissionCapability) => void
+export type PermissionStatusListener = (capability: PermissionCapability) => void
+export type ListPermissionCapabilities = (success: PermissionCapabilitiesSuccess, failure: PermissionFailure) => void
+export type GetPermissionStatus = (key: PermissionKey, success: PermissionCapabilitySuccess, failure: PermissionFailure) => void
+export type RequestPermission = (key: PermissionKey, success: PermissionCapabilitySuccess, failure: PermissionFailure) => void
+export type OpenPermissionSettings = (key: PermissionKey) => boolean
+export type OnPermissionStatusChanged = (listener: PermissionStatusListener | null) => void

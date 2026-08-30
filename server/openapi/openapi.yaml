@@ -28,6 +28,10 @@ tags:
     description: API Client authentication
     x-displayName: API Client authentication
     x-appkernia-i18n-key: api_reference.module.api_client_auth
+  - name: api-client-notifications
+    description: Trusted application notification submission
+    x-displayName: Application notification submission
+    x-appkernia-i18n-key: api_reference.module.api_client_notifications
   - name: mobile-auth
     description: Authentication
     x-displayName: Authentication
@@ -100,6 +104,10 @@ tags:
     description: System settings
     x-displayName: System settings
     x-appkernia-i18n-key: api_reference.module.admin_system_settings
+  - name: admin-share-configuration
+    description: Reusable share provider configuration and App bindings
+    x-displayName: Share configuration
+    x-appkernia-i18n-key: api_reference.module.admin_share_configuration
   - name: admin-storage
     description: Files
     x-displayName: Files
@@ -141,6 +149,7 @@ x-tagGroups:
       - public-content
       - public-dictionary
       - api-client-auth
+      - api-client-notifications
   - name: Mobile APIs
     x-appkernia-i18n-key: api_reference.surface.mobile
     tags:
@@ -165,6 +174,7 @@ x-tagGroups:
       - admin-users
       - admin-access-control
       - admin-system-settings
+      - admin-share-configuration
       - admin-storage
       - admin-content
       - admin-notifications
@@ -175,6 +185,16 @@ x-tagGroups:
       - admin-operations
 
 paths:
+  /s/{slug}:
+    get:
+      summary: Render the public HTTPS content sharing landing page
+      operationId: getPublicContentSharePage
+      tags: [public-content]
+      security: []
+      parameters: [{name: slug, in: path, required: true, schema: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}}, {name: app_id, in: query, required: true, schema: {type: string, format: uuid}}, {name: Accept-Language, in: header, schema: {type: string}}]
+      responses:
+        "200": {description: HTML landing page with Open Graph metadata and a controlled App deep link., content: {text/html: {schema: {type: string}}}}
+        "404": {$ref: "#/components/responses/NotFound"}
   /internal/v1/health/live:
     get:
       summary: Check API process liveness
@@ -473,6 +493,13 @@ paths:
       tags: [mobile-notifications]
       parameters: [{name: cursor, in: query, schema: {type: string}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Delivered notifications visible only to the authenticated tenant member., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPageResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/me/notifications/{id}:
+    parameters: [{$ref: "#/components/parameters/AppID"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+    get:
+      summary: Read one delivered current-user in-app notification
+      operationId: getMobileNotification
+      tags: [mobile-notifications]
+      responses: {"200": {description: Notification detail scoped to the authenticated user and App., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/notifications/{id}/read:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     patch:
@@ -481,6 +508,35 @@ paths:
       tags: [mobile-notifications]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Notification read state updated, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/me/push-devices/current:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: Read the current authenticated installation push binding without exposing its token
+      operationId: getMobileCurrentPushDevice
+      tags: [mobile-notifications]
+      responses: {"200": {description: Current installation binding, content: {application/json: {schema: {$ref: "#/components/schemas/MobileCurrentPushDeviceResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/me/push-devices:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    post:
+      summary: Idempotently register or refresh the current installation push token
+      operationId: registerMobilePushDevice
+      tags: [mobile-notifications]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePushDeviceRegisterRequest"}}}}
+      responses: {"200": {description: Active push binding; token is never returned., content: {application/json: {schema: {$ref: "#/components/schemas/MobilePushDeviceResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {description: Push capability unavailable.}}
+  /api/v1/me/push-devices/{push_device_id}:
+    parameters: [{$ref: "#/components/parameters/AppID"}, {name: push_device_id, in: path, required: true, schema: {type: string, format: uuid}}]
+    delete:
+      summary: Disable the current user's push binding before local SDK unregister
+      operationId: disableMobilePushDevice
+      tags: [mobile-notifications]
+      responses: {"200": {description: Binding disabled., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/me/push-deliveries/{delivery_id}/opened:
+    parameters: [{$ref: "#/components/parameters/AppID"}, {name: delivery_id, in: path, required: true, schema: {type: string, format: uuid}}]
+    post:
+      summary: Idempotently record that the authenticated user opened one owned push delivery
+      operationId: markMobilePushDeliveryOpened
+      tags: [mobile-notifications]
+      responses: {"200": {description: Open event recorded; this does not mark the message read., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/login-events:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get: {summary: List the current user's mobile login events, operationId: listMobileLoginEvents, tags: [mobile-security], responses: {"200": {description: Login events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
@@ -583,6 +639,157 @@ paths:
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App soft-deleted., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/push-provider-catalog:
+    get:
+      summary: List the compile-time push provider catalog and its strongly typed configuration fields
+      operationId: listAdminAppPushProviderCatalog
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Push provider catalog., content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushProviderCatalogResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}}
+  /admin-api/v1/apps/{app_id}/push-provider-configs:
+    get:
+      summary: List encrypted push provider configurations without secret values
+      operationId: listAdminAppPushProviderConfigs
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: environment, in: query, required: true, schema: {$ref: "#/components/schemas/PushEnvironment"}}]
+      responses: {"200": {description: Provider configurations., content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushProviderConfigListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/push-devices:
+    get:
+      summary: List up to 100 recent active registered devices for safe test selection without tokens or user identifiers
+      operationId: listAdminAppPushTestDevices
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: provider, in: query, required: true, schema: {$ref: "#/components/schemas/PushWritableProvider"}}]
+      responses: {"200": {description: Opaque test device choices., content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushTestDeviceListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/push-delivery-summary:
+    get:
+      summary: Aggregate the last 30 days of push results by provider, category, and normalized result
+      operationId: getAdminAppPushDeliverySummary
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Push delivery summary with no token or user metric labels., content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushDeliverySummaryResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}}
+  /admin-api/v1/apps/{app_id}/notification-operations/summary:
+    get:
+      summary: Read application notification operations totals and queue health
+      operationId: getAdminNotificationOperationsSummary
+      tags: [admin-notifications]
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/NotificationOperationsAppID"}, {$ref: "#/components/parameters/NotificationOperationsEnvironment"}, {$ref: "#/components/parameters/NotificationOperationsFrom"}, {$ref: "#/components/parameters/NotificationOperationsTo"}]
+      responses: {"200": {description: Safe notification operations summary., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationOperationsSummaryResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/notification-operations/trends:
+    get:
+      summary: Read daily notification delivery and opening trends
+      operationId: getAdminNotificationOperationsTrends
+      tags: [admin-notifications]
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/NotificationOperationsAppID"}, {$ref: "#/components/parameters/NotificationOperationsEnvironment"}, {$ref: "#/components/parameters/NotificationOperationsFrom"}, {$ref: "#/components/parameters/NotificationOperationsTo"}]
+      responses: {"200": {description: Daily application notification trends., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTrendListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/notification-runs:
+    get:
+      summary: List application notification pipeline runs
+      operationId: listAdminNotificationRuns
+      tags: [admin-notifications]
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/NotificationOperationsAppID"}, {$ref: "#/components/parameters/NotificationOperationsEnvironment"}, {$ref: "#/components/parameters/NotificationOperationsFrom"}, {$ref: "#/components/parameters/NotificationOperationsTo"}, {$ref: "#/components/parameters/NotificationOperationsStatus"}, {$ref: "#/components/parameters/NotificationOperationsPage"}, {$ref: "#/components/parameters/NotificationOperationsPageSize"}]
+      responses: {"200": {description: App-scoped message runs., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRunPageResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/notification-runs/{run_id}:
+    get:
+      summary: Read one application notification pipeline run
+      operationId: getAdminNotificationRun
+      tags: [admin-notifications]
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/NotificationOperationsAppID"}, {name: run_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Message pipeline run., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationRunResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /admin-api/v1/apps/{app_id}/notification-tasks:
+    get:
+      summary: List payload-free notification task projections
+      operationId: listAdminNotificationTasks
+      tags: [admin-notifications]
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/NotificationOperationsAppID"}, {$ref: "#/components/parameters/NotificationOperationsFrom"}, {$ref: "#/components/parameters/NotificationOperationsTo"}, {$ref: "#/components/parameters/NotificationOperationsStatus"}, {name: task_kind, in: query, schema: {type: string, maxLength: 160}}, {$ref: "#/components/parameters/NotificationOperationsPage"}, {$ref: "#/components/parameters/NotificationOperationsPageSize"}]
+      responses: {"200": {description: Safe task run page without River args., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTaskPageResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/notification-tasks/{task_id}:
+    get:
+      summary: Read one notification task and its safe attempt history
+      operationId: getAdminNotificationTask
+      tags: [admin-notifications]
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/NotificationOperationsAppID"}, {name: task_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Task run with safe attempt summaries., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTaskResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /admin-api/v1/apps/{app_id}/notification-failures:
+    get:
+      summary: List terminal notification failures eligible for operator review
+      operationId: listAdminNotificationFailures
+      tags: [admin-notifications]
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/NotificationOperationsAppID"}, {$ref: "#/components/parameters/NotificationOperationsFrom"}, {$ref: "#/components/parameters/NotificationOperationsTo"}, {name: provider, in: query, schema: {$ref: "#/components/schemas/PushProvider"}}, {name: channel, in: query, schema: {type: string, enum: [in_app, email, sms, push, webhook]}}, {$ref: "#/components/parameters/NotificationOperationsPage"}, {$ref: "#/components/parameters/NotificationOperationsPageSize"}]
+      responses: {"200": {description: Terminal failure page with safe errors., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationFailurePageResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/notification-retries:
+    post:
+      summary: Retry up to 100 eligible terminal notification tasks
+      operationId: retryAdminNotificationTasks
+      tags: [admin-notifications]
+      security: [{adminBearer: []}]
+      parameters: [{$ref: "#/components/parameters/NotificationOperationsAppID"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTaskRetryRequest"}}}}
+      responses: {"202": {description: Per-task retry decisions., content: {application/json: {schema: {$ref: "#/components/schemas/AdminNotificationTaskRetryResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/push-provider-configs/{provider}:
+    put:
+      summary: Create or update public provider configuration; secret values use the separate write-only rotation endpoint
+      operationId: upsertAdminAppPushProviderConfig
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: provider, in: path, required: true, schema: {$ref: "#/components/schemas/PushWritableProvider"}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushProviderConfigRequest"}}}}
+      responses: {"200": {description: Provider configuration metadata., content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushProviderConfigResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/rotate-secret:
+    post:
+      summary: Replace encrypted provider credentials; plaintext is write-only and never returned
+      operationId: rotateAdminAppPushProviderSecret
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushSecretRotationRequest"}}}}
+      responses: {"200": {description: Updated credential metadata., content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushProviderConfigResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/preflight:
+    post:
+      summary: Validate provider credentials and application identifiers without sending to an arbitrary token
+      operationId: preflightAdminAppPushProviderConfig
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Updated preflight state., content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushProviderConfigResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/activate:
+    post:
+      summary: Activate a preflight-ready provider configuration
+      operationId: activateAdminAppPushProviderConfig
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Active provider configuration., content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushProviderConfigResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/disable:
+    post:
+      summary: Disable a provider configuration
+      operationId: disableAdminAppPushProviderConfig
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Disabled provider configuration., content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushProviderConfigResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/test:
+    post:
+      summary: Queue a test push to a registered device selected by opaque ID
+      operationId: testAdminAppPushProviderConfig
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushTestRequest"}}}}
+      responses: {"202": {description: Test delivery queued., content: {application/json: {schema: {$ref: "#/components/schemas/AdminPushTestResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/apps/batch-delete:
     post:
       summary: Atomically soft-delete up to 100 disabled non-default Apps
@@ -3386,6 +3593,105 @@ paths:
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminConfigSecretRequest"}}}}
       responses: {"200": {description: "Secret replaced; plaintext and ciphertext are absent from response and audit.", content: {application/json: {schema: {$ref: "#/components/schemas/AdminConfigResponse"}}}}, "409": {description: Conflict, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
+  /admin-api/v1/share-configs:
+    get:
+      summary: List reusable tenant share provider configurations
+      operationId: listAdminShareConfigs
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: q, in: query, schema: {type: string, maxLength: 160}}, {name: provider_code, in: query, schema: {type: string, enum: [wechat]}}, {name: status, in: query, schema: {type: string, enum: [draft, active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
+      responses: {"200": {description: Secret values and ciphertext are never returned., content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareConfigListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}}
+    post:
+      summary: Create a draft share provider configuration
+      operationId: createAdminShareConfig
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareConfigInput"}}}}
+      responses: {"201": {description: Draft created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareConfigResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/share-configs/{id}:
+    get:
+      summary: Read one tenant share configuration
+      operationId: getAdminShareConfig
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Configuration without secrets., content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareConfigResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update a share configuration with optimistic locking
+      operationId: updateAdminShareConfig
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareConfigInput"}}}}
+      responses: {"200": {description: Updated configuration., content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareConfigResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+    delete:
+      summary: Delete an unused share configuration
+      operationId: deleteAdminShareConfig
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/share-configs/{id}/activate:
+    post:
+      summary: Activate a complete share configuration
+      operationId: activateAdminShareConfig
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Configuration activated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareConfigResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/share-configs/{id}/disable:
+    post:
+      summary: Disable a share configuration and force bound Apps to system sharing
+      operationId: disableAdminShareConfig
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Configuration disabled., content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareConfigResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/share-configs/{id}/rotate-secret:
+    post:
+      summary: Replace the encrypted secret envelope for a code-registered future provider
+      description: The WeChat share provider does not accept or store AppSecret.
+      operationId: rotateAdminShareConfigSecret
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareSecretInput"}}}}
+      responses: {"200": {description: Secret envelope rotated without returning secret values., content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareConfigResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/share-bindings:
+    get:
+      summary: List current share provider bindings for an App
+      operationId: listAdminAppShareBindings
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: App share bindings., content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareBindingListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}}
+  /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}:
+    put:
+      summary: Create or replace the current App binding for a registered provider
+      operationId: putAdminAppShareBinding
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: provider_code, in: path, required: true, schema: {type: string, enum: [wechat]}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareBindingInput"}}}}
+      responses: {"200": {description: Bound after server-side preflight., content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareBindingResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+    delete:
+      summary: Remove the current App binding for a provider
+      operationId: deleteAdminAppShareBinding
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: provider_code, in: path, required: true, schema: {type: string, enum: [wechat]}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Binding removed., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight:
+    post:
+      summary: Validate provider lifecycle, native identity and share origin before binding
+      operationId: preflightAdminAppShareBinding
+      tags: [admin-share-configuration]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: provider_code, in: path, required: true, schema: {type: string, enum: [wechat]}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminShareBindingInput"}}}}
+      responses: {"200": {description: Machine-readable readiness without mutation., content: {application/json: {schema: {$ref: "#/components/schemas/AdminSharePreflightResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/dict-types:
     get:
       summary: List visible dictionary types
@@ -3451,7 +3757,6 @@ paths:
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Deleted, content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "409": {description: Conflict, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}}
   /api/v1/auth/client-token:
-    parameters: [{$ref: "#/components/parameters/AppID"}]
     post:
       summary: Exchange an API Client secret for a short-lived ak-api audience token
       operationId: createApiClientToken
@@ -3459,6 +3764,31 @@ paths:
       security: []
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/APIClientTokenRequest"}}}}
       responses: {"200": {description: Machine access token., content: {application/json: {schema: {$ref: "#/components/schemas/APIClientTokenResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
+  /api/v1/apps/{app_id}/notifications:
+    post:
+      summary: Idempotently submit an application notification through a trusted API Client
+      operationId: submitApplicationNotification
+      tags: [api-client-notifications]
+      security: [{apiClientBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: Idempotency-Key, in: header, required: true, schema: {type: string, minLength: 8, maxLength: 255}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/ApplicationNotificationSubmitRequest"}}}}
+      responses: {"202": {description: Notification accepted into the asynchronous pipeline., headers: {Location: {schema: {type: string}}}, content: {application/json: {schema: {$ref: "#/components/schemas/ApplicationNotificationSubmissionResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/apps/{app_id}/notifications/{message_id}:
+    get:
+      summary: Read notification pipeline status using an authorized API Client
+      operationId: getApplicationNotificationStatus
+      tags: [api-client-notifications]
+      security: [{apiClientBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: message_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Current asynchronous notification status., content: {application/json: {schema: {$ref: "#/components/schemas/ApplicationNotificationStatusResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/apps/{app_id}/notifications/{message_id}/cancel:
+    post:
+      summary: Cancel a notification that has not entered publishing or fanout
+      operationId: cancelApplicationNotification
+      tags: [api-client-notifications]
+      security: [{apiClientBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: message_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Notification cancellation accepted., content: {application/json: {schema: {$ref: "#/components/schemas/ApplicationNotificationCancelResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
   /admin-api/v1/api-clients:
     get:
       summary: List tenant API Clients without secret material
@@ -3516,6 +3846,15 @@ paths:
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientPermissionsRequest"}}}}
       responses: {"200": {description: Permissions replaced., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/api-clients/{id}/apps:
+    put:
+      summary: Replace the explicit application allowlist assigned to an API Client
+      operationId: replaceAdminAPIClientApps
+      tags: [admin-api-clients]
+      security: [{adminBearer: []}]
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientAppsRequest"}}}}
+      responses: {"200": {description: Application allowlist replaced; an empty list denies every App., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAPIClientResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/webhooks:
     get:
       summary: List tenant webhook endpoints without signing secret material
@@ -3616,6 +3955,10 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+    apiClientBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
     adminRefreshCookie:
       type: apiKey
       in: cookie
@@ -3709,6 +4052,35 @@ components:
       in: path
       required: true
       schema: {type: string, format: uuid}
+    NotificationOperationsAppID:
+      name: app_id
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+    NotificationOperationsEnvironment:
+      name: environment
+      in: query
+      schema: {$ref: "#/components/schemas/PushEnvironment"}
+    NotificationOperationsFrom:
+      name: from
+      in: query
+      schema: {type: string, format: date-time}
+    NotificationOperationsTo:
+      name: to
+      in: query
+      schema: {type: string, format: date-time}
+    NotificationOperationsStatus:
+      name: status
+      in: query
+      schema: {type: string, maxLength: 32}
+    NotificationOperationsPage:
+      name: page
+      in: query
+      schema: {type: integer, minimum: 1, default: 1}
+    NotificationOperationsPageSize:
+      name: page_size
+      in: query
+      schema: {type: integer, minimum: 1, maximum: 100, default: 20}
     TenantMemberUserID:
       name: user_id
       in: path
@@ -3789,6 +4161,31 @@ components:
     SupportedLocale:
       type: string
       enum: [zh-CN, en-US]
+    PushProvider:
+      type: string
+      enum: [apns, fcm, huawei_android, honor, xiaomi, oppo, vivo, meizu, harmony, custom]
+      description: custom is a read-only legacy compatibility value and cannot be registered or configured by new APIs.
+    PushWritableProvider:
+      type: string
+      enum: [apns, fcm, huawei_android, honor, xiaomi, oppo, vivo, meizu, harmony]
+    PushPlatform:
+      type: string
+      enum: [ios, android, harmony]
+    PushStoredPlatform:
+      type: string
+      enum: [ios, android, harmony, unknown]
+    PushBuildVariant:
+      type: string
+      enum: [ios, android_google, android_china, harmony]
+    PushStoredBuildVariant:
+      type: string
+      enum: [ios, android_google, android_china, harmony, legacy]
+    PushMessageCategory:
+      type: string
+      enum: [service_security, news_operations]
+    PushEnvironment:
+      type: string
+      enum: [development, test, staging, production]
     AdminSwitchTenantRequest:
       type: object
       additionalProperties: false
@@ -3815,7 +4212,7 @@ components:
         message: {type: string}
         data:
           type: object
-          required: [app_id, appid, app_type, name, default_locale, registration_enabled, registration_verification_mode, startup]
+          required: [app_id, appid, app_type, name, default_locale, registration_enabled, registration_verification_mode, startup, share, push]
           properties:
             app_id: {type: string, format: uuid}
             appid: {type: string}
@@ -3825,7 +4222,126 @@ components:
             registration_enabled: {type: boolean}
             registration_verification_mode: {type: string, enum: [none, email_otp]}
             startup: {$ref: "#/components/schemas/AppPublicStartup"}
+            share:
+              type: object
+              additionalProperties: false
+              required: [providers]
+              properties:
+                providers: {type: array, items: {$ref: "#/components/schemas/PublicShareProvider"}}
+            push: {$ref: "#/components/schemas/PublicPushRuntime"}
         request_id: {type: string}
+    PublicShareProvider:
+      oneOf:
+        - $ref: "#/components/schemas/PublicWechatShareProvider"
+      discriminator:
+        propertyName: provider_code
+        mapping: {wechat: "#/components/schemas/PublicWechatShareProvider"}
+    PublicWechatShareProvider:
+      type: object
+      additionalProperties: false
+      required: [provider_code, enabled, scenes, fallback_mode]
+      properties:
+        provider_code: {type: string, const: wechat}
+        enabled: {type: boolean}
+        scenes: {type: array, uniqueItems: true, minItems: 1, maxItems: 3, items: {type: string, enum: [session, timeline, favorite]}}
+        fallback_mode: {type: string, const: system}
+    PublicPushRuntime:
+      type: object
+      additionalProperties: false
+      required: [enabled, environment, providers, build_variants]
+      properties:
+        enabled: {type: boolean}
+        environment: {$ref: "#/components/schemas/PushEnvironment"}
+        providers: {type: array, uniqueItems: true, items: {$ref: "#/components/schemas/PushProvider"}}
+        build_variants: {type: array, uniqueItems: true, items: {$ref: "#/components/schemas/PushBuildVariant"}}
+    AdminPushProviderCatalogItem:
+      type: object
+      additionalProperties: false
+      required: [provider, platforms, build_variants, public_fields, secret_fields, supports_preflight, supports_test, config_schema_version]
+      properties:
+        provider: {$ref: "#/components/schemas/PushWritableProvider"}
+        platforms: {type: array, items: {$ref: "#/components/schemas/PushPlatform"}}
+        build_variants: {type: array, items: {$ref: "#/components/schemas/PushBuildVariant"}}
+        public_fields: {type: array, items: {type: string}}
+        secret_fields: {type: array, items: {type: string}, description: Field names only; secret values are never returned.}
+        supports_preflight: {type: boolean}
+        supports_test: {type: boolean}
+        config_schema_version: {type: integer, format: int32, const: 1}
+    AdminPushProviderCatalogResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminPushProviderCatalogItem"}}}}, request_id: {type: string}}
+    AdminPushPublicConfig:
+      type: object
+      description: Strict provider-specific string fields advertised by the provider catalog; unknown fields are rejected server-side.
+      additionalProperties: {type: string, maxLength: 2048}
+    AdminPushProviderConfig:
+      type: object
+      additionalProperties: false
+      required: [id, app_id, environment, provider, config_schema_version, public_config, secret_field_names, has_secret, status, last_preflight_issues, lock_version, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        app_id: {type: string, format: uuid}
+        environment: {$ref: "#/components/schemas/PushEnvironment"}
+        provider: {$ref: "#/components/schemas/PushWritableProvider"}
+        config_schema_version: {type: integer, format: int32, const: 1}
+        public_config: {$ref: "#/components/schemas/AdminPushPublicConfig"}
+        secret_field_names: {type: array, items: {type: string}}
+        has_secret: {type: boolean}
+        credential_fingerprint: {type: string, readOnly: true, maxLength: 32}
+        status: {type: string, enum: [draft, active, disabled, faulted]}
+        last_preflight_at: {type: [string, "null"], format: date-time}
+        last_preflight_status: {type: string, enum: ["", ready, failed]}
+        last_preflight_issues: {type: array, items: {type: string}}
+        lock_version: {type: integer, format: int32, minimum: 1}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    AdminPushProviderConfigRequest:
+      type: object
+      additionalProperties: false
+      required: [environment, config_schema_version, public_config]
+      properties:
+        environment: {$ref: "#/components/schemas/PushEnvironment"}
+        config_schema_version: {type: integer, format: int32, const: 1}
+        public_config: {$ref: "#/components/schemas/AdminPushPublicConfig"}
+        lock_version: {type: integer, format: int32, minimum: 0}
+    AdminPushSecretRotationRequest:
+      type: object
+      additionalProperties: false
+      required: [values, lock_version]
+      properties:
+        values: {type: object, writeOnly: true, minProperties: 1, additionalProperties: {type: string, minLength: 1, maxLength: 65536}}
+        lock_version: {type: integer, format: int32, minimum: 1}
+    AdminPushProviderConfigResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/AdminPushProviderConfig"}, request_id: {type: string}}
+    AdminPushProviderConfigListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminPushProviderConfig"}}}}, request_id: {type: string}}
+    AdminPushTestRequest:
+      type: object
+      additionalProperties: false
+      required: [push_device_id, title, body]
+      properties: {push_device_id: {type: string, format: uuid}, title: {type: string, minLength: 1, maxLength: 64}, body: {type: string, minLength: 1, maxLength: 180}}
+    AdminPushTestResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {type: object, required: [id, status], properties: {id: {type: string, format: uuid}, status: {type: string, const: pending}}}, request_id: {type: string}}
+    AdminPushTestDeviceListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, maxItems: 100, items: {$ref: "#/components/schemas/MobilePushDevice"}}}}, request_id: {type: string}}
+    AdminPushDeliverySummaryItem:
+      type: object
+      additionalProperties: false
+      required: [provider, category, result, count, opened_count]
+      properties: {provider: {$ref: "#/components/schemas/PushProvider"}, category: {$ref: "#/components/schemas/PushMessageCategory"}, result: {type: string, enum: [pending, processing, sent, failed, skipped, accepted, invalid_token, throttled, transient, permanent, auth_config_error, unknown_after_write]}, count: {type: integer, format: int64, minimum: 0}, opened_count: {type: integer, format: int64, minimum: 0}}
+    AdminPushDeliverySummaryResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {type: object, required: [items, window_days], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminPushDeliverySummaryItem"}}, window_days: {type: integer, const: 30}}}, request_id: {type: string}}
     PublicConfigResponse:
       type: object
       required: [code, message, data, request_id]
@@ -5680,7 +6196,7 @@ components:
     AdminNotificationMessage:
       type: object
       additionalProperties: false
-      required: [id, app_id, message_type, title, body, body_format, status, audience_scope, audience_user_ids, created_at, updated_at]
+      required: [id, app_id, message_type, title, body, body_format, status, audience_scope, audience_user_ids, push_category, push_ttl_seconds, push_route_params, created_at, updated_at]
       properties:
         id: {type: string, format: uuid}
         app_id: {type: string, format: uuid}
@@ -5694,12 +6210,17 @@ components:
         scheduled_at: {type: [string, "null"], format: date-time}
         published_at: {type: [string, "null"], format: date-time}
         expires_at: {type: [string, "null"], format: date-time}
+        push_category: {$ref: "#/components/schemas/PushMessageCategory"}
+        push_ttl_seconds: {type: integer, format: int32, minimum: 300, maximum: 604800}
+        push_collapse_key: {type: string, maxLength: 128, pattern: "^[A-Za-z0-9._:-]*$"}
+        push_route_key: {type: string, enum: ["", notification.detail]}
+        push_route_params: {type: object, additionalProperties: {type: string, maxLength: 200}, maxProperties: 8}
         created_at: {type: string, format: date-time}
         updated_at: {type: string, format: date-time}
     AdminNotificationMessageRequest:
       type: object
       additionalProperties: false
-      required: [message_type, title, body, body_format, audience_scope, audience_user_ids]
+      required: [message_type, title, body, body_format, audience_scope, audience_user_ids, push_category, push_ttl_seconds]
       properties:
         message_type: {type: string, enum: [system, notice, private, marketing, security]}
         title: {type: string, minLength: 1, maxLength: 300}
@@ -5709,6 +6230,11 @@ components:
         audience_user_ids: {type: array, maxItems: 500, uniqueItems: true, items: {type: string, format: uuid}}
         scheduled_at: {type: [string, "null"], format: date-time}
         expires_at: {type: [string, "null"], format: date-time}
+        push_category: {$ref: "#/components/schemas/PushMessageCategory"}
+        push_ttl_seconds: {type: integer, format: int32, minimum: 300, maximum: 604800}
+        push_collapse_key: {type: string, maxLength: 128, pattern: "^[A-Za-z0-9._:-]*$"}
+        push_route_key: {type: string, enum: ["", notification.detail]}
+        push_route_params: {type: object, additionalProperties: {type: string, maxLength: 200}, maxProperties: 8}
     AdminNotificationRecipient:
       type: object
       additionalProperties: false
@@ -6033,6 +6559,142 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminConfigPage"}, request_id: {type: string}}
+    SharePlatformIdentity:
+      type: object
+      additionalProperties: false
+      required: [enabled]
+      properties:
+        enabled: {type: boolean}
+        package_name: {type: string, maxLength: 255}
+        signature: {type: string, writeOnly: false, maxLength: 256, description: Public Android application signature registered with WeChat; it is not an AppSecret.}
+        bundle_id: {type: string, maxLength: 255}
+        universal_link: {type: string, format: uri, pattern: '^https://'}
+        bundle_name: {type: string, maxLength: 255}
+    WechatSharePublicConfig:
+      type: object
+      additionalProperties: false
+      required: [android, ios, harmony]
+      properties:
+        android: {$ref: "#/components/schemas/SharePlatformIdentity"}
+        ios: {$ref: "#/components/schemas/SharePlatformIdentity"}
+        harmony: {$ref: "#/components/schemas/SharePlatformIdentity"}
+    AdminShareConfigBase:
+      type: object
+      required: [id, tenant_id, name, description, provider_code, external_app_id, config_schema_version, secret_field_names, has_secret, status, binding_count, lock_version, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        tenant_id: {type: string, format: uuid}
+        name: {type: string, minLength: 1, maxLength: 160}
+        description: {type: string, maxLength: 1000}
+        provider_code: {type: string, enum: [wechat]}
+        external_app_id: {type: string, pattern: '^wx[A-Za-z0-9]{16}$'}
+        config_schema_version: {type: integer, const: 1}
+        secret_field_names: {type: array, items: {type: string}, description: Names only; secret plaintext and ciphertext are never returned.}
+        has_secret: {type: boolean}
+        status: {type: string, enum: [draft, active, disabled]}
+        binding_count: {type: integer, format: int64, minimum: 0}
+        lock_version: {type: integer, minimum: 1}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    AdminWechatShareConfig:
+      allOf:
+        - $ref: "#/components/schemas/AdminShareConfigBase"
+        - type: object
+          required: [provider_code, public_config]
+          properties:
+            provider_code: {type: string, const: wechat}
+            public_config: {$ref: "#/components/schemas/WechatSharePublicConfig"}
+    AdminShareConfig:
+      oneOf: [{$ref: "#/components/schemas/AdminWechatShareConfig"}]
+      discriminator:
+        propertyName: provider_code
+        mapping: {wechat: "#/components/schemas/AdminWechatShareConfig"}
+    AdminShareConfigInputBase:
+      type: object
+      additionalProperties: false
+      required: [name, description, provider_code, external_app_id, config_schema_version, public_config]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 160}
+        description: {type: string, maxLength: 1000}
+        provider_code: {type: string, enum: [wechat]}
+        external_app_id: {type: string, pattern: '^wx[A-Za-z0-9]{16}$'}
+        config_schema_version: {type: integer, const: 1}
+        public_config: {$ref: "#/components/schemas/WechatSharePublicConfig"}
+        lock_version: {type: integer, minimum: 1}
+    AdminShareConfigInput:
+      oneOf: [{$ref: "#/components/schemas/AdminShareConfigInputBase"}]
+      discriminator:
+        propertyName: provider_code
+        mapping: {wechat: "#/components/schemas/AdminShareConfigInputBase"}
+    AdminShareSecretInput:
+      type: object
+      additionalProperties: false
+      required: [values, lock_version]
+      properties:
+        values: {type: object, minProperties: 1, additionalProperties: {type: string, writeOnly: true, minLength: 1, maxLength: 4096}}
+        lock_version: {type: integer, minimum: 1}
+    AdminShareConfigPage:
+      type: object
+      required: [items, page, page_size, total]
+      properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminShareConfig"}}, page: {type: integer, minimum: 1}, page_size: {type: integer, minimum: 1}, total: {type: integer, format: int64, minimum: 0}}
+    AdminShareConfigResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminShareConfig"}, request_id: {type: string}}
+    AdminShareConfigListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminShareConfigPage"}, request_id: {type: string}}
+    AdminShareBinding:
+      type: object
+      additionalProperties: false
+      required: [id, app_id, provider_code, share_config_id, share_config_name, config_status, enabled, scenes, share_origin, fallback_mode, lock_version, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        app_id: {type: string, format: uuid}
+        provider_code: {type: string, enum: [wechat]}
+        share_config_id: {type: string, format: uuid}
+        share_config_name: {type: string}
+        config_status: {type: string, enum: [draft, active, disabled]}
+        enabled: {type: boolean}
+        scenes: {type: array, uniqueItems: true, minItems: 1, maxItems: 3, items: {type: string, enum: [session, timeline, favorite]}}
+        share_origin: {type: string, format: uri, pattern: '^https://'}
+        fallback_mode: {type: string, const: system}
+        lock_version: {type: integer, minimum: 1}
+        updated_at: {type: string, format: date-time}
+    AdminShareBindingInput:
+      type: object
+      additionalProperties: false
+      required: [share_config_id, enabled, scenes, share_origin, fallback_mode]
+      properties:
+        share_config_id: {type: string, format: uuid}
+        enabled: {type: boolean}
+        scenes: {type: array, uniqueItems: true, minItems: 1, maxItems: 3, items: {type: string, enum: [session, timeline, favorite]}}
+        share_origin: {type: string, format: uri, pattern: '^https://'}
+        fallback_mode: {type: string, const: system}
+        lock_version: {type: integer, minimum: 1}
+    AdminSharePreflight:
+      type: object
+      additionalProperties: false
+      required: [ready, provider_code, platforms, scenes, issues]
+      properties:
+        ready: {type: boolean}
+        provider_code: {type: string, enum: [wechat]}
+        platforms: {type: array, uniqueItems: true, items: {type: string, enum: [android, ios, harmony]}}
+        scenes: {type: array, uniqueItems: true, items: {type: string, enum: [session, timeline, favorite]}}
+        issues: {type: array, uniqueItems: true, items: {type: string}}
+    AdminShareBindingResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminShareBinding"}, request_id: {type: string}}
+    AdminShareBindingListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: array, items: {$ref: "#/components/schemas/AdminShareBinding"}}, request_id: {type: string}}
+    AdminSharePreflightResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminSharePreflight"}, request_id: {type: string}}
     AdminDictionaryType:
       type: object
       required: [id, tenant_id, code, name, name_key, description, description_key, visibility, extension_policy, status, is_system, is_locked, created_at, updated_at]
@@ -6095,7 +6757,7 @@ components:
       properties: {id: {type: string, format: uuid}, prefix: {type: string}, created_at: {type: string, format: date-time}, expires_at: {type: string, format: date-time}, revoked_at: {type: string, format: date-time}, last_used_at: {type: string, format: date-time}}
     AdminAPIClient:
       type: object
-      required: [id, client_id, name, description, allowed_cidrs, status, created_at, updated_at, secrets, permissions]
+      required: [id, client_id, name, description, allowed_cidrs, status, created_at, updated_at, secrets, permissions, app_ids]
       properties:
         id: {type: string, format: uuid}
         client_id: {type: string}
@@ -6108,6 +6770,7 @@ components:
         updated_at: {type: string, format: date-time}
         secrets: {type: array, items: {$ref: "#/components/schemas/AdminAPIClientSecret"}}
         permissions: {type: array, items: {type: string}}
+        app_ids: {type: array, items: {type: string, format: uuid}, description: Explicit application allowlist. Empty denies all Apps.}
     AdminAPIClientRequest:
       type: object
       additionalProperties: false
@@ -6122,6 +6785,11 @@ components:
       additionalProperties: false
       required: [permission_codes]
       properties: {permission_codes: {type: array, maxItems: 256, uniqueItems: true, items: {type: string}}}
+    AdminAPIClientAppsRequest:
+      type: object
+      additionalProperties: false
+      required: [app_ids]
+      properties: {app_ids: {type: array, maxItems: 256, uniqueItems: true, items: {type: string, format: uuid}}}
     AdminAPIClientPage:
       type: object
       required: [items, page, page_size, total]
@@ -6155,6 +6823,238 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/APIClientToken"}, request_id: {type: string}}
+    LocalizedNotificationText:
+      type: object
+      additionalProperties: false
+      required: [zh-CN, en-US]
+      properties:
+        zh-CN: {type: string, minLength: 1, maxLength: 100000}
+        en-US: {type: string, minLength: 1, maxLength: 100000}
+    ApplicationNotificationAudience:
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type: {type: string, enum: [users, all_active_app_users]}
+        user_ids: {type: array, minItems: 1, maxItems: 500, uniqueItems: true, items: {type: string, format: uuid}}
+      allOf:
+        - if: {properties: {type: {const: users}}}
+          then: {required: [user_ids]}
+        - if: {properties: {type: {const: all_active_app_users}}}
+          then: {not: {required: [user_ids]}}
+    ApplicationNotificationInlineContent:
+      type: object
+      additionalProperties: false
+      required: [title, body]
+      properties:
+        title: {$ref: "#/components/schemas/LocalizedNotificationText"}
+        body: {$ref: "#/components/schemas/LocalizedNotificationText"}
+    ApplicationNotificationTemplateContent:
+      type: object
+      additionalProperties: false
+      required: [code]
+      properties:
+        code: {type: string, pattern: '^[a-z][a-z0-9_.-]{1,95}$'}
+        variables: {type: object, maxProperties: 100, additionalProperties: {type: string, maxLength: 4000}}
+    ApplicationNotificationContent:
+      type: object
+      additionalProperties: false
+      required: [type]
+      properties:
+        type: {type: string, enum: [inline, template]}
+        inline: {$ref: "#/components/schemas/ApplicationNotificationInlineContent"}
+        template: {$ref: "#/components/schemas/ApplicationNotificationTemplateContent"}
+      oneOf:
+        - required: [inline]
+          properties: {type: {const: inline}}
+        - required: [template]
+          properties: {type: {const: template}}
+    ApplicationNotificationSubmitRequest:
+      type: object
+      additionalProperties: false
+      required: [source, business_event_id, category, audience, content, push]
+      properties:
+        source: {type: string, pattern: '^[a-z][a-z0-9_.-]{1,95}$'}
+        business_event_id: {type: string, pattern: '^[A-Za-z0-9][A-Za-z0-9_.:-]{0,159}$'}
+        category: {type: string, enum: [service_security, news_operations]}
+        audience: {$ref: "#/components/schemas/ApplicationNotificationAudience"}
+        content: {$ref: "#/components/schemas/ApplicationNotificationContent"}
+        push: {type: boolean}
+        scheduled_at: {type: string, format: date-time}
+        expires_at: {type: string, format: date-time}
+        ttl_seconds: {type: integer, format: int32, minimum: 300, maximum: 604800, default: 86400}
+        collapse_key: {type: string, maxLength: 128}
+        thread_key: {type: string, maxLength: 128}
+        route_key: {type: string, pattern: '^[a-z][a-z0-9_.-]{1,95}$'}
+        resource_id: {type: string, maxLength: 160, pattern: '^[^<>{:/\\[:space:]]*$'}
+        route_params: {type: object, maxProperties: 8, additionalProperties: {type: string, maxLength: 160}}
+    ApplicationNotificationSubmission:
+      type: object
+      required: [message_id, run_id, status, status_url, created_at]
+      properties:
+        message_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        status: {type: string, enum: [scheduled, queued]}
+        status_url: {type: string}
+        created_at: {type: string, format: date-time}
+    ApplicationNotificationStatus:
+      type: object
+      required: [message_id, run_id, status, created_at, recipient_count, evaluated_count, delivery_count, accepted_count, failed_count, invalid_token_count, opened_count, skipped_count]
+      properties:
+        message_id: {type: string, format: uuid}
+        run_id: {type: string, format: uuid}
+        status: {$ref: "#/components/schemas/NotificationMessageRunStatus"}
+        created_at: {type: string, format: date-time}
+        recipient_count: {type: integer, format: int64, minimum: 0}
+        evaluated_count: {type: integer, format: int64, minimum: 0}
+        delivery_count: {type: integer, format: int64, minimum: 0}
+        accepted_count: {type: integer, format: int64, minimum: 0}
+        failed_count: {type: integer, format: int64, minimum: 0}
+        invalid_token_count: {type: integer, format: int64, minimum: 0}
+        opened_count: {type: integer, format: int64, minimum: 0}
+        skipped_count: {type: integer, format: int64, minimum: 0}
+        scheduled_at: {type: [string, 'null'], format: date-time}
+        completed_at: {type: [string, 'null'], format: date-time}
+    ApplicationNotificationSubmissionResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/ApplicationNotificationSubmission"}, request_id: {type: string}}
+    ApplicationNotificationStatusResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/ApplicationNotificationStatus"}, request_id: {type: string}}
+    ApplicationNotificationCancelResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties:
+        code: {type: string}
+        message: {type: string}
+        data: {type: object, required: [cancelled, message_id], properties: {cancelled: {type: boolean, const: true}, message_id: {type: string, format: uuid}}}
+        request_id: {type: string}
+    NotificationMessageRunStatus:
+      type: string
+      enum: [scheduled, queued, running, completed, completed_with_failures, failed, cancelled, expired]
+    NotificationTaskRunStatus:
+      type: string
+      enum: [scheduled, queued, running, retry_wait, succeeded, failed, cancelled]
+    AdminNotificationOperationsSummary:
+      type: object
+      required: [queued, running, retry_waiting, accepted, failed, invalid_tokens, skipped, opened, open_rate, oldest_waiting_seconds, p95_queue_delay_ms, has_unfinished_work]
+      properties:
+        queued: {type: integer, format: int64, minimum: 0}
+        running: {type: integer, format: int64, minimum: 0}
+        retry_waiting: {type: integer, format: int64, minimum: 0}
+        accepted: {type: integer, format: int64, minimum: 0}
+        failed: {type: integer, format: int64, minimum: 0}
+        invalid_tokens: {type: integer, format: int64, minimum: 0}
+        skipped: {type: integer, format: int64, minimum: 0}
+        opened: {type: integer, format: int64, minimum: 0}
+        open_rate: {type: number, format: double, minimum: 0, maximum: 1}
+        oldest_waiting_seconds: {type: integer, format: int64, minimum: 0}
+        p95_queue_delay_ms: {type: integer, format: int64, minimum: 0}
+        has_unfinished_work: {type: boolean}
+    AdminNotificationTrendBucket:
+      type: object
+      required: [bucket, accepted, failed, invalid_tokens, opened, skipped]
+      properties: {bucket: {type: string, format: date-time}, accepted: {type: integer, format: int64}, failed: {type: integer, format: int64}, invalid_tokens: {type: integer, format: int64}, opened: {type: integer, format: int64}, skipped: {type: integer, format: int64}}
+    AdminNotificationRun:
+      type: object
+      required: [id, message_id, message_title, category, trigger_type, status, recipient_count, evaluated_count, delivery_count, accepted_count, failed_count, invalid_token_count, opened_count, skipped_count, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        message_id: {type: string, format: uuid}
+        message_title: {type: string}
+        category: {type: string, enum: [service_security, news_operations]}
+        trigger_type: {type: string, enum: [admin, scheduled, api_client, internal]}
+        status: {$ref: "#/components/schemas/NotificationMessageRunStatus"}
+        recipient_count: {type: integer, format: int64}
+        evaluated_count: {type: integer, format: int64}
+        delivery_count: {type: integer, format: int64}
+        accepted_count: {type: integer, format: int64}
+        failed_count: {type: integer, format: int64}
+        invalid_token_count: {type: integer, format: int64}
+        opened_count: {type: integer, format: int64}
+        skipped_count: {type: integer, format: int64}
+        started_at: {type: [string, 'null'], format: date-time}
+        completed_at: {type: [string, 'null'], format: date-time}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    AdminNotificationTaskAttempt:
+      type: object
+      required: [attempt_number, status, started_at]
+      properties: {attempt_number: {type: integer, format: int32}, status: {type: string}, result_class: {type: string}, error_code: {type: string}, error_summary: {type: string, maxLength: 500}, external_request_id: {type: string}, trace_id: {type: string}, started_at: {type: string, format: date-time}, finished_at: {type: [string, 'null'], format: date-time}, duration_ms: {type: [integer, 'null'], format: int64}, next_retry_at: {type: [string, 'null'], format: date-time}}
+    AdminNotificationTask:
+      type: object
+      required: [id, task_kind, queue_name, resource_type, status, scheduled_at, attempt_count, max_attempts, retryable, retry_risk, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        task_kind: {type: string}
+        queue_name: {type: string}
+        resource_type: {type: string}
+        resource_id: {type: [string, 'null'], format: uuid}
+        correlation_id: {type: [string, 'null'], format: uuid}
+        status: {$ref: "#/components/schemas/NotificationTaskRunStatus"}
+        scheduled_at: {type: string, format: date-time}
+        started_at: {type: [string, 'null'], format: date-time}
+        finalized_at: {type: [string, 'null'], format: date-time}
+        next_retry_at: {type: [string, 'null'], format: date-time}
+        attempt_count: {type: integer, format: int32}
+        max_attempts: {type: integer, format: int32}
+        last_result_class: {type: string}
+        last_error_code: {type: string}
+        last_error_summary: {type: string, maxLength: 500}
+        trace_id: {type: string}
+        retryable: {type: boolean}
+        retry_risk: {type: string, enum: [none, duplicate_possible, manual_review]}
+        attempts: {type: array, items: {$ref: "#/components/schemas/AdminNotificationTaskAttempt"}}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    AdminNotificationFailure:
+      allOf:
+        - {$ref: "#/components/schemas/AdminNotificationTask"}
+        - type: object
+          properties: {message_id: {type: [string, 'null'], format: uuid}, message_title: {type: string}, provider: {type: string}, channel: {type: string}}
+    AdminNotificationTaskRetryRequest:
+      type: object
+      additionalProperties: false
+      required: [items, acknowledge_duplicate_risk]
+      properties: {items: {type: array, minItems: 1, maxItems: 100, uniqueItems: true, items: {type: object, additionalProperties: false, required: [task_id], properties: {task_id: {type: string, format: uuid}}}}, acknowledge_duplicate_risk: {type: boolean}}
+    AdminNotificationTaskRetryResult:
+      type: object
+      required: [task_id, accepted]
+      properties: {task_id: {type: string, format: uuid}, accepted: {type: boolean}, new_task_id: {type: [string, 'null'], format: uuid}, reason: {type: string}}
+    AdminNotificationOperationsSummaryResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminNotificationOperationsSummary"}, request_id: {type: string}}
+    AdminNotificationTrendListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminNotificationTrendBucket"}}}}, request_id: {type: string}}
+    AdminNotificationRunPageResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminNotificationRun"}}, page: {type: integer}, page_size: {type: integer}, total: {type: integer, format: int64}}}, request_id: {type: string}}
+    AdminNotificationRunResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminNotificationRun"}, request_id: {type: string}}
+    AdminNotificationTaskPageResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminNotificationTask"}}, page: {type: integer}, page_size: {type: integer}, total: {type: integer, format: int64}}}, request_id: {type: string}}
+    AdminNotificationTaskResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminNotificationTask"}, request_id: {type: string}}
+    AdminNotificationFailurePageResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items, page, page_size, total], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminNotificationFailure"}}, page: {type: integer}, page_size: {type: integer}, total: {type: integer, format: int64}}}, request_id: {type: string}}
+    AdminNotificationTaskRetryResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminNotificationTaskRetryResult"}}}}, request_id: {type: string}}
     AdminWebhookRequest:
       type: object
       additionalProperties: false
@@ -6570,7 +7470,7 @@ components:
     MobilePreferences:
       type: object
       required: [locale, appearance, notification_preferences]
-      properties: {locale: {$ref: "#/components/schemas/SupportedLocale"}, appearance: {type: string, enum: [system, light, dark]}, notification_preferences: {type: object, additionalProperties: false, properties: {in_app: {type: boolean}, push: {type: boolean}, email: {type: boolean}}}}
+      properties: {locale: {$ref: "#/components/schemas/SupportedLocale"}, appearance: {type: string, enum: [system, light, dark]}, notification_preferences: {type: object, additionalProperties: false, properties: {in_app: {type: boolean}, push: {type: boolean}, push_service: {type: boolean}, push_operations: {type: boolean}, email: {type: boolean}}}}
     MobilePreferencesUpdateRequest:
       type: object
       additionalProperties: false
@@ -6584,7 +7484,7 @@ components:
       type: object
       additionalProperties: false
       required: [notification_preferences]
-      properties: {notification_preferences: {type: object, additionalProperties: false, properties: {in_app: {type: boolean}, push: {type: boolean}, email: {type: boolean}}}}
+      properties: {notification_preferences: {type: object, additionalProperties: false, properties: {in_app: {type: boolean}, push: {type: boolean}, push_service: {type: boolean}, push_operations: {type: boolean}, email: {type: boolean}}}}
     MobileNotificationPreferencesUpdateRequest:
       allOf: [{$ref: "#/components/schemas/MobileNotificationPreferences"}]
     MobileNotificationPreferencesResponse:
@@ -6637,6 +7537,46 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [items], properties: {items: {type: array, items: {$ref: "#/components/schemas/MobileNotification"}}, next_cursor: {type: [string, 'null']}}}, request_id: {type: string}}
+    MobileNotificationResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/MobileNotification"}, request_id: {type: string}}
+    MobilePushDevice:
+      type: object
+      additionalProperties: false
+      required: [id, provider, platform, build_variant, locale, sdk_version, app_version, status, registered_at, token_updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        provider: {$ref: "#/components/schemas/PushProvider"}
+        platform: {$ref: "#/components/schemas/PushStoredPlatform"}
+        build_variant: {$ref: "#/components/schemas/PushStoredBuildVariant"}
+        locale: {$ref: "#/components/schemas/SupportedLocale"}
+        sdk_version: {type: string, maxLength: 64}
+        app_version: {type: string, maxLength: 64}
+        status: {type: string, enum: [active, invalid, disabled]}
+        registered_at: {type: string, format: date-time}
+        token_updated_at: {type: string, format: date-time}
+        invalidated_at: {type: [string, "null"], format: date-time}
+    MobilePushDeviceRegisterRequest:
+      type: object
+      additionalProperties: false
+      required: [provider, platform, build_variant, token, locale, sdk_version, app_version]
+      properties:
+        provider: {$ref: "#/components/schemas/PushWritableProvider"}
+        platform: {$ref: "#/components/schemas/PushPlatform"}
+        build_variant: {$ref: "#/components/schemas/PushBuildVariant"}
+        token: {type: string, writeOnly: true, minLength: 16, maxLength: 8192, description: Opaque renewable provider registration token.}
+        locale: {$ref: "#/components/schemas/SupportedLocale"}
+        sdk_version: {type: string, maxLength: 64}
+        app_version: {type: string, maxLength: 64}
+    MobilePushDeviceResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/MobilePushDevice"}, request_id: {type: string}}
+    MobileCurrentPushDeviceResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [device], properties: {device: {oneOf: [{$ref: "#/components/schemas/MobilePushDevice"}, {type: 'null'}]}}}, request_id: {type: string}}
     AdminMobileRelease:
       type: object
       required: [id, app_id, package_type, platforms, version, titles, contents, store_listing_ids, create_env, is_silently, is_mandatory, publish_status, published_platforms, platform, current_version, minimum_version, release_notes, active, lock_version, created_at, updated_at]

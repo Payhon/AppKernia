@@ -1,0 +1,15 @@
+import { AkConfig } from '../../../core/config/config.uts'
+import { SessionStore } from '../../../core/stores/session-store.uts'
+import { SessionRuntime } from '../../../core/stores/session-runtime.uts'
+import { AkHttpClient } from '../../../core/network/ak-http-client.uts'
+import { RefreshCoordinator } from '../../../core/network/refresh-coordinator.uts'
+import { RefreshingHttpPort } from '../../../core/network/refreshing-http-port.uts'
+import { MobileAuthService } from '../../auth/mobile-auth-service.uts'
+import { HttpPushRepository } from './http-push-repository.uts'
+
+export class PushRuntime {
+  private repository: HttpPushRepository | null = null
+  configure(config: AkConfig, sessions: SessionStore, runtime: SessionRuntime, auth: MobileAuthService): void { this.repository=new HttpPushRepository(new RefreshingHttpPort(new AkHttpClient(config,sessions),new RefreshCoordinator(runtime,auth))) }
+  getRepository(): HttpPushRepository | null { return this.repository }
+}
+export const pushRuntime = new PushRuntime()

@@ -1,40 +1,35 @@
 import { ArticleBodyFormat } from '../domain/models.uts'
 
-export type ArticleBodyBlockKind = 'heading' | 'paragraph' | 'callout'
+export type ArticleBodyBlockKind = 'heading' | 'paragraph' | 'callout' | 'image'
+export type ArticleBodyBlock = { id: string; kind: ArticleBodyBlockKind; text: string; fileId: string; url: string }
+type ArticleWireBlock = { readonly type: string; readonly text: string | null; readonly content: Array<ArticleWireBlock> | null; readonly attrs: UTSJSONObject | null }
+type ArticleDocument = { readonly type: string; readonly content: Array<ArticleWireBlock> }
 
-export type ArticleBodyBlock = {
-  id: string
-  kind: ArticleBodyBlockKind
-  text: string
-}
-
-type ArticleWireBlock = {
-  readonly type: string
-  readonly text: string
-}
-
-/**
- * Renders only an allowlisted, text-only representation. Neither Markdown nor
- * blocks are ever passed to rich-text/HTML rendering, so server content cannot
- * execute HTML, scripts, or URL handlers in the mobile WebView/native view.
- */
+/** Converts the server Markdown contract to native-safe text and image nodes. */
 export class ArticleBodyRenderer {
-  render(format: ArticleBodyFormat, body: string): Array<ArticleBodyBlock> {
-    if (format == 'blocks') return this.renderBlocks(body)
-    return this.renderMarkdown(body)
-  }
+  render(format: ArticleBodyFormat, body: string): Array<ArticleBodyBlock> { return format == 'blocks' ? this.renderBlocks(body) : this.renderMarkdown(body) }
 
   private renderMarkdown(body: string): Array<ArticleBodyBlock> {
     const blocks: Array<ArticleBodyBlock> = []
     const lines: Array<string> = body.split('\n')
     for (let index = 0; index < lines.length; index++) {
-      const line: string = lines[index].trim()
+      const line = lines[index].trim()
       if (line.length == 0) continue
-      const isHeading: boolean = line.startsWith('# ')
-      const isCallout: boolean = line.startsWith('> ')
-      const content: string = isHeading || isCallout ? line.substring(2) : line
-      const kind: ArticleBodyBlockKind = isHeading ? 'heading' : isCallout ? 'callout' : 'paragraph'
-      blocks.push({ id: index.toString(), kind: kind, text: this.cleanText(content) })
+      const image = line.match(/^!\[([^\]]*)\]\(([^)\s]+)\)$/)
+      if (image != null) {
+        const imageAlt = image[1]
+        const imageURL = image[2]
+        if (imageAlt != null && imageURL != null && this.safeImage(imageURL)) {
+          blocks.push({ id: index.toString(), kind: 'image', text: this.cleanText(imageAlt), fileId: this.assetId(imageURL), url: imageURL })
+          continue
+        }
+      }
+      const heading = line.match(/^#{1,6}\s+(.+)$/)
+      const headingText = heading != null ? heading[1] : null
+      const callout = line.startsWith('> ')
+      const content = headingText != null ? headingText : callout ? line.substring(2) : line
+      const kind: ArticleBodyBlockKind = headingText != null ? 'heading' : callout ? 'callout' : 'paragraph'
+      blocks.push({ id: index.toString(), kind: kind, text: this.cleanText(content), fileId: '', url: '' })
     }
     return blocks
   }
@@ -42,23 +37,23 @@ export class ArticleBodyRenderer {
   private renderBlocks(body: string): Array<ArticleBodyBlock> {
     const output: Array<ArticleBodyBlock> = []
     try {
-      const parsed: Array<ArticleWireBlock> | null = JSON.parse<Array<ArticleWireBlock>>(body)
-      if (parsed == null) return []
-      const source: Array<ArticleWireBlock> = parsed
-      for (let index = 0; index < source.length; index++) {
-        const item: ArticleWireBlock = source[index]
-        if (item.type != 'heading' && item.type != 'paragraph' && item.type != 'callout') continue
-        if (item.text.length == 0) continue
-        const kind: ArticleBodyBlockKind = item.type == 'heading' ? 'heading' : item.type == 'callout' ? 'callout' : 'paragraph'
-        output.push({ id: index.toString(), kind: kind, text: this.cleanText(item.text) })
+      const document: ArticleDocument | null = JSON.parse<ArticleDocument>(body)
+      if (document == null || document.type != 'doc') return []
+      for (let index = 0; index < document.content.length; index++) {
+        const item = document.content[index]
+        if (item.type == 'image') { const fileId = item.attrs != null ? item.attrs.getString('file_id') : null; if (fileId != null && fileId.length > 0) output.push({ id: index.toString(), kind: 'image', text: '', fileId: fileId, url: '' }); continue }
+        if (item.type != 'heading' && item.type != 'paragraph' && item.type != 'blockquote' && item.type != 'codeBlock' && item.type != 'bulletList' && item.type != 'orderedList') continue
+        const text = this.nodeText(item)
+        if (text.length == 0) continue
+        const kind: ArticleBodyBlockKind = item.type == 'heading' ? 'heading' : item.type == 'blockquote' || item.type == 'codeBlock' ? 'callout' : 'paragraph'
+        output.push({ id: index.toString(), kind: kind, text: text, fileId: '', url: '' })
       }
-    } catch (error) {
-      return []
-    }
+    } catch (_) { return [] }
     return output
   }
 
-  private cleanText(value: string): string {
-    return value.replace(/<[^>]*>/g, '').replace(/javascript:/gi, '').replace(/data:text\/html/gi, '').trim()
-  }
+  private nodeText(node: ArticleWireBlock): string { if (node.text != null) return this.cleanText(node.text); if (node.content == null) return ''; const values: Array<string> = []; for (let index = 0; index < node.content.length; index++) { const text = this.nodeText(node.content[index]); if (text.length > 0) values.push(text) } return values.join('\n') }
+  private cleanText(value: string): string { return value.replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_~`]/g, '').replace(/<[^>]*>/g, '').replace(/javascript:/gi, '').replace(/data:text\/html/gi, '').trim() }
+  private safeImage(value: string): boolean { return value.startsWith('/api/v1/public/content/assets/') || value.startsWith('https://') }
+  private assetId(value: string): string { const prefix = '/api/v1/public/content/assets/'; return value.startsWith(prefix) ? value.substring(prefix.length) : '' }
 }

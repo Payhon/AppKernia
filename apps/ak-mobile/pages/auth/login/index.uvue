@@ -1,6 +1,6 @@
 <template>
   <ak-theme-root><scroll-view class="page" scroll-y>
-    <view class="hero"><text class="brand">AppKernia</text><text class="title">{{t('routes.auth.login.title', null)}}</text></view>
+    <view class="hero"><text class="brand">{{t('information.appName', null)}}</text><text class="title">{{t('routes.auth.login.title', null)}}</text></view>
     <ak-card class="form-card">
       <ak-text-field v-model="email" :label="t('auth.email', null)" :error="emailError" />
       <ak-text-field v-model="password" :label="t('auth.password', null)" :error="passwordError" password />

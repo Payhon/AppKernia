@@ -1,0 +1,11 @@
+import { GetPermissionStatus, ListPermissionCapabilities, OnPermissionStatusChanged, OpenPermissionSettings, PermissionCapability, PermissionFailure, PermissionKey, PermissionStatus, PermissionStatusListener, RequestPermission } from '../interface.uts'
+
+let listener:PermissionStatusListener|null=null
+function value(status:string):PermissionCapability{const normalized:PermissionStatus=status=='authorized'?'authorized':status=='limited'?'limited':status=='denied'?'denied':status=='restricted'?'restricted':status=='not_determined'?'not_determined':'unavailable';return new PermissionCapability('notifications',normalized,normalized=='not_determined',true,'ios',Date.now())}
+function read(ok:(capability:PermissionCapability)=>void):void{AkPermissionsIOSBridge.notificationStatus((status:string)=>ok(value(status)))}
+function emit(capability:PermissionCapability):void{const current=listener;if(current!=null)current(capability)}
+export const listCapabilities:ListPermissionCapabilities=function(success,_failure){read(capability=>success([capability]))}
+export const getStatus:GetPermissionStatus=function(key,success,failure){if(key!='notifications'){failure('invalid_capability');return};read(success)}
+export const request:RequestPermission=function(key,success,failure){if(key!='notifications'){failure('invalid_capability');return};AkPermissionsIOSBridge.requestNotifications((status:string)=>{const capability=value(status);emit(capability);success(capability)})}
+export const openSettings:OpenPermissionSettings=function(key){return key=='notifications'&&AkPermissionsIOSBridge.openNotificationSettings()}
+export const onStatusChanged:OnPermissionStatusChanged=function(value){listener=value}

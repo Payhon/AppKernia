@@ -276,6 +276,13 @@ func (repository *Postgres) RevokeSession(ctx context.Context, sessionID uuid.UU
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	queries := db.New(tx)
+	if _, err = tx.Exec(ctx, `UPDATE notify.push_devices d
+SET status='disabled',invalidated_at=COALESCE(invalidated_at,now()),invalid_reason=COALESCE(invalid_reason,'session_revoked'),updated_at=now()
+FROM iam.sessions s
+WHERE s.id=$1 AND s.audience='ak-mobile' AND s.app_id IS NOT NULL AND s.device_id IS NOT NULL
+  AND d.tenant_id=s.tenant_id AND d.app_id=s.app_id AND d.user_id=s.user_id AND d.device_id=s.device_id AND d.status='active'`, sessionID); err != nil {
+		return fmt.Errorf("disable push binding for revoked mobile session: %w", err)
+	}
 	if err = queries.RevokeSession(ctx, db.RevokeSessionParams{ID: sessionID, RevokeReason: &reason}); err != nil {
 		return fmt.Errorf("revoke session: %w", err)
 	}

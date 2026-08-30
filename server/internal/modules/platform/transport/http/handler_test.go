@@ -51,3 +51,9 @@ func TestAdminPublicConfigEnablesOnlyKnownConfiguredFeatures(t *testing.T) {
 		t.Fatalf("unknown feature flag must not be exposed: %#v", flags)
 	}
 }
+
+func TestPrometheusLabelEscapesUntrustedText(t *testing.T) {
+	if got, want := prometheusLabel("provider\\\"\nvalue"), "provider\\\\\\\"\\nvalue"; got != want {
+		t.Fatalf("label=%q want %q", got, want)
+	}
+}

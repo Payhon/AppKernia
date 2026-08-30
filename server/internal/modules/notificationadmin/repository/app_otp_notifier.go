@@ -11,24 +11,24 @@ import (
 
 	app "github.com/appkernia/appkernia/server/internal/modules/appmanagement/application"
 	notify "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/domain"
+	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/riverqueue/river"
 )
 
 // AppOTPNotifier writes its delivery and River job into the caller's challenge
 // transaction.  The OTP is only present in payload_ciphertext; rendered email
 // fields remain empty until the worker decrypts and renders the template.
 type AppOTPNotifier struct {
-	river  *river.Client[pgx.Tx]
+	queue  jobqueue.Enqueuer
 	sealer notify.TargetSealer
 }
 
-func NewAppOTPNotifier(riverClient *river.Client[pgx.Tx], sealer notify.TargetSealer) (*AppOTPNotifier, error) {
-	if riverClient == nil || sealer == nil {
+func NewAppOTPNotifier(queue jobqueue.Enqueuer, sealer notify.TargetSealer) (*AppOTPNotifier, error) {
+	if queue == nil || sealer == nil {
 		return nil, errors.New("app OTP notifier dependencies are incomplete")
 	}
-	return &AppOTPNotifier{river: riverClient, sealer: sealer}, nil
+	return &AppOTPNotifier{queue: queue, sealer: sealer}, nil
 }
 
 func (n *AppOTPNotifier) QueueOTP(ctx context.Context, tx pgx.Tx, input app.OTPNotification) error {
@@ -65,7 +65,15 @@ func (n *AppOTPNotifier) QueueOTP(ctx context.Context, tx pgx.Tx, input app.OTPN
 	if err != nil {
 		return fmt.Errorf("create app OTP delivery: %w", err)
 	}
-	if _, err = n.river.InsertTx(ctx, tx, notify.DeliveryJobArgs{DeliveryID: deliveryID}, &river.InsertOpts{Queue: "notifications", MaxAttempts: 5, UniqueOpts: river.UniqueOpts{ByArgs: true}}); err != nil {
+	appID := input.AppID
+	run, enqueueErr := n.queue.EnqueueTx(ctx, tx, jobqueue.Spec{
+		Scope: jobqueue.Scope{TenantID: input.TenantID, AppID: &appID, ModuleCode: "notify", ResourceType: "notification_delivery", ResourceID: &deliveryID},
+		Args:  notify.DeliveryJobArgs{DeliveryID: deliveryID}, Queue: "notifications", MaxAttempts: 5, UniqueByArgs: true,
+	})
+	if enqueueErr != nil {
+		return fmt.Errorf("enqueue app OTP delivery: %w", enqueueErr)
+	}
+	if _, err = tx.Exec(ctx, `UPDATE notify.deliveries SET task_run_id=$2 WHERE id=$1`, deliveryID, run.ID); err != nil {
 		return fmt.Errorf("enqueue app OTP delivery: %w", err)
 	}
 	return nil

@@ -35,6 +35,8 @@ type Config struct {
 	MultiTenantEnabled          bool
 	APIClientsEnabled           bool
 	WebhooksEnabled             bool
+	PushEnabled                 bool
+	PushAdapter                 string
 	WebhookAdapter              string
 	MFAEnabled                  bool
 	OAuthEnabled                bool
@@ -59,6 +61,7 @@ func Load() (Config, error) {
 		PasswordRecoveryAdapter:     strings.ToLower(strings.TrimSpace(os.Getenv("AK_PASSWORD_RECOVERY_ADAPTER"))),
 		ObjectStorageAdapter:        strings.ToLower(strings.TrimSpace(os.Getenv("AK_OBJECT_STORAGE_ADAPTER"))),
 		WebhookAdapter:              strings.ToLower(strings.TrimSpace(os.Getenv("AK_WEBHOOK_ADAPTER"))),
+		PushAdapter:                 strings.ToLower(strings.TrimSpace(os.Getenv("AK_PUSH_ADAPTER"))),
 		OAuthAdapter:                strings.ToLower(strings.TrimSpace(os.Getenv("AK_OAUTH_ADAPTER"))),
 		LocalObjectStorageDir:       strings.TrimSpace(os.Getenv("AK_LOCAL_OBJECT_STORAGE_DIR")),
 		ConfigMasterKeyBase64:       strings.TrimSpace(os.Getenv("AK_CONFIG_MASTER_KEY_BASE64")),
@@ -83,6 +86,9 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	if cfg.WebhooksEnabled, err = optionalBool("AK_WEBHOOKS_ENABLED"); err != nil {
+		return Config{}, err
+	}
+	if cfg.PushEnabled, err = optionalBool("AK_PUSH_ENABLED"); err != nil {
 		return Config{}, err
 	}
 	if cfg.MFAEnabled, err = optionalBool("AK_MFA_ENABLED"); err != nil {
@@ -132,6 +138,13 @@ func Load() (Config, error) {
 			cfg.WebhookAdapter = "local-mock"
 		} else {
 			cfg.WebhookAdapter = "http"
+		}
+	}
+	if cfg.PushAdapter == "" {
+		if cfg.Environment == "development" {
+			cfg.PushAdapter = "local-mock"
+		} else {
+			cfg.PushAdapter = "official"
 		}
 	}
 	if cfg.OAuthAdapter == "" && cfg.Environment == "development" {
@@ -184,6 +197,12 @@ func Load() (Config, error) {
 	}
 	if cfg.WebhookAdapter == "local-mock" && cfg.Environment != "development" {
 		return Config{}, errors.New("AK_WEBHOOK_ADAPTER=local-mock is allowed only in development")
+	}
+	if cfg.PushAdapter != "local-mock" && cfg.PushAdapter != "official" {
+		return Config{}, fmt.Errorf("AK_PUSH_ADAPTER %q is not configured in this build", cfg.PushAdapter)
+	}
+	if cfg.PushAdapter == "local-mock" && cfg.Environment != "development" {
+		return Config{}, errors.New("AK_PUSH_ADAPTER=local-mock is allowed only in development")
 	}
 	if cfg.OAuthEnabled && cfg.OAuthAdapter == "" {
 		return Config{}, errors.New("AK_OAUTH_ADAPTER is required when OAuth is enabled")

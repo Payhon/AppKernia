@@ -62,5 +62,6 @@ type Repository interface {
 	LoginEvents(context.Context, uuid.UUID, uuid.UUID) ([]LoginEvent, error)
 	SecurityEvents(context.Context, uuid.UUID, uuid.UUID) ([]SecurityEvent, error)
 	Notifications(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, int) (NotificationPage, error)
+	Notification(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID) (Notification, error)
 	MarkNotificationRead(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, string) error
 }

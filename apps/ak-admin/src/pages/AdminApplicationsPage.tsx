@@ -1,13 +1,15 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions -- React Hook Form field paths preserve numeric array indices. */
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import { useNavigate } from "@tanstack/react-router";
-import { Alert, Button, Card, Divider, Drawer, Form, Grid, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, type TableColumnsType } from "antd";
+import { Alert, Button, Card, Divider, Drawer, Dropdown, Form, Grid, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, type TableColumnsType } from "antd";
 import { Controller, useFieldArray, useForm, type FieldPath } from "react-hook-form";
 import { useEffect, useMemo, useState, type Key } from "react";
 import { useTranslation } from "react-i18next";
 import { AkFilePicker } from "../components/AkFilePicker";
 import { AkLocalizedFormTabs } from "../components/AkLocalizedFormTabs";
+import { AppShareBindingsDrawer } from "../components/AppShareBindingsDrawer";
 import { authSession, useAuthStore } from "../features/auth/store";
+import { createApplicationActionItems } from "../features/apps/application-actions";
 import { useApplicationMutations, useManagedApplications } from "../features/apps/hooks";
 import { applicationChannelCodes, applicationInputSchema, type ApplicationInput, type ManagedApplication } from "../features/apps/model";
 import { useSystemLanguages } from "../features/settings/system-languages";
@@ -69,6 +71,7 @@ export function AdminApplicationsPage() {
   const [selected, setSelected] = useState<Key[]>([]);
   const [editor, setEditor] = useState<Editor>(null);
   const [picker, setPicker] = useState<PickerTarget>(null);
+  const [shareApp, setShareApp] = useState<ManagedApplication | null>(null);
   const [feedback, setFeedback] = useState<{ key: string; error: boolean } | null>(null);
   const form = useForm<ApplicationInput>({ defaultValues: defaults(tenantId) });
   const applications = useManagedApplications({ q, status, app_type: appType, page, page_size: pageSize });
@@ -113,13 +116,27 @@ export function AdminApplicationsPage() {
       },
     });
   };
-  const applicationActions = (item: ManagedApplication) => <Space size="small" wrap>
-    {permissions.has("app.application.update") ? <Button size="small" onClick={() => { open(item); }}>{t("common.actions.edit")}</Button> : null}
-    <Button size="small" onClick={() => void navigate({ to: "/app/upgrade-center", search: { app_id: item.id, q: "", package_type: "", platform: "", publish_status: "", page: 1, page_size: 20 } })}>{t("apps.application.actions.upgrade_center")}</Button>
-    <Button size="small" onClick={() => void navigate({ to: "/app/content/articles", search: { app_id: item.id } })}>{t("apps.application.actions.content")}</Button>
-    {permissions.has("app.application.disable") ? <Button size="small" danger={item.status === "active"} loading={mutations.status.isPending} onClick={() => void changeStatus(item)}>{t(item.status === "active" ? "apps.actions.disable" : "apps.actions.enable")}</Button> : null}
-    {permissions.has("app.application.delete") && item.status === "disabled" && !item.is_default ? <Button danger icon={<DeleteOutlined />} size="small" onClick={() => { deleteItems([item.id]); }}>{t("common.actions.delete")}</Button> : null}
-  </Space>;
+  const applicationActions = (item: ManagedApplication) => <Dropdown
+    menu={{ items: createApplicationActionItems(item, permissions, {
+      edit: t("common.actions.edit"),
+      upgradeCenter: t("apps.application.actions.upgrade_center"),
+      content: t("apps.application.actions.content"),
+      shareConfig: t("share_configs.actions.bind"),
+      enable: t("apps.actions.enable"),
+      disable: t("apps.actions.disable"),
+      delete: t("common.actions.delete"),
+    }, {
+      edit: () => { open(item); },
+      upgradeCenter: () => { void navigate({ to: "/app/upgrade-center", search: { app_id: item.id, q: "", package_type: "", platform: "", publish_status: "", page: 1, page_size: 20 } }); },
+      content: () => { void navigate({ to: "/app/content/articles", search: { app_id: item.id } }); },
+      shareConfig: () => { setShareApp(item); },
+      changeStatus: () => { void changeStatus(item); },
+      delete: () => { deleteItems([item.id]); },
+    }, mutations.status.isPending) }}
+    trigger={["click"]}
+  >
+    <Button aria-label={t("apps.application.actions.menu_for", { name: item.name })} icon={<MoreOutlined />} size="small">{t("apps.application.actions.menu")}</Button>
+  </Dropdown>;
   const columns: TableColumnsType<ManagedApplication> = [
     { title: t("apps.application.columns.appid"), dataIndex: "appid", width: 190, render: (value: string) => value ? <code className="ak-version-value">{value}</code> : <Tag className="ak-status-warning">{t("apps.application.values.appid_pending")}</Tag> },
     { title: t("apps.application.columns.type"), dataIndex: "app_type", width: 120, render: (value: ManagedApplication["app_type"]) => <Tag>{t(`apps.application.types.${value}`)}</Tag> },
@@ -128,7 +145,7 @@ export function AdminApplicationsPage() {
     { title: t("apps.application.columns.remark"), dataIndex: "remark", ellipsis: true, responsive: ["lg"], render: (value: string) => value || <span className="ak-table-secondary">{t("apps.application.values.none")}</span> },
     { title: t("apps.application.columns.status"), dataIndex: "status", width: 110, render: (value: ManagedApplication["status"]) => <Tag className={value === "active" ? "ak-status-success" : "ak-status-error"}>{t(`apps.status.${value}`)}</Tag> },
     { title: t("apps.application.columns.created"), dataIndex: "created_at", width: 180, responsive: ["xl"], render: (value: string) => date.format(new Date(value)) },
-    { title: t("apps.application.columns.actions"), ...(screens.lg ? { fixed: "right" as const } : {}), width: 300, render: (_, item) => applicationActions(item) },
+    { title: t("apps.application.columns.actions"), ...(screens.lg ? { fixed: "right" as const } : {}), width: 112, render: (_, item) => applicationActions(item) },
   ];
   return <div className="ak-page-container">
     <header className="ak-page-heading"><div><Typography.Title level={1}>{t("apps.application.title")}</Typography.Title><Typography.Paragraph type="secondary">{t("apps.application.description")}</Typography.Paragraph></div><Space wrap>
@@ -143,7 +160,7 @@ export function AdminApplicationsPage() {
         <Select allowClear aria-label={t("apps.application.filters.status")} onChange={(value) => { setStatusFilter(value ?? ""); setPage(1); }} options={["active", "disabled"].map((value) => ({ value, label: t(`apps.status.${value}`) }))} placeholder={t("apps.application.filters.status")} value={status || undefined} />
       </div>
       {applications.isError ? <Alert showIcon type="error" title={t("apps.feedback.load_error")} action={<Button onClick={() => void applications.refetch()}>{t("common.actions.retry")}</Button>} /> : null}
-      {screens.md ? <div aria-label={t("apps.application.title")} className="ak-table-scroll" role="region" tabIndex={0}><Table columns={columns} dataSource={applications.data?.items ?? []} loading={applications.isPending} locale={{ emptyText: t("apps.application.empty") }} pagination={{ current: page, pageSize, total: applications.data?.total ?? 0, showSizeChanger: true, onChange: (nextPage, nextPageSize) => { setPage(nextPage); setPageSize(nextPageSize); } }} rowKey="id" {...(permissions.has("app.application.delete") ? { rowSelection: { selectedRowKeys: selected, onChange: setSelected, getCheckboxProps: (item: ManagedApplication) => ({ disabled: item.status !== "disabled" || item.is_default }) } } : {})} scroll={{ x: 1500 }} size="middle" /></div> : <div className="ak-mobile-application-list">
+      {screens.md ? <div aria-label={t("apps.application.title")} className="ak-table-scroll" role="region" tabIndex={0}><Table columns={columns} dataSource={applications.data?.items ?? []} loading={applications.isPending} locale={{ emptyText: t("apps.application.empty") }} pagination={{ current: page, pageSize, total: applications.data?.total ?? 0, showSizeChanger: true, onChange: (nextPage, nextPageSize) => { setPage(nextPage); setPageSize(nextPageSize); } }} rowKey="id" {...(permissions.has("app.application.delete") ? { rowSelection: { selectedRowKeys: selected, onChange: setSelected, getCheckboxProps: (item: ManagedApplication) => ({ disabled: item.status !== "disabled" || item.is_default }) } } : {})} scroll={{ x: 1320 }} size="middle" /></div> : <div className="ak-mobile-application-list">
         {applications.isPending ? <Card loading size="small" /> : null}
         {!applications.isPending && (applications.data?.items.length ?? 0) === 0 ? <div className="ak-mobile-release-empty">{t("apps.application.empty")}</div> : null}
         {(applications.data?.items ?? []).map((item) => <Card className="ak-mobile-application-card" key={item.id} size="small" title={item.name} extra={<Tag className={item.status === "active" ? "ak-status-success" : "ak-status-error"}>{t(`apps.status.${item.status}`)}</Tag>}>
@@ -152,6 +169,7 @@ export function AdminApplicationsPage() {
       </div>}
     </Card>
     <ApplicationDrawer canPublish={permissions.has("app.onboarding.publish")} editor={editor} form={form} fullScreen={!screens.md} picker={picker} setPicker={setPicker} publishing={mutations.publishOnboarding.isPending} saving={mutations.create.isPending || mutations.update.isPending} onClose={() => { setEditor(null); }} onPublish={() => { Modal.confirm({ title: t("apps.startup.publish.title"), content: t("apps.startup.publish.description"), okText: t("apps.startup.actions.publish"), onOk: publishOnboarding }); }} onSave={() => void save()} />
+    <AppShareBindingsDrawer appId={shareApp?.id ?? null} appName={shareApp?.name} onClose={() => { setShareApp(null); }} />
   </div>;
 }
 

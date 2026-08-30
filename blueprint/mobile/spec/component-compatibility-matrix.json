@@ -347,6 +347,66 @@
       "android": "test_required",
       "ios": "test_required",
       "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkIconButton",
+      "implementation": "native view + AkIcon",
+      "status": "approved",
+      "phase": "P1",
+      "notes": "44px 触控目标承载 14–16px 图标、无障碍标签、状态与角标",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkSearchField",
+      "implementation": "native input + AkIconButton",
+      "status": "approved",
+      "phase": "P1",
+      "notes": "统一搜索键盘、清除动作、焦点与无障碍标签",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkContentViewer",
+      "implementation": "AK content-type dispatcher",
+      "status": "approved",
+      "phase": "P1",
+      "notes": "只按稳定 content_type 分派受控原生查看器，不执行远程组件或 HTML",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkArticleViewer",
+      "implementation": "native text/image allowlist",
+      "status": "approved",
+      "phase": "P1",
+      "notes": "文章标题、元数据、正文块和标签的可读性布局",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkImageTextViewer",
+      "implementation": "native swiper + image/text allowlist",
+      "status": "approved",
+      "phase": "P1",
+      "notes": "保持媒体顺序与 alt，提供相邻图预览且不依赖远程布局",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkVideoViewer",
+      "implementation": "native video + uni.getVideoInfo",
+      "status": "approved",
+      "phase": "P1",
+      "notes": "按分辨率选择横/竖布局、允许用户切换、列表不自动播放、离页暂停",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
     }
   ]
 }

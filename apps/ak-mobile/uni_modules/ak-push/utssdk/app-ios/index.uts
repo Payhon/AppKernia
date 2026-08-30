@@ -1,0 +1,85 @@
+import {
+  GetPushCapability, OnForegroundMessage, OnNotificationOpened, OnPushTokenChanged, OpenPushSystemSettings,
+  PushCapability, PushCapabilitySuccess, PushFailure, PushForegroundListener, PushOpenEvent, PushOpenListener,
+  PushRegistration, PushRegistrationSuccess, PushSuccess, PushTokenListener, RegisterPush, RequestPushAuthorization, UnregisterPush,
+} from '../interface.uts'
+import { getStatus as getPermissionStatus, openSettings as openPermissionSettings, request as requestPermission } from '@/uni_modules/ak-permissions'
+
+let tokenListener: PushTokenListener | null = null
+let openListener: PushOpenListener | null = null
+let foregroundListener: PushForegroundListener | null = null
+let pendingOpened: PushOpenEvent | null = null
+
+type IOSPushEventWire = { readonly schema_version: number; readonly delivery_id: string; readonly message_id: string; readonly route_key: string | null }
+
+function eventValue(userInfo: Map<AnyHashable, Any> | null): PushOpenEvent | null {
+  if (userInfo == null) return null
+  const raw = AkPushIOSBridge.normalizedEvent(userInfo!)
+  if (raw.length == 0) return null
+  const object = JSON.parseObject(raw)
+  if (object == null) return null
+  const value = object as IOSPushEventWire
+  if (value.schema_version != 1 || value.delivery_id.length == 0 || value.message_id.length == 0) return null
+  return new PushOpenEvent(value.schema_version, value.delivery_id, value.message_id, value.route_key == null ? '' : value.route_key!, new Map<string, string>())
+}
+
+export class AkPushIOSLifecycleHook implements UTSiOSHookProxy {
+  applicationDidFinishLaunchingWithOptions(_application: UIApplication | null, launchOptions: Map<UIApplication.LaunchOptionsKey, Any> | null = null): boolean {
+    if (launchOptions != null) {
+      const remote = launchOptions.get(UIApplication.LaunchOptionsKey.remoteNotification) as Map<AnyHashable, Any> | null
+      const event = eventValue(remote)
+      if (event != null) pendingOpened = event
+    }
+    return true
+  }
+  didRegisterForRemoteNotifications(deviceToken: Data | null): void {
+    if (deviceToken == null) return
+    const value = AkPushIOSBridge.tokenString(deviceToken!)
+    AkPushIOSBridge.didRegisterDeviceToken(deviceToken!)
+    const listener = tokenListener
+    if (listener != null && value.length > 0) listener(new PushRegistration('apns', 'ios', 'ios', value, AkPushIOSBridge.sdkVersion()))
+  }
+  didFailToRegisterForRemoteNotifications(_error: NSError | null): void { AkPushIOSBridge.didFailRegistration() }
+  didReceiveRemoteNotification(userInfo: Map<AnyHashable, Any> | null): void {
+    const event = eventValue(userInfo); if (event == null) return
+    if (UIApplication.shared.applicationState == UIApplication.State.active) dispatchForegroundMessage(event.schemaVersion, event.deliveryId, event.messageId, event.routeKey, event.routeParams)
+    else dispatchNotificationOpened(event.schemaVersion, event.deliveryId, event.messageId, event.routeKey, event.routeParams)
+  }
+}
+
+function capability(status: string): PushCapability {
+  const authorization = status == 'authorized' ? 'authorized' : status == 'limited' ? 'limited' : status == 'restricted' ? 'restricted' : status == 'denied' ? 'denied' : status == 'unavailable' ? 'unavailable' : 'not_determined'
+  return new PushCapability(true, 'ios', 'ios', 'apns', authorization, null)
+}
+
+export const getCapability: GetPushCapability = function (success: PushCapabilitySuccess, _failure: PushFailure): void {
+  getPermissionStatus('notifications',(permission)=>success(capability(permission.status)),_code=>success(capability('unavailable')))
+}
+
+export const requestAuthorization: RequestPushAuthorization = function (success: PushCapabilitySuccess, failure: PushFailure): void {
+  requestPermission('notifications',(permission)=>{if(permission.status=='authorized'||permission.status=='limited')success(capability(permission.status));else failure('permission_denied')},_code=>failure('native_failure'))
+}
+
+export const register: RegisterPush = function (success: PushRegistrationSuccess, failure: PushFailure): void {
+  AkPushIOSBridge.register((token: string) => {
+    const value = new PushRegistration('apns', 'ios', 'ios', token, AkPushIOSBridge.sdkVersion())
+    success(value)
+  }, (_code: string) => { failure('native_failure') })
+}
+
+export const unregister: UnregisterPush = function (success: PushSuccess, _failure: PushFailure): void { AkPushIOSBridge.unregister(); success() }
+export const openSystemSettings: OpenPushSystemSettings = function (): boolean { return openPermissionSettings('notifications') }
+export const onTokenChanged: OnPushTokenChanged = function (listener: PushTokenListener | null): void { tokenListener = listener }
+export const onNotificationOpened: OnNotificationOpened = function (listener: PushOpenListener | null): void {
+  openListener = listener
+  if (listener != null && pendingOpened != null) { const event = pendingOpened!; pendingOpened = null; listener(event) }
+}
+export const onForegroundMessage: OnForegroundMessage = function (listener: PushForegroundListener | null): void { foregroundListener = listener }
+export function consumeNotificationOpened(): void {}
+
+export function dispatchNotificationOpened(schemaVersion: number, deliveryId: string, messageId: string, routeKey: string, routeParams: Map<string, string>): void {
+  const listener = openListener; if (listener != null) listener(new PushOpenEvent(schemaVersion, deliveryId, messageId, routeKey, routeParams))
+}
+export function dispatchForegroundMessage(schemaVersion: number, deliveryId: string, messageId: string, routeKey: string, routeParams: Map<string, string>): void {
+  const listener = foregroundListener; if (listener != null) listener(new PushOpenEvent(schemaVersion, deliveryId, messageId, routeKey, routeParams))
+}

@@ -1,0 +1,99 @@
+<template>
+  <view class="video-viewer" :class="mode === 'vertical' ? 'video-viewer-vertical' : 'video-viewer-horizontal'">
+    <view :class="stageClass">
+      <image v-if="cover.length > 0" class="orientation-probe" :src="cover" mode="aspectFit" @load="onCoverLoad" />
+      <video id="content-video" :class="playerClass" :style="playerStyle" :src="videoUrl" :poster="cover" controls :object-fit="videoFit" @error="$emit('video-error')" />
+      <view v-if="mode === 'horizontal'" class="horizontal-switch"><ak-icon-button name="layout-vertical" :label="verticalLabel" @click="toggleMode" /></view>
+      <view v-else class="vertical-top"><view class="vertical-control"><ak-back-button /></view><view class="vertical-control"><ak-icon-button name="layout-horizontal" :label="horizontalLabel" @click="toggleMode" /></view></view>
+      <view v-if="mode === 'vertical'" class="vertical-actions">
+        <view class="vertical-control vertical-action"><ak-icon-button name="bookmark" :label="bookmarkLabel" :active="bookmarked" :loading="bookmarkLoading" @click="$emit('bookmark')" /></view>
+        <view class="vertical-control vertical-action"><ak-icon-button name="comment" :label="commentLabel" @click="$emit('comments')" /></view>
+        <view class="vertical-control vertical-action"><ak-icon-button name="share" :label="shareLabel" @click="$emit('share')" /></view>
+      </view>
+      <view v-if="mode === 'vertical'" class="vertical-copy"><text class="vertical-category">{{ category }}</text><text class="vertical-title">{{ title }}</text><text class="vertical-summary" lines="2">{{ summary }}</text></view>
+    </view>
+    <view v-if="mode === 'horizontal'" class="horizontal-copy">
+      <text class="category">{{ category }}</text>
+      <text class="title">{{ title }}</text>
+      <text class="meta">{{ meta }}</text>
+      <text v-if="summary.length > 0" class="summary">{{ summary }}</text>
+      <view v-for="block in blocks" :key="block.id" :class="blockClass(block.kind)">
+        <image v-if="block.kind === 'image' && block.url.length > 0" class="body-image" :src="block.url" mode="widthFix" />
+        <text v-else>{{ block.text }}</text>
+      </view>
+      <view class="tags"><text v-for="tag in tags" :key="tag.id" class="tag">#{{ tag.name }}</text></view>
+    </view>
+  </view>
+</template>
+
+<script lang="uts">
+import { ArticleBodyBlock } from '../../../src/features/articles/application/article-body-renderer.uts'
+import { ContentTag } from '../../../src/features/articles/domain/models.uts'
+export default {
+  props: {
+    category: { type: String, default: '' }, title: { type: String, default: '' }, summary: { type: String, default: '' }, meta: { type: String, default: '' }, cover: { type: String, default: '' }, videoUrl: { type: String, default: '' },
+    bookmarked: { type: Boolean, default: false }, bookmarkLoading: { type: Boolean, default: false }, bookmarkLabel: { type: String, default: '' }, commentLabel: { type: String, default: '' }, shareLabel: { type: String, default: '' }, horizontalLabel: { type: String, default: '' }, verticalLabel: { type: String, default: '' },
+    blocks: { type: Array<ArticleBodyBlock>, default: () => [] as Array<ArticleBodyBlock> }, tags: { type: Array<ContentTag>, default: () => [] as Array<ContentTag> },
+  },
+  emits: ['mode-change', 'video-error', 'bookmark', 'comments', 'share'],
+  data() { return { mode: 'horizontal', userSelected: false, sourceWidth: 16, sourceHeight: 9 } },
+  computed: {
+    stageClass(): string { return this.mode === 'vertical' ? 'video-stage video-stage-vertical' : 'video-stage' },
+    playerClass(): string { return this.mode === 'vertical' ? 'video-player video-player-vertical' : 'video-player' },
+    videoFit(): string { return this.mode === 'vertical' ? 'contain' : 'cover' },
+    playerStyle(): string {
+      if (this.mode !== 'vertical') return ''
+      const info = uni.getWindowInfo()
+      const ratio = this.sourceWidth > 0 && this.sourceHeight > 0 ? this.sourceHeight / this.sourceWidth : 9 / 16
+      const safeHeight = Math.max(220, info.windowHeight - info.safeAreaInsets.top - info.safeAreaInsets.bottom)
+      const height = Math.max(220, Math.min(Math.round(info.windowWidth * ratio), safeHeight))
+      return 'height:' + height.toString() + 'px;'
+    },
+  },
+  watch: { videoUrl() { this.mode = 'horizontal'; this.userSelected = false; this.sourceWidth = 16; this.sourceHeight = 9; this.$emit('mode-change', this.mode) } },
+  methods: {
+    blockClass(kind: string): string { return kind === 'image' ? 'body-image-wrap' : kind === 'heading' ? 'body-heading' : kind === 'callout' ? 'callout' : 'body-paragraph' },
+    onCoverLoad(event: UniImageLoadEvent) {
+      if (event.detail.width <= 0 || event.detail.height <= 0) return
+      this.sourceWidth = event.detail.width
+      this.sourceHeight = event.detail.height
+      if (this.userSelected) return
+      this.mode = this.sourceHeight > this.sourceWidth ? 'vertical' : 'horizontal'
+      this.$emit('mode-change', this.mode)
+    },
+    toggleMode() { this.userSelected = true; this.mode = this.mode === 'horizontal' ? 'vertical' : 'horizontal'; this.$emit('mode-change', this.mode) },
+    pause() { const video = uni.createVideoContext('content-video', this); if (video != null) video.pause() },
+  },
+  beforeUnmount() { this.pause() },
+}
+</script>
+
+<style lang="scss">
+.video-stage { position: relative; width: 100%; }
+.video-player { width: 100%; height: 220px; border-radius: 18px; background: #000000; }
+.orientation-probe { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.horizontal-switch { position: absolute; top: 8px; right: 8px; border-radius: 22px; background: rgba(255,255,255,0.86); }
+.horizontal-copy { margin-top: 20px; }
+.category { color: var(--ak-brand); font-size: 13px; font-weight: 650; }
+.title { color: var(--ak-text); font-size: 27px; line-height: 36px; font-weight: 800; margin-top: 10px; }
+.meta { color: var(--ak-muted); font-size: 14px; margin-top: 9px; }
+.summary { color: var(--ak-text); font-size: 17px; line-height: 27px; margin-top: 16px; }
+.body-heading { font-size: 24px; line-height: 32px; font-weight: 750; color: var(--ak-text); margin: 28px 0 10px; }
+.body-paragraph { font-size: 17px; line-height: 30px; color: var(--ak-text); margin: 12px 0; }
+.body-image-wrap { width: 100%; margin: 18px 0; }
+.body-image { width: 100%; border-radius: 14px; }
+.callout { font-size: 16px; line-height: 26px; color: var(--ak-callout-text); background: var(--ak-accent-surface); border-left: 3px solid var(--ak-brand); padding: 16px; border-radius: 12px; margin: 20px 0; }
+.tags { flex-direction: row; flex-wrap: wrap; margin: 20px 0; }
+.tag { color: var(--ak-brand); margin-right: 10px; }
+.video-viewer-vertical { position: fixed; z-index: 8000; left: 0; right: 0; top: 0; bottom: 0; background: #000000; }
+.video-stage-vertical { width: 100%; height: 100%; justify-content: center; background: #000000; }
+.video-player-vertical { width: 100%; border-radius: 0; background: #000000; }
+.vertical-top { position: absolute; top: var(--ak-safe-top); left: 10px; right: 10px; flex-direction: row; align-items: center; justify-content: space-between; }
+.vertical-control { background: rgba(255,255,255,0.84); border-radius: 22px; }
+.vertical-actions { position: absolute; right: 14px; bottom: 130px; }
+.vertical-action { margin-top: 14px; }
+.vertical-copy { position: absolute; left: 18px; right: 76px; bottom: 28px; }
+.vertical-category { color: rgba(255,255,255,0.78); font-size: 13px; }
+.vertical-title { color: #FFFFFF; font-size: 24px; line-height: 31px; font-weight: 800; margin-top: 6px; }
+.vertical-summary { color: rgba(255,255,255,0.86); font-size: 15px; line-height: 22px; margin-top: 8px; }
+</style>

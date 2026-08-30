@@ -1,0 +1,29 @@
+appId: com.appkernia.mobile
+name: 应核资讯 App 登录与收藏验收
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "首页"
+    timeout: 15000
+- tapOn: "我的"
+- tapOn:
+    point: "50%,29%"
+- tapOn:
+    point: "50%,55%"
+- inputText: "demo-reader@appkernia.local"
+- hideKeyboard
+- tapOn:
+    point: "50%,64%"
+- inputText: "${DEMO_MOBILE_PASSWORD}"
+- hideKeyboard
+- tapOn:
+    point: "50%,73%"
+- extendedWaitUntil:
+    notVisible: "登录应核"
+    timeout: 15000
+- takeScreenshot: output/playwright/ak-news-ios-profile-authenticated
+- tapOn:
+    point: "50%,43%"
+- waitForAnimationToEnd
+- takeScreenshot: output/playwright/ak-news-ios-bookmarks

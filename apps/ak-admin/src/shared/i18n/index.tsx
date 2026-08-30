@@ -18,6 +18,8 @@ import enNavigation from '../../locales/en-US/navigation.json'
 import enNotifications from '../../locales/en-US/notifications.json'
 import enOpenApi from '../../locales/en-US/openapi.json'
 import enProfile from '../../locales/en-US/profile.json'
+import enPushChannels from '../../locales/en-US/push_channels.json'
+import enShareConfigs from '../../locales/en-US/share_configs.json'
 import enSettings from '../../locales/en-US/settings.json'
 import enSystem from '../../locales/en-US/system.json'
 import enValidation from '../../locales/en-US/validation.json'
@@ -31,6 +33,8 @@ import zhNavigation from '../../locales/zh-CN/navigation.json'
 import zhNotifications from '../../locales/zh-CN/notifications.json'
 import zhOpenApi from '../../locales/zh-CN/openapi.json'
 import zhProfile from '../../locales/zh-CN/profile.json'
+import zhPushChannels from '../../locales/zh-CN/push_channels.json'
+import zhShareConfigs from '../../locales/zh-CN/share_configs.json'
 import zhSettings from '../../locales/zh-CN/settings.json'
 import zhSystem from '../../locales/zh-CN/system.json'
 import zhValidation from '../../locales/zh-CN/validation.json'
@@ -40,8 +44,8 @@ export const supportedLocales = ['zh-CN', 'en-US'] as const
 export type AdminLocale = (typeof supportedLocales)[number]
 
 const localeStorageKey = 'ak.admin.locale'
-const enCatalog = { ...enApps, ...enAuth, ...enCommon, ...enContent, ...enErrors, ...enMobileReleases, ...enNavigation, ...enNotifications, ...enOpenApi, ...enProfile, ...enSettings, ...enSystem, ...enValidation }
-const zhCatalog = { ...zhApps, ...zhAuth, ...zhCommon, ...zhContent, ...zhErrors, ...zhMobileReleases, ...zhNavigation, ...zhNotifications, ...zhOpenApi, ...zhProfile, ...zhSettings, ...zhSystem, ...zhValidation }
+const enCatalog = { ...enApps, ...enAuth, ...enCommon, ...enContent, ...enErrors, ...enMobileReleases, ...enNavigation, ...enNotifications, ...enOpenApi, ...enProfile, ...enPushChannels, ...enShareConfigs, ...enSettings, ...enSystem, ...enValidation }
+const zhCatalog = { ...zhApps, ...zhAuth, ...zhCommon, ...zhContent, ...zhErrors, ...zhMobileReleases, ...zhNavigation, ...zhNotifications, ...zhOpenApi, ...zhProfile, ...zhPushChannels, ...zhShareConfigs, ...zhSettings, ...zhSystem, ...zhValidation }
 
 function readStoredLocale(): string | null {
   try {

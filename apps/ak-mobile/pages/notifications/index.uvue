@@ -1,1 +1,45 @@
-<template><ak-theme-root><scroll-view class="page" scroll-y @scrolltolower="more"><view class="header"><text class="title">{{t('tabs.notifications', null)}}</text></view><view v-if="state!=='content'" class="state"><ak-status-view :state="state" :title="title" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/></view><view v-else class="notification-list"><ak-card v-for="item in items" :key="item.id" :class="item.readAt==null?'notification-card notification-card-unread':'notification-card'" @click="read(item)"><view class="notification-card__header"><text class="notification-card__title">{{item.title}}</text><view v-if="item.readAt==null" class="unread-dot"/></view><text class="notification-card__body">{{plain(item.body)}}</text><text class="notification-card__time">{{item.createdAt}}</text></ak-card><ak-button v-if="cursor.length>0" class="load-more" variant="secondary" :loading="moreLoading" @click="more">{{t('articles.loadMore', null)}}</ak-button></view></scroll-view></ak-theme-root></template><script lang="uts">import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{NavigationLocaleSync}from'../../src/core/i18n/navigation-sync.uts';import{HttpCancellation}from'../../src/core/network/http-port.uts';import{notificationPlainText}from'../../src/features/notifications/application/plain-text-sanitizer.uts';import{MobileNotification,MobileNotificationPage}from'../../src/features/notifications/infrastructure/http-notifications-repository.uts';import{notificationsRuntime}from'../../src/features/notifications/infrastructure/notifications-runtime.uts';let task:HttpCancellation|null=null;export default{data(){return{state:'loading',items:[] as Array<MobileNotification>,cursor:'',moreLoading:false}},computed:{t(){return akI18n.t},title(){return akI18n.t(this.state==='empty'?'state.empty.title':'state.error.title',null)}},onLoad(){this.reload()},onShow(){new NavigationLocaleSync(akI18n).apply(akI18n.getLocale(),'routes.notifications.title')},onUnload(){const activeTask=task;if(activeTask!=null)activeTask.cancel()},methods:{plain(v:string){return notificationPlainText(v)},reload(){const r=notificationsRuntime.getRepository();if(r==null){this.state='error';return}this.state='loading';task=r.list(null as string|null,(p:MobileNotificationPage)=>{this.items=p.items;this.cursor=p.nextCursor!=null?p.nextCursor:'';this.state=this.items.length>0?'content':'empty'},()=>{this.state='error'})},more(){if(this.cursor.length==0||this.moreLoading)return;const r=notificationsRuntime.getRepository();if(r==null)return;this.moreLoading=true;task=r.list(this.cursor,(p:MobileNotificationPage)=>{this.items=this.items.concat(p.items);this.cursor=p.nextCursor!=null?p.nextCursor:'';this.moreLoading=false},()=>{this.moreLoading=false})},read(item:MobileNotification){if(item.readAt!=null)return;const r=notificationsRuntime.getRepository();if(r==null)return;task=r.read(item.id,()=>{item.readAt='now'},()=>{})}}}</script><style lang="scss">.page{flex:1;background:var(--ak-page);padding:16px 16px 48px}.header{min-height:64px;justify-content:flex-end;margin-bottom:16px}.title{color:var(--ak-text);font-size:32px;font-weight:700;line-height:40px}.state{min-height:360px;justify-content:center}.notification-list{padding-bottom:16px}.notification-card{padding:16px;margin-bottom:12px}.notification-card-unread{border-color:var(--ak-brand);background:var(--ak-surface)}.notification-card__header{flex-direction:row;align-items:center;justify-content:space-between}.notification-card__title{flex:1;color:var(--ak-text);font-size:17px;font-weight:600;line-height:24px}.unread-dot{width:8px;height:8px;border-radius:4px;background:var(--ak-brand);margin-left:12px}.notification-card__body{color:var(--ak-muted);font-size:15px;line-height:22px;margin-top:8px}.notification-card__time{color:var(--ak-muted);font-size:13px;margin-top:12px}.load-more{margin-top:4px}</style>
+<template>
+  <ak-theme-root><scroll-view class="page" scroll-y @scrolltolower="more">
+    <view class="header"><text class="title">{{t('tabs.notifications', null)}}</text></view>
+    <view v-if="state!=='content'" class="state"><ak-status-view :state="state" :title="title" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/></view>
+    <view v-else class="notification-list">
+      <ak-card v-for="item in items" :key="item.id" :class="item.readAt==null?'notification-card notification-card-unread':'notification-card'" @click="read(item)">
+        <view class="notification-card__header"><text class="notification-card__title">{{item.title}}</text><view v-if="item.readAt==null" class="unread-dot"/></view>
+        <text class="notification-card__body">{{plain(item.body)}}</text><text class="notification-card__time">{{item.createdAt}}</text>
+      </ak-card>
+      <ak-button v-if="cursor.length>0&&!focused" class="load-more" variant="secondary" :loading="moreLoading" @click="more">{{t('articles.loadMore', null)}}</ak-button>
+    </view>
+  </scroll-view></ak-theme-root>
+</template>
+
+<script lang="uts">
+import { akI18n } from '../../src/core/i18n/ak-i18n.uts'
+import { NavigationLocaleSync } from '../../src/core/i18n/navigation-sync.uts'
+import { HttpCancellation } from '../../src/core/network/http-port.uts'
+import { notificationPlainText } from '../../src/features/notifications/application/plain-text-sanitizer.uts'
+import { MobileNotification, MobileNotificationPage } from '../../src/features/notifications/infrastructure/http-notifications-repository.uts'
+import { notificationsRuntime } from '../../src/features/notifications/infrastructure/notifications-runtime.uts'
+
+let task: HttpCancellation | null = null
+export default {
+  data() { return { state: 'loading', items: [] as Array<MobileNotification>, cursor: '', moreLoading: false, focused: false, focusId: '' } },
+  computed: { t() { return akI18n.t }, title() { return akI18n.t(this.state==='empty'?'state.empty.title':'state.error.title',null) } },
+  onLoad(options: UTSJSONObject) { const value=options.getString('message_id');this.focusId=value==null?'':value;this.focused=this.validId(this.focusId);this.reload() },
+  onShow() { new NavigationLocaleSync(akI18n).apply(akI18n.getLocale(),'routes.notifications.title') },
+  onUnload() { const activeTask=task;if(activeTask!=null)activeTask.cancel() },
+  methods: {
+    validId(value:string):boolean{return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)},
+    plain(value:string){return notificationPlainText(value)},
+    reload(){const repository=notificationsRuntime.getRepository();if(repository==null){this.state='error';return};this.state='loading'
+      if(this.focused){task=repository.get(this.focusId,(item:MobileNotification)=>{this.items=[item];this.cursor='';this.state='content'},()=>{this.state='error'});return}
+      task=repository.list(null as string|null,(page:MobileNotificationPage)=>{this.items=page.items;this.cursor=page.nextCursor!=null?page.nextCursor:'';this.state=this.items.length>0?'content':'empty'},()=>{this.state='error'})
+    },
+    more(){if(this.focused||this.cursor.length==0||this.moreLoading)return;const repository=notificationsRuntime.getRepository();if(repository==null)return;this.moreLoading=true;task=repository.list(this.cursor,(page:MobileNotificationPage)=>{this.items=this.items.concat(page.items);this.cursor=page.nextCursor!=null?page.nextCursor:'';this.moreLoading=false},()=>{this.moreLoading=false})},
+    read(item:MobileNotification){if(item.readAt!=null)return;const repository=notificationsRuntime.getRepository();if(repository==null)return;task=repository.read(item.id,()=>{item.readAt='now'},()=>{})},
+  },
+}
+</script>
+
+<style lang="scss">
+.page{flex:1;background:var(--ak-page);padding:16px 16px 48px}.header{min-height:64px;justify-content:flex-end;margin-bottom:16px}.title{color:var(--ak-text);font-size:32px;font-weight:700;line-height:40px}.state{min-height:360px;justify-content:center}.notification-list{padding-bottom:16px}.notification-card{padding:16px;margin-bottom:12px}.notification-card-unread{border-color:var(--ak-brand);background:var(--ak-surface)}.notification-card__header{flex-direction:row;align-items:center;justify-content:space-between}.notification-card__title{flex:1;color:var(--ak-text);font-size:17px;font-weight:600;line-height:24px}.unread-dot{width:8px;height:8px;border-radius:4px;background:var(--ak-brand);margin-left:12px}.notification-card__body{color:var(--ak-muted);font-size:15px;line-height:22px;margin-top:8px}.notification-card__time{color:var(--ak-muted);font-size:13px;margin-top:12px}.load-more{margin-top:4px}
+</style>

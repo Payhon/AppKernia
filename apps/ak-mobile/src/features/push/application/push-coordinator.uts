@@ -1,0 +1,84 @@
+import { AkError } from '../../../core/errors/ak-error.uts'
+import { HttpCancellation } from '../../../core/network/http-port.uts'
+import { appPublicConfigRuntime } from '../../app-config/public-config-runtime.uts'
+import { legalConsentStore } from '../../legal/legal-consent-store.uts'
+import { PushDevice } from '../infrastructure/http-push-repository.uts'
+import { pushRuntime } from '../infrastructure/push-runtime.uts'
+import { akI18n } from '../../../core/i18n/ak-i18n.uts'
+import { consumeNotificationOpened, getCapability, onForegroundMessage, onNotificationOpened, onTokenChanged, openSystemSettings, register, requestAuthorization, unregister } from '@/uni_modules/ak-push'
+import { PushCapability, PushErrorCode, PushOpenEvent, PushRegistration } from '../../../../uni_modules/ak-push/utssdk/interface.uts'
+
+export type PushState = { readonly capability: PushCapability | null; readonly device: PushDevice | null }
+export type PushCoordinatorFailure = (code: string) => void
+
+export class PushCoordinator {
+  private task: HttpCancellation | null = null
+  private initialized: boolean = false
+  initialize(pushEnabled: boolean): void {
+    if (!legalConsentStore.acceptedAll()) return
+    if (!this.initialized) {
+      onTokenChanged((value: PushRegistration) => { this.refreshToken(value) })
+      onNotificationOpened((event: PushOpenEvent) => { this.open(event) })
+      onForegroundMessage((_event: PushOpenEvent) => { uni.showToast({title:akI18n.t('notifications.push.foreground',null),icon:'none'}) })
+      this.initialized = true
+    }
+    if (pushEnabled) this.restoreActiveRegistration()
+  }
+  load(ok: (state: PushState) => void, fail: PushCoordinatorFailure): void {
+    getCapability((capability: PushCapability) => {
+      const repository=pushRuntime.getRepository(); if(repository==null){fail('adapter_unavailable');return}
+      this.task=repository.current(device=>ok({capability,device}),error=>fail(error.code))
+    },(code: PushErrorCode)=>fail(code))
+  }
+  enable(ok: (state: PushState) => void, fail: PushCoordinatorFailure): void {
+    if (!legalConsentStore.acceptedAll()) { fail('consent_required'); return }
+    requestAuthorization((capability: PushCapability) => {
+      if (!capability.available || capability.provider==null) { fail(capability.reason == null ? 'adapter_unavailable' : capability.reason!); return }
+      if (!appPublicConfigRuntime.pushEnabled(capability.provider!,capability.buildVariant)) { fail('configuration_missing'); return }
+      register((registration: PushRegistration) => {
+        const repository=pushRuntime.getRepository(); if(repository==null){unregister(()=>fail('adapter_unavailable'),_code=>fail('adapter_unavailable'));return}
+        const info=uni.getAppBaseInfo(); const appVersion=info.appVersion == null ? '' : info.appVersion!
+        this.task=repository.register(registration,appVersion,device=>ok({capability,device}),error=>unregister(()=>fail(error.code),_code=>fail(error.code)))
+      },(code: PushErrorCode)=>fail(code))
+    },(code: PushErrorCode)=>fail(code))
+  }
+  disable(current: PushDevice | null, ok: () => void, fail: PushCoordinatorFailure): void {
+    const finish=()=>unregister(()=>ok(),(_code: PushErrorCode)=>ok())
+    const repository=pushRuntime.getRepository(); if(repository==null){fail('adapter_unavailable');return}
+    if(current==null){finish();return}
+    this.task=repository.disable(current.id,finish,(error: AkError)=>fail(error.code))
+  }
+  disableActive(ok: () => void): void {
+    const repository=pushRuntime.getRepository();if(repository==null){unregister(()=>ok(),_code=>ok());return}
+    repository.current(device=>this.disable(device,ok,_code=>ok()),_error=>{unregister(()=>ok(),_code=>ok())})
+  }
+  settings(): boolean { return openSystemSettings() }
+  resume(): void { if(this.initialized)consumeNotificationOpened() }
+  cancel(): void { const task=this.task;if(task!=null)task.cancel();this.task=null }
+  private refreshToken(value: PushRegistration): void {
+    if (!legalConsentStore.acceptedAll() || !appPublicConfigRuntime.pushEnabled(value.provider,value.buildVariant)) return
+    const repository=pushRuntime.getRepository();if(repository==null)return
+    repository.current(device=>{if(device==null||device.status!='active')return;const info=uni.getAppBaseInfo();repository.register(value,info.appVersion==null?'':info.appVersion!,_saved=>{},_error=>{})},_error=>{})
+  }
+  private restoreActiveRegistration(): void {
+    const repository=pushRuntime.getRepository();if(repository==null)return
+    repository.current(device=>{
+      if(device==null||device.status!='active')return
+      getCapability(capability=>{
+        if(capability.authorization=='denied'){repository.disable(device.id,()=>{},_error=>{});return}
+        if(!capability.available||(capability.authorization!='authorized'&&capability.authorization!='limited')||capability.provider==null)return
+        if(!appPublicConfigRuntime.pushEnabled(capability.provider!,capability.buildVariant))return
+        register(value=>{
+          const info=uni.getAppBaseInfo();repository.register(value,info.appVersion==null?'':info.appVersion!,_saved=>{},_error=>{})
+        },_code=>{})
+      },_code=>{})
+    },_error=>{})
+  }
+  private open(event: PushOpenEvent): void {
+    if(event.schemaVersion!=1||!this.validUUID(event.deliveryId)||!this.validUUID(event.messageId))return
+    const repository=pushRuntime.getRepository();if(repository!=null)repository.opened(event.deliveryId,()=>{},()=>{})
+    if(event.routeKey==''||event.routeKey=='notification.detail')uni.navigateTo({url:'/pages/notifications/index?message_id='+encodeURIComponent(event.messageId)})
+  }
+  private validUUID(value:string):boolean{return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)}
+}
+export const pushCoordinator=new PushCoordinator()

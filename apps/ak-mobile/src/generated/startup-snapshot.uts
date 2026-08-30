@@ -6,6 +6,6 @@ export type BundledStartupSnapshot = { readonly appId: string; readonly iconPath
 export const bundledStartupSnapshot: BundledStartupSnapshot = {
   appId: '00000000-0000-4000-8000-000000000001',
   iconPath: '/static/app-startup/icon.svg',
-  zhCN: { displayName: 'AppKernia', subtitle: '跨平台应用开发基座' },
+  zhCN: { displayName: '应核 AppKernia', subtitle: '跨平台应用开发基座' },
   enUS: { displayName: 'AppKernia', subtitle: 'Cross-platform application foundation' },
 }

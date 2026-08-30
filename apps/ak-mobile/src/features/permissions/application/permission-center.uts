@@ -1,0 +1,31 @@
+import { getStatus, listCapabilities, onStatusChanged, openSettings, request } from '@/uni_modules/ak-permissions'
+import { PermissionCapability, PermissionErrorCode, PermissionKey, PermissionStatusListener } from '../../../../uni_modules/ak-permissions/utssdk/interface.uts'
+
+export class PermissionDefinition {
+  readonly key:PermissionKey
+  readonly enabled:boolean
+  readonly titleKey:string
+  readonly descriptionKey:string
+  constructor(key:PermissionKey,enabled:boolean,titleKey:string,descriptionKey:string){this.key=key;this.enabled=enabled;this.titleKey=titleKey;this.descriptionKey=descriptionKey}
+}
+
+// Capabilities are code-owned. A future feature must enable its entry and ship
+// a native adapter before it becomes visible; server data cannot add one.
+export const permissionRegistry:Array<PermissionDefinition>=[
+  new PermissionDefinition('notifications',true,'permissions.notifications.title','permissions.notifications.description'),
+  new PermissionDefinition('camera',false,'permissions.camera.title','permissions.camera.description'),
+  new PermissionDefinition('photos',false,'permissions.photos.title','permissions.photos.description'),
+  new PermissionDefinition('file_picker',false,'permissions.filePicker.title','permissions.filePicker.description'),
+  new PermissionDefinition('microphone',false,'permissions.microphone.title','permissions.microphone.description'),
+  new PermissionDefinition('location',false,'permissions.location.title','permissions.location.description'),
+  new PermissionDefinition('bluetooth',false,'permissions.bluetooth.title','permissions.bluetooth.description'),
+]
+
+export class PermissionCenter {
+  list(ok:(values:Array<PermissionCapability>)=>void,fail:(code:PermissionErrorCode)=>void):void{listCapabilities(values=>ok(values.filter(value=>permissionRegistry.some(item=>item.enabled&&item.key==value.key))),fail)}
+  status(key:PermissionKey,ok:(value:PermissionCapability)=>void,fail:(code:PermissionErrorCode)=>void):void{getStatus(key,ok,fail)}
+  ask(key:PermissionKey,ok:(value:PermissionCapability)=>void,fail:(code:PermissionErrorCode)=>void):void{request(key,ok,fail)}
+  settings(key:PermissionKey):boolean{return openSettings(key)}
+  observe(listener:PermissionStatusListener|null):void{onStatusChanged(listener)}
+}
+export const permissionCenter=new PermissionCenter()

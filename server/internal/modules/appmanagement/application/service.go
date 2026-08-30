@@ -106,10 +106,12 @@ type PublicPage struct {
 }
 
 type Service struct {
-	pool    *pgxpool.Pool
-	auth    Authenticator
-	otp     OTPNotifier
-	objects storagedomain.ObjectStore
+	pool         *pgxpool.Pool
+	auth         Authenticator
+	otp          OTPNotifier
+	objects      storagedomain.ObjectStore
+	shareRuntime ShareRuntimeLoader
+	pushRuntime  PushRuntimeLoader
 }
 
 type Authenticator interface {
@@ -124,6 +126,20 @@ type OTPNotification struct {
 type OTPNotifier interface {
 	QueueOTP(context.Context, pgx.Tx, OTPNotification) error
 }
+type ShareRuntimeProvider struct {
+	ProviderCode string   `json:"provider_code"`
+	Enabled      bool     `json:"enabled"`
+	Scenes       []string `json:"scenes"`
+	FallbackMode string   `json:"fallback_mode"`
+}
+type ShareRuntimeLoader func(context.Context, uuid.UUID) ([]ShareRuntimeProvider, error)
+type PushRuntime struct {
+	Enabled       bool     `json:"enabled"`
+	Environment   string   `json:"environment"`
+	Providers     []string `json:"providers"`
+	BuildVariants []string `json:"build_variants"`
+}
+type PushRuntimeLoader func(context.Context, uuid.UUID) (PushRuntime, error)
 type Option func(*Service)
 
 func WithOTPNotifier(notifier OTPNotifier) Option {
@@ -132,6 +148,14 @@ func WithOTPNotifier(notifier OTPNotifier) Option {
 
 func WithObjectStore(objects storagedomain.ObjectStore) Option {
 	return func(service *Service) { service.objects = objects }
+}
+
+func WithShareRuntime(loader ShareRuntimeLoader) Option {
+	return func(service *Service) { service.shareRuntime = loader }
+}
+
+func WithPushRuntime(loader PushRuntimeLoader) Option {
+	return func(service *Service) { service.pushRuntime = loader }
 }
 
 const (
@@ -146,6 +170,20 @@ func NewService(pool *pgxpool.Pool, auth Authenticator, options ...Option) *Serv
 		option(service)
 	}
 	return service
+}
+
+func (s *Service) PublicShareRuntime(ctx context.Context, appID uuid.UUID) ([]ShareRuntimeProvider, error) {
+	if s.shareRuntime == nil {
+		return []ShareRuntimeProvider{}, nil
+	}
+	return s.shareRuntime(ctx, appID)
+}
+
+func (s *Service) PublicPushRuntime(ctx context.Context, appID uuid.UUID) (PushRuntime, error) {
+	if s.pushRuntime == nil {
+		return PushRuntime{Providers: []string{}, BuildVariants: []string{}}, nil
+	}
+	return s.pushRuntime(ctx, appID)
 }
 
 func (s *Service) Resolve(ctx context.Context, id uuid.UUID) (Application, error) {

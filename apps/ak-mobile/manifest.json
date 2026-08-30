@@ -1,7 +1,7 @@
 {
-	"name": "AppKernia",
+	"name": "应核 AppKernia",
 	"appid": "__UNI__196F2FC",
-	"description": "AppKernia uni-app x application base",
+	"description": "应核 AppKernia 官方资讯与跨平台样板应用",
 	"versionName": "0.2.0",
 	"versionCode": "100",
 	"locale": "zh-CN",
@@ -18,10 +18,11 @@
 		"defaultAppTheme": "light",
 		"minSdkVersion": 26,
 		"distribute": {
-			"android": {},
+			"modules": { "uni-video": {}, "uni-loading": {} },
+			"android": { "modules": { "Share": {} } },
 			"ios": {
 				"deploymentTarget": "13.0",
-				"CFBundleName": "AppKernia"
+				"CFBundleName": "应核"
 			},
 			"harmony": {
 				"minAPILevel": 14
@@ -32,7 +33,7 @@
 		"minSdkVersion": 26,
 		"distribute": {
 			"syncDebug": true,
-			"modules": {},
+			"modules": { "Share": {} },
 			"icons": {
 				"hdpi": "static/app-icons/android/icon-72.png",
 				"xhdpi": "static/app-icons/android/icon-96.png",
@@ -55,7 +56,8 @@
 		"distribute": {
 			"syncDebug": true,
 			"deploymentTarget": "13.0",
-			"modules": {},
+			"pushRegisterMode": "manual",
+			"modules": { "Share": {}, "Push": {} },
 			"icons": {
 				"appstore": "static/app-icons/ios/appstore-1024.png"
 			},

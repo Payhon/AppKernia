@@ -7,6 +7,7 @@
     "app.application_channels",
     "app.application_store_listings",
     "app.application_team_members",
+    "app.application_share_bindings",
     "app.applications",
     "app.legal_consents",
     "app.user_memberships",
@@ -48,6 +49,7 @@
     "jobs.schedules",
     "notify.deliveries",
     "notify.messages",
+    "notify.push_provider_configs",
     "notify.push_devices",
     "notify.recipients",
     "notify.sms_template_bindings",
@@ -76,7 +78,13 @@
     "sys.modules",
     "sys.regions",
     "sys.role_menus",
+    "sys.share_configs",
     "sys.webhook_deliveries",
-    "sys.webhook_endpoints"
+    "sys.webhook_endpoints",
+    "sys.api_client_apps",
+    "jobs.task_runs",
+    "jobs.task_attempts",
+    "notify.message_runs",
+    "notify.delivery_daily_metrics"
   ]
 }

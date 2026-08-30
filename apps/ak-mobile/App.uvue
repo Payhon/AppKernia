@@ -1,8 +1,10 @@
 <script lang="uts">
 import { themeStore } from './src/core/theme/theme-store.uts'
+import { pushCoordinator } from './src/features/push/application/push-coordinator.uts'
 
 export default {
   onLaunch() { themeStore.initialize() },
+  onShow() { pushCoordinator.resume() },
 }
 </script>
 

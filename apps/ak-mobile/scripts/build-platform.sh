@@ -9,6 +9,7 @@ cli=/Applications/HBuilderX.app/Contents/MacOS/cli
 
 case "$platform" in
   android)
+	python3 "$project_root/scripts/configure-push-variant.py"
     command=("$cli" launch app-android --project "$project_root" --playground custom --compile true --cleanCache true --continue-on-error false)
     ;;
   ios)

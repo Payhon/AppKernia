@@ -1,0 +1,44 @@
+{
+  "share-configs.zh-CN.1440": {
+    "padding_inline": {
+      "left": 48,
+      "right": 48
+    },
+    "right_gap": 48,
+    "serious_critical": 0
+  },
+  "share-guide.zh-CN.1440": {
+    "steps": 5,
+    "external_links": 8,
+    "serious_critical": 0
+  },
+  "share-configs.zh-CN.375": {
+    "padding_inline": {
+      "left": 16,
+      "right": 16
+    },
+    "serious_critical": 0
+  },
+  "share-guide.zh-CN.375": {
+    "fits_viewport": true,
+    "horizontal_overflow": false,
+    "serious_critical": 0
+  },
+  "app-actions.zh-CN.1440": {
+    "items": 5,
+    "items_with_icons": 5,
+    "column_width": 112,
+    "serious_critical": 0
+  },
+  "share-binding.zh-CN.768": {
+    "serious_critical": 0
+  },
+  "share-configs.en-US.375": {
+    "serious_critical": 0
+  },
+  "share-guide.en-US.375": {
+    "external_links": 8,
+    "serious_critical": 0
+  },
+  "console_errors": []
+}

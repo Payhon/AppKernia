@@ -37,6 +37,18 @@ export const generatedRouteRegistry = [
     "activeMenuCode": "system.settings.dictionaries"
   },
   {
+    "componentKey": "system.settings.share-configs",
+    "path": "/system/settings/share-configs",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.system.settings.share_configs.title",
+    "permissions": [
+      "sys.share_config.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "system.settings.share-configs"
+  },
+  {
     "componentKey": "system.settings.regions",
     "path": "/system/settings/regions",
     "auth": "required",
@@ -190,7 +202,31 @@ export const generatedRouteRegistry = [
       "notify.delivery.read"
     ],
     "featureFlag": null,
-    "activeMenuCode": "system.notifications.deliveries"
+    "activeMenuCode": "system.notifications.operations"
+  },
+  {
+    "componentKey": "system.notifications.operations",
+    "path": "/system/notifications/operations",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.system.notifications.operations.title",
+    "permissions": [
+      "notify.observability.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "system.notifications.operations"
+  },
+  {
+    "componentKey": "system.notifications.push-channels",
+    "path": "/system/notifications/push-channels",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.system.notifications.push_channels.title",
+    "permissions": [
+      "notify.push_provider.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "system.notifications.push-channels"
   },
   {
     "componentKey": "system.integrations.schedules",

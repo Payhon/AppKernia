@@ -1,10 +1,18 @@
-import { ArticleCategory, ArticleDetail, ArticlePage, ArticleQuery } from '../domain/models.uts'
+import { ArticleCategory, ArticleDetail, ArticlePage, ArticleQuery, ContentComment, ContentHome, ContentTopic } from '../domain/models.uts'
 import { AkError } from '../../../core/errors/ak-error.uts'
 import { HttpCancellation } from '../../../core/network/http-port.uts'
 
 export interface ArticleRepository {
   list(query: ArticleQuery, onSuccess: (page: ArticlePage) => void, onFailure: (error: AkError) => void): HttpCancellation
+  search(query: ArticleQuery, onSuccess: (page: ArticlePage) => void, onFailure: (error: AkError) => void): HttpCancellation
+  home(onSuccess: (value: ContentHome) => void, onFailure: (error: AkError) => void): HttpCancellation
   listCategories(onSuccess: (categories: Array<ArticleCategory>) => void, onFailure: (error: AkError) => void): HttpCancellation
+  listTopics(onSuccess: (topics: Array<ContentTopic>) => void, onFailure: (error: AkError) => void): HttpCancellation
   detail(slug: string, onSuccess: (article: ArticleDetail) => void, onFailure: (error: AkError) => void): HttpCancellation
+  listBookmarks(query: ArticleQuery, onSuccess: (page: ArticlePage) => void, onFailure: (error: AkError) => void): HttpCancellation
   setBookmark(articleId: string, bookmarked: boolean, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation
+  listComments(articleId: string, onSuccess: (items: Array<ContentComment>) => void, onFailure: (error: AkError) => void): HttpCancellation
+  createComment(articleId: string, parentId: string | null, body: string, onSuccess: (item: ContentComment) => void, onFailure: (error: AkError) => void): HttpCancellation
+  reportComment(commentId: string, reason: string, details: string, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation
+  blockUser(userId: string, blocked: boolean, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation
 }

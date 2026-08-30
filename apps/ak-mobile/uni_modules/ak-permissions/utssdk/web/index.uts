@@ -1,0 +1,7 @@
+import { GetPermissionStatus, ListPermissionCapabilities, OnPermissionStatusChanged, OpenPermissionSettings, PermissionCapability, RequestPermission } from '../interface.uts'
+const value=new PermissionCapability('notifications','unavailable',false,false,'web',Date.now())
+export const listCapabilities:ListPermissionCapabilities=function(success,_failure){success([value])}
+export const getStatus:GetPermissionStatus=function(key,success,failure){if(key!='notifications'){failure('invalid_capability');return};success(value)}
+export const request:RequestPermission=function(_key,_success,failure){failure('request_unavailable')}
+export const openSettings:OpenPermissionSettings=function(_key){return false}
+export const onStatusChanged:OnPermissionStatusChanged=function(_listener){}

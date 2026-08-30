@@ -1,0 +1,20 @@
+/**
+ * Process-local single-flight guard for authentication prompts. Protected
+ * writes are never replayed; callers only reopen their current safe GET after
+ * the user has authenticated.
+ */
+export class AuthPromptCoordinator {
+  private presenting: boolean = false
+
+  request(): boolean {
+    if (this.presenting) return false
+    this.presenting = true
+    return true
+  }
+
+  dismiss(): void {
+    this.presenting = false
+  }
+}
+
+export const authPromptCoordinator = new AuthPromptCoordinator()

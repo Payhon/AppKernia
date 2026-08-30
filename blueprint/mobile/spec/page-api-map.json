@@ -87,11 +87,15 @@
     {
       "route_key": "home",
       "endpoints": [
-        "GET /api/v1/auth/context",
-        "GET /api/v1/me/notifications/unread-count"
+        "GET /api/v1/public/content/home"
       ],
       "phase": "P0"
     },
+    { "route_key": "content.browse", "endpoints": ["GET /api/v1/public/content/items", "GET /api/v1/public/content/search", "GET /api/v1/public/content/categories"], "phase": "P1" },
+    { "route_key": "content.browse-search", "endpoints": ["GET /api/v1/public/content/search", "GET /api/v1/public/content/topics"], "phase": "P1" },
+    { "route_key": "content.topics", "endpoints": ["GET /api/v1/public/content/topics"], "phase": "P1" },
+    { "route_key": "content.topic-detail", "endpoints": ["GET /api/v1/public/content/topics", "GET /api/v1/public/content/items"], "phase": "P1" },
+    { "route_key": "content.bookmarks", "endpoints": ["GET /api/v1/me/content-bookmarks", "DELETE /api/v1/me/content-bookmarks/{article_id}"], "phase": "P1" },
     {
       "route_key": "notifications.list",
       "endpoints": [
@@ -199,6 +203,17 @@
       "phase": "P1"
     },
     {
+      "route_key": "settings.permissions",
+      "endpoints": [
+        "GET /api/v1/me/notification-preferences",
+        "PATCH /api/v1/me/notification-preferences",
+        "GET /api/v1/me/push-devices/current",
+        "POST /api/v1/me/push-devices",
+        "DELETE /api/v1/me/push-devices/{push_device_id}"
+      ],
+      "phase": "P2"
+    },
+    {
       "route_key": "settings.theme",
       "endpoints": [
         "GET /api/v1/me/preferences",
@@ -211,8 +226,9 @@
       "endpoints": [
         "GET /api/v1/me/notification-preferences",
         "PATCH /api/v1/me/notification-preferences",
+        "GET /api/v1/me/push-devices/current",
         "POST /api/v1/me/push-devices",
-        "DELETE /api/v1/me/push-devices/{device_id}"
+        "DELETE /api/v1/me/push-devices/{push_device_id}"
       ],
       "phase": "P2"
     },
@@ -281,12 +297,12 @@
     },
     {
       "route_key": "articles.list",
-      "endpoints": ["GET /api/v1/article-categories", "GET /api/v1/article-assets/{file_id}", "GET /api/v1/articles"],
+      "endpoints": ["GET /api/v1/public/content/categories", "GET /api/v1/public/content/items"],
       "phase": "P1"
     },
     {
       "route_key": "articles.detail",
-      "endpoints": ["GET /api/v1/article-assets/{file_id}", "GET /api/v1/articles/{slug}", "PUT /api/v1/me/article-bookmarks/{article_id}", "DELETE /api/v1/me/article-bookmarks/{article_id}"],
+      "endpoints": ["GET /api/v1/public/content/items/{slug}", "GET /api/v1/public/content/items/{id}/comments", "PUT /api/v1/me/content-bookmarks/{article_id}", "DELETE /api/v1/me/content-bookmarks/{article_id}"],
       "phase": "P1"
     },
     {

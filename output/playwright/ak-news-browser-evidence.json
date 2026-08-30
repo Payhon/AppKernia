@@ -1,0 +1,33 @@
+{
+  "api_responses": [
+    {
+      "url": "http://127.0.0.1:4174/admin-api/v1/apps/00000000-0000-4000-8000-000000000001/content/topics?page=1&page_size=100",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4174/admin-api/v1/apps/00000000-0000-4000-8000-000000000001/content/categories?page=1&page_size=50&sort=sort_order",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4174/admin-api/v1/apps/00000000-0000-4000-8000-000000000001/content/comments?status=pending&page=1&page_size=50",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4174/admin-api/v1/apps/00000000-0000-4000-8000-000000000001/content/tags?page=1&page_size=100",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4174/admin-api/v1/apps/00000000-0000-4000-8000-000000000001/content/items?page=1&page_size=20&sort=updated_desc",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4174/admin-api/v1/apps/00000000-0000-4000-8000-000000000001/content/comment-reports?status=open&page=1&page_size=50",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:4174/admin-api/v1/apps/00000000-0000-4000-8000-000000000001/content/items?page=1&page_size=50&sort=updated_desc",
+      "status": 200
+    }
+  ],
+  "console_errors": []
+}

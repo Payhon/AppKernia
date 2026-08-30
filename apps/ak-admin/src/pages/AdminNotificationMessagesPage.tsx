@@ -6,6 +6,7 @@ import {
   Form,
   Grid,
   Input,
+  InputNumber,
   Modal,
   Select,
   Space,
@@ -49,6 +50,10 @@ interface EditorValues {
   audience_user_ids: string[];
   scheduled_at: string;
   expires_at: string;
+  push_category: AdminNotificationMessageRequest["push_category"];
+  push_ttl_seconds: number;
+  push_collapse_key: string;
+  push_route_key: NonNullable<AdminNotificationMessageRequest["push_route_key"]>;
 }
 const editorSchema = z
   .object({
@@ -60,6 +65,10 @@ const editorSchema = z
     audience_user_ids: z.array(z.uuid()).max(500),
     scheduled_at: z.string(),
     expires_at: z.string(),
+    push_category: z.enum(["service_security", "news_operations"]),
+    push_ttl_seconds: z.number().int().min(300).max(604800),
+    push_collapse_key: z.string().max(128).regex(/^[A-Za-z0-9._:-]*$/),
+    push_route_key: z.enum(["", "notification.detail"]),
   })
   .refine(
     (value) =>
@@ -75,6 +84,10 @@ const defaults = (kind: NotificationKind): EditorValues => ({
   audience_user_ids: [],
   scheduled_at: "",
   expires_at: "",
+  push_category: "service_security",
+  push_ttl_seconds: 86400,
+  push_collapse_key: "",
+  push_route_key: "notification.detail",
 });
 const localDate = (value?: string | null) =>
   value ? new Date(value).toISOString().slice(0, 16) : "";
@@ -87,6 +100,10 @@ const inputFrom = (value: AdminNotificationMessage): EditorValues => ({
   audience_user_ids: value.audience_user_ids,
   scheduled_at: localDate(value.scheduled_at),
   expires_at: localDate(value.expires_at),
+  push_category: value.push_category,
+  push_ttl_seconds: value.push_ttl_seconds,
+  push_collapse_key: value.push_collapse_key ?? "",
+  push_route_key: value.push_route_key ?? "notification.detail",
 });
 const toRequest = (value: EditorValues): AdminNotificationMessageRequest => ({
   message_type: value.message_type,
@@ -102,6 +119,11 @@ const toRequest = (value: EditorValues): AdminNotificationMessageRequest => ({
   expires_at: value.expires_at
     ? new Date(value.expires_at).toISOString()
     : null,
+  push_category: value.push_category,
+  push_ttl_seconds: value.push_ttl_seconds,
+  push_collapse_key: value.push_collapse_key,
+  push_route_key: value.push_route_key,
+  push_route_params: {},
 });
 const readFilters = (): Filters => {
   const params = new URLSearchParams(location.search);
@@ -224,7 +246,7 @@ export function AdminNotificationMessagesPage({ kind }: { kind: NotificationKind
     { title: t("notifications.columns.status"), dataIndex: "status", render: (value: string) => <Tag className={value === "published" ? "ak-status-success" : value === "cancelled" ? "ak-status-error" : "ak-status-warning"}>{t(`notifications.status.${value}`)}</Tag> },
     { title: t("notifications.columns.audience"), dataIndex: "audience_scope", render: (value: string, row) => t(`notifications.audience.${value}`, { count: row.audience_user_ids.length }), responsive: ["md"] },
     { title: t("notifications.columns.created"), dataIndex: "created_at", render: (value: string) => formatter.format(new Date(value)), responsive: ["lg"] },
-    { title: t("notifications.columns.actions"), key: "actions", width: screens.md ? 330 : 150, render: (_, row) => <Space wrap><Button size="small" onClick={() => { void navigate({ to: kind === "notices" ? "/system/notifications/notices/$noticeId" : "/system/notifications/messages/$messageId", params: kind === "notices" ? { noticeId: row.id } : { messageId: row.id } }); }}>{t("common.actions.view")}</Button>{["draft", "scheduled"].includes(row.status) && permissions.has(`notify.${prefix}.update`) ? <Button size="small" onClick={() => { openEditor(row); }}>{t("common.actions.edit")}</Button> : null}{["draft", "scheduled"].includes(row.status) && permissions.has(`notify.${prefix}.publish`) ? <Button type="primary" size="small" onClick={() => void publish(row)}>{t("notifications.actions.publish")}</Button> : null}{row.status !== "cancelled" && permissions.has(`notify.${prefix}.cancel`) ? <Button danger size="small" onClick={() => { cancel(row); }}>{t("notifications.actions.cancel_message")}</Button> : null}</Space> },
+    { title: t("notifications.columns.actions"), key: "actions", width: screens.md ? 330 : 150, render: (_, row) => <Space wrap><Button size="small" onClick={() => { void navigate({ to: kind === "notices" ? "/system/notifications/notices/$noticeId" : "/system/notifications/messages/$messageId", params: kind === "notices" ? { noticeId: row.id } : { messageId: row.id } }); }}>{t("common.actions.view")}</Button>{["draft", "scheduled"].includes(row.status) && permissions.has(`notify.${prefix}.update`) ? <Button size="small" onClick={() => { openEditor(row); }}>{t("common.actions.edit")}</Button> : null}{["draft", "scheduled"].includes(row.status) && permissions.has(`notify.${prefix}.publish`) && (row.push_category !== "news_operations" || permissions.has("notify.operations.publish")) ? <Button type="primary" size="small" onClick={() => void publish(row)}>{t("notifications.actions.publish")}</Button> : null}{row.status !== "cancelled" && permissions.has(`notify.${prefix}.cancel`) ? <Button danger size="small" onClick={() => { cancel(row); }}>{t("notifications.actions.cancel_message")}</Button> : null}</Space> },
   ];
   return (
     <div className="ak-page-container">
@@ -246,6 +268,10 @@ export function AdminNotificationMessagesPage({ kind }: { kind: NotificationKind
           {audienceScope === "selected" ? <Form.Item htmlFor="notification-recipients" label={t("notifications.editor.recipients")} {...(form.formState.errors.audience_user_ids ? { validateStatus: "error" as const, help: t("notifications.editor.required") } : { help: t("notifications.editor.recipient_hint") })}><Controller control={form.control} name="audience_user_ids" render={({ field }) => <Select {...field} id="notification-recipients" mode="multiple" showSearch={{ optionFilterProp: "label" }} loading={users.isPending} options={(users.data?.items ?? []).map((user) => ({ value: user.id, label: `${user.display_name} · ${user.email}` }))}/>} /></Form.Item> : null}
           <Form.Item htmlFor="notification-scheduled-at" label={t("notifications.editor.scheduled_at")}><Controller control={form.control} name="scheduled_at" render={({ field }) => <Input {...field} id="notification-scheduled-at" type="datetime-local"/>}/></Form.Item>
           <Form.Item htmlFor="notification-expires-at" label={t("notifications.editor.expires_at")}><Controller control={form.control} name="expires_at" render={({ field }) => <Input {...field} id="notification-expires-at" type="datetime-local"/>}/></Form.Item>
+          <Card size="small" title={t("notifications.editor.push_section")}>
+            <div className="ak-form-grid-2"><Form.Item label={t("notifications.editor.push_category")}><Controller control={form.control} name="push_category" render={({ field }) => <Select {...field} options={["service_security", "news_operations"].map((value) => ({ value, label: t(`notifications.push_category.${value}`) }))}/>} /></Form.Item><Form.Item label={t("notifications.editor.push_ttl")}><Controller control={form.control} name="push_ttl_seconds" render={({ field }) => <InputNumber className="ak-full-width" min={300} max={604800} step={300} value={field.value} onChange={(value) => { field.onChange(value ?? 86400); }}/>} /></Form.Item></div>
+            <div className="ak-form-grid-2"><Form.Item label={t("notifications.editor.push_collapse_key")}><Controller control={form.control} name="push_collapse_key" render={({ field }) => <Input {...field} maxLength={128}/>} /></Form.Item><Form.Item label={t("notifications.editor.push_route")}><Controller control={form.control} name="push_route_key" render={({ field }) => <Select {...field} options={[{ value: "notification.detail", label: t("notifications.push_route.notification_detail") }, { value: "", label: t("notifications.push_route.none") }]}/>} /></Form.Item></div>
+          </Card>
         </Form>
       </Drawer>
     </div>

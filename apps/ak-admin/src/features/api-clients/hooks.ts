@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { AdminApiClientPermissionsRequest, AdminApiClientRequest, AdminApiClientSecretRequest } from "../../generated/api/types.gen";
+import type { AdminApiClientAppsRequest, AdminApiClientPermissionsRequest, AdminApiClientRequest, AdminApiClientSecretRequest } from "../../generated/api/types.gen";
 import type { AdminApiClientFilters } from "../auth/session";
 import { authSession } from "../auth/store";
 import { useTenantKey } from "../tenants/hooks";
@@ -11,4 +11,5 @@ export function useApiClientMutations(){const tenant=useTenantKey();const qc=use
  secret:useMutation({mutationFn:({id,input}:{id:string;input:AdminApiClientSecretRequest})=>authSession.createAdminApiClientSecret(id,input),onSuccess:invalidate}),
  revoke:useMutation({mutationFn:({id,secretId}:{id:string;secretId:string})=>authSession.revokeAdminApiClientSecret(id,secretId),onSuccess:invalidate}),
  permissions:useMutation({mutationFn:({id,input}:{id:string;input:AdminApiClientPermissionsRequest})=>authSession.replaceAdminApiClientPermissions(id,input),onSuccess:invalidate}),
+ apps:useMutation({mutationFn:({id,input}:{id:string;input:AdminApiClientAppsRequest})=>authSession.replaceAdminApiClientApps(id,input),onSuccess:invalidate}),
 }}

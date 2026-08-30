@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="iPhone 16 Pro - iOS 18.6 - 229E457D-D39B-463E-9EEB-F7CDE79D6439" tests="1" failures="0" time="30.0">
+    <testcase id="应核资讯 App 图文与视频验收" name="应核资讯 App 图文与视频验收" classname="应核资讯 App 图文与视频验收" time="30.0" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

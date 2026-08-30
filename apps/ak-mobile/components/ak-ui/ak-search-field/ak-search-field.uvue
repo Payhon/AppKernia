@@ -1,0 +1,40 @@
+<template>
+  <view class="ak-search-field">
+    <ak-icon name="search" tone="muted" :size="16" />
+    <input
+      class="ak-search-field__input"
+      type="text"
+      confirm-type="search"
+      :value="modelValue"
+      :placeholder="placeholder"
+      :focus="focus"
+      :aria-label="label"
+      @input="onInput"
+      @confirm="onConfirm"
+    />
+    <ak-icon-button v-if="modelValue.length > 0" name="close" :label="clearLabel" :icon-size="14" @click="clear" />
+  </view>
+</template>
+
+<script lang="uts">
+export default {
+  props: {
+    modelValue: { type: String, default: '' },
+    placeholder: { type: String, default: '' },
+    label: { type: String, default: '' },
+    clearLabel: { type: String, default: '' },
+    focus: { type: Boolean, default: false },
+  },
+  emits: ['update:modelValue', 'confirm', 'clear'],
+  methods: {
+    onInput(event: UniInputEvent) { this.$emit('update:modelValue', event.detail.value) },
+    onConfirm() { this.$emit('confirm') },
+    clear() { this.$emit('update:modelValue', ''); this.$emit('clear') },
+  },
+}
+</script>
+
+<style lang="scss">
+.ak-search-field { height: 48px; flex: 1; flex-direction: row; align-items: center; padding-left: 14px; border-radius: 16px; background: var(--ak-surface-subtle); border: 1px solid var(--ak-border); }
+.ak-search-field__input { flex: 1; height: 48px; margin-left: 10px; color: var(--ak-text); font-size: 16px; }
+</style>

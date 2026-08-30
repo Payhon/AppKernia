@@ -1,4 +1,2 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ProtectedPage } from "../app/route-boundaries";
-import { AdminDeliveriesRoute } from "../pages/AdminNotificationRoutes";
-export const Route = createFileRoute("/system/notifications/deliveries")({ component: () => <ProtectedPage><AdminDeliveriesRoute/></ProtectedPage> });
+import { createFileRoute, Navigate } from "@tanstack/react-router";
+export const Route = createFileRoute("/system/notifications/deliveries")({ component: () => <Navigate replace to="/system/notifications/operations" /> });

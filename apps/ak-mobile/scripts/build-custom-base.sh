@@ -48,6 +48,7 @@ run_logged() {
 
 pack_android() {
   mkdir -p "$log_dir"
+  python3 "$project_root/scripts/configure-push-variant.py"
   run_logged "$log_dir/android.log" "$cli" pack \
     --project "$project_root" \
     --platform android \

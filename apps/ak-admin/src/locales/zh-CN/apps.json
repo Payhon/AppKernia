@@ -35,6 +35,8 @@
   "apps.application.actions.content": "内容管理",
   "apps.application.actions.move_down": "下移",
   "apps.application.actions.move_up": "上移",
+  "apps.application.actions.menu": "操作",
+  "apps.application.actions.menu_for": "{name} 的操作",
   "apps.application.actions.upgrade_center": "升级中心",
   "apps.application.sections.startup": "启动体验",
   "apps.startup.actions.add_slide": "添加启动介绍图片",

@@ -1,19 +1,37 @@
-import { SharePayload, SharePort } from '../application/share-port.uts'
+import { SharePort } from '../application/share-port.uts'
+import { appPublicConfigRuntime } from '../../app-config/public-config-runtime.uts'
 
 export class UniShareAdapter implements SharePort {
-  share(payload: SharePayload, onSuccess: () => void, onFailure: () => void): void {
+  share(payload: UTSJSONObject, onSuccess: () => void, onFailure: () => void): void {
+    const title: string = payload['title'] as string
+    const path: string = payload['path'] as string
+    const summary: string = payload['summary'] as string
+    const imageUrl: string | null = payload['imageUrl'] as string | null
+    const scene: string = payload['scene'] as string
+    if (scene.length == 0 || !appPublicConfigRuntime.shareEnabled('wechat', scene) || !this.weixinProviderAvailable()) { this.system(title,path,onSuccess,onFailure); return }
     // #ifdef APP-IOS
     uni.share({
       provider: 'weixin',
       type: 0,
-      title: payload.title,
-      href: payload.path,
+      scene: scene,
+      title: title,
+      summary: summary,
+      imageUrl: imageUrl != null ? imageUrl : '',
+      href: path,
       success: () => onSuccess(),
-      fail: () => onFailure(),
+      fail: () => this.system(title,path,onSuccess,onFailure),
     })
     // #endif
-    // #ifdef APP-ANDROID || APP-HARMONY
-    onFailure()
+    // #ifdef APP-ANDROID
+    uni.share({ provider:'weixin', type:0, scene:scene, title:title, summary:summary, imageUrl:imageUrl!=null?imageUrl:'', href:path, success:()=>onSuccess(), fail:()=>this.system(title,path,onSuccess,onFailure) })
+    // #endif
+    // #ifdef APP-HARMONY
+    uni.share({ provider:'weixin', type:0, scene:scene, title:title, summary:summary, imageUrl:imageUrl!=null?imageUrl:'', href:path, success:()=>onSuccess(), fail:()=>this.system(title,path,onSuccess,onFailure) })
     // #endif
   }
+  private weixinProviderAvailable(): boolean {
+    const result = uni.getProviderSync({ service: 'share' })
+    return result.providerIds.indexOf('weixin') >= 0
+  }
+  private system(title: string, path: string, onSuccess: () => void, onFailure: () => void): void { uni.shareWithSystem({ type:'text', summary:title+'\n'+path, success:()=>onSuccess(), fail:()=>onFailure() }) }
 }

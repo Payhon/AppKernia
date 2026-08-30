@@ -10,7 +10,7 @@ const surfaces = [
   {
     code: 'platform_public',
     name: 'Platform and Public APIs',
-    tags: ['platform-health', 'public-app', 'public-content', 'public-dictionary', 'api-client-auth'],
+    tags: ['platform-health', 'public-app', 'public-content', 'public-dictionary', 'api-client-auth', 'api-client-notifications'],
   },
   {
     code: 'mobile',
@@ -20,7 +20,7 @@ const surfaces = [
   {
     code: 'admin',
     name: 'Admin APIs',
-    tags: ['admin-auth-profile', 'admin-dashboard', 'admin-app-management', 'admin-releases', 'admin-app-content', 'admin-app-communications', 'admin-app-users', 'admin-organization', 'admin-tenants', 'admin-users', 'admin-access-control', 'admin-system-settings', 'admin-storage', 'admin-content', 'admin-notifications', 'admin-jobs', 'admin-api-clients', 'admin-webhooks', 'admin-audit-security', 'admin-operations'],
+    tags: ['admin-auth-profile', 'admin-dashboard', 'admin-app-management', 'admin-releases', 'admin-app-content', 'admin-app-communications', 'admin-app-users', 'admin-organization', 'admin-tenants', 'admin-users', 'admin-access-control', 'admin-system-settings', 'admin-share-configuration', 'admin-storage', 'admin-content', 'admin-notifications', 'admin-jobs', 'admin-api-clients', 'admin-webhooks', 'admin-audit-security', 'admin-operations'],
   },
 ]
 
@@ -30,6 +30,7 @@ const modules = new Map([
   ['public-content', ['Public content', 'public_content']],
   ['public-dictionary', ['Public dictionaries', 'public_dictionary']],
   ['api-client-auth', ['API Client authentication', 'api_client_auth']],
+  ['api-client-notifications', ['Application notification submission', 'api_client_notifications']],
   ['mobile-auth', ['Authentication', 'mobile_auth']],
   ['mobile-profile', ['Profile and preferences', 'mobile_profile']],
   ['mobile-devices-sessions', ['Devices and sessions', 'mobile_devices_sessions']],
@@ -48,6 +49,7 @@ const modules = new Map([
   ['admin-users', ['Users', 'admin_users']],
   ['admin-access-control', ['Permissions', 'admin_access_control']],
   ['admin-system-settings', ['System settings', 'admin_system_settings']],
+  ['admin-share-configuration', ['Share configuration', 'admin_share_configuration']],
   ['admin-storage', ['Files', 'admin_storage']],
   ['admin-content', ['Content', 'admin_content']],
   ['admin-notifications', ['Notifications', 'admin_notifications']],
@@ -59,15 +61,17 @@ const modules = new Map([
 ])
 
 function expectedTag(path) {
+  if (path.startsWith('/s/')) return 'public-content'
   if (path.startsWith('/internal/v1/health/')) return 'platform-health'
   if (path.startsWith('/api/v1/public/dictionaries/')) return 'public-dictionary'
   if (path === '/api/v1/articles' || path === '/api/v1/article-categories' || path.startsWith('/api/v1/articles/') || path.startsWith('/api/v1/article-assets/')) return 'public-content'
   if (path === '/api/v1/auth/client-token') return 'api-client-auth'
+  if (path.startsWith('/api/v1/apps/') && path.includes('/notifications')) return 'api-client-notifications'
   if (path.startsWith('/api/v1/public/content/')) return 'public-content'
   if (path.startsWith('/api/v1/public/') || path === '/api/v1/regions') return 'public-app'
   if (path.startsWith('/api/v1/auth/')) return 'mobile-auth'
   if (path.startsWith('/api/v1/me/article-bookmarks') || path.startsWith('/api/v1/me/content-bookmarks') || path.startsWith('/api/v1/me/comments/') || path.startsWith('/api/v1/me/blocked-users/') || path.startsWith('/api/v1/content/items/') || path.startsWith('/api/v1/comments/') || path === '/api/v1/me/legal-consents') return 'mobile-content'
-  if (path.startsWith('/api/v1/me/notification-preferences') || path.startsWith('/api/v1/me/notifications')) return 'mobile-notifications'
+  if (path.startsWith('/api/v1/me/notification-preferences') || path.startsWith('/api/v1/me/notifications') || path.startsWith('/api/v1/me/push-devices') || path.startsWith('/api/v1/me/push-deliveries')) return 'mobile-notifications'
   if (path.startsWith('/api/v1/me/sessions') || path.startsWith('/api/v1/me/devices')) return 'mobile-devices-sessions'
   if (path === '/api/v1/me/login-events' || path === '/api/v1/me/security-events') return 'mobile-security'
   if (path === '/api/v1/me' || path === '/api/v1/me/preferences') return 'mobile-profile'
@@ -75,7 +79,9 @@ function expectedTag(path) {
   if (path.startsWith('/admin-api/v1/mobile/releases')) return 'admin-releases'
   if (path.startsWith('/admin-api/v1/apps/') && path.includes('/content/')) return 'admin-app-content'
   if (path.startsWith('/admin-api/v1/apps/') && (path.includes('/notices') || path.includes('/messages'))) return 'admin-app-communications'
+  if (path.startsWith('/admin-api/v1/apps/') && (path.includes('/notification-operations') || path.includes('/notification-runs') || path.includes('/notification-tasks') || path.includes('/notification-failures') || path.includes('/notification-retries'))) return 'admin-notifications'
   if (path.startsWith('/admin-api/v1/apps/') && path.includes('/users')) return 'admin-app-users'
+  if (path.startsWith('/admin-api/v1/share-configs') || (path.startsWith('/admin-api/v1/apps/') && path.includes('/share-bindings'))) return 'admin-share-configuration'
   if (path === '/admin-api/v1/apps' || path.startsWith('/admin-api/v1/apps/')) return 'admin-app-management'
   if (path.startsWith('/admin-api/v1/auth/') || path === '/admin-api/v1/me' || path.startsWith('/admin-api/v1/me/')) return 'admin-auth-profile'
   if (path.startsWith('/admin-api/v1/dashboard/')) return 'admin-dashboard'

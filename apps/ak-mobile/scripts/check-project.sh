@@ -47,6 +47,23 @@ if ! rg -Fq 'JSON.parseObject(JSON.stringify(headerSource))' "$project_root/src/
   exit 1
 fi
 
+public_config_runtime="$project_root/src/features/app-config/public-config-runtime.uts"
+if rg -n 'response\.data\.(share\.providers|push\.(enabled|providers|build_variants))' "$public_config_runtime"; then
+  printf 'optional public share/push capabilities must not be dereferenced before compatibility normalization\n' >&2
+  exit 1
+fi
+for compatibility_pattern in \
+  'const shareRuntime: PublicShareRuntimeWire | null' \
+  'if (shareRuntime != null)' \
+  'let pushEnabled: boolean = false' \
+  'const pushRuntime: PublicPushRuntimeWire | null' \
+  'if (pushRuntime != null)'; do
+  if ! rg -Fq "$compatibility_pattern" "$public_config_runtime"; then
+    printf 'public config rolling-upgrade compatibility is missing: %s\n' "$compatibility_pattern" >&2
+    exit 1
+  fi
+done
+
 login_page="$project_root/pages/auth/login/index.uvue"
 if rg -n 'variant="secondary"' "$login_page"; then
   printf 'login page must keep recovery and registration as text links, not secondary buttons\n' >&2
@@ -109,13 +126,48 @@ done
 
 for tab_icon in \
   home-default.png home-selected.png \
-  notifications-default.png notifications-selected.png \
+  browse-default.png browse-selected.png \
+  topics-default.png topics-selected.png \
   profile-default.png profile-selected.png; do
   if [[ ! -f "$project_root/static/ak-tabbar/$tab_icon" ]] || ! rg -q "static/ak-tabbar/$tab_icon" "$project_root/pages.json"; then
     printf 'mobile TabBar icon is missing or not declared: %s\n' "$tab_icon" >&2
     exit 1
   fi
 done
+
+video_viewer="$project_root/components/ak-ui/ak-video-viewer/ak-video-viewer.uvue"
+if rg -n 'uni\.getVideoInfo|getVideoInfo\(' "$video_viewer"; then
+  printf 'content video viewer must not require the optional uni-media module at runtime\n' >&2
+  exit 1
+fi
+for video_pattern in 'video-stage-vertical' 'justify-content: center' 'onCoverLoad' "mode === 'vertical' ? 'contain' : 'cover'"; do
+  if ! rg -Fq "$video_pattern" "$video_viewer"; then
+    printf 'content video viewer is missing the safe centered orientation fallback: %s\n' "$video_pattern" >&2
+    exit 1
+  fi
+done
+
+imagetext_viewer="$project_root/components/ak-ui/ak-imagetext-viewer/ak-imagetext-viewer.uvue"
+if ! rg -Fq 'uni.previewImage({ current: current, urls: urls })' "$imagetext_viewer"; then
+  printf 'image-text viewer must open the ordered gallery in the native full-screen preview\n' >&2
+  exit 1
+fi
+
+bottom_sheet="$project_root/components/ak-ui/ak-bottom-sheet/ak-bottom-sheet.uvue"
+if rg -n '^[[:space:]]*><|^[[:space:]]*>[[:space:]]*$' "$bottom_sheet"; then
+  printf 'bottom sheet header must not contain standalone angle-bracket text nodes\n' >&2
+  exit 1
+fi
+for sheet_pattern in '<view class="ak-sheet-header">' 'class="ak-sheet-title">{{ title }}</text>' 'name="close"' 'flex: 1' 'min-width: 44px' 'min-height: 44px'; do
+  if ! rg -Fq "$sheet_pattern" "$bottom_sheet"; then
+    printf 'bottom sheet is missing the required single close-action layout: %s\n' "$sheet_pattern" >&2
+    exit 1
+  fi
+done
+if [[ "$(rg -c 'name="close"' "$bottom_sheet")" -ne 1 ]]; then
+  printf 'bottom sheet header must expose exactly one close action\n' >&2
+  exit 1
+fi
 
 if rg -n --glob '*.uvue' 'height\s*:\s*(620|640)px' "$project_root/pages"; then
   printf 'mobile pages must not use fixed 620/640px content heights\n' >&2

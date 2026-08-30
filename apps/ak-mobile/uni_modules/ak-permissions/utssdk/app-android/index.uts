@@ -1,0 +1,14 @@
+import { GetPermissionStatus, ListPermissionCapabilities, OnPermissionStatusChanged, OpenPermissionSettings, PermissionCapability, PermissionCapabilitySuccess, PermissionFailure, PermissionKey, PermissionStatusListener, RequestPermission } from '../interface.uts'
+
+let listener: PermissionStatusListener | null = null
+function notification(): PermissionCapability {
+  const status=AkPermissionsAndroidBridge.notificationStatus()
+  const normalized=status=='authorized'?'authorized':status=='denied'?'denied':status=='not_determined'?'not_determined':'unavailable'
+  return new PermissionCapability('notifications',normalized,AkPermissionsAndroidBridge.notificationCanRequest(),true,'android',Date.now())
+}
+function emit(value:PermissionCapability):void{const current=listener;if(current!=null)current(value)}
+export const listCapabilities:ListPermissionCapabilities=function(success,_failure){success([notification()])}
+export const getStatus:GetPermissionStatus=function(key,success,failure){if(key!='notifications'){failure('invalid_capability');return};success(notification())}
+export const request:RequestPermission=function(key,success,failure){if(key!='notifications'){failure('invalid_capability');return};AkPermissionsAndroidBridge.requestNotifications((_status:string)=>{const value=notification();emit(value);success(value)})}
+export const openSettings:OpenPermissionSettings=function(key){return key=='notifications'&&AkPermissionsAndroidBridge.openNotificationSettings()}
+export const onStatusChanged:OnPermissionStatusChanged=function(value){listener=value}

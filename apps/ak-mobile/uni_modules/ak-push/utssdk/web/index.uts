@@ -1,0 +1,10 @@
+import { GetPushCapability, OnForegroundMessage, OnNotificationOpened, OnPushTokenChanged, OpenPushSystemSettings, PushCapability, PushCapabilitySuccess, PushFailure, PushRegistrationSuccess, PushSuccess, RegisterPush, RequestPushAuthorization, UnregisterPush } from '../interface.uts'
+import { openSettings as openPermissionSettings } from '@/uni_modules/ak-permissions'
+export const getCapability: GetPushCapability = function (success: PushCapabilitySuccess, _failure: PushFailure): void { success(new PushCapability(false,'android','android_google',null,'unavailable','adapter_unavailable')) }
+export const requestAuthorization: RequestPushAuthorization = function (_success: PushCapabilitySuccess, failure: PushFailure): void { failure('adapter_unavailable') }
+export const register: RegisterPush = function (_success: PushRegistrationSuccess, failure: PushFailure): void { failure('adapter_unavailable') }
+export const unregister: UnregisterPush = function (success: PushSuccess, _failure: PushFailure): void { success() }
+export const openSystemSettings: OpenPushSystemSettings = function (): boolean { return openPermissionSettings('notifications') }
+export const onTokenChanged: OnPushTokenChanged = function (): void {}
+export const onNotificationOpened: OnNotificationOpened = function (): void {}
+export const onForegroundMessage: OnForegroundMessage = function (): void {}

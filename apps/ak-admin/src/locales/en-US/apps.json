@@ -35,6 +35,8 @@
   "apps.application.actions.content": "Content",
   "apps.application.actions.move_down": "Move down",
   "apps.application.actions.move_up": "Move up",
+  "apps.application.actions.menu": "Actions",
+  "apps.application.actions.menu_for": "Actions for {name}",
   "apps.application.actions.upgrade_center": "Upgrade center",
   "apps.application.sections.startup": "Startup experience",
   "apps.startup.actions.add_slide": "Add onboarding image",

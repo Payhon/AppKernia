@@ -1,0 +1,27 @@
+# Review checklist
+
+- [x] Existing Admin Master preserved
+- [x] zh-CN and en-US semantic keys added
+- [x] Desktop table and mobile card layouts implemented
+- [x] Drawer labels, focusable actions, 44px-compatible controls
+- [x] Loading, empty, API error feedback and optimistic conflict path
+- [x] Secret not returned or displayed; WeChat AppSecret explicitly excluded
+- [x] Activation and binding preflight provide text feedback
+- [x] System-share fallback and rebuild requirement visible
+- [x] Browser screenshots at 375/768/1440
+- [x] Axe serious/critical browser evidence is zero in all captured viewports
+- [x] Seeded Share Configurations route resolves through the client implementation allowlist when `sys.share_config.read` is present
+- [x] Local production bundle redeployed and `/system/settings/share-configs` returns HTTP 200
+- [x] Application action column is 112px and uses one localized text-and-icon Dropdown trigger
+- [x] Every available Dropdown entry has a semantic icon; permission pruning, disabled status and destructive behavior are preserved
+- [x] Chromium action-menu axe serious/critical is zero and console errors are zero
+- [x] Share Configurations desktop left/right padding and measured right gutter are all 48px
+- [x] Share Configurations 375px left/right padding is 16px with no page-level horizontal overflow
+- [x] Standard Admin level-one heading and primary-action alignment restored
+- [x] Drawer title includes a localized, labelled question-mark help control
+- [x] Five-step WeChat application guide covers account, application, native identity, review/AppID, binding and rebuild
+- [x] Guide copy is isolated in zh-CN/en-US catalogs and Provider URLs are isolated in a typed registry
+- [x] Eight HTTPS resources open with `target="_blank"` and `rel="noopener noreferrer"`
+- [x] Guide modal fits 375px without horizontal overflow; desktop and both locales are captured
+- [x] Guide-modal axe serious/critical is zero after scoped step-title/link contrast correction
+- [ ] Real WeChat installed-device acceptance

@@ -1,0 +1,39 @@
+<template>
+  <view class="viewer">
+    <text class="category">{{ category }}</text>
+    <text class="title">{{ title }}</text>
+    <text class="meta">{{ meta }}</text>
+    <image v-if="cover.length > 0" class="hero" :src="cover" mode="aspectFill" :alt="title" />
+    <view v-for="block in blocks" :key="block.id" :class="blockClass(block.kind)">
+      <image v-if="block.kind === 'image' && block.url.length > 0" class="body-image" :src="block.url" mode="widthFix" />
+      <text v-else>{{ block.text }}</text>
+    </view>
+    <view class="tags"><text v-for="tag in tags" :key="tag.id" class="tag">#{{ tag.name }}</text></view>
+  </view>
+</template>
+
+<script lang="uts">
+import { ArticleBodyBlock } from '../../../src/features/articles/application/article-body-renderer.uts'
+import { ContentTag } from '../../../src/features/articles/domain/models.uts'
+export default {
+  props: {
+    category: { type: String, default: '' }, title: { type: String, default: '' }, meta: { type: String, default: '' }, cover: { type: String, default: '' },
+    blocks: { type: Array<ArticleBodyBlock>, default: () => [] as Array<ArticleBodyBlock> }, tags: { type: Array<ContentTag>, default: () => [] as Array<ContentTag> },
+  },
+  methods: { blockClass(kind: string): string { return kind === 'image' ? 'body-image-wrap' : kind === 'heading' ? 'body-heading' : kind === 'callout' ? 'callout' : 'body-paragraph' } },
+}
+</script>
+
+<style lang="scss">
+.category { color: var(--ak-brand); font-size: 13px; font-weight: 650; }
+.title { font-size: 32px; line-height: 41px; font-weight: 800; color: var(--ak-text); margin-top: 12px; }
+.meta { font-size: 14px; color: var(--ak-muted); margin-top: 10px; }
+.hero { width: 100%; height: 240px; border-radius: 18px; margin: 22px 0; }
+.body-heading { font-size: 24px; line-height: 32px; font-weight: 750; color: var(--ak-text); margin: 28px 0 10px; }
+.body-paragraph { font-size: 17px; line-height: 30px; color: var(--ak-text); margin: 12px 0; }
+.body-image-wrap { width: 100%; margin: 18px 0; }
+.body-image { width: 100%; border-radius: 14px; }
+.callout { font-size: 16px; line-height: 26px; color: var(--ak-callout-text); background: var(--ak-accent-surface); border-left: 3px solid var(--ak-brand); padding: 16px; border-radius: 12px; margin: 20px 0; }
+.tags { flex-direction: row; flex-wrap: wrap; margin: 20px 0; }
+.tag { color: var(--ak-brand); margin-right: 10px; }
+</style>

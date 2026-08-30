@@ -30,7 +30,7 @@ export default {
       if (repository == null || currentPref == null) return
       this.appearance = value
       themeStore.apply(value)
-      repository.put({locale: currentPref.locale, appearance: value, email: currentPref.email, push: currentPref.push, inApp: currentPref.inApp}, saved => {
+      repository.put({locale: currentPref.locale, appearance: value, email: currentPref.email, push: currentPref.push, pushService:currentPref.pushService, pushOperations:currentPref.pushOperations, inApp: currentPref.inApp}, saved => {
         pref = saved
         themeStore.apply(saved.appearance)
       }, () => {

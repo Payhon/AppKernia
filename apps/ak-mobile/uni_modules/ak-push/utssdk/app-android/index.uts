@@ -1,0 +1,47 @@
+import {
+  GetPushCapability, OnForegroundMessage, OnNotificationOpened, OnPushTokenChanged, OpenPushSystemSettings,
+  PushCapability, PushCapabilitySuccess, PushFailure, PushForegroundListener, PushOpenListener, PushRegistration,
+  PushOpenEvent, PushRegistrationSuccess, PushSuccess, PushTokenListener, RegisterPush, RequestPushAuthorization, UnregisterPush,
+} from '../interface.uts'
+import { getStatus as getPermissionStatus, openSettings as openPermissionSettings, request as requestPermission } from '@/uni_modules/ak-permissions'
+
+let tokenListener: PushTokenListener | null = null
+let openListener: PushOpenListener | null = null
+let foregroundListener: PushForegroundListener | null = null
+
+type AndroidPushEventWire = { readonly schema_version: number; readonly delivery_id: string; readonly message_id: string; readonly route_key: string | null }
+
+export function consumeNotificationOpened(): void {
+  const raw = AkPushAndroidBridge.takeNotificationOpen(); if (raw.length == 0) return
+  const object = JSON.parseObject(raw); if (object == null) return
+  const value = object as AndroidPushEventWire
+  const listener = openListener
+  if (listener != null) listener(new PushOpenEvent(value.schema_version,value.delivery_id,value.message_id,value.route_key==null?'':value.route_key!,new Map<string,string>()))
+}
+
+function current(): PushCapability {
+  const variant = AkPushAndroidBridge.buildVariant()
+  const provider = AkPushAndroidBridge.provider()
+  const available = provider.length > 0
+  return new PushCapability(available, 'android', variant == 'google' ? 'android_google' : 'android_china', available ? provider : null, AkPushAndroidBridge.authorizationStatus(), available ? null : 'adapter_unavailable')
+}
+
+export const getCapability: GetPushCapability = function (success: PushCapabilitySuccess, failure: PushFailure): void {
+  getPermissionStatus('notifications',(permission)=>{const value=current();success(new PushCapability(value.available,value.platform,value.buildVariant,value.provider,permission.status,value.reason))},_code=>failure('native_failure'))
+}
+export const requestAuthorization: RequestPushAuthorization = function (success: PushCapabilitySuccess, failure: PushFailure): void {
+  requestPermission('notifications',(permission)=>{const value=current();if(permission.status=='authorized')success(new PushCapability(value.available,value.platform,value.buildVariant,value.provider,permission.status,value.reason));else failure('permission_denied')},_code=>failure('native_failure'))
+}
+export const register: RegisterPush = function (success: PushRegistrationSuccess, failure: PushFailure): void {
+  const value = current()
+  if (!value.available || value.provider == null) { failure('adapter_unavailable'); return }
+  AkPushAndroidBridge.register((token: string, sdkVersion: string) => {
+    const registration = new PushRegistration(value.provider!, 'android', value.buildVariant, token, sdkVersion)
+    success(registration); const listener = tokenListener; if (listener != null) listener(registration)
+  }, (_code: string) => { failure('native_failure') })
+}
+export const unregister: UnregisterPush = function (success: PushSuccess, failure: PushFailure): void { if (AkPushAndroidBridge.unregister()) success(); else failure('native_failure') }
+export const openSystemSettings: OpenPushSystemSettings = function (): boolean { return openPermissionSettings('notifications') }
+export const onTokenChanged: OnPushTokenChanged = function (listener: PushTokenListener | null): void { tokenListener = listener }
+export const onNotificationOpened: OnNotificationOpened = function (listener: PushOpenListener | null): void { openListener = listener; if(listener!=null)consumeNotificationOpened() }
+export const onForegroundMessage: OnForegroundMessage = function (listener: PushForegroundListener | null): void { foregroundListener = listener }

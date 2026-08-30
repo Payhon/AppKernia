@@ -256,6 +256,19 @@
       "phase": "P2"
     },
     {
+      "code": "system.settings.share-configs",
+      "i18n_key": "menu.system.settings.share_configs",
+      "title": "分享配置",
+      "type": "page",
+      "path": "/system/settings/share-configs",
+      "sort": 15,
+      "parent": "system.settings",
+      "component_key": "system.settings.share-configs",
+      "icon": "ShareAltOutlined",
+      "permission": "sys.share_config.read",
+      "phase": "P2"
+    },
+    {
       "code": "system.settings.regions",
       "i18n_key": "menu.system.settings.regions",
       "title": "地区管理",
@@ -416,16 +429,30 @@
       "phase": "P2"
     },
     {
-      "code": "system.notifications.deliveries",
-      "i18n_key": "menu.system.notifications.deliveries",
-      "title": "投递记录",
+      "code": "system.notifications.operations",
+      "i18n_key": "menu.system.notifications.operations",
+      "title": "消息运营",
       "type": "page",
-      "path": "/system/notifications/deliveries",
+      "path": "/system/notifications/operations",
       "sort": 40,
       "parent": "system.notifications",
-      "component_key": "system.notifications.deliveries",
-      "icon": "SendOutlined",
-      "permission": "notify.delivery.read",
+      "component_key": "system.notifications.operations",
+      "icon": "LineChartOutlined",
+      "permission": "notify.observability.read",
+      "phase": "P2",
+      "backend_status": "existing"
+    },
+    {
+      "code": "system.notifications.push-channels",
+      "i18n_key": "menu.system.notifications.push_channels",
+      "title": "推送渠道",
+      "type": "page",
+      "path": "/system/notifications/push-channels",
+      "sort": 50,
+      "parent": "system.notifications",
+      "component_key": "system.notifications.push-channels",
+      "icon": "NotificationOutlined",
+      "permission": "notify.push_provider.read",
       "phase": "P2",
       "backend_status": "existing"
     },

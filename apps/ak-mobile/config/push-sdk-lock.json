@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-08-29",
+  "google": {
+    "firebase_bom": "34.18.0",
+    "google_services_plugin": "4.5.0",
+    "dependencies": ["com.google.firebase:firebase-messaging"]
+  },
+  "china": {
+    "honor": {
+      "dependency": "com.hihonor.mcs:push:10.0.13.305",
+      "plugin": "com.hihonor.mcs.asplugin",
+      "plugin_dependency": "com.hihonor.mcs:asplugin:2.0.1.300",
+      "repository": "maven { url 'https://developer.hihonor.com/repo' }"
+    },
+    "huawei_android": { "dependency_env": "AK_HUAWEI_PUSH_DEPENDENCY", "repository": "maven { url 'https://developer.huawei.com/repo/' }" },
+    "xiaomi": { "dependency_env": "AK_XIAOMI_PUSH_DEPENDENCY" },
+    "oppo": { "dependency_env": "AK_OPPO_PUSH_DEPENDENCY" },
+    "vivo": { "dependency_env": "AK_VIVO_PUSH_DEPENDENCY" },
+    "meizu": { "dependency_env": "AK_MEIZU_PUSH_DEPENDENCY" }
+  }
+}

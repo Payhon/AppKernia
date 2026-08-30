@@ -15,7 +15,7 @@
 |---|---|
 | 阶段 | P2 |
 | View Permission | `app.application.read` |
-| Schema | `app.applications`, `app.application_team_members`, `app.application_assets`, `app.application_channels`, `app.application_store_listings`, `storage.files`, `storage.file_usages` |
+| Schema | `app.applications`, `app.application_team_members`, `app.application_assets`, `app.application_channels`, `app.application_share_bindings`, `app.application_store_listings`, `storage.files`, `storage.file_usages`, `sys.share_configs` |
 | 后端状态 | `existing` |
 
 **API**
@@ -28,12 +28,17 @@
 - `DELETE /admin-api/v1/apps/{app_id}`
 - `POST /admin-api/v1/apps/{app_id}/enable`
 - `POST /admin-api/v1/apps/{app_id}/disable`
+- `GET /admin-api/v1/apps/{app_id}/share-bindings`
+- `PUT /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}`
+- `DELETE /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}`
+- `POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight`
 
 **页面验收**
 
 - 每租户可管理多个应用；manifest AppID 设置后不可修改，App 类型创建后不可修改。
 - 图标、截图、渠道、团队和应用市场均保存关系数据；团队资料不改变 RBAC。
 - 仅可软删除已停用的非默认应用，批量删除至多 100 条且全有或全无。
+- “分享配置”独立 Drawer 只允许选择已启用 Provider；保存前必须预检 HTTPS 落地域名、场景和原生身份，成功后明确提示重新导出并打包。
 
 ## `app.upgrade-center` — App升级中心
 
@@ -173,6 +178,43 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - 刷新后筛选、分页和排序从 URL Search Params 恢复。
 - View Permission 在路由层阻断；Action Permission 控制动作展示。
 - Loading、Empty、Error、403 和数据刷新状态完整。
+
+## `system.settings.share-configs` — 分享配置
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `sys.share_config.read` |
+| Schema | `sys.share_configs`, `app.application_share_bindings`, `app.applications` |
+| 后端状态 | `existing` |
+
+**筛选**：名称或 AppID、Provider、状态、分页
+
+**主要动作**：创建草稿、编辑平台身份、启用、停用、删除未使用配置、查看绑定数、App 绑定预检
+
+**UX 规范**：桌面使用响应式表格、窄屏使用卡片；编辑 Drawer 分基本信息与 Android/iOS/HarmonyOS；Secret 不回显，微信明确不采集 AppSecret；启用前集中校验，保存后提示重新导出并打包。
+
+**API**
+
+- `GET /admin-api/v1/share-configs`
+- `POST /admin-api/v1/share-configs`
+- `GET /admin-api/v1/share-configs/{id}`
+- `PATCH /admin-api/v1/share-configs/{id}`
+- `DELETE /admin-api/v1/share-configs/{id}`
+- `POST /admin-api/v1/share-configs/{id}/activate`
+- `POST /admin-api/v1/share-configs/{id}/disable`
+- `POST /admin-api/v1/share-configs/{id}/rotate-secret`
+- `GET /admin-api/v1/apps/{app_id}/share-bindings`
+- `PUT /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}`
+- `DELETE /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}`
+- `POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight`
+
+**页面验收**
+
+- 微信 AppID 与各启用平台身份在启用前校验；后台不接收微信 AppSecret。
+- 停用配置后公开运行配置不再下发直分享 Provider，App 回退系统分享。
+- 被绑定配置不可删除，更新和绑定均使用乐观锁；所有写入审计不包含 Secret、签名或完整平台身份。
+- 375/768/1440、键盘焦点、双语长文案、Loading/Empty/Error/403 状态完整。
 - 敏感字段只使用服务端脱敏值，不在前端“还原” Hash/密文。
 - 初始目录包含基本、邮件、短信、登录注册、提现、云存储、地理位置、支付和微信；目录元数据不能通过客户端篡改。
 - `storage.driver` 与 `sms.provider` 必须读取 `x-appkernia-dictionary` 对应消费接口，不得在页面维护第二份选项数组；供应商字段按当前选择条件展示。
@@ -620,6 +662,74 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - Loading、Empty、Error、403 和数据刷新状态完整。
 - 敏感字段只使用服务端脱敏值，不在前端“还原” Hash/密文。
 
+## `system.notifications.operations` — 消息运营
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `notify.observability.read` |
+| Schema | `jobs.task_runs`, `jobs.task_attempts`, `notify.message_runs`, `notify.delivery_daily_metrics`, `notify.deliveries`, `notify.recipients`, `notify.messages` |
+| 后端状态 | `existing` |
+
+**筛选**：App、环境、时间范围、消息分类、渠道、厂商、任务类型、状态和关键词；筛选与 Tab 保存在 URL Search Params。
+
+**主要动作**：手动刷新、查看发布运行、查看任务尝试、单条重试、最多 100 条安全批量重试。
+
+**UX 规范**：概览、发布运行、队列任务和失败中心为四个可恢复 Tab；页面可见且存在积压时每 15 秒刷新；`unknown_after_write` 仅允许单条确认后重试；图表必须提供同数据表格。
+
+**API**
+
+- `GET /admin-api/v1/apps/{app_id}/notification-operations/summary`
+- `GET /admin-api/v1/apps/{app_id}/notification-operations/trends`
+- `GET /admin-api/v1/apps/{app_id}/notification-runs`
+- `GET /admin-api/v1/apps/{app_id}/notification-runs/{run_id}`
+- `GET /admin-api/v1/apps/{app_id}/notification-tasks`
+- `GET /admin-api/v1/apps/{app_id}/notification-tasks/{task_id}`
+- `GET /admin-api/v1/apps/{app_id}/notification-failures`
+- `POST /admin-api/v1/apps/{app_id}/notification-retries`
+
+**页面验收**
+
+- View Permission 在路由层阻断，`notify.task.retry` 独立控制重试动作。
+- 错误只展示双语安全摘要，不展示 Token、载荷、凭据、厂商响应正文或 River Args。
+- 键盘、非颜色状态、`aria-live`、1440px 明暗主题、768px 和 375px 均有证据。
+- “厂商受理”“已打开”和“设备展示”口径严格分开。
+
+## `system.notifications.push-channels` — 推送渠道
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `notify.push_provider.read` |
+| Schema | `notify.push_provider_configs`, `notify.push_devices`, `notify.deliveries` |
+| 后端状态 | `existing` |
+
+**筛选**：当前 App、环境；App 由全局应用选择器提供，环境写入 URL Search Params。
+
+**主要动作**：编辑公开配置、轮换只写凭据、预检、启用/停用、选择已注册设备发送测试通知。
+
+**UX 规范**：厂商字段来自编译期目录，不提供任意 JSON 编辑；Secret 不回显；状态同时使用文本与图标/Tag；“厂商受理”和“已打开”分开统计。
+
+**API**
+
+- `GET /admin-api/v1/apps/{app_id}/push-provider-catalog`
+- `GET /admin-api/v1/apps/{app_id}/push-provider-configs`
+- `PUT /admin-api/v1/apps/{app_id}/push-provider-configs/{provider}`
+- `POST /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/rotate-secret`
+- `POST /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/preflight`
+- `POST /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/activate`
+- `POST /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/disable`
+- `GET /admin-api/v1/apps/{app_id}/push-devices`
+- `POST /admin-api/v1/apps/{app_id}/push-provider-configs/{id}/test`
+- `GET /admin-api/v1/apps/{app_id}/push-delivery-summary`
+
+**页面验收**
+
+- `zh-CN`、`en-US` 文案完整，375px 下使用卡片布局，桌面表格支持键盘滚动。
+- View Permission 在路由层阻断；管理、轮换、预检和测试动作分别按权限展示。
+- 密钥输入关闭自动填充，提交后销毁本地表单状态，接口与页面均不回显秘密。
+- 无测试设备时禁止用原始 Token 替代；Mock、编译和静态检查不得作为厂商真机验收。
+
 ## `system.integrations.schedules` — 定时任务
 
 | 项目 | 定义 |
@@ -660,12 +770,12 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 |---|---|
 | 阶段 | P2 |
 | View Permission | `sys.api_client.read` |
-| Schema | `sys.api_clients`, `sys.api_client_secrets`, `sys.api_client_permissions` |
+| Schema | `sys.api_clients`, `sys.api_client_secrets`, `sys.api_client_permissions`, `sys.api_client_apps` |
 | 后端状态 | `existing` |
 
 **筛选**：name/client_id, status, 过期时间
 
-**主要动作**：新建客户端, 编辑, 创建/撤销 Secret, 分配权限
+**主要动作**：新建客户端, 编辑, 创建/撤销 Secret, 分配权限, 授权可访问 App
 
 **UX 规范**：Secret 仅创建时展示一次，关闭前要求确认已安全保存。
 
@@ -678,6 +788,7 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - `POST /admin-api/v1/api-clients/{id}/secrets`
 - `DELETE /admin-api/v1/api-clients/{id}/secrets/{secret_id}`
 - `PUT /admin-api/v1/api-clients/{id}/permissions`
+- `PUT /admin-api/v1/api-clients/{id}/apps`
 
 **页面验收**
 

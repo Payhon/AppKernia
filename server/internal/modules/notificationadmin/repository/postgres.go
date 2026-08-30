@@ -10,34 +10,40 @@ import (
 	"time"
 
 	notify "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/domain"
+	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/riverqueue/river"
 )
 
 type Postgres struct {
 	pool  *pgxpool.Pool
-	river *river.Client[pgx.Tx]
+	queue jobqueue.Enqueuer
 }
 
-func NewPostgres(pool *pgxpool.Pool, clients ...*river.Client[pgx.Tx]) *Postgres {
+func NewPostgres(pool *pgxpool.Pool, queues ...jobqueue.Enqueuer) *Postgres {
 	repository := &Postgres{pool: pool}
-	if len(clients) > 0 {
-		repository.river = clients[0]
+	if len(queues) > 0 {
+		repository.queue = queues[0]
 	}
 	return repository
 }
 
 type scanner interface{ Scan(...any) error }
 
-const messageColumns = `id,app_id,message_type,title,body,body_format,status,scheduled_at,published_at,expires_at,metadata,created_at,updated_at`
+const messageColumns = `id,app_id,message_type,title,body,body_format,status,scheduled_at,published_at,expires_at,
+push_category,push_ttl_seconds,COALESCE(push_collapse_key,''),COALESCE(push_route_key,''),push_route_params,metadata,created_at,updated_at`
 
 func scanMessage(row scanner) (notify.Message, error) {
 	var out notify.Message
-	var metadata []byte
-	if err := row.Scan(&out.ID, &out.AppID, &out.MessageType, &out.Title, &out.Body, &out.BodyFormat, &out.Status, &out.ScheduledAt, &out.PublishedAt, &out.ExpiresAt, &metadata, &out.CreatedAt, &out.UpdatedAt); err != nil {
+	var metadata, routeParams []byte
+	if err := row.Scan(&out.ID, &out.AppID, &out.MessageType, &out.Title, &out.Body, &out.BodyFormat, &out.Status, &out.ScheduledAt, &out.PublishedAt, &out.ExpiresAt,
+		&out.PushCategory, &out.PushTTLSeconds, &out.PushCollapseKey, &out.PushRouteKey, &routeParams, &metadata, &out.CreatedAt, &out.UpdatedAt); err != nil {
 		return notify.Message{}, err
+	}
+	_ = json.Unmarshal(routeParams, &out.PushRouteParams)
+	if out.PushRouteParams == nil {
+		out.PushRouteParams = map[string]string{}
 	}
 	var audience struct {
 		Scope   string      `json:"audience_scope"`
@@ -56,6 +62,14 @@ func scanMessage(row scanner) (notify.Message, error) {
 
 func messageMeta(in notify.MessageInput) []byte {
 	out, _ := json.Marshal(map[string]any{"audience_scope": in.AudienceScope, "audience_user_ids": in.AudienceUserIDs})
+	return out
+}
+
+func pushRouteParams(value map[string]string) []byte {
+	if value == nil {
+		return []byte(`{}`)
+	}
+	out, _ := json.Marshal(value)
 	return out
 }
 
@@ -124,8 +138,12 @@ func (r *Postgres) CreateMessage(ctx context.Context, p notify.Principal, notice
 		return notify.Message{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	out, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf(`INSERT INTO notify.messages(tenant_id,app_id,sender_user_id,message_type,title,body,body_format,status,scheduled_at,expires_at,metadata)
-		VALUES($1,$2,$3,$4,$5,$6,$7,'draft',$8,$9,$10) RETURNING %s`, messageColumns), p.TenantID, p.AppID, p.UserID, in.MessageType, in.Title, in.Body, in.BodyFormat, in.ScheduledAt, in.ExpiresAt, messageMeta(in)))
+	out, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf(`INSERT INTO notify.messages(
+		tenant_id,app_id,sender_user_id,message_type,title,body,body_format,status,scheduled_at,expires_at,
+		push_category,push_ttl_seconds,push_collapse_key,push_route_key,push_route_params,metadata)
+		VALUES($1,$2,$3,$4,$5,$6,$7,'draft',$8,$9,$10,$11,NULLIF($12,''),NULLIF($13,''),$14,$15) RETURNING %s`, messageColumns),
+		p.TenantID, p.AppID, p.UserID, in.MessageType, in.Title, in.Body, in.BodyFormat, in.ScheduledAt, in.ExpiresAt,
+		in.PushCategory, in.PushTTLSeconds, in.PushCollapseKey, in.PushRouteKey, pushRouteParams(in.PushRouteParams), messageMeta(in)))
 	if err != nil {
 		return notify.Message{}, err
 	}
@@ -150,8 +168,12 @@ func (r *Postgres) UpdateMessage(ctx context.Context, p notify.Principal, id uui
 		return notify.Message{}, err
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	out, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf(`UPDATE notify.messages SET message_type=$1,title=$2,body=$3,body_format=$4,scheduled_at=$5,expires_at=$6,metadata=$7
-		WHERE tenant_id=$8 AND app_id=$9 AND id=$10 AND deleted_at IS NULL AND status IN ('draft','scheduled') AND ($11::boolean=(message_type='notice')) RETURNING %s`, messageColumns), in.MessageType, in.Title, in.Body, in.BodyFormat, in.ScheduledAt, in.ExpiresAt, messageMeta(in), p.TenantID, p.AppID, id, notice))
+	out, err := scanMessage(tx.QueryRow(ctx, fmt.Sprintf(`UPDATE notify.messages SET
+		message_type=$1,title=$2,body=$3,body_format=$4,scheduled_at=$5,expires_at=$6,
+		push_category=$7,push_ttl_seconds=$8,push_collapse_key=NULLIF($9,''),push_route_key=NULLIF($10,''),push_route_params=$11,metadata=$12
+		WHERE tenant_id=$13 AND app_id=$14 AND id=$15 AND deleted_at IS NULL AND status IN ('draft','scheduled') AND ($16::boolean=(message_type='notice')) RETURNING %s`, messageColumns),
+		in.MessageType, in.Title, in.Body, in.BodyFormat, in.ScheduledAt, in.ExpiresAt, in.PushCategory, in.PushTTLSeconds,
+		in.PushCollapseKey, in.PushRouteKey, pushRouteParams(in.PushRouteParams), messageMeta(in), p.TenantID, p.AppID, id, notice))
 	if errors.Is(err, pgx.ErrNoRows) {
 		if _, getErr := r.GetMessage(ctx, p.TenantID, p.AppID, id, notice); getErr != nil {
 			return notify.Message{}, getErr
@@ -234,6 +256,9 @@ func (r *Postgres) PreviewRecipients(ctx context.Context, tenantID, appID uuid.U
 }
 
 func (r *Postgres) PublishMessage(ctx context.Context, p notify.Principal, id uuid.UUID, notice bool) (notify.Message, notify.RecipientPreview, error) {
+	if r.queue == nil {
+		return notify.Message{}, notify.RecipientPreview{}, notify.ErrDeliveryUnavailable
+	}
 	var err error
 	p.AppID, err = r.scopedApp(ctx, p.TenantID, p.AppID)
 	if err != nil {
@@ -287,6 +312,29 @@ func (r *Postgres) PublishMessage(ctx context.Context, p notify.Principal, id uu
 	if err = insertAudit(ctx, tx, p, resource+".publish", resource, id, "POST", map[string]any{"status": status, "recipient_count": preview.Count}); err != nil {
 		return notify.Message{}, notify.RecipientPreview{}, err
 	}
+	runStatus, triggerType := "queued", "admin"
+	if status == "scheduled" {
+		runStatus, triggerType = "scheduled", "scheduled"
+	}
+	var messageRunID uuid.UUID
+	if err = tx.QueryRow(ctx, `INSERT INTO notify.message_runs(tenant_id,app_id,message_id,trigger_type,status,recipient_count)
+		VALUES($1,$2,$3,$4,$5,$6) RETURNING id`, p.TenantID, p.AppID, id, triggerType, runStatus, preview.Count).Scan(&messageRunID); err != nil {
+		return notify.Message{}, notify.RecipientPreview{}, err
+	}
+	appID, resourceID, correlationID := p.AppID, id, messageRunID
+	scope := jobqueue.Scope{TenantID: p.TenantID, AppID: &appID, ModuleCode: "notify", ResourceType: "notification_message", ResourceID: &resourceID, CorrelationID: &correlationID}
+	if status == "scheduled" {
+		if _, err = r.queue.EnqueueTx(ctx, tx, jobqueue.Spec{Scope: scope, Args: notify.MessagePublishJobArgs{TenantID: p.TenantID, AppID: p.AppID, MessageID: id}, Queue: "notifications", MaxAttempts: 5, ScheduledAt: message.ScheduledAt, UniqueByArgs: true}); err != nil {
+			return notify.Message{}, notify.RecipientPreview{}, err
+		}
+	} else {
+		if _, err = tx.Exec(ctx, `UPDATE notify.recipients SET delivery_status='delivered',delivered_at=COALESCE(delivered_at,now()) WHERE tenant_id=$1 AND app_id=$2 AND message_id=$3 AND delivery_status='pending'`, p.TenantID, p.AppID, id); err != nil {
+			return notify.Message{}, notify.RecipientPreview{}, err
+		}
+		if _, err = r.queue.EnqueueTx(ctx, tx, jobqueue.Spec{Scope: scope, Args: notify.PushFanoutJobArgs{TenantID: p.TenantID, AppID: p.AppID, MessageID: id}, Queue: "notifications", MaxAttempts: 5, UniqueByArgs: true}); err != nil {
+			return notify.Message{}, notify.RecipientPreview{}, err
+		}
+	}
 	return message, preview, tx.Commit(ctx)
 }
 
@@ -314,6 +362,10 @@ func (r *Postgres) CancelMessage(ctx context.Context, p notify.Principal, id uui
 		resource = "notify.notice"
 	}
 	if err = insertAudit(ctx, tx, p, resource+".cancel", resource, id, "POST", map[string]any{"status": "cancelled"}); err != nil {
+		return notify.Message{}, err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE notify.deliveries SET status='cancelled',retryable=false,retry_risk='none',next_attempt_at=NULL,last_error='message cancelled before provider write'
+WHERE tenant_id=$1 AND app_id=$2 AND message_id=$3 AND channel='push' AND status IN ('pending','failed') AND retry_risk='none'`, p.TenantID, p.AppID, id); err != nil {
 		return notify.Message{}, err
 	}
 	return message, tx.Commit(ctx)
@@ -430,14 +482,16 @@ func (r *Postgres) UpdateTemplate(ctx context.Context, p notify.Principal, id uu
 	return out, tx.Commit(ctx)
 }
 
-const deliveryColumns = `id,app_id,message_id,user_id,template_id,channel,COALESCE(target_hint,''),COALESCE(provider,''),COALESCE(provider_message_id,''),status,attempt_count,max_attempts,scheduled_at,next_attempt_at,sent_at,COALESCE(last_error,''),retryable,retry_risk,created_at,updated_at`
+const deliveryColumns = `id,app_id,message_id,message_run_id,task_run_id,user_id,template_id,channel,COALESCE(target_hint,''),COALESCE(provider,''),COALESCE(provider_message_id,''),delivery_environment,COALESCE(provider_result,''),status,attempt_count,max_attempts,scheduled_at,next_attempt_at,sent_at,accepted_at,opened_at,COALESCE(error_code,''),COALESCE(last_error,''),retryable,retry_risk,created_at,updated_at`
 
 func scanDelivery(row scanner) (notify.Delivery, error) {
 	var out notify.Delivery
 	var lastError string
-	err := row.Scan(&out.ID, &out.AppID, &out.MessageID, &out.UserID, &out.TemplateID, &out.Channel, &out.TargetHint, &out.Provider, &out.ProviderMessageID, &out.Status, &out.AttemptCount, &out.MaxAttempts, &out.ScheduledAt, &out.NextAttemptAt, &out.SentAt, &lastError, &out.Retryable, &out.RetryRisk, &out.CreatedAt, &out.UpdatedAt)
+	err := row.Scan(&out.ID, &out.AppID, &out.MessageID, &out.MessageRunID, &out.TaskRunID, &out.UserID, &out.TemplateID, &out.Channel, &out.TargetHint, &out.Provider, &out.ProviderMessageID, &out.Environment, &out.ProviderResult, &out.Status, &out.AttemptCount, &out.MaxAttempts, &out.ScheduledAt, &out.NextAttemptAt, &out.SentAt, &out.AcceptedAt, &out.OpenedAt, &out.ErrorCode, &lastError, &out.Retryable, &out.RetryRisk, &out.CreatedAt, &out.UpdatedAt)
 	if err == nil && lastError != "" {
-		out.ErrorCode = "PROVIDER_DELIVERY_FAILED"
+		if out.ErrorCode == "" {
+			out.ErrorCode = "PROVIDER_DELIVERY_FAILED"
+		}
 		out.ErrorSummary = safeSummary(lastError)
 	}
 	if err == nil {
@@ -510,10 +564,16 @@ func (r *Postgres) RetryDelivery(ctx context.Context, p notify.Principal, id uui
 	if err != nil {
 		return notify.Delivery{}, err
 	}
-	if r.river == nil {
+	if r.queue == nil {
 		return notify.Delivery{}, notify.ErrDeliveryUnavailable
 	}
-	if _, err = r.river.InsertTx(ctx, tx, notify.DeliveryJobArgs{DeliveryID: id}, &river.InsertOpts{Queue: "notifications", MaxAttempts: int(out.MaxAttempts), UniqueOpts: river.UniqueOpts{ByArgs: true}}); err != nil {
+	appID := out.AppID
+	scope := jobqueue.Scope{TenantID: p.TenantID, AppID: appID, ModuleCode: "notify", ResourceType: "notification_delivery", ResourceID: &id}
+	queued, enqueueErr := r.queue.EnqueueTx(ctx, tx, jobqueue.Spec{Scope: scope, Args: notify.DeliveryJobArgs{DeliveryID: id}, Queue: "notifications", MaxAttempts: int(out.MaxAttempts), UniqueByArgs: true})
+	if enqueueErr != nil {
+		return notify.Delivery{}, enqueueErr
+	}
+	if _, err = tx.Exec(ctx, `UPDATE notify.deliveries SET task_run_id=$2 WHERE id=$1`, id, queued.ID); err != nil {
 		return notify.Delivery{}, err
 	}
 	if err = insertAudit(ctx, tx, p, "notify.delivery.retry", "notify.delivery", id, "POST", map[string]any{"status": "pending", "attempt_count": out.AttemptCount, "duplicate_risk_acknowledged": acknowledgeDuplicateRisk}); err != nil {
@@ -596,7 +656,7 @@ func (r *Postgres) DeleteSMSTemplateBinding(ctx context.Context, p notify.Princi
 }
 
 func (r *Postgres) CreateTestDelivery(ctx context.Context, p notify.Principal, in notify.CreateDelivery) (notify.Delivery, error) {
-	if r.river == nil {
+	if r.queue == nil {
 		return notify.Delivery{}, notify.ErrDeliveryUnavailable
 	}
 	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
@@ -612,7 +672,12 @@ func (r *Postgres) CreateTestDelivery(ctx context.Context, p notify.Principal, i
 	if err != nil {
 		return notify.Delivery{}, err
 	}
-	if _, err = r.river.InsertTx(ctx, tx, notify.DeliveryJobArgs{DeliveryID: out.ID}, &river.InsertOpts{Queue: "notifications", MaxAttempts: int(out.MaxAttempts), UniqueOpts: river.UniqueOpts{ByArgs: true}}); err != nil {
+	scope := jobqueue.Scope{TenantID: p.TenantID, AppID: out.AppID, ModuleCode: "notify", ResourceType: "notification_delivery", ResourceID: &out.ID}
+	queued, enqueueErr := r.queue.EnqueueTx(ctx, tx, jobqueue.Spec{Scope: scope, Args: notify.DeliveryJobArgs{DeliveryID: out.ID}, Queue: "notifications", MaxAttempts: int(out.MaxAttempts), UniqueByArgs: true})
+	if enqueueErr != nil {
+		return notify.Delivery{}, enqueueErr
+	}
+	if _, err = tx.Exec(ctx, `UPDATE notify.deliveries SET task_run_id=$2 WHERE id=$1`, out.ID, queued.ID); err != nil {
 		return notify.Delivery{}, err
 	}
 	if err = insertAudit(ctx, tx, p, "notify.template.test", "notify.template", in.TemplateID, "POST", map[string]any{"delivery_id": out.ID, "channel": in.Channel, "provider": in.Provider, "target_hint": in.TargetHint}); err != nil {

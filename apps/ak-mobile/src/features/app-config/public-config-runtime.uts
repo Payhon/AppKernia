@@ -1,7 +1,7 @@
 import { AkError } from '../../core/errors/ak-error.uts'
 import { akI18n } from '../../core/i18n/ak-i18n.uts'
 import { AkHttpPort, HttpCancellation, HttpRequest } from '../../core/network/http-port.uts'
-import { PublicConfigWire, PublicStartupSlideWire } from '../../generated/api/mobile-public-config.uts'
+import { PublicConfigWire, PublicPushRuntimeWire, PublicShareProviderWire, PublicShareRuntimeWire, PublicStartupSlideWire } from '../../generated/api/mobile-public-config.uts'
 
 export type AppPublicConfig = {
   readonly appId: string
@@ -12,6 +12,17 @@ export type AppPublicConfig = {
   readonly registrationEnabled: boolean
   readonly registrationVerificationMode: string
   readonly startup: AppPublicStartup
+  readonly shareProviders: Array<AppPublicShareProvider>
+  readonly pushEnabled: boolean
+  readonly pushProviders: Array<string>
+  readonly pushBuildVariants: Array<string>
+}
+
+export type AppPublicShareProvider = {
+  readonly providerCode: string
+  readonly enabled: boolean
+  readonly scenes: Array<string>
+  readonly fallbackMode: string
 }
 
 export type AppPublicStartupSlide = {
@@ -47,7 +58,27 @@ class HttpPublicConfigRepository {
         const imageUrl = this.assetURL(slide.image_url)
         if (imageUrl != null) slides.push({ position: slide.position, imageUrl: imageUrl, accessibilityLabel: slide.accessibility_label })
       })
-      ok({ appId: response.data.app_id, appid: response.data.appid, appType: response.data.app_type, name: response.data.name, defaultLocale: response.data.default_locale, registrationEnabled: response.data.registration_enabled, registrationVerificationMode: response.data.registration_verification_mode, startup: { displayName: response.data.startup.display_name, subtitle: response.data.startup.subtitle, iconUrl: this.assetURL(response.data.startup.icon_url), onboardingEnabled: response.data.startup.onboarding_enabled, publishedVersion: response.data.startup.published_version, slides: slides } })
+      const shareProviders: Array<AppPublicShareProvider> = []
+      // Public config is cached and can temporarily come from a pre-share/push
+      // server during rolling upgrades. Optional capabilities must fail closed
+      // instead of preventing the application from starting.
+      const shareRuntime: PublicShareRuntimeWire | null = response.data.share as PublicShareRuntimeWire | null
+      if (shareRuntime != null) {
+        const providers: Array<PublicShareProviderWire> | null = shareRuntime.providers as Array<PublicShareProviderWire> | null
+        if (providers != null) providers.forEach((provider: PublicShareProviderWire) => { shareProviders.push({ providerCode: provider.provider_code, enabled: provider.enabled, scenes: provider.scenes as Array<string>, fallbackMode: provider.fallback_mode }) })
+      }
+      let pushEnabled: boolean = false
+      let pushProviders: Array<string> = []
+      let pushBuildVariants: Array<string> = []
+      const pushRuntime: PublicPushRuntimeWire | null = response.data.push as PublicPushRuntimeWire | null
+      if (pushRuntime != null) {
+        pushEnabled = pushRuntime.enabled
+        const providers: Array<string> | null = pushRuntime.providers as Array<string> | null
+        const buildVariants: Array<string> | null = pushRuntime.build_variants as Array<string> | null
+        if (providers != null) pushProviders = providers
+        if (buildVariants != null) pushBuildVariants = buildVariants
+      }
+      ok({ appId: response.data.app_id, appid: response.data.appid, appType: response.data.app_type, name: response.data.name, defaultLocale: response.data.default_locale, registrationEnabled: response.data.registration_enabled, registrationVerificationMode: response.data.registration_verification_mode, shareProviders: shareProviders, pushEnabled: pushEnabled, pushProviders: pushProviders, pushBuildVariants: pushBuildVariants, startup: { displayName: response.data.startup.display_name, subtitle: response.data.startup.subtitle, iconUrl: this.assetURL(response.data.startup.icon_url), onboardingEnabled: response.data.startup.onboarding_enabled, publishedVersion: response.data.startup.published_version, slides: slides } })
     }, fail)
   }
 }
@@ -67,6 +98,16 @@ export class AppPublicConfigRuntime {
   }
   get(): AppPublicConfig | null { return this.current }
   registrationEnabled(): boolean { return this.current != null && this.current.registrationEnabled }
+  pushEnabled(provider: string, buildVariant: string): boolean { return this.current != null && this.current.pushEnabled && this.current.pushProviders.indexOf(provider) >= 0 && this.current.pushBuildVariants.indexOf(buildVariant) >= 0 }
+  shareEnabled(providerCode: string, scene: string): boolean {
+    if (this.current == null) return false
+    const normalized = scene === 'WXSceneSession' ? 'session' : scene === 'WXSceneTimeline' ? 'timeline' : scene === 'WXSceneFavorite' ? 'favorite' : ''
+    for (let index = 0; index < this.current.shareProviders.length; index++) {
+      const provider = this.current.shareProviders[index]
+      if (provider.providerCode === providerCode && provider.enabled && provider.scenes.indexOf(normalized) >= 0) return true
+    }
+    return false
+  }
 }
 
 export const appPublicConfigRuntime = new AppPublicConfigRuntime()

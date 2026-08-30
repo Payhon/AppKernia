@@ -11,7 +11,9 @@ import (
 	app "github.com/appkernia/appkernia/server/internal/modules/appmanagement/application"
 	iamdomain "github.com/appkernia/appkernia/server/internal/modules/iam/domain"
 	iamrepo "github.com/appkernia/appkernia/server/internal/modules/iam/repository"
+	"github.com/appkernia/appkernia/server/internal/modules/notificationadmin/jobdefs"
 	settingsrepo "github.com/appkernia/appkernia/server/internal/modules/systemsettings/repository"
+	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -56,7 +58,8 @@ func TestAppOTPNotifierEncryptsAndAtomicallyQueues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	n, err := NewAppOTPNotifier(riverClient, sealer)
+	trackedQueue := jobqueue.NewRiverAdapter(pool, riverClient, jobdefs.Registry())
+	n, err := NewAppOTPNotifier(trackedQueue, sealer)
 	if err != nil {
 		t.Fatal(err)
 	}

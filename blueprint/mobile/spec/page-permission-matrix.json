@@ -74,6 +74,11 @@
       "action_permissions": [],
       "feature_flag": null
     },
+    { "route_key": "content.browse", "view_permissions": [], "action_permissions": [], "feature_flag": null },
+    { "route_key": "content.browse-search", "view_permissions": [], "action_permissions": [], "feature_flag": null },
+    { "route_key": "content.topics", "view_permissions": [], "action_permissions": [], "feature_flag": null },
+    { "route_key": "content.topic-detail", "view_permissions": [], "action_permissions": [], "feature_flag": null },
+    { "route_key": "content.bookmarks", "view_permissions": [], "action_permissions": [], "feature_flag": null },
     {
       "route_key": "notifications.list",
       "view_permissions": [
@@ -94,9 +99,7 @@
     },
     {
       "route_key": "profile.index",
-      "view_permissions": [
-        "iam.user.read_self"
-      ],
+      "view_permissions": [],
       "action_permissions": [],
       "feature_flag": null
     },
@@ -189,6 +192,14 @@
       "feature_flag": null
     },
     {
+      "route_key": "settings.permissions",
+      "view_permissions": [
+        "notify.preference.manage_self"
+      ],
+      "action_permissions": [],
+      "feature_flag": "push_notifications"
+    },
+    {
       "route_key": "settings.theme",
       "view_permissions": [
         "iam.preference.manage_self"
@@ -258,13 +269,13 @@
     },
     {
       "route_key": "articles.list",
-      "view_permissions": ["content.article.read"],
+      "view_permissions": [],
       "action_permissions": [],
       "feature_flag": null
     },
     {
       "route_key": "articles.detail",
-      "view_permissions": ["content.article.read"],
+      "view_permissions": [],
       "action_permissions": ["content.article.bookmark_self"],
       "feature_flag": null
     },

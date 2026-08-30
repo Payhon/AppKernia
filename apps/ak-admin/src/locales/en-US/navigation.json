@@ -59,6 +59,7 @@
   "menu.system.monitoring.sessions": "Online Sessions",
   "menu.system.notifications": "Notification Center",
   "menu.system.notifications.deliveries": "Delivery Records",
+  "menu.system.notifications.push_channels": "Push Channels",
   "menu.system.notifications.messages": "In-app Messages",
   "menu.system.notifications.notices": "Announcements",
   "menu.system.notifications.templates": "Notification Templates",
@@ -111,6 +112,7 @@
   "routes.system.monitoring.health.title": "Service Status",
   "routes.system.monitoring.sessions.title": "Online Sessions",
   "routes.system.notifications.deliveries.title": "Delivery Records",
+  "routes.system.notifications.push_channels.title": "Push Channels",
   "routes.system.notifications.message-detail.title": "Message Details",
   "routes.system.notifications.messages.title": "In-app Messages",
   "routes.system.notifications.notice-detail.title": "Announcement Details",
@@ -162,5 +164,9 @@
   "routes.app.upgrade_center.title": "App upgrade center",
   "routes.app.users.title": "App user management",
   "routes.app.content.articles.title": "App article management",
-  "routes.app.content.pages.title": "App single pages"
+  "routes.app.content.pages.title": "App single pages",
+  "menu.system.settings.share_configs": "Share configurations",
+  "routes.system.settings.share_configs.title": "Share configurations",
+  "menu.system.notifications.operations": "Message Operations",
+  "routes.system.notifications.operations.title": "Message Operations"
 }

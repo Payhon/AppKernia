@@ -4,6 +4,10 @@ export type ArticleSummary = {
   id: string
   slug: string
   featured: boolean
+  pinned: boolean
+  latest: boolean
+  contentType: string
+  allowComments: boolean
   publishedAt: string
   coverUrl: string | null
   title: string
@@ -11,6 +15,7 @@ export type ArticleSummary = {
   categorySlug: string
   categoryName: string
   bookmarked: boolean
+  bookmarkKnown: boolean
   readingMinutes: number
 }
 
@@ -18,6 +23,10 @@ export type ArticleDetail = {
   id: string
   slug: string
   featured: boolean
+  pinned: boolean
+  latest: boolean
+  contentType: string
+  allowComments: boolean
   publishedAt: string
   coverUrl: string | null
   title: string
@@ -25,9 +34,15 @@ export type ArticleDetail = {
   categorySlug: string
   categoryName: string
   bookmarked: boolean
+  bookmarkKnown: boolean
   readingMinutes: number
   bodyFormat: ArticleBodyFormat
   body: string
+  media: Array<ContentMedia>
+  tags: Array<ContentTag>
+  topic: ContentTopic | null
+  videoUrl: string | null
+  videoDurationSeconds: number
 }
 
 export type ArticlePage = {
@@ -41,12 +56,23 @@ export type ArticleCategory = {
   sortOrder: number
   name: string
   description: string
+  parentId: string | null
+  imageUrl: string | null
 }
+
+export type ContentTopic = { id: string; slug: string; sortOrder: number; name: string; description: string; coverUrl: string | null }
+export type ContentTag = { id: string; name: string }
+export type ContentMedia = { id: string; fileId: string; url: string; role: string; sortOrder: number; altText: string }
+export type ContentComment = { id: string; articleId: string; authorId: string; authorName: string; authorAvatarUrl: string | null; parentId: string | null; rootId: string | null; status: string; body: string; createdAt: string }
+export type ContentHome = { pinned: Array<ArticleSummary>; featured: Array<ArticleSummary>; latest: Array<ArticleSummary> }
 
 export type ArticleQuery = {
   query: string | null
   category: string | null
   featured: boolean | null
+  contentType: string | null
+  topic: string | null
+  tag: string | null
   cursor: string | null
   limit: number
 }

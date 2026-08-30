@@ -5,7 +5,7 @@
 - Apple HIG-inspired cross-platform product UI for Android, iOS and HarmonyOS portrait screens. It adopts clarity, deference and depth without copying Apple assets or replacing native platform behavior.
 - Calm, content-first hierarchy: grouped system backgrounds, elevated white surfaces, restrained AppKernia blue actions, system sans-serif typography and generous breathing room.
 - The visual signature is a precise blue focus state, softly grouped cards and consistent line/filled icon pairs. Avoid marketing artwork, excessive glass, gradients, heavy shadows and decorative motion.
-- Match the supplied `tmp/ui/mobile` references where they remain compatible: 16–20 px page gutters, grouped cards, outline icons and a fixed three-tab shell.
+- Match supplied mobile references where compatible: 16–20 px page gutters, grouped cards, outline icons and the contracted four-tab information shell.
 - Light mode is the Core acceptance baseline. Semantic dark tokens remain available, but dark-mode completion is still gated by `AKMOB-160`.
 
 ## Screen chrome and safe areas
@@ -14,7 +14,7 @@
 - Root Tab pages use a 44 px header after the safe-area inset and reserve at least 16 px of content clearance above the native TabBar.
 - Pushed pages use a 44 px navigation row with a 44 × 44 px back target, centered title and an equal-width trailing slot.
 - Scroll content uses flex sizing. Do not use fixed 620/640 px viewport heights; the page must adapt to iPhone SE-class widths, Dynamic Island devices and larger text.
-- Native TabBar keeps three destinations, text labels and paired outline/filled local assets. Selected state is communicated by icon form and label color, not color alone.
+- Native TabBar keeps four semantic destinations (home, browse, topics and profile), text labels and paired outline/filled local assets. Selected state is communicated by icon form and label color, not color alone.
 
 ## Semantic tokens
 
@@ -55,6 +55,7 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 - Use original geometric icons with a 24 × 24 viewBox, rounded caps/joins and consistent 1.8 px optical stroke.
 - Standard tabs use outline icons when inactive and filled icons when selected. Do not redistribute SF Symbols or use emoji.
 - Page icon buttons are hosted by a 44 × 44 px target. Decorative icons are not separate actions.
+- Top-bar and operation glyphs use a 14–16 px optical size inside the unchanged 44 × 44 px target. Form submits, destructive confirmations and ambiguous actions keep text labels.
 
 ## Native application identity
 
@@ -64,6 +65,10 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 - Native package identity is `com.appkernia.mobile` for the current reusable base. Changing it requires synchronized signing profiles, build scripts, verification and delivery documentation.
 
 ## Shared interaction rules
+
+- Push permission and channel state follows `pages/push-notifications.md`; SDK authorization is always initiated by an explicit user action after legal consent.
+
+- The official information-app surfaces additionally follow `pages/information-app.md` for four-tab discovery, controlled content detail, authentication sheets and sharing.
 
 - Every user-visible string is an `AkI18n` key in both catalogs.
 - Business pages use only `ak-*` components. The adapter may be implemented on native uni components until the pinned uView module is present.

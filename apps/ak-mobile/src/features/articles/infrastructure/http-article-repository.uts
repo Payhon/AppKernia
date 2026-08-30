@@ -1,90 +1,55 @@
 import { AkHttpPort, HttpCancellation, HttpRequest } from '../../../core/network/http-port.uts'
 import { akI18n } from '../../../core/i18n/ak-i18n.uts'
 import { AkError } from '../../../core/errors/ak-error.uts'
-import { ArticleCategory, ArticleDetail, ArticlePage, ArticleQuery, ArticleSummary } from '../domain/models.uts'
+import { ArticleBodyFormat, ArticleCategory, ArticleDetail, ArticlePage, ArticleQuery, ArticleSummary, ContentComment, ContentHome, ContentMedia, ContentTag, ContentTopic } from '../domain/models.uts'
 import { ArticleRepository } from '../application/article-repository.uts'
 
-type ArticleCategoryWire = { readonly id: string; readonly slug: string; readonly name: string }
-type ArticleApiItem = {
-  readonly id: string
-  readonly slug: string
-  readonly featured: boolean
-  readonly published_at: string
-  readonly cover_url: string | null
-  readonly title: string
-  readonly summary: string
-  readonly body_format: string | null
-  readonly body: string | Array<UTSJSONObject> | null
-  readonly category: ArticleCategoryWire | null
-  readonly bookmarked: boolean
-  readonly reading_minutes: number
-}
-
-type ArticleListData = { readonly items: Array<ArticleApiItem> }
-
-type ArticleCategoryApiItem = {
-  readonly id: string
-  readonly slug: string
-  readonly sort_order: number
-  readonly name: string
-  readonly description: string
-}
-
-type ArticleCategoryListData = { readonly items: Array<ArticleCategoryApiItem> }
-
-type ArticleDetailEnvelope = { readonly id: string; readonly slug: string; readonly featured: boolean; readonly published_at: string; readonly cover_url: string | null; readonly title: string; readonly summary: string; readonly body_format: string | null; readonly body: string | Array<UTSJSONObject> | null; readonly category: ArticleCategoryWire | null; readonly bookmarked: boolean; readonly reading_minutes: number }
+type CategoryWire = { readonly id: string; readonly parent_id: string | null; readonly slug: string; readonly sort_order: number; readonly name: string; readonly description: string; readonly image_url: string | null }
+type TopicWire = { readonly id: string; readonly slug: string; readonly sort_order: number; readonly name: string; readonly description: string; readonly cover_url: string | null }
+type TagWire = { readonly id: string; readonly name: string }
+type MediaWire = { readonly id: string; readonly file_id: string; readonly url: string; readonly role: string; readonly sort_order: number; readonly alt_text: string }
+type ItemWire = { readonly id: string; readonly slug: string; readonly content_type: string; readonly allow_comments: boolean; readonly pinned: boolean; readonly featured: boolean; readonly latest: boolean; readonly published_at: string | null; readonly cover_url: string | null; readonly title: string; readonly summary: string; readonly body_format: string | null; readonly body: UTSJSONObject | Array<UTSJSONObject> | string | null; readonly category: CategoryWire | null; readonly categories: Array<CategoryWire>; readonly topic: TopicWire | null; readonly tags: Array<TagWire>; readonly media: Array<MediaWire>; readonly bookmarked: boolean | null; readonly reading_minutes: number; readonly video_url: string | null; readonly video_duration_seconds: number | null }
+type ListData = { readonly items: Array<ItemWire> }
+type CategoryData = { readonly items: Array<CategoryWire> }
+type TopicData = { readonly items: Array<TopicWire> }
+type HomeData = { readonly pinned: Array<ItemWire>; readonly featured: Array<ItemWire>; readonly latest: Array<ItemWire> }
+type CommentWire = { readonly id: string; readonly article_id: string; readonly author_id: string; readonly author_name: string; readonly author_avatar_url: string | null; readonly parent_id: string | null; readonly root_id: string | null; readonly status: string; readonly body: string; readonly created_at: string }
+type CommentData = { readonly items: Array<CommentWire> }
+type BookmarkData = { readonly bookmarked: boolean }
 
 export class HttpArticleRepository implements ArticleRepository {
   private readonly http: AkHttpPort
-
   constructor(http: AkHttpPort) { this.http = http }
 
   list(query: ArticleQuery, onSuccess: (page: ArticlePage) => void, onFailure: (error: AkError) => void): HttpCancellation {
-    const parameters = new Map<string, string>()
-    if (query.query != null && query.query.length > 0) parameters.set('q', query.query)
-    if (query.category != null && query.category.length > 0) parameters.set('category', query.category)
-    if (query.featured != null) parameters.set('featured', query.featured ? 'true' : 'false')
-    if (query.cursor != null) parameters.set('cursor', query.cursor)
-    parameters.set('limit', query.limit.toString())
-    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/articles', query: parameters, headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
-    return this.http.execute<UTSJSONObject, ArticleListData>(request, (response) => {
-      const nextCursor: string | null = response.meta != null ? response.meta.nextCursor : null
-      const page: ArticlePage = { items: response.data.items.map((item: ArticleApiItem) => this.mapSummary(item)), nextCursor: nextCursor }
-      onSuccess(page)
-    }, onFailure)
+    const parameters = this.parameters(query)
+    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/public/content/items', query: parameters, headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
+    return this.http.execute<UTSJSONObject, ListData>(request, response => { onSuccess({ items: response.data.items.map((item: ItemWire) => this.mapSummary(item)), nextCursor: response.meta != null ? response.meta.nextCursor : null }) }, onFailure)
   }
+  search(query: ArticleQuery, onSuccess: (page: ArticlePage) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/public/content/search', query: this.parameters(query), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
+    return this.http.execute<UTSJSONObject, ListData>(request, response => { onSuccess({ items: response.data.items.map((item: ItemWire) => this.mapSummary(item)), nextCursor: response.meta != null ? response.meta.nextCursor : null }) }, onFailure)
+  }
+  home(onSuccess: (value: ContentHome) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/public/content/home', query: new Map<string, string>([['limit', '10']]), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
+    return this.http.execute<UTSJSONObject, HomeData>(request, response => { onSuccess({ pinned: response.data.pinned.map((x: ItemWire) => this.mapSummary(x)), featured: response.data.featured.map((x: ItemWire) => this.mapSummary(x)), latest: response.data.latest.map((x: ItemWire) => this.mapSummary(x)) }) }, onFailure)
+  }
+  listCategories(onSuccess: (categories: Array<ArticleCategory>) => void, onFailure: (error: AkError) => void): HttpCancellation { const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/public/content/categories', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }; return this.http.execute<UTSJSONObject, CategoryData>(request, response => { onSuccess(response.data.items.map((x: CategoryWire) => this.mapCategory(x))) }, onFailure) }
+  listTopics(onSuccess: (topics: Array<ContentTopic>) => void, onFailure: (error: AkError) => void): HttpCancellation { const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/public/content/topics', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }; return this.http.execute<UTSJSONObject, TopicData>(request, response => { onSuccess(response.data.items.map((x: TopicWire) => this.mapTopic(x))) }, onFailure) }
+  detail(slug: string, onSuccess: (article: ArticleDetail) => void, onFailure: (error: AkError) => void): HttpCancellation { const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/public/content/items/' + encodeURIComponent(slug), query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }; return this.http.execute<UTSJSONObject, ItemWire>(request, response => { onSuccess(this.mapDetail(response.data)) }, onFailure) }
+  listBookmarks(query: ArticleQuery, onSuccess: (page: ArticlePage) => void, onFailure: (error: AkError) => void): HttpCancellation { const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/me/content-bookmarks', query: this.parameters(query), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }; return this.http.execute<UTSJSONObject, ListData>(request, response => { onSuccess({ items: response.data.items.map((x: ItemWire) => this.mapSummary(x)), nextCursor: response.meta != null ? response.meta.nextCursor : null }) }, onFailure) }
+  setBookmark(articleId: string, bookmarked: boolean, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { const request: HttpRequest<UTSJSONObject> = { method: bookmarked ? 'PUT' : 'DELETE', path: '/me/content-bookmarks/' + encodeURIComponent(articleId), query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }; return this.http.execute<UTSJSONObject, BookmarkData>(request, () => onSuccess(), onFailure) }
+  listComments(articleId: string, onSuccess: (items: Array<ContentComment>) => void, onFailure: (error: AkError) => void): HttpCancellation { const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/public/content/items/' + encodeURIComponent(articleId) + '/comments', query: new Map<string, string>([['page', '1'], ['page_size', '100']]), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }; return this.http.execute<UTSJSONObject, CommentData>(request, response => { onSuccess(response.data.items.map((x: CommentWire) => this.mapComment(x))) }, onFailure) }
+  createComment(articleId: string, parentId: string | null, body: string, onSuccess: (item: ContentComment) => void, onFailure: (error: AkError) => void): HttpCancellation { const payload: UTSJSONObject = { parent_id: parentId, body: body }; const request: HttpRequest<UTSJSONObject> = { method: 'POST', path: '/content/items/' + encodeURIComponent(articleId) + '/comments', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: payload, locale: akI18n.getLocale() }; return this.http.execute<UTSJSONObject, CommentWire>(request, response => { onSuccess(this.mapComment(response.data)) }, onFailure) }
+  reportComment(commentId: string, reason: string, details: string, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { const payload: UTSJSONObject = { reason: reason, details: details }; const request: HttpRequest<UTSJSONObject> = { method: 'POST', path: '/comments/' + encodeURIComponent(commentId) + '/reports', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: payload, locale: akI18n.getLocale() }; return this.http.execute<UTSJSONObject, UTSJSONObject>(request, () => onSuccess(), onFailure) }
+  blockUser(userId: string, blocked: boolean, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { const request: HttpRequest<UTSJSONObject> = { method: blocked ? 'PUT' : 'DELETE', path: '/me/blocked-users/' + encodeURIComponent(userId), query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }; return this.http.execute<UTSJSONObject, UTSJSONObject>(request, () => onSuccess(), onFailure) }
 
-  listCategories(onSuccess: (categories: Array<ArticleCategory>) => void, onFailure: (error: AkError) => void): HttpCancellation {
-    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/article-categories', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
-    return this.http.execute<UTSJSONObject, ArticleCategoryListData>(request, (response) => {
-      const categories: Array<ArticleCategory> = response.data.items.map((item: ArticleCategoryApiItem) => this.mapCategory(item))
-      onSuccess(categories)
-    }, onFailure)
-  }
-
-  detail(slug: string, onSuccess: (article: ArticleDetail) => void, onFailure: (error: AkError) => void): HttpCancellation {
-    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/articles/' + encodeURIComponent(slug), query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
-    return this.http.execute<UTSJSONObject, ArticleDetailEnvelope>(request, (response) => {
-      const item = response.data
-      const bodyFormat: 'markdown' | 'blocks' = item.body_format == 'blocks' ? 'blocks' : 'markdown'
-      const body: string = this.bodyText(item.body, bodyFormat)
-      const category: ArticleCategoryWire | null = item.category
-      const detail: ArticleDetail = { id: item.id, slug: item.slug, featured: item.featured, publishedAt: item.published_at, coverUrl: item.cover_url, title: item.title, summary: item.summary, categorySlug: category != null ? category.slug : '', categoryName: category != null ? category.name : '', bookmarked: item.bookmarked, readingMinutes: item.reading_minutes, bodyFormat: bodyFormat, body: body }
-      onSuccess(detail)
-    }, onFailure)
-  }
-
-  setBookmark(articleId: string, bookmarked: boolean, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
-    const request: HttpRequest<UTSJSONObject> = { method: bookmarked ? 'PUT' : 'DELETE', path: '/me/article-bookmarks/' + encodeURIComponent(articleId), query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
-    return this.http.execute<UTSJSONObject, ArticleBookmarkData>(request, () => onSuccess(), onFailure)
-  }
-
-  private mapSummary(item: ArticleApiItem): ArticleSummary {
-    const category: ArticleCategoryWire | null = item.category
-    return { id: item.id, slug: item.slug, featured: item.featured, publishedAt: item.published_at, coverUrl: item.cover_url, title: item.title, summary: item.summary, categorySlug: category != null ? category.slug : '', categoryName: category != null ? category.name : '', bookmarked: item.bookmarked, readingMinutes: item.reading_minutes }
-  }
-  private mapCategory(item: ArticleCategoryApiItem): ArticleCategory { return { id: item.id, slug: item.slug, sortOrder: item.sort_order, name: item.name, description: item.description } }
-  private bodyText(value: string | Array<UTSJSONObject> | null, format: 'markdown' | 'blocks'): string { if (value == null) return ''; return format == 'blocks' ? JSON.stringify(value as Array<UTSJSONObject>) : value as string }
+  private parameters(query: ArticleQuery): Map<string, string> { const p = new Map<string, string>(); if (query.query != null && query.query.length > 0) p.set('q', query.query); if (query.category != null && query.category.length > 0) p.set('category', query.category); if (query.topic != null && query.topic.length > 0) p.set('topic', query.topic); if (query.tag != null && query.tag.length > 0) p.set('tag', query.tag); if (query.contentType != null && query.contentType.length > 0) p.set('type', query.contentType); if (query.featured != null) p.set('featured', query.featured ? 'true' : 'false'); if (query.cursor != null) p.set('cursor', query.cursor); p.set('limit', query.limit.toString()); return p }
+  private mapSummary(x: ItemWire): ArticleSummary { const c = x.category; return { id: x.id, slug: x.slug, contentType: x.content_type, allowComments: x.allow_comments, pinned: x.pinned, featured: x.featured, latest: x.latest, publishedAt: x.published_at != null ? x.published_at : '', coverUrl: x.cover_url, title: x.title, summary: x.summary, categorySlug: c != null ? c.slug : '', categoryName: c != null ? c.name : '', bookmarked: x.bookmarked == true, bookmarkKnown: x.bookmarked != null, readingMinutes: x.reading_minutes } }
+  private mapDetail(x: ItemWire): ArticleDetail { const c = x.category; const bodyFormat: ArticleBodyFormat = x.body_format == 'blocks' ? 'blocks' : 'markdown'; const body = typeof x.body == 'string' ? x.body : x.body != null ? JSON.stringify(x.body) : ''; return { id: x.id, slug: x.slug, contentType: x.content_type, allowComments: x.allow_comments, pinned: x.pinned, featured: x.featured, latest: x.latest, publishedAt: x.published_at != null ? x.published_at : '', coverUrl: x.cover_url, title: x.title, summary: x.summary, categorySlug: c != null ? c.slug : '', categoryName: c != null ? c.name : '', bookmarked: x.bookmarked == true, bookmarkKnown: x.bookmarked != null, readingMinutes: x.reading_minutes, bodyFormat: bodyFormat, body: body, media: x.media.map((m: MediaWire) => this.mapMedia(m)), tags: x.tags.map((tag: TagWire) => this.mapTag(tag)), topic: x.topic != null ? this.mapTopic(x.topic) : null, videoUrl: x.video_url, videoDurationSeconds: x.video_duration_seconds != null ? x.video_duration_seconds : 0 } }
+  private mapCategory(x: CategoryWire): ArticleCategory { return { id: x.id, parentId: x.parent_id, slug: x.slug, sortOrder: x.sort_order, name: x.name, description: x.description, imageUrl: x.image_url } }
+  private mapTopic(x: TopicWire): ContentTopic { return { id: x.id, slug: x.slug, sortOrder: x.sort_order, name: x.name, description: x.description, coverUrl: x.cover_url } }
+  private mapTag(x: TagWire): ContentTag { return { id: x.id, name: x.name } }
+  private mapMedia(x: MediaWire): ContentMedia { return { id: x.id, fileId: x.file_id, url: x.url, role: x.role, sortOrder: x.sort_order, altText: x.alt_text } }
+  private mapComment(x: CommentWire): ContentComment { return { id: x.id, articleId: x.article_id, authorId: x.author_id, authorName: x.author_name, authorAvatarUrl: x.author_avatar_url, parentId: x.parent_id, rootId: x.root_id, status: x.status, body: x.body, createdAt: x.created_at } }
 }
-
-type ArticleBookmarkData = { readonly bookmarked: boolean }

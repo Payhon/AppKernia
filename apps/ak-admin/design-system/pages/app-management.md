@@ -3,6 +3,7 @@
 This page family inherits `../MASTER.md`.
 
 - The application list is the tenant-scoped inventory. Show manifest AppID, fixed App type, name, description, remark, state, creation time and explicit destination actions.
+- Keep the desktop operation column compact: expose one text-and-icon Dropdown trigger, then pair every menu entry with a semantic Ant Design icon. Preserve permission pruning, disabled states and destructive confirmation inside the menu; reuse the same action model on mobile cards.
 - Search, type and status filters stay in one dense row on desktop and stack below 768px. The table owns its horizontal overflow; the page never does.
 - Multi-select only enables rows that are both disabled and non-default. Single and batch deletion use the same destructive confirmation language and all-or-nothing server command.
 - Application selection is required for App users, App content, releases and notifications. Persist it as the typed `app_id` URL search parameter and as a tenant-keyed, non-sensitive UUID preference so navigation and refresh restore the same context.

@@ -145,6 +145,22 @@ func (handler *Handler) Notifications(request *ghttp.Request) {
 	}
 	handler.success(request, data)
 }
+func (handler *Handler) Notification(request *ghttp.Request) {
+	data, err := handler.service.Notification(request.Context(), bearer(request), request.Get("id").String())
+	if errors.Is(err, profile.ErrInvalidPreferences) {
+		handler.failure(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	if errors.Is(err, profiledomain.ErrNotificationNotFound) {
+		handler.failure(request, http.StatusNotFound, "NOTIFY.RECIPIENT.NOT_FOUND", "errors.common.not_found")
+		return
+	}
+	if err != nil {
+		handler.authFailure(request)
+		return
+	}
+	handler.success(request, data)
+}
 func (handler *Handler) MarkNotificationRead(request *ghttp.Request) {
 	err := handler.service.MarkNotificationRead(request.Context(), bearer(request), httpx.RequestID(request), request.Get("id").String())
 	if errors.Is(err, profile.ErrInvalidPreferences) {

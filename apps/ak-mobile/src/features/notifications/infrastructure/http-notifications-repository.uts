@@ -1,9 +1,29 @@
 import { AkError } from '../../../core/errors/ak-error.uts'
 import { akI18n } from '../../../core/i18n/ak-i18n.uts'
 import { AkHttpPort, HttpCancellation, HttpRequest } from '../../../core/network/http-port.uts'
-export type MobileNotification={id:string;title:string;body:string;bodyFormat:string;readAt:string|null;createdAt:string}
-export type MobileNotificationPage={readonly items:Array<MobileNotification>;readonly nextCursor:string|null}
-type Wire={readonly id:string;readonly title:string;readonly body:string;readonly body_format:string;readonly read_at:string|null;readonly created_at:string}
-type Page={readonly items:Array<Wire>;readonly next_cursor:string|null}
-type Bool={readonly value:boolean}
-export class HttpNotificationsRepository{private readonly http:AkHttpPort;constructor(http:AkHttpPort){this.http=http}list(cursor:string|null,ok:(p:MobileNotificationPage)=>void,fail:(e:AkError)=>void):HttpCancellation{const q=new Map<string,string>();q.set('limit','20');if(cursor!=null)q.set('cursor',cursor);const r:HttpRequest<UTSJSONObject>={method:'GET',path:'/me/notifications',query:q,headers:new Map<string,string>(),retryOnUnauthorized:true,body:{} as UTSJSONObject,locale:akI18n.getLocale()};return this.http.execute<UTSJSONObject,Page>(r,x=>ok(this.pageValue(x.data)),fail)}read(id:string,ok:()=>void,fail:(e:AkError)=>void):HttpCancellation{const r:HttpRequest<UTSJSONObject>={method:'PATCH',path:'/me/notifications/'+encodeURIComponent(id)+'/read',query:new Map<string,string>(),headers:new Map<string,string>(),retryOnUnauthorized:false,body:{} as UTSJSONObject,locale:akI18n.getLocale()};return this.http.execute<UTSJSONObject,Bool>(r,()=>ok(),fail)}private pageValue(x:Page):MobileNotificationPage{return{items:x.items.map(item=>this.notificationValue(item)),nextCursor:x.next_cursor}}private notificationValue(x:Wire):MobileNotification{return{id:x.id,title:x.title,body:x.body,bodyFormat:x.body_format,readAt:x.read_at,createdAt:x.created_at}}}
+
+export type MobileNotification = { id: string; title: string; body: string; bodyFormat: string; readAt: string | null; createdAt: string }
+export type MobileNotificationPage = { readonly items: Array<MobileNotification>; readonly nextCursor: string | null }
+type Wire = { readonly id: string; readonly title: string; readonly body: string; readonly body_format: string; readonly read_at: string | null; readonly created_at: string }
+type Page = { readonly items: Array<Wire>; readonly next_cursor: string | null }
+type Bool = { readonly value: boolean }
+
+export class HttpNotificationsRepository {
+  private readonly http: AkHttpPort
+  constructor(http: AkHttpPort) { this.http = http }
+  list(cursor: string | null, ok: (page: MobileNotificationPage) => void, fail: (error: AkError) => void): HttpCancellation {
+    const query = new Map<string, string>(); query.set('limit', '20'); if (cursor != null) query.set('cursor', cursor)
+    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/me/notifications', query, headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
+    return this.http.execute<UTSJSONObject, Page>(request, response => ok(this.pageValue(response.data)), fail)
+  }
+  get(id: string, ok: (item: MobileNotification) => void, fail: (error: AkError) => void): HttpCancellation {
+    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/me/notifications/' + encodeURIComponent(id), query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
+    return this.http.execute<UTSJSONObject, Wire>(request, response => ok(this.notificationValue(response.data)), fail)
+  }
+  read(id: string, ok: () => void, fail: (error: AkError) => void): HttpCancellation {
+    const request: HttpRequest<UTSJSONObject> = { method: 'PATCH', path: '/me/notifications/' + encodeURIComponent(id) + '/read', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
+    return this.http.execute<UTSJSONObject, Bool>(request, _response => ok(), fail)
+  }
+  private pageValue(value: Page): MobileNotificationPage { return { items: value.items.map(item => this.notificationValue(item)), nextCursor: value.next_cursor } }
+  private notificationValue(value: Wire): MobileNotification { return { id: value.id, title: value.title, body: value.body, bodyFormat: value.body_format, readAt: value.read_at, createdAt: value.created_at } }
+}

@@ -23,6 +23,9 @@ type Authenticator interface {
 type TokenIssuer interface {
 	Issue(uuid.UUID, uuid.UUID, uuid.UUID, string, int32) (string, time.Time, error)
 }
+type TokenVerifier interface {
+	Verify(string, string) (iamapp.AccessClaims, error)
+}
 type Service struct {
 	auth   Authenticator
 	repo   clients.Repository
@@ -209,6 +212,23 @@ func (s *Service) Permissions(ctx context.Context, t string, p clients.Principal
 	codes = slices.Compact(codes)
 	return s.repo.ReplacePermissions(ctx, principal(a, p), id, codes)
 }
+func (s *Service) Applications(ctx context.Context, t string, p clients.Principal, id uuid.UUID, appIDs []uuid.UUID) (clients.Client, error) {
+	a, e := s.authorize(ctx, t, "sys.api_client.update")
+	if e != nil {
+		return clients.Client{}, e
+	}
+	if id == uuid.Nil || strings.TrimSpace(p.RequestID) == "" || len(appIDs) > 256 {
+		return clients.Client{}, clients.ErrInvalid
+	}
+	for _, appID := range appIDs {
+		if appID == uuid.Nil {
+			return clients.Client{}, clients.ErrInvalid
+		}
+	}
+	slices.SortFunc(appIDs, func(a, b uuid.UUID) int { return strings.Compare(a.String(), b.String()) })
+	appIDs = slices.Compact(appIDs)
+	return s.repo.ReplaceApps(ctx, principal(a, p), id, appIDs)
+}
 func (s *Service) Token(ctx context.Context, clientID, secret, ip string) (string, time.Time, error) {
 	clientID = strings.TrimSpace(clientID)
 	secret = strings.TrimSpace(secret)
@@ -220,5 +240,57 @@ func (s *Service) Token(ctx context.Context, clientID, secret, ip string) (strin
 	if e != nil {
 		return "", time.Time{}, e
 	}
-	return s.issuer.Issue(c.ID, c.ID, c.ID, "ak-api", 1)
+	return s.issuer.Issue(c.ID, c.TenantID, c.ID, "ak-api", 1)
+}
+
+type MachineAuthenticator struct {
+	repo     clients.Repository
+	verifier TokenVerifier
+	clock    func() time.Time
+}
+
+func NewMachineAuthenticator(repo clients.Repository, verifier TokenVerifier) *MachineAuthenticator {
+	return &MachineAuthenticator{repo: repo, verifier: verifier, clock: time.Now}
+}
+
+func (a *MachineAuthenticator) Authenticate(ctx context.Context, rawToken string, appID uuid.UUID, permission, ipAddress string) (clients.MachinePrincipal, error) {
+	if strings.TrimSpace(rawToken) == "" || appID == uuid.Nil || strings.TrimSpace(permission) == "" {
+		return clients.MachinePrincipal{}, clients.ErrCredential
+	}
+	claims, err := a.verifier.Verify(rawToken, "ak-api")
+	if err != nil {
+		return clients.MachinePrincipal{}, clients.ErrCredential
+	}
+	clientID, err := uuid.Parse(claims.Subject)
+	if err != nil || clientID == uuid.Nil || claims.TenantID == uuid.Nil || claims.SessionID != clientID {
+		return clients.MachinePrincipal{}, clients.ErrCredential
+	}
+	client, err := a.repo.Get(ctx, claims.TenantID, clientID)
+	if err != nil || client.Status != "active" || (client.ExpiresAt != nil && !client.ExpiresAt.After(a.clock().UTC())) {
+		return clients.MachinePrincipal{}, clients.ErrCredential
+	}
+	if !slices.Contains(client.Permissions, permission) || !slices.Contains(client.AppIDs, appID) {
+		return clients.MachinePrincipal{}, clients.ErrForbidden
+	}
+	if !allowsIP(client.AllowedCIDRs, ipAddress) {
+		return clients.MachinePrincipal{}, clients.ErrCredential
+	}
+	return clients.MachinePrincipal{TenantID: claims.TenantID, ClientID: clientID, AppID: appID, Permissions: client.Permissions}, nil
+}
+
+func allowsIP(cidrs []string, rawIP string) bool {
+	if len(cidrs) == 0 {
+		return true
+	}
+	ip, err := netip.ParseAddr(strings.TrimSpace(rawIP))
+	if err != nil {
+		return false
+	}
+	for _, raw := range cidrs {
+		prefix, err := netip.ParsePrefix(raw)
+		if err == nil && prefix.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }

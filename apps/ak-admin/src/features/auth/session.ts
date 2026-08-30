@@ -136,6 +136,7 @@ import type {
   AdminApiClientSecretRequest,
   AdminApiClientSecretCreatedResponseWritable,
   AdminApiClientPermissionsRequest,
+  AdminApiClientAppsRequest,
   AdminWebhookListResponse,
   AdminWebhookResponse,
   AdminWebhookRequest,
@@ -1688,6 +1689,10 @@ export class AuthSession {
 
   async replaceAdminApiClientPermissions(id: string, input: AdminApiClientPermissionsRequest): Promise<AdminApiClientResponse["data"]> {
     return this.#accessWrite<AdminApiClientResponse>(`/api-clients/${encodeURIComponent(id)}/permissions`, "PUT", input).then((body) => body.data);
+  }
+
+  async replaceAdminApiClientApps(id: string, input: AdminApiClientAppsRequest): Promise<AdminApiClientResponse["data"]> {
+    return this.#accessWrite<AdminApiClientResponse>(`/api-clients/${encodeURIComponent(id)}/apps`, "PUT", input).then((body) => body.data);
   }
 
   async adminWebhooks(filters: AdminWebhookFilters): Promise<AdminWebhookListResponse["data"]> {

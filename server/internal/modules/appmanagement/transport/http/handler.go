@@ -93,11 +93,21 @@ func (h *Handler) PublicConfig(r *ghttp.Request) {
 		h.fail(r, http.StatusServiceUnavailable, "APP.STARTUP.UNAVAILABLE", "errors.common.unknown")
 		return
 	}
+	shareProviders, err := h.service.PublicShareRuntime(r.Context(), a.ID)
+	if err != nil {
+		h.fail(r, http.StatusServiceUnavailable, "APP.SHARE_CONFIG.UNAVAILABLE", "errors.common.unknown")
+		return
+	}
+	pushRuntime, err := h.service.PublicPushRuntime(r.Context(), a.ID)
+	if err != nil {
+		h.fail(r, http.StatusServiceUnavailable, "APP.PUSH_CONFIG.UNAVAILABLE", "errors.common.unknown")
+		return
+	}
 	r.Response.Header().Set("Cache-Control", "public, max-age=60")
 	r.Response.WriteJsonExit(httpx.Success[map[string]any]{Code: "OK", Message: "OK", RequestID: httpx.RequestID(r), Data: map[string]any{
 		"app_id": a.ID.String(), "appid": a.AppID, "app_type": a.AppType, "name": a.Name, "default_locale": a.DefaultLocale,
 		"registration_enabled": a.RegistrationEnabled, "registration_verification_mode": a.RegistrationVerification,
-		"startup": startup,
+		"startup": startup, "share": map[string]any{"providers": shareProviders}, "push": pushRuntime,
 	}})
 }
 

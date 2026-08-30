@@ -54,6 +54,14 @@ describe('static route registry', () => {
     expect(resolveBackendMenus(menus, new Set(['jobs.schedule.read']), {})).toHaveLength(1)
   })
 
+  it('exposes the share configuration route only with its backend permission', () => {
+    const menus = systemTree('system.settings.share-configs', 'system.settings')
+    expect(resolveBackendMenus(menus, new Set(), {})).toEqual([])
+    const resolved = resolveBackendMenus(menus, new Set(['sys.share_config.read']), {})
+    expect(resolved).toHaveLength(1)
+    expect(resolved[0]?.children[0]?.children[0]?.path).toBe('/system/settings/share-configs')
+  })
+
   it('keeps App management as a static permission-gated root', () => {
     const app = directory('app', null, 15)
     const users = page('app.users', app.id, 'app.users')

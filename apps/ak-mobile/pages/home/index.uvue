@@ -1,82 +1,119 @@
 <template>
-  <ak-theme-root><scroll-view class="page" scroll-y>
-    <view class="topbar"><text class="brand">AppKernia</text><view class="notification" @click="go('notifications.list')"><ak-icon name="bell"/><text v-if="unreadCount>0" class="badge">{{unreadCount}}</text></view></view>
-    <view class="greeting"><text class="greeting__title">{{t('home.greeting',nameParams)}}</text><text class="greeting__subtitle">{{t('home.subtitle', null)}}</text></view>
-    <ak-card class="hero"><text class="hero__title">{{t('home.hero.title', null)}}</text><ak-button variant="secondary" :label="t('home.hero.action', null)" @click="go('articles.list')"/></ak-card>
-    <view class="section-title"><text>{{t('home.quickActions', null)}}</text></view>
-    <view class="quick-grid"><ak-card v-for="item in quickActions" :key="item.key" class="quick-card" @click="go(item.route)"><view class="quick-card__lead"><ak-icon :name="item.icon"/><text class="quick-card__label">{{t(item.key, null)}}</text></view><ak-icon name="chevron-right" tone="muted"/></ak-card></view>
-    <view class="section-title"><text>{{t('home.featured', null)}}</text><text class="link" @click="go('articles.list')">{{t('common.more', null)}}</text></view>
-    <view v-if="state!=='content'" class="featured-state"><ak-status-view :state="state" :title="stateTitle" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/></view>
-    <view v-else class="featured-list"><ak-card v-for="article in featured" :key="article.slug" class="article-preview" @click="openArticle(article.slug)"><image v-if="coverPath(article.id)" class="cover-placeholder" :src="coverPath(article.id)" mode="aspectFill"/><view v-else class="cover-placeholder"/><view class="article-preview__copy"><text class="article-preview__title">{{article.title}}</text><text class="article-preview__meta">{{t('articles.readMinutes',readingParams(article.readingMinutes))}}</text></view><ak-icon name="chevron-right" tone="muted"/></ak-card></view>
-  </scroll-view></ak-theme-root>
+  <ak-theme-root
+    ><scroll-view
+      class="page"
+      scroll-y
+      refresher-enabled
+      :refresher-triggered="refreshing"
+      @refresherrefresh="reload"
+      ><view class="nav"
+        ><text class="eyebrow">{{ t("information.appName", null) }}</text
+        ><text class="title">{{ t("information.home.title", null) }}</text
+        ><view class="nav-actions"
+          ><ak-icon-button name="search" :label="t('information.search', null)" @click="search" />
+          <ak-icon-button class="nav-action-last" name="bell" :label="t('routes.notifications.title', null)" @click="notifications" /></view
+        ></view
+      ><ak-status-view
+        v-if="state !== 'content'"
+        :state="state"
+        :title="stateTitle"
+        :description="t('information.state.description', null)"
+        @retry="reload" /><view v-else
+        ><view
+          v-if="pinned.length > 0"
+          class="hero"
+          @click="open(pinned[0].slug)"
+          ><image
+            v-if="pinned[0].coverUrl != null"
+            class="hero-image"
+            :src="asset(pinned[0].coverUrl)"
+            mode="aspectFill"
+            :alt="pinned[0].title"
+          /><view class="hero-copy"
+            ><text class="section-label">{{
+              t("information.pinned", null)
+            }}</text
+            ><text class="hero-title">{{ pinned[0].title }}</text
+            ><text class="hero-summary">{{ pinned[0].summary }}</text></view
+          ></view
+        ><section-list
+          :title="t('information.featured', null)"
+          :items="featured"
+          horizontal
+          @open="open" /><section-list
+          :title="t('information.latest', null)"
+          :items="latest"
+          @open="open" /></view></scroll-view
+    ><ak-auth-prompt
+      :open="authOpen"
+      @close="authOpen = false"
+      @authenticated="authenticated"
+  /></ak-theme-root>
 </template>
 <script lang="uts">
 import { akI18n } from '../../src/core/i18n/ak-i18n.uts'
-import { NavigationLocaleSync } from '../../src/core/i18n/navigation-sync.uts'
-import { AkError } from '../../src/core/errors/ak-error.uts'
-import { HttpCancellation } from '../../src/core/network/http-port.uts'
-import { akNavigator, authenticatedNavigationContext, navigateArticleDetail } from '../../src/core/navigation/app-routes.uts'
 import { articleRuntime } from '../../src/features/articles/infrastructure/article-runtime.uts'
-import { profileRuntime } from '../../src/features/profile/infrastructure/profile-runtime.uts'
-import { ArticleQuery, ArticleSummary } from '../../src/features/articles/domain/models.uts'
-
-type QuickAction = { key: string; route: string; icon: string }
-
-let profileTask: HttpCancellation | null = null
-let unreadTask: HttpCancellation | null = null
-let featuredTask: HttpCancellation | null = null
-let coverTasks: Array<HttpCancellation> = []
-
-export default {
-  data() { return { state: 'loading', unreadCount: 0, displayName: '', featured: [] as Array<ArticleSummary>, coverPaths: new Map<string, string>(), pending: 0, failed: false, quickActions: [{ key: 'home.action.articles', route: 'articles.list', icon: 'bookmark' }, { key: 'home.action.messages', route: 'notifications.list', icon: 'bell' }, { key: 'home.action.security', route: 'profile.security', icon: 'security' }, { key: 'home.action.settings', route: 'settings.language', icon: 'settings' }] as Array<QuickAction> } },
-  computed: { t() { return akI18n.t }, nameParams() { return new Map<string, string>([['name', this.displayName]]) }, stateTitle() { return this.state == 'offline' ? akI18n.t('state.offline.title', null) : akI18n.t('state.error.title', null) } },
-  onLoad() { this.reload() },
-  onShow() { new NavigationLocaleSync(akI18n).apply(akI18n.getLocale(), 'routes.home.title') },
-  onUnload() { this.cancelRequests() },
-  methods: {
-    cancelRequests() { const activeProfile = profileTask; if (activeProfile != null) activeProfile.cancel(); const activeUnread = unreadTask; if (activeUnread != null) activeUnread.cancel(); const activeFeatured = featuredTask; if (activeFeatured != null) activeFeatured.cancel(); coverTasks.forEach(task => task.cancel()); coverTasks = []; profileTask = null; unreadTask = null; featuredTask = null },
-    reload() {
-      this.cancelRequests(); this.state = 'loading'; this.pending = 3; this.failed = false
-      const profiles = profileRuntime.getRepository(); const articles = articleRuntime.getRepository()
-      if (profiles == null || articles == null) { this.state = 'error'; return }
-      profileTask = profiles.profile(profile => { this.displayName = profile.displayName; this.complete(false) }, error => this.complete(true, error))
-      unreadTask = profiles.unreadCount(count => { this.unreadCount = count; this.complete(false) }, error => this.complete(true, error))
-      const query: ArticleQuery = { query: null, category: null, featured: true, cursor: null, limit: 5 }
-      featuredTask = articles.list(query, page => { this.featured = page.items as Array<ArticleSummary>; this.loadCovers(page.items); this.complete(false) }, error => this.complete(true, error))
-    },
-    complete(failed: boolean, error: AkError | null = null) { this.pending -= 1; if (failed) { this.failed = true; if (error != null && error.kind == 'network_unavailable') this.state = 'offline' }; if (this.pending == 0) { if (this.featured.length > 0) this.state = 'content'; else if (this.failed) this.state = this.state == 'offline' ? 'offline' : 'error'; else this.state = 'empty' } },
-    readingParams(minutes: number) { return new Map<string, string>([['count', minutes.toString()]]) },
-    coverPath(id: string): string { const path = this.coverPaths.get(id); return path != null ? path : '' },
-    loadCovers(items: Array<ArticleSummary>) { const loader = articleRuntime.getAssetLoader(); if (loader == null) return; items.forEach(article => { if (article.coverUrl != null) coverTasks.push(loader.load(article.coverUrl, localPath => { this.coverPaths.set(article.id, localPath) }, () => {})) }) },
-    go(key: string) { akNavigator.navigate(key, authenticatedNavigationContext()) },
-    openArticle(slug: string) { navigateArticleDetail(slug) },
-  },
-}
+import { ArticleSummary, ContentHome } from '../../src/features/articles/domain/models.uts'
+import { navigateArticleDetail } from '../../src/core/navigation/app-routes.uts'
+import { appSessionStore } from '../../src/core/stores/session-store.uts'
+export default{data(){return{state:'loading',refreshing:false,authOpen:false,pinned:[] as Array<ArticleSummary>,featured:[] as Array<ArticleSummary>,latest:[] as Array<ArticleSummary>}},computed:{t(){return akI18n.t},stateTitle():string{return akI18n.t(this.state==='offline'?'state.offline.title':this.state==='empty'?'state.empty.title':'state.error.title',null)}},onLoad(){this.reload()},methods:{asset(value:string|null):string{return articleRuntime.assetUrl(value)},reload(){const repo=articleRuntime.getRepository();if(repo==null){this.state='error';return};this.refreshing=true;repo.home((value:ContentHome)=>{this.pinned=value.pinned;this.featured=value.featured;this.latest=value.latest;this.state=value.pinned.length+value.featured.length+value.latest.length==0?'empty':'content';this.refreshing=false},error=>{this.state=error.kind==='network_unavailable'?'offline':'error';this.authOpen=error.kind==='unauthorized';this.refreshing=false})},open(slug:string){navigateArticleDetail(slug)},search(){uni.switchTab({url:'/pages/browse/index'})},notifications(){if(appSessionStore.getAccessToken()==null){this.authOpen=true;return};uni.navigateTo({url:'/pages/notifications/index'})},authenticated(){this.authOpen=false;this.reload()}}}
 </script>
 <style lang="scss">
-.page{flex:1;background:var(--ak-page);padding:16px 16px 48px}
-.topbar,.section-title,.quick-card,.quick-card__lead,.article-preview{flex-direction:row;align-items:center}
-.topbar,.section-title,.quick-card{justify-content:space-between}
-.topbar{min-height:48px}
-.brand{font-size:28px;font-weight:700;color:var(--ak-text)}
-.notification{position:relative;min-width:44px;min-height:44px;justify-content:center;align-items:center;border-radius:22px;background:var(--ak-surface)}
-.badge{position:absolute;top:2px;right:2px;min-width:18px;height:18px;border-radius:9px;text-align:center;background:var(--ak-danger);color:var(--ak-on-danger);font-size:11px}
-.greeting{margin:24px 0}
-.greeting__title{color:var(--ak-text);font-size:30px;font-weight:700;line-height:38px}
-.greeting__subtitle{margin-top:8px;color:var(--ak-muted);font-size:16px;line-height:24px}
-.hero{background:var(--ak-brand);padding:24px;margin-bottom:28px;border-color:var(--ak-brand)}
-.hero__title{color:var(--ak-on-brand);font-size:24px;font-weight:700;line-height:32px;margin-bottom:20px}
-.section-title{color:var(--ak-text);font-size:22px;font-weight:700;margin:28px 0 12px}
-.link{color:var(--ak-brand);font-size:15px;font-weight:600;min-height:44px;align-items:center}
-.quick-grid{flex-direction:row;flex-wrap:wrap;justify-content:space-between}
-.quick-card{width:48%;min-height:104px;padding:16px;margin-bottom:12px}
-.quick-card__lead{flex:1;min-width:0}
-.quick-card__label{flex:1;margin-left:10px;color:var(--ak-text);font-size:16px;font-weight:600}
-.featured-state{min-height:216px;justify-content:center;padding-bottom:32px}
-.featured-list{padding-bottom:16px}
-.article-preview{min-height:88px;margin-bottom:12px;padding:14px}
-.cover-placeholder{width:96px;height:64px;border-radius:12px;background:var(--ak-accent-surface)}
-.article-preview__copy{flex:1;margin-left:12px}
-.article-preview__title{color:var(--ak-text);font-size:16px;font-weight:600;line-height:22px}
-.article-preview__meta{color:var(--ak-muted);font-size:13px;margin-top:6px}
+.page {
+  height: 100%;
+  background: var(--ak-page);
+  padding: 20px 20px 120px;
+}
+.nav {
+  margin: 12px 0 24px;
+}
+.eyebrow {
+  font-size: 15px;
+  color: var(--ak-brand);
+  font-weight: 700;
+}
+.title {
+  font-size: 38px;
+  line-height: 46px;
+  font-weight: 800;
+  color: var(--ak-text);
+  margin-top: 4px;
+}
+.nav-actions {
+  margin-top: 8px;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+.nav-action-last { margin-left: 8px; }
+.hero {
+  border-radius: 22px;
+  overflow: hidden;
+  background: var(--ak-surface);
+  margin-bottom: 28px;
+}
+.hero-image {
+  width: 100%;
+  height: 240px;
+}
+.hero-copy {
+  padding: 20px;
+}
+.section-label {
+  color: var(--ak-brand);
+  font-size: 14px;
+  font-weight: 700;
+}
+.hero-title {
+  color: var(--ak-text);
+  font-size: 26px;
+  line-height: 34px;
+  font-weight: 800;
+  margin-top: 8px;
+}
+.hero-summary {
+  color: var(--ak-muted);
+  font-size: 16px;
+  line-height: 24px;
+  margin-top: 8px;
+}
 </style>

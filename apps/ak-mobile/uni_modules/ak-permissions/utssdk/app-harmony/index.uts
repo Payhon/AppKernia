@@ -1,0 +1,14 @@
+import { common, Want } from '@kit.AbilityKit'
+import { notificationManager } from '@kit.NotificationKit'
+import { getAbilityContext } from '@dcloudio/uni-runtime'
+import { GetPermissionStatus, ListPermissionCapabilities, OnPermissionStatusChanged, OpenPermissionSettings, PermissionCapability, PermissionStatusListener, RequestPermission } from '../interface.uts'
+
+let listener:PermissionStatusListener|null=null
+function value(status:string):PermissionCapability{return new PermissionCapability('notifications',status=='authorized'?'authorized':status=='denied'?'denied':'unavailable',false,true,'harmony',Date.now())}
+function read(ok:(capability:PermissionCapability)=>void,fail:()=>void):void{notificationManager.isNotificationEnabled().then((enabled:boolean)=>ok(value(enabled?'authorized':'denied'))).catch(()=>fail())}
+function emit(capability:PermissionCapability):void{const current=listener;if(current!=null)current(capability)}
+export const listCapabilities:ListPermissionCapabilities=function(success,failure){read(capability=>success([capability]),()=>failure('native_failure'))}
+export const getStatus:GetPermissionStatus=function(key,success,failure){if(key!='notifications'){failure('invalid_capability');return};read(success,()=>failure('native_failure'))}
+export const request:RequestPermission=function(key,success,failure){if(key!='notifications'){failure('invalid_capability');return};notificationManager.requestEnableNotification().then(()=>read(capability=>{emit(capability);success(capability)},()=>failure('native_failure'))).catch(()=>failure('native_failure'))}
+export const openSettings:OpenPermissionSettings=function(key){if(key!='notifications')return false;try{const context=getAbilityContext() as common.UIAbilityContext|null;if(context==null)return false;const want:Want={bundleName:'com.huawei.hmos.settings',abilityName:'com.huawei.hmos.settings.MainAbility',uri:'settings://notification_settings'};context.startAbility(want);return true}catch(error){return false}}
+export const onStatusChanged:OnPermissionStatusChanged=function(value){listener=value}

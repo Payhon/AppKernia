@@ -212,4 +212,68 @@ build succeeded
 
 任何前置阶段成功都不能冒充后续阶段完成。
 
+## 8. 资讯 App 上架前专项清单
+
+“应核 AppKernia”资讯版除通用签名检查外，还必须完成：
+
+1. 生产 API 已执行 `000019_information_content`，公开 `/api/v1/public/content/*` 与 HTTPS `/s/{slug}` 可从公网访问；分享页封面允许微信/商店爬虫读取。
+2. 每个启用的视频外链域名已写入 App 级 `content.video_external_hosts`；敏感词表、公开客服入口、举报、拉黑和账号注销路径已由运营/法务确认。
+3. 在“系统 → 系统设置 → 分享配置”激活微信配置，并在应用管理完成绑定和预检；微信 AppID、Android 发布包名/应用签名、iOS Bundle ID/HTTPS Universal Link、Harmony Bundle Name 必须与微信开放平台和构建身份一致。后台不采集微信 AppSecret。
+4. 在每次原生包构建前执行分享配置导出和漂移门禁；导出只更新微信节点和 iOS Associated Domains，后台保存本身不会改变已安装 App：
+
+   ```bash
+   cd server
+   go run ./cmd/ak-cli app-share export \
+     --app-id <public-app-uuid> \
+     --output ../apps/ak-mobile \
+     --android-package <release-package> \
+     --android-signature <wechat-release-signature> \
+     --ios-bundle-id <release-bundle-id> \
+     --harmony-bundle-name <release-bundle-name>
+
+   go run ./cmd/ak-cli app-share export \
+     --app-id <public-app-uuid> \
+     --output ../apps/ak-mobile \
+     --android-package <release-package> \
+     --android-signature <wechat-release-signature> \
+     --ios-bundle-id <release-bundle-id> \
+     --harmony-bundle-name <release-bundle-name> \
+     --check
+   ```
+
+5. Android/iOS/HarmonyOS 都必须使用导出后的 Manifest 重新制作自定义基座/原生包，并在安装微信的发布签名真机分别验证已启用的好友、朋友圈、收藏场景；Provider 缺失、配置停用或 SDK 失败必须验证系统分享降级。
+6. 使用真实内容完成 `zh-CN`/`en-US`、深色模式、动态字号、VoiceOver/TalkBack、安全区、离线/错误/刷新、视频切后台暂停和并发 401 单 Sheet 验收。
+7. App Store 准备 UGC 审核说明与客服联系方式；国内安卓/Harmony 市场准备隐私清单、SDK 清单、软著/备案等渠道材料；Google Play 准备 Data safety 与账号删除入口说明。
+
+上述清单完成前，可以报告“功能代码/编译通过”，不能报告“可直接上架”或“审核通过”。
+
 自定义调试基座请阅读 [AppKernia 多端自定义基座编译与打包](./mobile-custom-base-build.md)。
+## 9. 多厂商 Push 发布门禁
+
+Android Push 生产构建必须设置 `AK_REQUIRE_PUSH_CONFIG=1`，并在以下两个变体中选择一个：
+
+```bash
+AK_ANDROID_PUSH_VARIANT=google bash apps/ak-mobile/scripts/build-platform.sh android
+AK_ANDROID_PUSH_VARIANT=china bash apps/ak-mobile/scripts/build-platform.sh android
+```
+
+Google 变体需要 `AK_FCM_CONFIG_FILE`；China 变体需要各厂商已批准的精确依赖坐标、公开客户端参数，以及华为/荣耀配置文件。生成过程不会读取服务端 Master Secret、Service Account 或 APNs 私钥。产物生成后必须执行：
+
+```bash
+python3 apps/ak-mobile/scripts/verify-push-variant.py google /absolute/path/to/app.aab
+python3 apps/ak-mobile/scripts/verify-push-variant.py china /absolute/path/to/app.apk
+```
+
+构建通过只证明依赖边界和 UTS 编译。生产发布还必须完成 [Push SDK、许可证与隐私门禁清单](../compliance/push-sdk-inventory.md) 中的账号、签名、隐私和真机验证；对应 Admin provider 在此之前保持 disabled，全局 `AK_PUSH_ENABLED` 不得全量开启。
+
+### 9.1 监控与告警
+
+内部 `/internal/v1/metrics` 提供下列脱敏 Prometheus 指标；标签只包含 `app_id`、`provider`、`category`、`result`、`status` 或 `environment`，不得新增 Token、用户 ID、设备 ID：
+
+- `appkernia_push_deliveries_total`、`appkernia_push_opened_total`：30 天窗口内按结果聚合；受理率、失败率、无效 Token 率和点击率由这两个 Gauge 计算，不使用 `rate()`。
+- `appkernia_push_queue_delay_seconds_sum/count`：Delivery 创建到厂商受理的等待时间。
+- `appkernia_push_queue_backlog`：pending/processing 积压。
+- `appkernia_push_provider_fault`：因持续鉴权/配置错误自动 fault 的应用渠道。
+- `appkernia_push_metrics_scrape_error`：指标读取失败。
+
+部署方必须按应用和厂商建立至少以下规则：`provider_fault > 0` 立即告警；`metrics_scrape_error > 0` 立即告警；积压连续增长、5xx/transient 比例、invalid_token 比例和平均 queue delay 超过该厂商基线时告警。阈值必须在灰度期按真实流量确定，不能把未经测量的统一百分比写成生产默认。告警只引用上述低基数标签，并链接到投递 ID/厂商请求 ID 的受控日志检索，不记录原始 Token 或完整载荷。

@@ -1,0 +1,60 @@
+import { AbilityConstant, Want } from '@kit.AbilityKit'
+import { pushService } from '@kit.PushKit'
+import {
+  GetPushCapability, OnForegroundMessage, OnNotificationOpened, OnPushTokenChanged, OpenPushSystemSettings,
+  PushCapability, PushCapabilitySuccess, PushFailure, PushForegroundListener, PushOpenEvent, PushOpenListener, PushRegistration, PushRegistrationSuccess,
+  PushSuccess, PushTokenListener, RegisterPush, RequestPushAuthorization, UnregisterPush,
+} from '../interface.uts'
+import { getStatus as getPermissionStatus, openSettings as openPermissionSettings, request as requestPermission } from '@/uni_modules/ak-permissions'
+
+let tokenListener: PushTokenListener | null = null
+let openListener: PushOpenListener | null = null
+let foregroundListener: PushForegroundListener | null = null
+let pendingOpened: PushOpenEvent | null = null
+
+function eventFromObject(object: UTSJSONObject | null): PushOpenEvent | null {
+  if (object == null) return null
+  const schemaVersion = object.getNumber('schema_version')
+  const deliveryId = object.getString('delivery_id')
+  const messageId = object.getString('message_id')
+  const routeKey = object.getString('route_key')
+  if (schemaVersion == 1 && deliveryId != null && deliveryId.length > 0 && messageId != null && messageId.length > 0) return new PushOpenEvent(1, deliveryId, messageId, routeKey == null ? '' : routeKey, new Map<string, string>())
+  for (const key of ['extraData', 'pushData', 'data', 'payload']) {
+    const nestedRaw = object.getString(key)
+    if (nestedRaw == null || nestedRaw.length == 0) continue
+    const nested = eventFromObject(JSON.parseObject(nestedRaw))
+    if (nested != null) return nested
+  }
+  return null
+}
+
+function captureWant(want: Want): void {
+  if (want.parameters == null) return
+  const event = eventFromObject(JSON.parseObject(JSON.stringify(want.parameters!)))
+  if (event == null) return
+  const listener = openListener
+  if (listener != null) listener(event); else pendingOpened = event
+}
+
+UTSHarmony.onAppAbilityCreate((want: Want, _launchParam: AbilityConstant.LaunchParam) => { captureWant(want) })
+UTSHarmony.onAppAbilityNewWant((want: Want, _launchParam: AbilityConstant.LaunchParam) => { captureWant(want) })
+function current(status: string): PushCapability { return new PushCapability(true, 'harmony', 'harmony', 'harmony', status == 'authorized' ? 'authorized' : status == 'denied' ? 'denied' : 'not_determined', null) }
+export const getCapability: GetPushCapability = function (success: PushCapabilitySuccess, failure: PushFailure): void { getPermissionStatus('notifications',(permission)=>success(current(permission.status)),_code=>failure('native_failure')) }
+export const requestAuthorization: RequestPushAuthorization = function (success: PushCapabilitySuccess, failure: PushFailure): void { requestPermission('notifications',(permission)=>{if(permission.status=='authorized')success(current('authorized'));else failure('permission_denied')},_code=>failure('native_failure')) }
+export const register: RegisterPush = function (success: PushRegistrationSuccess, failure: PushFailure): void {
+  pushService.getToken().then((token: string) => {
+    if (token.length == 0) { failure('native_failure'); return }
+    const registration = new PushRegistration('harmony', 'harmony', 'harmony', token, '')
+    success(registration)
+    const listener = tokenListener
+    if (listener != null) listener(registration)
+  }).catch(() => failure('native_failure'))
+}
+export const unregister: UnregisterPush = function (success: PushSuccess, _failure: PushFailure): void {
+  pushService.deleteToken().then(() => success()).catch(() => success())
+}
+export const openSystemSettings: OpenPushSystemSettings = function (): boolean { return openPermissionSettings('notifications') }
+export const onTokenChanged: OnPushTokenChanged = function (listener: PushTokenListener | null): void { tokenListener = listener }
+export const onNotificationOpened: OnNotificationOpened = function (listener: PushOpenListener | null): void { openListener = listener; if(listener!=null&&pendingOpened!=null){const event=pendingOpened!;pendingOpened=null;listener(event)} }
+export const onForegroundMessage: OnForegroundMessage = function (listener: PushForegroundListener | null): void { foregroundListener = listener }
+export function consumeNotificationOpened(): void {}

@@ -1,8 +1,19 @@
 {
-  "easycom": { "autoscan": true, "custom": { "^ak-(.*)": "@/components/ak-ui/ak-$1/ak-$1.uvue" } },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^ak-(.*)": "@/components/ak-ui/ak-$1/ak-$1.uvue",
+      "^section-list$": "@/components/section-list/section-list.uvue"
+    }
+  },
   "pages": [
     { "path": "pages/bootstrap/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/home/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/browse/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/browse/search/index", "style": { "navigationStyle": "custom", "backgroundColor": "transparent" } },
+    { "path": "pages/topics/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/topics/detail/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/bookmarks/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/auth/login/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/auth/register/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/auth/verify-contact/index", "style": { "navigationStyle": "custom" } },
@@ -22,6 +33,7 @@
     { "path": "pages/profile/sessions/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/profile/devices/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/settings/language/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/settings/permissions/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/settings/notifications/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/settings/appearance/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/help/index", "style": { "navigationStyle": "custom" } },
@@ -34,8 +46,9 @@
   ],
   "tabBar": { "color": "#8E8E93", "selectedColor": "#246BFE", "backgroundColor": "#FFFFFF", "borderStyle": "white", "list": [
     { "pagePath": "pages/home/index", "text": "首页", "iconPath": "static/ak-tabbar/home-default.png", "selectedIconPath": "static/ak-tabbar/home-selected.png" },
-    { "pagePath": "pages/notifications/index", "text": "消息", "iconPath": "static/ak-tabbar/notifications-default.png", "selectedIconPath": "static/ak-tabbar/notifications-selected.png" },
+    { "pagePath": "pages/browse/index", "text": "浏览", "iconPath": "static/ak-tabbar/browse-default.png", "selectedIconPath": "static/ak-tabbar/browse-selected.png" },
+    { "pagePath": "pages/topics/index", "text": "专题", "iconPath": "static/ak-tabbar/topics-default.png", "selectedIconPath": "static/ak-tabbar/topics-selected.png" },
     { "pagePath": "pages/profile/index", "text": "我的", "iconPath": "static/ak-tabbar/profile-default.png", "selectedIconPath": "static/ak-tabbar/profile-selected.png" }
   ] },
-  "globalStyle": { "navigationBarTitleText": "AppKernia", "backgroundColor": "#F8FAFC" }
+  "globalStyle": { "navigationBarTitleText": "应核 AppKernia", "backgroundColor": "#F8FAFC" }
 }

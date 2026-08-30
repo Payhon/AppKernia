@@ -1,0 +1,79 @@
+<template>
+  <view v-if="open" class="ak-sheet-layer" role="dialog" :aria-label="title">
+    <view class="ak-sheet-scrim" @click="requestClose" />
+    <view class="ak-sheet" :style="sheetStyle">
+      <view class="ak-sheet-handle" />
+      <view class="ak-sheet-header">
+        <text class="ak-sheet-title">{{ title }}</text>
+        <ak-icon-button
+          name="close"
+          class="ak-sheet-close"
+          :label="t('common.close', null)"
+          @click="requestClose"
+        />
+      </view>
+      <scroll-view class="ak-sheet-content" scroll-y><slot /></scroll-view>
+    </view>
+  </view>
+</template>
+<script lang="uts">
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+export default { name:'AkBottomSheet', props:{ open:{type:Boolean,default:false}, title:{type:String,default:''}, dismissible:{type:Boolean,default:true} }, emits:['close'], computed:{ t(){return akI18n.t}, sheetStyle():string { const info=uni.getWindowInfo(); const top=Math.max(info.safeAreaInsets.top,20); return 'max-height:calc(100vh - '+(top+12).toString()+'px);padding-bottom:'+Math.max(info.safeAreaInsets.bottom,12).toString()+'px' } }, methods:{ requestClose(){if(this.dismissible)this.$emit('close')} } }
+</script>
+<style lang="scss">
+.ak-sheet-layer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 9999;
+  justify-content: flex-end;
+}
+.ak-sheet-scrim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.42);
+}
+.ak-sheet {
+  position: relative;
+  background: var(--ak-surface);
+  border-radius: 24px 24px 0 0;
+  min-height: 280px;
+  width: 100%;
+}
+.ak-sheet-handle {
+  width: 36px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--ak-border);
+  align-self: center;
+  margin-top: 8px;
+}
+.ak-sheet-header {
+  height: 60px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px 0 20px;
+  border-bottom: 1px solid var(--ak-border);
+}
+.ak-sheet-title {
+  flex: 1;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ak-text);
+}
+.ak-sheet-close {
+  min-width: 44px;
+  min-height: 44px;
+  margin-left: 12px;
+}
+.ak-sheet-content {
+  padding: 20px;
+  max-height: 620px;
+}
+</style>

@@ -1,0 +1,133 @@
+<template>
+  <ak-theme-root>
+    <scroll-view class="page" scroll-y refresher-enabled :refresher-triggered="refreshing" @refresherrefresh="reload">
+      <view class="header">
+        <view class="header-row">
+          <text class="title">{{ t('information.browse.title', null) }}</text>
+          <view class="header-actions">
+            <ak-icon-button name="search" :label="t('information.search', null)" @click="openSearch" />
+            <ak-icon-button class="filter-action" name="filter" :label="t('information.filters.title', null)" :active="filtersOpen" :badge="hasFilters" @click="toggleFilters" />
+          </view>
+        </view>
+        <view v-if="filtersOpen" class="filter-panel">
+          <view class="filter-heading">
+            <text class="filter-title">{{ t('information.filters.title', null) }}</text>
+            <text class="filter-reset" role="button" @click="resetDraft">{{ t('information.filters.reset', null) }}</text>
+          </view>
+          <text class="filter-label">{{ t('information.filters.type', null) }}</text>
+          <view class="filter-wrap">
+            <view v-for="option in typeOptions" :key="option" class="filter-chip" :class="draftType === option ? 'filter-chip-active' : ''" @click="draftType = option">
+              <text class="filter-chip-text" :class="draftType === option ? 'filter-chip-text-active' : ''">{{ typeName(option) }}</text>
+            </view>
+          </view>
+          <text class="filter-label filter-label-category">{{ t('information.filters.category', null) }}</text>
+          <scroll-view class="category-scroll" scroll-y>
+            <view class="filter-wrap">
+              <view class="filter-chip" :class="draftCategory.length == 0 ? 'filter-chip-active' : ''" @click="draftCategory = ''"><text class="filter-chip-text" :class="draftCategory.length == 0 ? 'filter-chip-text-active' : ''">{{ t('information.all', null) }}</text></view>
+              <view v-for="category in categories" :key="category.id" class="filter-chip" :class="draftCategory === category.slug ? 'filter-chip-active' : ''" @click="draftCategory = category.slug"><text class="filter-chip-text" :class="draftCategory === category.slug ? 'filter-chip-text-active' : ''">{{ category.name }}</text></view>
+            </view>
+          </scroll-view>
+          <ak-button class="apply-button" :label="t('information.filters.apply', null)" @click="applyFilters" />
+        </view>
+      </view>
+      <ak-status-view v-if="state !== 'content'" :state="state" :title="stateTitle" :description="t('information.state.description', null)" @retry="reload" />
+      <section-list v-else :title="t('information.timeline', null)" :items="items" @open="open" />
+      <ak-button v-if="nextCursor.length > 0" variant="secondary" :loading="loadingMore" :label="t('common.loadMore', null)" @click="more" />
+    </scroll-view>
+    <ak-auth-prompt :open="authOpen" @close="authOpen = false" @authenticated="authenticated" />
+  </ak-theme-root>
+</template>
+
+<script lang="uts">
+import { akI18n } from '../../src/core/i18n/ak-i18n.uts'
+import { articleRuntime } from '../../src/features/articles/infrastructure/article-runtime.uts'
+import { ArticleCategory, ArticlePage, ArticleQuery, ArticleSummary } from '../../src/features/articles/domain/models.uts'
+import { navigateArticleDetail } from '../../src/core/navigation/app-routes.uts'
+import { AkError } from '../../src/core/errors/ak-error.uts'
+
+export default {
+  data() {
+    return {
+      state: 'loading', refreshing: false, loadingMore: false, authOpen: false, filtersOpen: false,
+      selectedType: '', selectedCategory: '', draftType: '', draftCategory: '',
+      typeOptions: ['', 'article', 'gallery', 'video'] as Array<string>,
+      categories: [] as Array<ArticleCategory>, items: [] as Array<ArticleSummary>, nextCursor: '',
+    }
+  },
+  computed: {
+    t() { return akI18n.t },
+    hasFilters(): boolean { return this.selectedType.length > 0 || this.selectedCategory.length > 0 },
+    stateTitle(): string {
+      return akI18n.t(this.state === 'offline' ? 'state.offline.title' : this.state === 'empty' ? 'state.empty.title' : 'state.error.title', null)
+    },
+  },
+  onLoad() { this.loadCategories(); this.reload() },
+  methods: {
+    typeName(value: string): string { return value.length == 0 ? akI18n.t('information.all', null) : akI18n.t('information.type.' + value, null) },
+    toggleFilters() { this.draftType = this.selectedType; this.draftCategory = this.selectedCategory; this.filtersOpen = !this.filtersOpen },
+    resetDraft() { this.draftType = ''; this.draftCategory = '' },
+    applyFilters() { this.selectedType = this.draftType; this.selectedCategory = this.draftCategory; this.filtersOpen = false; this.reload() },
+    openSearch() {
+      uni.openDialogPage({ url: '/pages/browse/search/index', animationType: 'slide-in-right', animationDuration: 260 })
+    },
+    request(cursor: string | null): ArticleQuery {
+      return { query: null, category: this.selectedCategory.length > 0 ? this.selectedCategory : null, topic: null, tag: null, contentType: this.selectedType.length > 0 ? this.selectedType : null, featured: null, cursor: cursor, limit: 20 }
+    },
+    loadCategories() {
+      const repo = articleRuntime.getRepository()
+      if (repo == null) return
+      repo.listCategories((value: Array<ArticleCategory>) => { this.categories = value }, () => {})
+    },
+    reload() {
+      const repo = articleRuntime.getRepository()
+      if (repo == null) { this.state = 'error'; return }
+      this.refreshing = true
+      repo.list(this.request(null), (page: ArticlePage) => {
+        this.items = page.items
+        this.nextCursor = page.nextCursor != null ? page.nextCursor : ''
+        this.state = page.items.length == 0 ? 'empty' : 'content'
+        this.refreshing = false
+      }, (error: AkError) => {
+        this.state = error.kind === 'network_unavailable' ? 'offline' : 'error'
+        this.authOpen = error.kind === 'unauthorized'
+        this.refreshing = false
+      })
+    },
+    more() {
+      if (this.nextCursor.length == 0) return
+      const repo = articleRuntime.getRepository()
+      if (repo == null) return
+      this.loadingMore = true
+      repo.list(this.request(this.nextCursor), (page: ArticlePage) => {
+        this.items = this.items.concat(page.items)
+        this.nextCursor = page.nextCursor != null ? page.nextCursor : ''
+        this.loadingMore = false
+      }, () => { this.loadingMore = false })
+    },
+    open(slug: string) { navigateArticleDetail(slug) },
+    authenticated() { this.authOpen = false; this.reload() },
+  },
+}
+</script>
+
+<style lang="scss">
+.page { height: 100%; background: var(--ak-page); padding: 18px 20px 120px; }
+.header { margin-bottom: 22px; }
+.header-row { min-height: 52px; flex-direction: row; align-items: center; justify-content: space-between; }
+.header-actions { flex-direction: row; align-items: center; }
+.filter-action { margin-left: 8px; }
+.title { font-size: 34px; line-height: 42px; font-weight: 800; color: var(--ak-text); }
+.filter-panel { margin-top: 12px; padding: 18px; border-radius: 20px; background: var(--ak-surface); border: 1px solid var(--ak-border); box-shadow: var(--ak-shadow-floating); }
+.filter-heading { height: 32px; flex-direction: row; align-items: center; justify-content: space-between; }
+.filter-title { color: var(--ak-text); font-size: 18px; font-weight: 750; }
+.filter-reset { min-width: 44px; height: 44px; text-align: right; color: var(--ak-brand); font-size: 14px; line-height: 44px; }
+.filter-label { color: var(--ak-muted); font-size: 13px; font-weight: 650; margin: 14px 0 8px; }
+.filter-label-category { margin-top: 18px; }
+.filter-wrap { flex-direction: row; flex-wrap: wrap; margin-right: -8px; margin-bottom: -8px; }
+.filter-chip { min-height: 40px; padding: 0 14px; margin: 0 8px 8px 0; border-radius: 20px; justify-content: center; background: var(--ak-surface-subtle); border: 1px solid var(--ak-border); }
+.filter-chip-active { background: var(--ak-brand); border-color: var(--ak-brand); }
+.filter-chip-text { color: var(--ak-muted); font-size: 14px; }
+.filter-chip-text-active { color: var(--ak-on-brand); font-weight: 650; }
+.category-scroll { max-height: 150px; }
+.apply-button { margin-top: 18px; }
+</style>

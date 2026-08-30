@@ -2,44 +2,76 @@
   <ak-theme-root><scroll-view class="page" scroll-y>
     <view class="nav"><ak-back-button/><text class="nav-title">{{t('routes.settings.notifications.title', null)}}</text><view class="nav-slot"/></view>
     <ak-status-view v-if="state!=='content'" :state="state" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/>
-    <ak-cell-list v-else class="preference-list">
-      <view class="row"><text class="row-label">{{t('settings.notificationEmail', null)}}</text><ak-switch v-model="email" @change="save"/></view>
-      <view class="row"><text class="row-label">{{t('settings.notificationPush', null)}}</text><ak-switch v-model="push" @change="save"/></view>
-      <view class="row"><text class="row-label">{{t('settings.notificationInApp', null)}}</text><ak-switch v-model="inApp" @change="save"/></view>
-    </ak-cell-list>
+    <view v-else>
+      <ak-cell-list class="preference-list">
+        <view class="row"><view class="copy"><text class="row-label">{{t('settings.notificationPush', null)}}</text><text class="row-help">{{t('push.masterDescription',null)}}</text></view><ak-switch v-model="push" :disabled="busy" @change="changePush"/></view>
+        <view class="row category-row"><view class="copy"><text class="row-label">{{t('push.service', null)}}</text><text class="row-help">{{t('push.serviceDescription',null)}}</text></view><ak-switch v-model="pushService" :disabled="busy||!push" @change="saveCategories"/></view>
+        <view class="row category-row"><view class="copy"><text class="row-label">{{t('push.operations', null)}}</text><text class="row-help">{{t('push.operationsDescription',null)}}</text></view><ak-switch v-model="pushOperations" :disabled="busy||!push" @change="saveCategories"/></view>
+      </ak-cell-list>
+      <ak-card class="status-card">
+        <text class="section-title">{{t('push.statusTitle',null)}}</text>
+        <view class="status-line"><text class="status-label">{{t('push.authorization',null)}}</text><text class="status-value">{{authorizationLabel}}</text></view>
+        <view class="status-line"><text class="status-label">{{t('push.channel',null)}}</text><text class="status-value">{{providerLabel}}</text></view>
+        <view class="status-line"><text class="status-label">{{t('push.registration',null)}}</text><text class="status-value">{{registrationLabel}}</text></view>
+        <text v-if="!channelAvailable" class="fallback" role="status">{{t('push.inAppFallback',null)}}</text>
+        <ak-button v-if="authorization==='denied'" class="settings-action" variant="secondary" @click="openSettings">{{t('push.openSettings',null)}}</ak-button>
+      </ak-card>
+      <text v-if="errorText.length>0" class="error" role="alert" aria-live="assertive">{{errorText}}</text>
+      <ak-cell-list class="preference-list secondary-list">
+        <view class="row"><text class="row-label">{{t('settings.notificationEmail', null)}}</text><ak-switch v-model="email" :disabled="busy" @change="saveSimple"/></view>
+        <view class="row"><text class="row-label">{{t('settings.notificationInApp', null)}}</text><ak-switch v-model="inApp" :disabled="busy" @change="saveSimple"/></view>
+      </ak-cell-list>
+    </view>
   </scroll-view></ak-theme-root>
 </template>
 
 <script lang="uts">
+import {AkError} from '../../../src/core/errors/ak-error.uts'
 import {HttpCancellation} from '../../../src/core/network/http-port.uts'
 import {akI18n} from '../../../src/core/i18n/ak-i18n.uts'
 import {preferencesRuntime, NotificationPrefs} from '../../../src/features/preferences/infrastructure/preferences-runtime.uts'
+import {pushCoordinator,PushState} from '../../../src/features/push/application/push-coordinator.uts'
+import {PushCapability} from '../../../uni_modules/ak-push/utssdk/interface.uts'
+import {PushDevice} from '../../../src/features/push/infrastructure/http-push-repository.uts'
 
 let pref: NotificationPrefs | null = null
 let task: HttpCancellation | null = null
+let capability: PushCapability | null = null
+let device: PushDevice | null = null
 
 export default {
-  data() { return {state:'loading', email:false, push:false, inApp:false} },
-  computed: {t() { return akI18n.t }},
+  data() { return {state:'loading',busy:false,email:false,push:false,pushService:true,pushOperations:false,inApp:false,authorization:'unavailable',provider:'',registered:false,errorText:''} },
+  computed: {
+    t() { return akI18n.t },
+    channelAvailable():boolean{return this.provider.length>0},
+    authorizationLabel():string{return akI18n.t('push.authorization.'+this.authorization,null)},
+    providerLabel():string{return this.provider.length==0?akI18n.t('push.channelUnavailable',null):akI18n.t('push.provider.'+this.provider,null)},
+    registrationLabel():string{return akI18n.t(this.registered?'push.registration.active':'push.registration.inactive',null)},
+  },
   onLoad() { this.reload() },
-  onUnload() { const activeTask=task; if(activeTask!=null)activeTask.cancel() },
+  onUnload() { const activeTask=task; if(activeTask!=null)activeTask.cancel();pushCoordinator.cancel() },
   methods: {
     reload() {
-      const repository = preferencesRuntime.getRepository()
-      if (repository == null) { this.state='error'; return }
-      this.state='loading'
-      task=repository.getNotification(value => { pref=value; this.email=value.email; this.push=value.push; this.inApp=value.inApp; this.state='content' }, () => { this.state='error' })
+      const repository = preferencesRuntime.getRepository();if(repository==null){this.state='error';return}
+      this.state='loading';this.errorText=''
+      task=repository.getNotification((value:NotificationPrefs) => { pref=value;this.applyPref(value);pushCoordinator.load((value:PushState)=>{capability=value.capability;device=value.device;this.applyPushState(value);this.state='content'},(_code:string)=>{this.authorization='unavailable';this.provider='';this.registered=false;this.state='content'}) }, () => { this.state='error' })
     },
-    save() {
-      const repository = preferencesRuntime.getRepository()
-      const currentPref: NotificationPrefs | null = pref
-      if (repository == null || currentPref == null) return
-      task=repository.putNotification({email:this.email, push:this.push, inApp:this.inApp}, saved => { pref=saved; this.email=saved.email; this.push=saved.push; this.inApp=saved.inApp }, () => { this.email=currentPref.email; this.push=currentPref.push; this.inApp=currentPref.inApp })
+    applyPref(value:NotificationPrefs){this.email=value.email;this.push=value.push;this.pushService=value.pushService;this.pushOperations=value.pushOperations;this.inApp=value.inApp},
+    applyPushState(value:PushState){const current=value.capability;if(current!=null){this.authorization=current.authorization;this.provider=current.provider==null?'':current.provider!};this.registered=value.device!=null&&value.device!.status=='active'},
+    snapshot():NotificationPrefs{return{email:this.email,push:this.push,pushService:this.pushService,pushOperations:this.pushOperations,inApp:this.inApp}},
+    persist(value:NotificationPrefs,ok:()=>void,fail:()=>void){const repository=preferencesRuntime.getRepository();if(repository==null){fail();return};task=repository.putNotification(value,(saved:NotificationPrefs)=>{pref=saved;this.applyPref(saved);ok()},(_error:AkError)=>fail())},
+    changePush(next:boolean){if(this.busy)return;const previous=pref;if(previous==null)return;this.busy=true;this.errorText=''
+      if(next){pushCoordinator.enable((value:PushState)=>{capability=value.capability;device=value.device;this.applyPushState(value);const desired:NotificationPrefs={email:this.email,push:true,pushService:true,pushOperations:this.pushOperations,inApp:this.inApp};this.persist(desired,()=>{this.busy=false},()=>{pushCoordinator.disable(device,()=>{},(_code:string)=>{});this.applyPref(previous);this.busy=false;this.errorText=akI18n.t('push.error.server',null)})},(code:string)=>{this.applyPref(previous);this.busy=false;this.errorText=this.errorFor(code)})}
+      else{const desired:NotificationPrefs={email:this.email,push:false,pushService:this.pushService,pushOperations:this.pushOperations,inApp:this.inApp};this.persist(desired,()=>{pushCoordinator.disable(device,()=>{device=null;this.registered=false;this.busy=false},(code:string)=>{this.busy=false;this.errorText=this.errorFor(code)})},()=>{this.applyPref(previous);this.busy=false;this.errorText=akI18n.t('push.error.server',null)})}
     },
+    saveCategories(){const previous=pref;if(previous==null||this.busy)return;this.busy=true;this.persist(this.snapshot(),()=>{this.busy=false},()=>{this.applyPref(previous);this.busy=false;this.errorText=akI18n.t('push.error.server',null)})},
+    saveSimple(){this.saveCategories()},
+    openSettings(){if(!pushCoordinator.settings())this.errorText=akI18n.t('push.error.settings',null)},
+    errorFor(code:string):string{if(code=='permission_denied')return akI18n.t('push.error.permission',null);if(code=='configuration_missing')return akI18n.t('push.error.configuration',null);if(code=='consent_required')return akI18n.t('push.error.consent',null);return akI18n.t('push.error.unavailable',null)},
   },
 }
 </script>
 
 <style lang="scss">
-.page{height:100%;flex:1;padding:16px 20px 32px;background:var(--ak-page)}.nav,.row{flex-direction:row;align-items:center;justify-content:space-between}.nav{height:44px;margin-bottom:20px}.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}.nav-slot{width:44px;height:44px}.preference-list{border-radius:18px}.row{min-height:60px;padding:0 16px;border-bottom:1px solid var(--ak-border)}.row-label{color:var(--ak-text);font-size:16px}
+.page{height:100%;flex:1;padding:16px 20px 40px;background:var(--ak-page)}.nav,.row,.status-line{flex-direction:row;align-items:center;justify-content:space-between}.nav{height:44px;margin-bottom:20px}.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}.nav-slot{width:44px;height:44px}.preference-list{border-radius:18px}.secondary-list{margin-top:20px}.row{min-height:60px;padding:6px 12px 6px 16px;border-bottom:1px solid var(--ak-border)}.category-row{padding-left:28px}.copy{flex:1;padding:8px 12px 8px 0}.row-label{color:var(--ak-text);font-size:16px}.row-help{color:var(--ak-muted);font-size:13px;line-height:19px;margin-top:3px}.status-card{margin-top:20px;padding:18px}.section-title{color:var(--ak-text);font-size:18px;font-weight:600;margin-bottom:12px}.status-line{min-height:38px}.status-label{color:var(--ak-muted);font-size:14px}.status-value{color:var(--ak-text);font-size:14px;font-weight:500;text-align:right;width:190px}.fallback{color:var(--ak-muted);font-size:14px;line-height:21px;margin-top:12px}.settings-action{margin-top:14px}.error{color:var(--ak-danger);font-size:14px;line-height:21px;margin:12px 4px 0}
 </style>

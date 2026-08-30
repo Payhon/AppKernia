@@ -1306,6 +1306,102 @@
       "action_name": "delete",
       "permission_kind": "api",
       "status": "active"
+    },
+    {
+      "code": "sys.share_config.read",
+      "name": "查看分享配置",
+      "module_code": "sys",
+      "resource_name": "share_config",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.share_config.create",
+      "name": "创建分享配置",
+      "module_code": "sys",
+      "resource_name": "share_config",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.share_config.update",
+      "name": "更新分享配置",
+      "module_code": "sys",
+      "resource_name": "share_config",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.share_config.delete",
+      "name": "删除分享配置",
+      "module_code": "sys",
+      "resource_name": "share_config",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.share_config.rotate_secret",
+      "name": "轮换分享配置秘密",
+      "module_code": "sys",
+      "resource_name": "share_config",
+      "action_name": "rotate_secret",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.share_binding.read",
+      "name": "查看应用分享绑定",
+      "module_code": "app",
+      "resource_name": "share_binding",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.share_binding.update",
+      "name": "更新应用分享绑定",
+      "module_code": "app",
+      "resource_name": "share_binding",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "notify.push_provider.read", "name": "查看推送渠道", "module_code": "notify", "resource_name": "push_provider", "action_name": "read", "permission_kind": "api", "status": "active"
+    },
+    {
+      "code": "notify.push_provider.manage", "name": "管理推送渠道", "module_code": "notify", "resource_name": "push_provider", "action_name": "manage", "permission_kind": "api", "status": "active"
+    },
+    {
+      "code": "notify.push_provider.rotate_secret", "name": "轮换推送凭据", "module_code": "notify", "resource_name": "push_provider", "action_name": "rotate_secret", "permission_kind": "api", "status": "active"
+    },
+    {
+      "code": "notify.push.preflight", "name": "预检推送渠道", "module_code": "notify", "resource_name": "push", "action_name": "preflight", "permission_kind": "api", "status": "active"
+    },
+    {
+      "code": "notify.push.test", "name": "测试推送渠道", "module_code": "notify", "resource_name": "push", "action_name": "test", "permission_kind": "api", "status": "active"
+    },
+    {
+      "code": "notify.operations.publish", "name": "发布资讯运营推送", "module_code": "notify", "resource_name": "operations", "action_name": "publish", "permission_kind": "api", "status": "active"
+    },
+    {
+      "code": "notify.observability.read", "name": "查看消息运营监控", "module_code": "notify", "resource_name": "observability", "action_name": "read", "permission_kind": "api", "status": "active"
+    },
+    {
+      "code": "notify.task.retry", "name": "重试通知任务", "module_code": "notify", "resource_name": "task", "action_name": "retry", "permission_kind": "api", "status": "active"
+    },
+    {
+      "code": "notify.message.submit", "name": "提交应用消息", "module_code": "notify", "resource_name": "message", "action_name": "submit", "permission_kind": "api", "status": "active"
+    },
+    {
+      "code": "notify.message.status.read", "name": "查询应用消息状态", "module_code": "notify", "resource_name": "message_status", "action_name": "read", "permission_kind": "api", "status": "active"
+    },
+    {
+      "code": "notify.message.broadcast", "name": "广播应用消息", "module_code": "notify", "resource_name": "message", "action_name": "broadcast", "permission_kind": "api", "status": "active"
     }
   ]
 }

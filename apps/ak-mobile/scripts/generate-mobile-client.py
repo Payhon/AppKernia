@@ -61,6 +61,10 @@ def render_public_config() -> str:
         "published_version:",
         "accessibility_label:",
         "/api/v1/public/startup-assets/{file_id}:",
+        "PublicShareProvider:",
+        "fallback_mode:",
+        "PublicPushRuntime:",
+        "build_variants:",
     )
     missing = [value for value in required if value not in source]
     if missing:
@@ -92,6 +96,26 @@ export type PublicConfigWire = {
   readonly registration_enabled: boolean
   readonly registration_verification_mode: string
   readonly startup: PublicStartupWire
+  readonly share: PublicShareRuntimeWire
+  readonly push: PublicPushRuntimeWire
+}
+
+export type PublicShareProviderWire = {
+  readonly provider_code: 'wechat'
+  readonly enabled: boolean
+  readonly scenes: Array<'session' | 'timeline' | 'favorite'>
+  readonly fallback_mode: 'system'
+}
+
+export type PublicShareRuntimeWire = {
+  readonly providers: Array<PublicShareProviderWire>
+}
+
+export type PublicPushRuntimeWire = {
+  readonly enabled: boolean
+  readonly environment: 'development' | 'test' | 'staging' | 'production'
+  readonly providers: Array<'apns' | 'fcm' | 'huawei_android' | 'honor' | 'xiaomi' | 'oppo' | 'vivo' | 'meizu' | 'harmony'>
+  readonly build_variants: Array<'ios' | 'android_google' | 'android_china' | 'harmony'>
 }
 """
 

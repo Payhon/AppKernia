@@ -1,0 +1,109 @@
+<template>
+  <view class="section"
+    ><text class="section-title">{{ title }}</text
+    ><scroll-view v-if="horizontal" class="horizontal" scroll-x
+      ><view class="row"
+        ><ak-card
+          v-for="item in items"
+          :key="item.id"
+          class="horizontal-card"
+          @click="$emit('open', item.slug)"
+          ><image
+            v-if="item.coverUrl != null"
+            class="thumb-wide"
+            :src="asset(item.coverUrl)"
+            mode="aspectFill"
+            :alt="item.title"
+          /><text class="item-type">{{ typeLabel(item.contentType) }}</text
+          ><text class="item-title">{{ item.title }}</text></ak-card
+        ></view
+      ></scroll-view
+    ><view v-else
+      ><ak-card
+        v-for="item in items"
+        :key="item.id"
+        class="timeline-card"
+        @click="$emit('open', item.slug)"
+        ><view class="timeline-copy"
+          ><text class="item-type">{{ typeLabel(item.contentType) }}</text
+          ><text class="item-title">{{ item.title }}</text
+          ><text class="item-summary">{{ item.summary }}</text></view
+        ><image
+          v-if="item.coverUrl != null"
+          class="thumb"
+          :src="asset(item.coverUrl)"
+          mode="aspectFill"
+          :alt="item.title" /></ak-card></view
+  ></view>
+</template>
+<script lang="uts">
+import {akI18n} from '../src/core/i18n/ak-i18n.uts';import {ArticleSummary} from '../src/features/articles/domain/models.uts';import {articleRuntime} from '../src/features/articles/infrastructure/article-runtime.uts';export default{props:{title:{type:String,default:''},items:{type:Array<ArticleSummary>,default:()=>[] as Array<ArticleSummary>},horizontal:{type:Boolean,default:false}},emits:['open'],methods:{typeLabel(value:string):string{return akI18n.t('information.type.'+value,null)},asset(value:string|null):string{return articleRuntime.assetUrl(value)}}}
+</script>
+<style lang="scss">
+.section {
+  margin-bottom: 28px;
+}
+.section-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--ak-text);
+  margin-bottom: 14px;
+}
+.horizontal {
+  width: 100%;
+}
+.row {
+  flex-direction: row;
+}
+.horizontal-card {
+  width: 250px;
+  margin-right: 14px;
+  padding: 0 0 16px;
+  overflow: hidden;
+}
+.thumb-wide {
+  width: 250px;
+  height: 150px;
+}
+.timeline-card {
+  padding: 16px;
+  margin-bottom: 12px;
+  flex-direction: row;
+  align-items: center;
+}
+.timeline-copy {
+  flex: 1;
+}
+.thumb {
+  width: 108px;
+  height: 86px;
+  border-radius: 12px;
+  margin-left: 14px;
+}
+.item-type {
+  font-size: 13px;
+  color: var(--ak-brand);
+  font-weight: 700;
+  margin: 12px 14px 4px;
+}
+.timeline-copy .item-type {
+  margin: 0 0 4px;
+}
+.item-title {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 700;
+  color: var(--ak-text);
+  margin: 0 14px;
+}
+.timeline-copy .item-title {
+  margin: 0;
+}
+.item-summary {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--ak-muted);
+  margin-top: 6px;
+  max-lines: 2;
+}
+</style>

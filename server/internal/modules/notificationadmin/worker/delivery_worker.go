@@ -15,6 +15,9 @@ import (
 	"github.com/alibabacloud-go/tea-utils/v2/service"
 	"github.com/alibabacloud-go/tea/tea"
 	notify "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/domain"
+	"github.com/appkernia/appkernia/server/internal/modules/notificationadmin/jobdefs"
+	push "github.com/appkernia/appkernia/server/internal/modules/push/domain"
+	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -38,23 +41,34 @@ type DeliveryWorker struct {
 	configs     map[uuid.UUID]cachedConfig
 	tencent     map[string]*tencentsms.Client
 	aliyun      map[string]*dysms.Client
+	pushSender  push.Sender
+	pushEnabled bool
 }
 
-func NewDeliveryWorker(pool *pgxpool.Pool, secrets SecretOpener, environment string) *DeliveryWorker {
-	return &DeliveryWorker{
+func NewDeliveryWorker(pool *pgxpool.Pool, secrets SecretOpener, environment string, pushEnabled bool, pushSenders ...push.Sender) *DeliveryWorker {
+	worker := &DeliveryWorker{
 		pool: pool, secrets: secrets, environment: strings.ToLower(strings.TrimSpace(environment)),
 		configs: map[uuid.UUID]cachedConfig{}, tencent: map[string]*tencentsms.Client{}, aliyun: map[string]*dysms.Client{},
+		pushEnabled: pushEnabled,
 	}
+	if len(pushSenders) > 0 {
+		worker.pushSender = pushSenders[0]
+	}
+	return worker
 }
 
 func (w *DeliveryWorker) Timeout(*river.Job[notify.DeliveryJobArgs]) time.Duration {
-	return 90 * time.Second
+	return jobdefs.DeliveryTimeout
 }
 
 type storedDelivery struct {
 	ID                uuid.UUID
 	TenantID          uuid.UUID
+	AppID             uuid.UUID
 	TemplateID        uuid.UUID
+	PushDeviceID      uuid.UUID
+	MessageID         uuid.UUID
+	MessageRunID      uuid.UUID
 	Channel           string
 	Provider          string
 	TargetCiphertext  []byte
@@ -66,34 +80,133 @@ type storedDelivery struct {
 }
 
 type deliveryResult struct {
-	messageID string
-	retryable bool
-	risk      string
-	err       error
+	messageID  string
+	retryable  bool
+	risk       string
+	class      string
+	errorCode  string
+	retryAfter time.Duration
+	err        error
+	cancelled  bool
 }
 
 func (w *DeliveryWorker) Work(ctx context.Context, job *river.Job[notify.DeliveryJobArgs]) error {
+	if err := jobqueue.StartAttempt(ctx, w.pool, job.ID, job.Attempt); err != nil {
+		return err
+	}
+	finish := func(completion jobqueue.Completion) {
+		_ = jobqueue.FinishAttempt(ctx, w.pool, job.ID, job.Attempt, completion)
+	}
 	delivery, err := w.claim(ctx, job.Args.DeliveryID)
 	if errors.Is(err, pgx.ErrNoRows) {
+		finish(jobqueue.Completion{Status: "succeeded"})
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("claim notification delivery: %w", err)
+		err = fmt.Errorf("claim notification delivery: %w", err)
+		finish(jobqueue.Completion{Status: retryStatus(job.Attempt, job.MaxAttempts), ErrorSummary: err.Error()})
+		return err
 	}
 	result := w.send(ctx, delivery)
+	if result.cancelled {
+		_, err = w.pool.Exec(ctx, `UPDATE notify.deliveries SET status='cancelled',next_attempt_at=NULL,retryable=false,retry_risk='none',last_error='message cancelled or expired before provider write' WHERE id=$1`, delivery.ID)
+		if err == nil {
+			_ = w.refreshMessageRun(ctx, delivery.MessageRunID)
+			finish(jobqueue.Completion{Status: "cancelled", ResultClass: "cancelled"})
+		} else {
+			finish(jobqueue.Completion{Status: retryStatus(job.Attempt, job.MaxAttempts), ErrorSummary: err.Error()})
+		}
+		return err
+	}
 	if result.err == nil {
-		_, err = w.pool.Exec(ctx, `UPDATE notify.deliveries SET status='sent',sent_at=now(),next_attempt_at=NULL,last_error=NULL,retryable=false,retry_risk='none',provider_message_id=NULLIF($2,'') WHERE id=$1`, delivery.ID, result.messageID)
+		_, err = w.pool.Exec(ctx, `UPDATE notify.deliveries SET status='sent',sent_at=now(),
+			accepted_at=CASE WHEN channel='push' THEN now() ELSE accepted_at END,next_attempt_at=NULL,last_error=NULL,error_code=NULL,
+			retryable=false,retry_risk='none',provider_result=CASE WHEN channel='push' THEN 'accepted' ELSE provider_result END,
+			provider_message_id=NULLIF($2,'') WHERE id=$1`, delivery.ID, result.messageID)
+		if err == nil {
+			_ = w.refreshMessageRun(ctx, delivery.MessageRunID)
+			finish(jobqueue.Completion{Status: "succeeded", ResultClass: result.class, ExternalRequestID: result.messageID})
+		} else {
+			finish(jobqueue.Completion{Status: retryStatus(job.Attempt, job.MaxAttempts), ErrorSummary: err.Error()})
+		}
 		return err
 	}
 	summary := safeError(result.err)
-	_, updateErr := w.pool.Exec(ctx, `UPDATE notify.deliveries SET status='failed',last_error=$2,retryable=$3,retry_risk=$4,next_attempt_at=CASE WHEN $3 THEN now() + interval '30 seconds' ELSE NULL END WHERE id=$1`, delivery.ID, summary, result.retryable, result.risk)
+	nextDelay := result.retryAfter
+	if delivery.Channel == "push" {
+		nextDelay = pushRetryDelay(delivery.ID, delivery.AttemptCount, result.retryAfter)
+	} else if nextDelay <= 0 {
+		nextDelay = 30 * time.Second
+	}
+	shouldRetry := result.retryable && delivery.AttemptCount < delivery.MaxAttempts
+	_, updateErr := w.pool.Exec(ctx, `UPDATE notify.deliveries SET status='failed',last_error=$2,error_code=NULLIF($3,''),provider_result=NULLIF($4,''),
+		retryable=$5,retry_risk=$6,next_attempt_at=CASE WHEN $5 THEN now() + $7::interval ELSE NULL END WHERE id=$1`,
+		delivery.ID, summary, result.errorCode, result.class, shouldRetry, result.risk, nextDelay.String())
 	if updateErr != nil {
-		return fmt.Errorf("record notification delivery failure: %w", updateErr)
+		err = fmt.Errorf("record notification delivery failure: %w", updateErr)
+		finish(jobqueue.Completion{Status: retryStatus(job.Attempt, job.MaxAttempts), ErrorSummary: err.Error()})
+		return err
 	}
-	if result.retryable && delivery.AttemptCount < delivery.MaxAttempts {
-		return fmt.Errorf("retryable notification provider rejection: %s", summary)
+	if delivery.Channel == "push" && result.class == "invalid_token" {
+		_, _ = w.pool.Exec(ctx, `UPDATE notify.push_devices SET status='invalid',invalidated_at=now(),invalid_reason=NULLIF($2,'') WHERE id=$1 AND status='active'`, delivery.PushDeviceID, result.errorCode)
 	}
+	if delivery.Channel == "push" && result.class == "auth_config_error" {
+		_, _ = w.pool.Exec(ctx, `UPDATE notify.push_provider_configs SET status='faulted' WHERE tenant_id=$1 AND app_id=$2 AND provider=$3 AND environment=$4 AND status='active'`, delivery.TenantID, delivery.AppID, delivery.Provider, w.environment)
+	}
+	_ = w.refreshMessageRun(ctx, delivery.MessageRunID)
+	if shouldRetry {
+		nextRetryAt := time.Now().UTC().Add(nextDelay)
+		finish(jobqueue.Completion{Status: "retry_wait", ResultClass: result.class, ErrorCode: result.errorCode, ErrorSummary: summary, NextRetryAt: &nextRetryAt})
+		return river.JobSnooze(nextDelay)
+	}
+	finish(jobqueue.Completion{Status: "failed", ResultClass: result.class, ErrorCode: result.errorCode, ErrorSummary: summary})
 	return nil
+}
+
+func retryStatus(attempt, maxAttempts int) string {
+	if attempt >= maxAttempts {
+		return "failed"
+	}
+	return "retry_wait"
+}
+
+func (w *DeliveryWorker) refreshMessageRun(ctx context.Context, id uuid.UUID) error {
+	if id == uuid.Nil {
+		return nil
+	}
+	_, err := w.pool.Exec(ctx, `UPDATE notify.message_runs run SET
+		delivery_count=(SELECT count(*) FROM notify.deliveries d WHERE d.message_run_id=run.id),
+		accepted_count=(SELECT count(*) FROM notify.deliveries d WHERE d.message_run_id=run.id AND d.provider_result='accepted'),
+		failed_count=(SELECT count(*) FROM notify.deliveries d WHERE d.message_run_id=run.id AND d.status='failed' AND NOT d.retryable),
+		invalid_token_count=(SELECT count(*) FROM notify.deliveries d WHERE d.message_run_id=run.id AND d.provider_result='invalid_token'),
+		opened_count=(SELECT count(*) FROM notify.deliveries d WHERE d.message_run_id=run.id AND d.opened_at IS NOT NULL),
+		status=CASE
+			WHEN EXISTS(SELECT 1 FROM notify.deliveries d WHERE d.message_run_id=run.id AND (d.status IN ('pending','processing') OR (d.status='failed' AND d.retryable))) THEN 'running'
+			WHEN EXISTS(SELECT 1 FROM notify.deliveries d WHERE d.message_run_id=run.id AND d.status='failed') THEN 'completed_with_failures'
+			ELSE 'completed' END,
+		completed_at=CASE
+			WHEN EXISTS(SELECT 1 FROM notify.deliveries d WHERE d.message_run_id=run.id AND (d.status IN ('pending','processing') OR (d.status='failed' AND d.retryable))) THEN NULL
+			ELSE now() END
+		WHERE run.id=$1`, id)
+	return err
+}
+
+func pushRetryDelay(deliveryID uuid.UUID, attempt int32, providerDelay time.Duration) time.Duration {
+	base := 30 * time.Second
+	if attempt > 1 {
+		shift := min(attempt-1, 5)
+		base *= time.Duration(1 << shift)
+	}
+	if base > 15*time.Minute {
+		base = 15 * time.Minute
+	}
+	if providerDelay > base {
+		base = providerDelay
+	}
+	// Stable per-delivery jitter prevents a failed provider from causing a
+	// synchronized retry wave while keeping tests deterministic.
+	jitterPercent := int64(deliveryID[0]^byte(attempt)) % 21
+	return base + time.Duration(int64(base)*jitterPercent/100)
 }
 
 func (w *DeliveryWorker) claim(ctx context.Context, id uuid.UUID) (storedDelivery, error) {
@@ -106,14 +219,27 @@ func (w *DeliveryWorker) claim(ctx context.Context, id uuid.UUID) (storedDeliver
 		WHERE id=$1 AND status='processing'`, id); err != nil {
 		return out, err
 	}
+	if _, err := w.pool.Exec(ctx, `UPDATE notify.deliveries d
+		SET status='cancelled',retryable=false,retry_risk='none',next_attempt_at=NULL,last_error='message cancelled or expired before provider write'
+		WHERE d.id=$1 AND d.channel='push' AND d.message_id IS NOT NULL AND d.status IN ('pending','failed') AND d.retry_risk='none'
+		  AND NOT EXISTS (SELECT 1 FROM notify.messages m WHERE m.tenant_id=d.tenant_id AND m.app_id=d.app_id AND m.id=d.message_id
+		                  AND m.status='published' AND m.deleted_at IS NULL AND (m.expires_at IS NULL OR m.expires_at>now()))`, id); err != nil {
+		return out, err
+	}
 	err := w.pool.QueryRow(ctx, `UPDATE notify.deliveries SET status='processing',attempt_count=attempt_count+1,next_attempt_at=NULL
 		WHERE id=$1 AND status IN ('pending','failed') AND retry_risk='none' AND attempt_count<max_attempts
-		RETURNING id,tenant_id,template_id,channel,COALESCE(provider,''),target_ciphertext,COALESCE(payload_ciphertext,'\\x'::bytea),COALESCE(rendered_subject,''),COALESCE(rendered_body,''),attempt_count,max_attempts`, id).Scan(
-		&out.ID, &out.TenantID, &out.TemplateID, &out.Channel, &out.Provider, &out.TargetCiphertext, &out.PayloadCiphertext, &out.RenderedSubject, &out.RenderedBody, &out.AttemptCount, &out.MaxAttempts)
+		RETURNING id,tenant_id,COALESCE(app_id,'00000000-0000-0000-0000-000000000000'::uuid),
+		COALESCE(template_id,'00000000-0000-0000-0000-000000000000'::uuid),COALESCE(push_device_id,'00000000-0000-0000-0000-000000000000'::uuid),COALESCE(message_id,'00000000-0000-0000-0000-000000000000'::uuid),
+		COALESCE(message_run_id,'00000000-0000-0000-0000-000000000000'::uuid),
+		channel,COALESCE(provider,''),target_ciphertext,COALESCE(payload_ciphertext,'\\x'::bytea),COALESCE(rendered_subject,''),COALESCE(rendered_body,''),attempt_count,max_attempts`, id).Scan(
+		&out.ID, &out.TenantID, &out.AppID, &out.TemplateID, &out.PushDeviceID, &out.MessageID, &out.MessageRunID, &out.Channel, &out.Provider, &out.TargetCiphertext, &out.PayloadCiphertext, &out.RenderedSubject, &out.RenderedBody, &out.AttemptCount, &out.MaxAttempts)
 	return out, err
 }
 
 func (w *DeliveryWorker) send(ctx context.Context, delivery storedDelivery) deliveryResult {
+	if delivery.Channel == "push" {
+		return w.sendPush(ctx, delivery)
+	}
 	target, err := w.secrets.Open(delivery.TargetCiphertext, delivery.TenantID.String())
 	if err != nil {
 		return permanent(errors.New("encrypted delivery target cannot be opened"))
@@ -155,6 +281,47 @@ func (w *DeliveryWorker) send(ctx context.Context, delivery storedDelivery) deli
 	default:
 		return permanent(errors.New("SMS provider is not registered"))
 	}
+}
+
+func (w *DeliveryWorker) sendPush(ctx context.Context, delivery storedDelivery) deliveryResult {
+	if !w.pushEnabled {
+		return permanent(errors.New("push delivery disabled by global kill switch"))
+	}
+	if w.pushSender == nil || delivery.AppID == uuid.Nil || delivery.PushDeviceID == uuid.Nil {
+		return permanent(errors.New("push delivery adapter unavailable"))
+	}
+	if delivery.MessageID != uuid.Nil {
+		var deliverable bool
+		if err := w.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM notify.messages WHERE tenant_id=$1 AND app_id=$2 AND id=$3
+			AND status='published' AND deleted_at IS NULL AND (expires_at IS NULL OR expires_at>now()))`, delivery.TenantID, delivery.AppID, delivery.MessageID).Scan(&deliverable); err != nil {
+			return deliveryResult{retryable: true, risk: "none", class: "transient", errorCode: "PUSH.MESSAGE_STATE_UNAVAILABLE", retryAfter: 15 * time.Second, err: errors.New("push message state is temporarily unavailable")}
+		}
+		if !deliverable {
+			return deliveryResult{cancelled: true}
+		}
+	}
+	token, err := w.secrets.Open(delivery.TargetCiphertext, "push-token:"+delivery.AppID.String()+":"+delivery.Provider)
+	if err != nil {
+		return permanent(errors.New("encrypted push token cannot be opened"))
+	}
+	plaintext, err := w.secrets.Open(delivery.PayloadCiphertext, "push-payload:"+delivery.AppID.String()+":"+delivery.PushDeviceID.String())
+	if err != nil {
+		return permanent(errors.New("encrypted push payload cannot be opened"))
+	}
+	var payload push.SendPayload
+	if json.Unmarshal(plaintext, &payload) != nil || payload.SchemaVersion != 1 || payload.DeliveryID != delivery.ID {
+		return permanent(errors.New("push payload is invalid"))
+	}
+	result := w.pushSender.Send(ctx, delivery.TenantID, delivery.AppID, delivery.Provider, string(token), payload)
+	if result.Class == "accepted" {
+		return deliveryResult{messageID: result.ProviderMessageID, class: result.Class}
+	}
+	risk := "none"
+	if result.Class == "unknown_after_write" {
+		risk = "manual_review"
+	}
+	retryable := result.Class == "throttled" || result.Class == "transient"
+	return deliveryResult{retryable: retryable, risk: risk, class: result.Class, errorCode: result.ErrorCode, retryAfter: result.RetryAfter, err: errors.New(result.SafeSummary)}
 }
 
 var notificationPlaceholder = regexp.MustCompile(`\{\{\s*([a-zA-Z][a-zA-Z0-9_.-]*)\s*\}\}`)

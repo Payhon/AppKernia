@@ -14,8 +14,9 @@ import (
 	iamdomain "github.com/appkernia/appkernia/server/internal/modules/iam/domain"
 	iamrepo "github.com/appkernia/appkernia/server/internal/modules/iam/repository"
 	notify "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/domain"
+	"github.com/appkernia/appkernia/server/internal/modules/notificationadmin/jobdefs"
+	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
@@ -61,10 +62,14 @@ func TestNotificationLifecycleTemplatesAndDeliveryRetryAreTenantScopedAndAudited
 	if err != nil {
 		t.Fatal(err)
 	}
-	var _ *river.Client[pgx.Tx] = riverClient
-	repo := NewPostgres(pool, riverClient)
+	trackedQueue := jobqueue.NewRiverAdapter(pool, riverClient, jobdefs.Registry())
+	repo := NewPostgres(pool, trackedQueue)
 	principal := notify.Principal{TenantID: tenant.ID, AppID: appID, UserID: user.ID, SessionID: session.ID, RequestID: "notify-integration", IPAddress: "127.0.0.1", UserAgent: "integration"}
-	message, err := repo.CreateMessage(ctx, principal, false, notify.MessageInput{MessageType: "system", Title: "Maintenance", Body: "A safe message", BodyFormat: "plain", AudienceScope: "selected", AudienceUserIDs: []uuid.UUID{secondID}})
+	message, err := repo.CreateMessage(ctx, principal, false, notify.MessageInput{
+		MessageType: "system", Title: "Maintenance", Body: "A safe message", BodyFormat: "plain",
+		AudienceScope: "selected", AudienceUserIDs: []uuid.UUID{secondID},
+		PushCategory: "service_security", PushTTLSeconds: 86400,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +82,7 @@ func TestNotificationLifecycleTemplatesAndDeliveryRetryAreTenantScopedAndAudited
 		t.Fatalf("published=%#v recipients=%#v err=%v", published, recipients, err)
 	}
 	stats, err := repo.RecipientStats(ctx, tenant.ID, appID, message.ID, false)
-	if err != nil || stats.Total != 1 || stats.Pending != 1 {
+	if err != nil || stats.Total != 1 || stats.Pending != 0 || stats.Delivered != 1 {
 		t.Fatalf("stats=%#v err=%v", stats, err)
 	}
 	if _, err = repo.GetMessage(ctx, uuid.New(), appID, message.ID, false); !errors.Is(err, notify.ErrNotFound) {

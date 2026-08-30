@@ -44,6 +44,8 @@ import { Route as SystemMonitoringSessionsRouteImport } from './routes/system.mo
 import { Route as SystemNotificationsDeliveriesRouteImport } from './routes/system.notifications.deliveries'
 import { Route as SystemNotificationsMessagesRouteImport } from './routes/system.notifications.messages'
 import { Route as SystemNotificationsNoticesRouteImport } from './routes/system.notifications.notices'
+import { Route as SystemNotificationsOperationsRouteImport } from './routes/system.notifications.operations'
+import { Route as SystemNotificationsPushChannelsRouteImport } from './routes/system.notifications.push-channels'
 import { Route as SystemNotificationsTemplatesRouteImport } from './routes/system.notifications.templates'
 import { Route as SystemSecurityBlockRulesRouteImport } from './routes/system.security.block-rules'
 import { Route as SystemSecurityEventsRouteImport } from './routes/system.security.events'
@@ -52,6 +54,7 @@ import { Route as SystemSecurityOperationLogsRouteImport } from './routes/system
 import { Route as SystemSettingsConfigsRouteImport } from './routes/system.settings.configs'
 import { Route as SystemSettingsDictionariesRouteImport } from './routes/system.settings.dictionaries'
 import { Route as SystemSettingsRegionsRouteImport } from './routes/system.settings.regions'
+import { Route as SystemSettingsShareConfigsRouteImport } from './routes/system.settings.share-configs'
 import { Route as SystemStorageFilesRouteImport } from './routes/system.storage.files'
 import { Route as SystemUsersAccountsRouteImport } from './routes/system.users.accounts'
 import { Route as SystemUsersDepartmentsRouteImport } from './routes/system.users.departments'
@@ -259,6 +262,18 @@ const SystemNotificationsNoticesRoute =
     path: '/system/notifications/notices',
     getParentRoute: () => rootRouteImport,
   } as any)
+const SystemNotificationsOperationsRoute =
+  SystemNotificationsOperationsRouteImport.update({
+    id: '/system/notifications/operations',
+    path: '/system/notifications/operations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SystemNotificationsPushChannelsRoute =
+  SystemNotificationsPushChannelsRouteImport.update({
+    id: '/system/notifications/push-channels',
+    path: '/system/notifications/push-channels',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SystemNotificationsTemplatesRoute =
   SystemNotificationsTemplatesRouteImport.update({
     id: '/system/notifications/templates',
@@ -303,6 +318,12 @@ const SystemSettingsRegionsRoute = SystemSettingsRegionsRouteImport.update({
   path: '/system/settings/regions',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SystemSettingsShareConfigsRoute =
+  SystemSettingsShareConfigsRouteImport.update({
+    id: '/system/settings/share-configs',
+    path: '/system/settings/share-configs',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const SystemStorageFilesRoute = SystemStorageFilesRouteImport.update({
   id: '/system/storage/files',
   path: '/system/storage/files',
@@ -475,6 +496,8 @@ export interface FileRoutesByFullPath {
   '/system/notifications/deliveries': typeof SystemNotificationsDeliveriesRoute
   '/system/notifications/messages': typeof SystemNotificationsMessagesRouteWithChildren
   '/system/notifications/notices': typeof SystemNotificationsNoticesRouteWithChildren
+  '/system/notifications/operations': typeof SystemNotificationsOperationsRoute
+  '/system/notifications/push-channels': typeof SystemNotificationsPushChannelsRoute
   '/system/notifications/templates': typeof SystemNotificationsTemplatesRoute
   '/system/security/block-rules': typeof SystemSecurityBlockRulesRoute
   '/system/security/events': typeof SystemSecurityEventsRouteWithChildren
@@ -483,6 +506,7 @@ export interface FileRoutesByFullPath {
   '/system/settings/configs': typeof SystemSettingsConfigsRoute
   '/system/settings/dictionaries': typeof SystemSettingsDictionariesRoute
   '/system/settings/regions': typeof SystemSettingsRegionsRoute
+  '/system/settings/share-configs': typeof SystemSettingsShareConfigsRoute
   '/system/storage/files': typeof SystemStorageFilesRouteWithChildren
   '/system/users/accounts': typeof SystemUsersAccountsRouteWithChildren
   '/system/users/departments': typeof SystemUsersDepartmentsRoute
@@ -539,6 +563,8 @@ export interface FileRoutesByTo {
   '/system/monitoring/health': typeof SystemMonitoringHealthRoute
   '/system/monitoring/sessions': typeof SystemMonitoringSessionsRoute
   '/system/notifications/deliveries': typeof SystemNotificationsDeliveriesRoute
+  '/system/notifications/operations': typeof SystemNotificationsOperationsRoute
+  '/system/notifications/push-channels': typeof SystemNotificationsPushChannelsRoute
   '/system/notifications/templates': typeof SystemNotificationsTemplatesRoute
   '/system/security/block-rules': typeof SystemSecurityBlockRulesRoute
   '/system/security/login-logs': typeof SystemSecurityLoginLogsRoute
@@ -546,6 +572,7 @@ export interface FileRoutesByTo {
   '/system/settings/configs': typeof SystemSettingsConfigsRoute
   '/system/settings/dictionaries': typeof SystemSettingsDictionariesRoute
   '/system/settings/regions': typeof SystemSettingsRegionsRoute
+  '/system/settings/share-configs': typeof SystemSettingsShareConfigsRoute
   '/system/users/departments': typeof SystemUsersDepartmentsRoute
   '/system/users/positions': typeof SystemUsersPositionsRoute
   '/system/access/roles/$roleId': typeof SystemAccessRolesRoleIdRoute
@@ -605,6 +632,8 @@ export interface FileRoutesById {
   '/system/notifications/deliveries': typeof SystemNotificationsDeliveriesRoute
   '/system/notifications/messages': typeof SystemNotificationsMessagesRouteWithChildren
   '/system/notifications/notices': typeof SystemNotificationsNoticesRouteWithChildren
+  '/system/notifications/operations': typeof SystemNotificationsOperationsRoute
+  '/system/notifications/push-channels': typeof SystemNotificationsPushChannelsRoute
   '/system/notifications/templates': typeof SystemNotificationsTemplatesRoute
   '/system/security/block-rules': typeof SystemSecurityBlockRulesRoute
   '/system/security/events': typeof SystemSecurityEventsRouteWithChildren
@@ -613,6 +642,7 @@ export interface FileRoutesById {
   '/system/settings/configs': typeof SystemSettingsConfigsRoute
   '/system/settings/dictionaries': typeof SystemSettingsDictionariesRoute
   '/system/settings/regions': typeof SystemSettingsRegionsRoute
+  '/system/settings/share-configs': typeof SystemSettingsShareConfigsRoute
   '/system/storage/files': typeof SystemStorageFilesRouteWithChildren
   '/system/users/accounts': typeof SystemUsersAccountsRouteWithChildren
   '/system/users/departments': typeof SystemUsersDepartmentsRoute
@@ -676,6 +706,8 @@ export interface FileRouteTypes {
     | '/system/notifications/deliveries'
     | '/system/notifications/messages'
     | '/system/notifications/notices'
+    | '/system/notifications/operations'
+    | '/system/notifications/push-channels'
     | '/system/notifications/templates'
     | '/system/security/block-rules'
     | '/system/security/events'
@@ -684,6 +716,7 @@ export interface FileRouteTypes {
     | '/system/settings/configs'
     | '/system/settings/dictionaries'
     | '/system/settings/regions'
+    | '/system/settings/share-configs'
     | '/system/storage/files'
     | '/system/users/accounts'
     | '/system/users/departments'
@@ -740,6 +773,8 @@ export interface FileRouteTypes {
     | '/system/monitoring/health'
     | '/system/monitoring/sessions'
     | '/system/notifications/deliveries'
+    | '/system/notifications/operations'
+    | '/system/notifications/push-channels'
     | '/system/notifications/templates'
     | '/system/security/block-rules'
     | '/system/security/login-logs'
@@ -747,6 +782,7 @@ export interface FileRouteTypes {
     | '/system/settings/configs'
     | '/system/settings/dictionaries'
     | '/system/settings/regions'
+    | '/system/settings/share-configs'
     | '/system/users/departments'
     | '/system/users/positions'
     | '/system/access/roles/$roleId'
@@ -805,6 +841,8 @@ export interface FileRouteTypes {
     | '/system/notifications/deliveries'
     | '/system/notifications/messages'
     | '/system/notifications/notices'
+    | '/system/notifications/operations'
+    | '/system/notifications/push-channels'
     | '/system/notifications/templates'
     | '/system/security/block-rules'
     | '/system/security/events'
@@ -813,6 +851,7 @@ export interface FileRouteTypes {
     | '/system/settings/configs'
     | '/system/settings/dictionaries'
     | '/system/settings/regions'
+    | '/system/settings/share-configs'
     | '/system/storage/files'
     | '/system/users/accounts'
     | '/system/users/departments'
@@ -875,6 +914,8 @@ export interface RootRouteChildren {
   SystemNotificationsDeliveriesRoute: typeof SystemNotificationsDeliveriesRoute
   SystemNotificationsMessagesRoute: typeof SystemNotificationsMessagesRouteWithChildren
   SystemNotificationsNoticesRoute: typeof SystemNotificationsNoticesRouteWithChildren
+  SystemNotificationsOperationsRoute: typeof SystemNotificationsOperationsRoute
+  SystemNotificationsPushChannelsRoute: typeof SystemNotificationsPushChannelsRoute
   SystemNotificationsTemplatesRoute: typeof SystemNotificationsTemplatesRoute
   SystemSecurityBlockRulesRoute: typeof SystemSecurityBlockRulesRoute
   SystemSecurityEventsRoute: typeof SystemSecurityEventsRouteWithChildren
@@ -883,6 +924,7 @@ export interface RootRouteChildren {
   SystemSettingsConfigsRoute: typeof SystemSettingsConfigsRoute
   SystemSettingsDictionariesRoute: typeof SystemSettingsDictionariesRoute
   SystemSettingsRegionsRoute: typeof SystemSettingsRegionsRoute
+  SystemSettingsShareConfigsRoute: typeof SystemSettingsShareConfigsRoute
   SystemStorageFilesRoute: typeof SystemStorageFilesRouteWithChildren
   SystemUsersAccountsRoute: typeof SystemUsersAccountsRouteWithChildren
   SystemUsersDepartmentsRoute: typeof SystemUsersDepartmentsRoute
@@ -1137,6 +1179,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemNotificationsNoticesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/system/notifications/operations': {
+      id: '/system/notifications/operations'
+      path: '/system/notifications/operations'
+      fullPath: '/system/notifications/operations'
+      preLoaderRoute: typeof SystemNotificationsOperationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system/notifications/push-channels': {
+      id: '/system/notifications/push-channels'
+      path: '/system/notifications/push-channels'
+      fullPath: '/system/notifications/push-channels'
+      preLoaderRoute: typeof SystemNotificationsPushChannelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/system/notifications/templates': {
       id: '/system/notifications/templates'
       path: '/system/notifications/templates'
@@ -1191,6 +1247,13 @@ declare module '@tanstack/react-router' {
       path: '/system/settings/regions'
       fullPath: '/system/settings/regions'
       preLoaderRoute: typeof SystemSettingsRegionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/system/settings/share-configs': {
+      id: '/system/settings/share-configs'
+      path: '/system/settings/share-configs'
+      fullPath: '/system/settings/share-configs'
+      preLoaderRoute: typeof SystemSettingsShareConfigsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/system/storage/files': {
@@ -1554,6 +1617,8 @@ const rootRouteChildren: RootRouteChildren = {
   SystemNotificationsMessagesRoute:
     SystemNotificationsMessagesRouteWithChildren,
   SystemNotificationsNoticesRoute: SystemNotificationsNoticesRouteWithChildren,
+  SystemNotificationsOperationsRoute: SystemNotificationsOperationsRoute,
+  SystemNotificationsPushChannelsRoute: SystemNotificationsPushChannelsRoute,
   SystemNotificationsTemplatesRoute: SystemNotificationsTemplatesRoute,
   SystemSecurityBlockRulesRoute: SystemSecurityBlockRulesRoute,
   SystemSecurityEventsRoute: SystemSecurityEventsRouteWithChildren,
@@ -1562,6 +1627,7 @@ const rootRouteChildren: RootRouteChildren = {
   SystemSettingsConfigsRoute: SystemSettingsConfigsRoute,
   SystemSettingsDictionariesRoute: SystemSettingsDictionariesRoute,
   SystemSettingsRegionsRoute: SystemSettingsRegionsRoute,
+  SystemSettingsShareConfigsRoute: SystemSettingsShareConfigsRoute,
   SystemStorageFilesRoute: SystemStorageFilesRouteWithChildren,
   SystemUsersAccountsRoute: SystemUsersAccountsRouteWithChildren,
   SystemUsersDepartmentsRoute: SystemUsersDepartmentsRoute,

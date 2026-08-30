@@ -1,0 +1,11 @@
+appId: com.appkernia.mobile
+name: 应核资讯 App 恢复公开首页
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "首页"
+    timeout: 15000
+- assertVisible: "首页"
+- assertNotVisible: "你没有访问权限"
+- takeScreenshot: output/playwright/ak-news-ios-recovered-home

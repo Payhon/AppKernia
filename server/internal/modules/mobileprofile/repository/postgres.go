@@ -161,6 +161,28 @@ func (repository *Postgres) Notifications(ctx context.Context, userID, tenantID,
 	}
 	return domain.NotificationPage{Items: items, NextCursor: next}, nil
 }
+func (repository *Postgres) Notification(ctx context.Context, userID, tenantID, appID, messageID uuid.UUID) (domain.Notification, error) {
+	var item domain.Notification
+	var readAt pgtype.Timestamptz
+	var createdAt pgtype.Timestamptz
+	err := repository.pool.QueryRow(ctx, `SELECT m.id,m.title,m.body,m.body_format,m.message_type,m.created_at,r.read_at
+FROM notify.recipients r JOIN notify.messages m ON m.tenant_id=r.tenant_id AND m.app_id=r.app_id AND m.id=r.message_id
+WHERE r.tenant_id=$1 AND r.app_id=$2 AND r.user_id=$3 AND r.message_id=$4 AND r.delivery_status='delivered'
+  AND m.status='published' AND m.deleted_at IS NULL AND (m.expires_at IS NULL OR m.expires_at>now())`, tenantID, appID, userID, messageID).Scan(
+		&item.ID, &item.Title, &item.Body, &item.BodyFormat, &item.MessageType, &createdAt, &readAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Notification{}, domain.ErrNotificationNotFound
+	}
+	if err != nil {
+		return domain.Notification{}, err
+	}
+	item.CreatedAt = createdAt.Time
+	if readAt.Valid {
+		value := readAt.Time
+		item.ReadAt = &value
+	}
+	return item, nil
+}
 func (repository *Postgres) MarkNotificationRead(ctx context.Context, userID, tenantID, appID, sessionID, messageID uuid.UUID, requestID string) error {
 	tx, err := repository.pool.Begin(ctx)
 	if err != nil {

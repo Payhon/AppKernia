@@ -19,6 +19,8 @@ import { appPublicConfigRuntime } from '../../features/app-config/public-config-
 import { akUpgradeCoordinator } from '../../../uni_modules/ak-upgrade/coordinator.uts'
 import { onboardingStore } from '../../features/onboarding/onboarding-store.uts'
 import { preloadOnboardingSlides } from '../../features/onboarding/onboarding-preloader.uts'
+import { pushRuntime } from '../../features/push/infrastructure/push-runtime.uts'
+import { pushCoordinator } from '../../features/push/application/push-coordinator.uts'
 
 /**
  * Reads only the packaged, approved manifest configuration. No production URL,
@@ -47,12 +49,13 @@ export function initializeAppRuntime(): boolean {
     profileRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     notificationsRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     preferencesRuntime.configure(config, appSessionStore, sessionRuntime, auth)
+    pushRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     versionRuntime.configure(config, appSessionStore)
     const restoreSession = () => sessionRuntime.restore((credential) => {
-      if (credential == null) { uni.reLaunch({ url: '/pages/auth/login/index' }); return }
+      if (credential == null) { openHome(); return }
       authRuntime.restore(credential, () => {
         completeAuthenticatedBootstrap()
-      }, () => sessionRuntime.signOut(() => { uni.reLaunch({url:'/pages/auth/login/index'}); }))
+      }, () => sessionRuntime.signOut(() => { openHome() }))
     })
     const continueAfterPublicConfig = () => {
       const publicConfig = appPublicConfigRuntime.get()
@@ -92,8 +95,8 @@ export function completeAuthenticatedBootstrap(): void {
   authRuntime.refreshContext(() => {
     const preferences = preferencesRuntime.getRepository()
     if (preferences == null) { openHome(); return }
-    preferences.get(value => { akI18n.setLocale(value.locale); themeStore.apply(value.appearance); recordPublishedLegalConsent(); openHome() }, () => { recordPublishedLegalConsent(); openHome() })
-  }, () => authRuntime.signOut(() => { uni.reLaunch({url:'/pages/auth/login/index'}); }))
+    preferences.get(value => { akI18n.setLocale(value.locale); themeStore.apply(value.appearance); pushCoordinator.initialize(value.push); recordPublishedLegalConsent(); openHome() }, () => { pushCoordinator.initialize(false); recordPublishedLegalConsent(); openHome() })
+  }, () => authRuntime.signOut(() => { openHome() }))
 }
 
 function openHome(): void {

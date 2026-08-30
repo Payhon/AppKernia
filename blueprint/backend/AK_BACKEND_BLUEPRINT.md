@@ -587,6 +587,9 @@ WHERE id = $2 AND version = $3;
 | `notify.recipients` | 收件人、已读和归档状态 |
 | `notify.deliveries` | 外部通道发送和重试；目标使用密文 + HMAC Hash + Hint |
 | `notify.push_devices` | 加密保存的推送 Token |
+| `notify.push_provider_configs` | 按 tenant、App、环境和厂商隔离的公开配置及加密凭据；秘密字段仅写入 |
+
+离线推送由 River 发布、扇出、单设备投递三级任务组成。provider 是编译期协议枚举，不使用动态字典：APNs、FCM、华为 Android、荣耀、小米、OPPO、vivo、魅族和 HarmonyOS NEXT。`sent` 仅表示厂商受理；无效 Token、限流、瞬时错误、永久错误、鉴权配置错误和写后未知结果分别持久化，写后未知不自动重放。
 
 ### 10.6 任务和事件
 

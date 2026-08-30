@@ -1,13 +1,14 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 
 const locales = ['zh-CN', 'en-US']
-const namespaces = ['common', 'auth', 'navigation', 'validation', 'errors', 'profile', 'settings', 'system', 'notifications', 'content', 'mobile_releases', 'apps', 'openapi', 'api_reference']
+const namespaces = ['common', 'auth', 'navigation', 'validation', 'errors', 'profile', 'settings', 'system', 'notifications', 'content', 'mobile_releases', 'apps', 'share_configs', 'push_channels', 'openapi', 'api_reference']
 
 function namespaceFor(key) {
   const prefix = key.split('.', 1)[0]
   if (['app', 'common', 'meta'].includes(prefix)) return 'common'
   if (['menu', 'routes', 'shell', 'dashboard'].includes(prefix)) return 'navigation'
   if (['schedules', 'api_clients', 'webhooks', 'block_rules', 'ops'].includes(prefix)) return 'system'
+  if (prefix === 'notification_operations') return 'notifications'
   if (namespaces.includes(prefix)) return prefix
   throw new Error(`unmapped Admin translation key: ${key}`)
 }

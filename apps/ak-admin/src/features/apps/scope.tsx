@@ -5,7 +5,7 @@ import { isUUID, useAppSelectionStore } from "./selection-store";
 
 export interface AppScope { appId: string | null; appName: string | null; disabled: boolean; }
 
-const appScopedRoutes = new Set(["/app/users", "/app/upgrade-center", "/system/mobile/releases"]);
+const appScopedRoutes = new Set(["/app/users", "/app/upgrade-center", "/system/mobile/releases", "/system/notifications/push-channels", "/system/notifications/operations"]);
 
 export function readAppId(search: string): string | null {
   const value = new URLSearchParams(search).get("app_id");

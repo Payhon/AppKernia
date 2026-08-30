@@ -1,0 +1,93 @@
+<template>
+  <view class="section">
+    <text v-if="title.length > 0" class="section-title">{{ title }}</text>
+    <scroll-view v-if="horizontal" class="horizontal" scroll-x>
+      <view class="row">
+        <ak-card v-for="item in items" :key="item.id" class="horizontal-card" @click="$emit('open', item.slug)">
+          <image v-if="item.coverUrl != null" class="thumb-wide" :src="asset(item.coverUrl)" mode="aspectFill" :alt="item.title" />
+          <text class="item-type horizontal-type">{{ typeLabel(item.contentType) }}</text>
+          <text class="item-title horizontal-title">{{ item.title }}</text>
+        </ak-card>
+      </view>
+    </scroll-view>
+    <view v-else>
+      <ak-card v-for="item in items" :key="item.id" class="content-card" @click="$emit('open', item.slug)">
+        <view v-if="item.contentType === 'article'" class="article-card">
+          <view class="article-copy">
+            <text class="item-type">{{ typeLabel(item.contentType) }}</text>
+            <text class="article-title">{{ item.title }}</text>
+            <text class="item-summary" lines="2">{{ item.summary }}</text>
+            <text class="item-meta">{{ item.categoryName }} · {{ item.readingMinutes }} {{ readingUnit }}</text>
+          </view>
+          <image v-if="item.coverUrl != null" class="article-thumb" :src="asset(item.coverUrl)" mode="aspectFill" :alt="item.title" />
+        </view>
+        <view v-else-if="item.contentType === 'gallery'" class="media-card">
+          <image v-if="item.coverUrl != null" class="media-cover gallery-cover" :src="asset(item.coverUrl)" mode="aspectFill" :alt="item.title" />
+          <view v-else class="media-cover media-placeholder" />
+          <view class="media-shade" />
+          <text class="media-type">{{ typeLabel(item.contentType) }}</text>
+          <view class="media-copy"><text class="media-title">{{ item.title }}</text><text class="media-meta">{{ item.categoryName }}</text></view>
+        </view>
+        <view v-else class="media-card video-card">
+          <image v-if="item.coverUrl != null" class="media-cover" :src="asset(item.coverUrl)" mode="aspectFill" :alt="item.title" />
+          <view v-else class="media-cover media-placeholder" />
+          <view class="media-shade" />
+          <text class="media-type">{{ typeLabel(item.contentType) }}</text>
+          <view class="play"><ak-icon name="play" :size="22" /></view>
+          <view class="media-copy"><text class="media-title">{{ item.title }}</text><text class="media-meta">{{ item.categoryName }}</text></view>
+        </view>
+      </ak-card>
+    </view>
+  </view>
+</template>
+
+<script lang="uts">
+import { akI18n } from '../../src/core/i18n/ak-i18n.uts'
+import { ArticleSummary } from '../../src/features/articles/domain/models.uts'
+import { articleRuntime } from '../../src/features/articles/infrastructure/article-runtime.uts'
+
+export default {
+  props: {
+    title: { type: String, default: '' },
+    items: { type: Array<ArticleSummary>, default: () => [] as Array<ArticleSummary> },
+    horizontal: { type: Boolean, default: false },
+  },
+  emits: ['open'],
+  computed: {
+    readingUnit(): string { return akI18n.t('articles.readingMinutesShort', null) },
+  },
+  methods: {
+    typeLabel(value: string): string { return akI18n.t('information.type.' + value, null) },
+    asset(value: string | null): string { return articleRuntime.assetUrl(value) },
+  },
+}
+</script>
+
+<style lang="scss">
+.section { margin-bottom: 28px; }
+.section-title { font-size: 20px; font-weight: 800; color: var(--ak-text); margin-bottom: 14px; }
+.horizontal { width: 100%; }
+.row { flex-direction: row; }
+.horizontal-card { width: 250px; margin-right: 14px; padding: 0 0 16px; overflow: hidden; }
+.thumb-wide { width: 250px; height: 150px; }
+.horizontal-type { margin: 12px 14px 4px; }
+.horizontal-title { margin: 0 14px; }
+.content-card { padding: 0; margin-bottom: 16px; overflow: hidden; border-width: 0; box-shadow: var(--ak-shadow-floating); }
+.article-card { min-height: 144px; padding: 18px; flex-direction: row; align-items: center; }
+.article-copy { flex: 1; }
+.article-thumb { width: 112px; height: 112px; border-radius: 14px; margin-left: 16px; }
+.item-type { font-size: 12px; color: var(--ak-brand); font-weight: 700; }
+.article-title, .item-title { font-size: 18px; line-height: 24px; font-weight: 750; color: var(--ak-text); margin-top: 5px; }
+.item-summary { font-size: 14px; line-height: 20px; color: var(--ak-muted); margin-top: 6px; }
+.item-meta { font-size: 12px; color: var(--ak-text-tertiary); margin-top: 9px; }
+.media-card { height: 222px; position: relative; overflow: hidden; }
+.video-card { height: 206px; }
+.media-cover, .media-placeholder, .media-shade { width: 100%; height: 100%; position: absolute; left: 0; top: 0; }
+.media-placeholder { background: var(--ak-surface-subtle); }
+.media-shade { background: linear-gradient(to bottom, rgba(0,0,0,0.05), rgba(0,0,0,0.72)); }
+.media-type { position: absolute; left: 14px; top: 14px; padding: 6px 10px; border-radius: 14px; color: #FFFFFF; background: rgba(0,0,0,0.48); font-size: 12px; font-weight: 700; }
+.media-copy { position: absolute; left: 16px; right: 16px; bottom: 16px; }
+.media-title { color: #FFFFFF; font-size: 21px; line-height: 27px; font-weight: 750; }
+.media-meta { color: rgba(255,255,255,0.78); font-size: 13px; margin-top: 4px; }
+.play { position: absolute; width: 54px; height: 54px; border-radius: 27px; left: 50%; top: 50%; margin-left: -27px; margin-top: -27px; background: rgba(0,0,0,0.48); align-items: center; justify-content: center; }
+</style>

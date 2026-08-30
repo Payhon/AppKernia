@@ -15,8 +15,12 @@ import { ArticleAssetLoader } from './article-asset-loader.uts'
 export class ArticleRuntime {
   private repository: ArticleRepository | null = null
   private assetLoader: ArticleAssetLoader | null = null
+  private apiBaseUrl: string = ''
+  private appId: string = ''
 
   configure(config: AkConfig, session: SessionStore, auth: MobileAuthService | null = null, refresh: RefreshCoordinator | null = null): void {
+    this.apiBaseUrl = config.apiBaseUrl
+    this.appId = config.appId
     const client = new AkHttpClient(config, session)
     const port = auth != null && refresh != null ? new RefreshingHttpPort(client, refresh) : client
     this.repository = new HttpArticleRepository(port)
@@ -27,6 +31,18 @@ export class ArticleRuntime {
     return this.repository
   }
   getAssetLoader(): ArticleAssetLoader | null { return this.assetLoader }
+  assetUrl(path: string | null): string {
+    if (path == null || path.length == 0) return ''
+    if (path.startsWith('https://') || path.startsWith('http://')) return path
+    const origin = this.apiBaseUrl.endsWith('/api/v1') ? this.apiBaseUrl.substring(0, this.apiBaseUrl.length - 7) : this.apiBaseUrl
+    const publicAssetPrefix = '/api/v1/public/content/assets/'
+    if (path.startsWith(publicAssetPrefix)) {
+      const fileId = path.substring(publicAssetPrefix.length)
+      return origin + '/s/assets/' + encodeURIComponent(this.appId) + '/' + encodeURIComponent(fileId)
+    }
+    return origin + path
+  }
+  shareUrl(slug: string): string { const origin = this.apiBaseUrl.endsWith('/api/v1') ? this.apiBaseUrl.substring(0, this.apiBaseUrl.length - 7) : this.apiBaseUrl; return origin + '/s/' + encodeURIComponent(slug) + '?app_id=' + encodeURIComponent(this.appId) }
 }
 
 export const articleRuntime = new ArticleRuntime()

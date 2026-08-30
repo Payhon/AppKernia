@@ -52,6 +52,8 @@
 
 ## Delivery checks
 
+- Push channel administration additionally follows `pages/push-channels.md` for write-only credentials, provider lifecycle labels, registered-device testing and acceptance terminology.
+
 - The information content workbench additionally follows `pages/content-management.md` for its five-tab taxonomy, editor, moderation and report workflow.
 
 - Verify 1440 px light/dark and 768 px layouts, both locales, loading/error/empty states, keyboard focus, and upload progress/cancel/resume.

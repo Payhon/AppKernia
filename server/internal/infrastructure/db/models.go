@@ -62,6 +62,94 @@ type AppApplicationChannel struct {
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
+type AppApplicationOnboardingDraftAsset struct {
+	TenantID           uuid.UUID          `json:"tenant_id"`
+	AppID              uuid.UUID          `json:"app_id"`
+	SlideID            uuid.UUID          `json:"slide_id"`
+	Locale             string             `json:"locale"`
+	FileID             uuid.UUID          `json:"file_id"`
+	AccessibilityLabel string             `json:"accessibility_label"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+}
+
+type AppApplicationOnboardingDraftSlide struct {
+	ID        uuid.UUID          `json:"id"`
+	TenantID  uuid.UUID          `json:"tenant_id"`
+	AppID     uuid.UUID          `json:"app_id"`
+	Position  int32              `json:"position"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type AppApplicationOnboardingRevision struct {
+	ID               uuid.UUID          `json:"id"`
+	TenantID         uuid.UUID          `json:"tenant_id"`
+	AppID            uuid.UUID          `json:"app_id"`
+	Version          int32              `json:"version"`
+	SourceGeneration int32              `json:"source_generation"`
+	PublishedBy      *uuid.UUID         `json:"published_by"`
+	PublishedAt      pgtype.Timestamptz `json:"published_at"`
+}
+
+type AppApplicationOnboardingRevisionAsset struct {
+	TenantID           uuid.UUID          `json:"tenant_id"`
+	AppID              uuid.UUID          `json:"app_id"`
+	RevisionID         uuid.UUID          `json:"revision_id"`
+	SlideID            uuid.UUID          `json:"slide_id"`
+	Locale             string             `json:"locale"`
+	FileID             uuid.UUID          `json:"file_id"`
+	AccessibilityLabel string             `json:"accessibility_label"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+}
+
+type AppApplicationOnboardingRevisionSlide struct {
+	ID         uuid.UUID          `json:"id"`
+	TenantID   uuid.UUID          `json:"tenant_id"`
+	AppID      uuid.UUID          `json:"app_id"`
+	RevisionID uuid.UUID          `json:"revision_id"`
+	Position   int32              `json:"position"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
+type AppApplicationShareBinding struct {
+	ID            uuid.UUID          `json:"id"`
+	TenantID      uuid.UUID          `json:"tenant_id"`
+	AppID         uuid.UUID          `json:"app_id"`
+	ProviderCode  string             `json:"provider_code"`
+	ShareConfigID uuid.UUID          `json:"share_config_id"`
+	Enabled       bool               `json:"enabled"`
+	Scenes        []string           `json:"scenes"`
+	ShareOrigin   string             `json:"share_origin"`
+	FallbackMode  string             `json:"fallback_mode"`
+	LockVersion   int32              `json:"lock_version"`
+	CreatedBy     *uuid.UUID         `json:"created_by"`
+	UpdatedBy     *uuid.UUID         `json:"updated_by"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type AppApplicationStartupConfig struct {
+	TenantID            uuid.UUID          `json:"tenant_id"`
+	AppID               uuid.UUID          `json:"app_id"`
+	OnboardingEnabled   bool               `json:"onboarding_enabled"`
+	DraftGeneration     int32              `json:"draft_generation"`
+	PublishedVersion    int32              `json:"published_version"`
+	PublishedRevisionID *uuid.UUID         `json:"published_revision_id"`
+	PublishedAt         pgtype.Timestamptz `json:"published_at"`
+	PublishedBy         *uuid.UUID         `json:"published_by"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
+type AppApplicationStartupTranslation struct {
+	TenantID    uuid.UUID          `json:"tenant_id"`
+	AppID       uuid.UUID          `json:"app_id"`
+	Locale      string             `json:"locale"`
+	DisplayName string             `json:"display_name"`
+	Subtitle    string             `json:"subtitle"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
 type AppApplicationStoreListing struct {
 	ID        uuid.UUID          `json:"id"`
 	TenantID  uuid.UUID          `json:"tenant_id"`
@@ -283,22 +371,31 @@ type BillingWithdrawal struct {
 }
 
 type ContentArticle struct {
-	ID             uuid.UUID          `json:"id"`
-	TenantID       uuid.UUID          `json:"tenant_id"`
-	CategoryID     *uuid.UUID         `json:"category_id"`
-	Slug           string             `json:"slug"`
-	Status         string             `json:"status"`
-	Featured       bool               `json:"featured"`
-	SortOrder      int32              `json:"sort_order"`
-	CoverFileID    *uuid.UUID         `json:"cover_file_id"`
-	ReadingMinutes int16              `json:"reading_minutes"`
-	LockVersion    int32              `json:"lock_version"`
-	PublishedAt    pgtype.Timestamptz `json:"published_at"`
-	CreatedBy      *uuid.UUID         `json:"created_by"`
-	UpdatedBy      *uuid.UUID         `json:"updated_by"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	AppID          uuid.UUID          `json:"app_id"`
+	ID                   uuid.UUID          `json:"id"`
+	TenantID             uuid.UUID          `json:"tenant_id"`
+	CategoryID           *uuid.UUID         `json:"category_id"`
+	Slug                 string             `json:"slug"`
+	Status               string             `json:"status"`
+	Featured             bool               `json:"featured"`
+	SortOrder            int32              `json:"sort_order"`
+	CoverFileID          *uuid.UUID         `json:"cover_file_id"`
+	ReadingMinutes       int16              `json:"reading_minutes"`
+	LockVersion          int32              `json:"lock_version"`
+	PublishedAt          pgtype.Timestamptz `json:"published_at"`
+	CreatedBy            *uuid.UUID         `json:"created_by"`
+	UpdatedBy            *uuid.UUID         `json:"updated_by"`
+	CreatedAt            pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt            pgtype.Timestamptz `json:"updated_at"`
+	AppID                uuid.UUID          `json:"app_id"`
+	ContentType          string             `json:"content_type"`
+	TopicID              *uuid.UUID         `json:"topic_id"`
+	AllowComments        bool               `json:"allow_comments"`
+	Pinned               bool               `json:"pinned"`
+	IsLatest             bool               `json:"is_latest"`
+	VideoSourceType      *string            `json:"video_source_type"`
+	VideoFileID          *uuid.UUID         `json:"video_file_id"`
+	VideoExternalUrl     *string            `json:"video_external_url"`
+	VideoDurationSeconds *int32             `json:"video_duration_seconds"`
 }
 
 type ContentArticleBookmark struct {
@@ -309,6 +406,41 @@ type ContentArticleBookmark struct {
 	AppID     uuid.UUID          `json:"app_id"`
 }
 
+type ContentArticleCategory struct {
+	TenantID   uuid.UUID          `json:"tenant_id"`
+	AppID      uuid.UUID          `json:"app_id"`
+	ArticleID  uuid.UUID          `json:"article_id"`
+	CategoryID uuid.UUID          `json:"category_id"`
+	SortOrder  int16              `json:"sort_order"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
+type ContentArticleMediaTranslation struct {
+	MediaID uuid.UUID `json:"media_id"`
+	Locale  string    `json:"locale"`
+	AltText string    `json:"alt_text"`
+}
+
+type ContentArticleMedium struct {
+	ID        uuid.UUID          `json:"id"`
+	TenantID  uuid.UUID          `json:"tenant_id"`
+	AppID     uuid.UUID          `json:"app_id"`
+	ArticleID uuid.UUID          `json:"article_id"`
+	FileID    uuid.UUID          `json:"file_id"`
+	Role      string             `json:"role"`
+	SortOrder int16              `json:"sort_order"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type ContentArticleTag struct {
+	TenantID  uuid.UUID          `json:"tenant_id"`
+	AppID     uuid.UUID          `json:"app_id"`
+	ArticleID uuid.UUID          `json:"article_id"`
+	TagID     uuid.UUID          `json:"tag_id"`
+	SortOrder int16              `json:"sort_order"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
 type ContentArticleTranslation struct {
 	ArticleID  uuid.UUID `json:"article_id"`
 	Locale     string    `json:"locale"`
@@ -316,6 +448,15 @@ type ContentArticleTranslation struct {
 	Summary    string    `json:"summary"`
 	BodyFormat string    `json:"body_format"`
 	Body       []byte    `json:"body"`
+	SearchText string    `json:"search_text"`
+}
+
+type ContentBlockedUser struct {
+	TenantID  uuid.UUID          `json:"tenant_id"`
+	AppID     uuid.UUID          `json:"app_id"`
+	BlockerID uuid.UUID          `json:"blocker_id"`
+	BlockedID uuid.UUID          `json:"blocked_id"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
 type ContentCategory struct {
@@ -328,6 +469,8 @@ type ContentCategory struct {
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 	AppID       uuid.UUID          `json:"app_id"`
+	ParentID    *uuid.UUID         `json:"parent_id"`
+	ImageFileID *uuid.UUID         `json:"image_file_id"`
 }
 
 type ContentCategoryTranslation struct {
@@ -336,6 +479,40 @@ type ContentCategoryTranslation struct {
 	Locale      string    `json:"locale"`
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
+}
+
+type ContentComment struct {
+	ID               uuid.UUID          `json:"id"`
+	TenantID         uuid.UUID          `json:"tenant_id"`
+	AppID            uuid.UUID          `json:"app_id"`
+	ArticleID        uuid.UUID          `json:"article_id"`
+	AuthorID         uuid.UUID          `json:"author_id"`
+	ParentID         *uuid.UUID         `json:"parent_id"`
+	RootID           *uuid.UUID         `json:"root_id"`
+	Status           string             `json:"status"`
+	Body             string             `json:"body"`
+	BodyFingerprint  []byte             `json:"body_fingerprint"`
+	ModerationReason *string            `json:"moderation_reason"`
+	ModeratedBy      *uuid.UUID         `json:"moderated_by"`
+	ModeratedAt      pgtype.Timestamptz `json:"moderated_at"`
+	DeletedAt        pgtype.Timestamptz `json:"deleted_at"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ContentCommentReport struct {
+	ID         uuid.UUID          `json:"id"`
+	TenantID   uuid.UUID          `json:"tenant_id"`
+	AppID      uuid.UUID          `json:"app_id"`
+	CommentID  uuid.UUID          `json:"comment_id"`
+	ReporterID uuid.UUID          `json:"reporter_id"`
+	Reason     string             `json:"reason"`
+	Details    string             `json:"details"`
+	Status     string             `json:"status"`
+	Resolution string             `json:"resolution"`
+	ResolvedBy *uuid.UUID         `json:"resolved_by"`
+	ResolvedAt pgtype.Timestamptz `json:"resolved_at"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
 type ContentPage struct {
@@ -372,6 +549,57 @@ type ContentPageRevisionTranslation struct {
 	Title      string    `json:"title"`
 	BodyFormat string    `json:"body_format"`
 	Body       []byte    `json:"body"`
+}
+
+type ContentSensitiveWord struct {
+	TenantID       uuid.UUID          `json:"tenant_id"`
+	AppID          uuid.UUID          `json:"app_id"`
+	Word           string             `json:"word"`
+	NormalizedWord string             `json:"normalized_word"`
+	Active         bool               `json:"active"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+}
+
+type ContentTag struct {
+	ID             uuid.UUID          `json:"id"`
+	TenantID       uuid.UUID          `json:"tenant_id"`
+	AppID          uuid.UUID          `json:"app_id"`
+	Name           string             `json:"name"`
+	NormalizedName string             `json:"normalized_name"`
+	Status         string             `json:"status"`
+	LockVersion    int32              `json:"lock_version"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ContentTopic struct {
+	ID          uuid.UUID          `json:"id"`
+	TenantID    uuid.UUID          `json:"tenant_id"`
+	AppID       uuid.UUID          `json:"app_id"`
+	Slug        string             `json:"slug"`
+	Status      string             `json:"status"`
+	SortOrder   int32              `json:"sort_order"`
+	CoverFileID *uuid.UUID         `json:"cover_file_id"`
+	LockVersion int32              `json:"lock_version"`
+	CreatedBy   *uuid.UUID         `json:"created_by"`
+	UpdatedBy   *uuid.UUID         `json:"updated_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+type ContentTopicTranslation struct {
+	TopicID     uuid.UUID `json:"topic_id"`
+	Locale      string    `json:"locale"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+}
+
+type ContentVideoExternalHost struct {
+	TenantID  uuid.UUID          `json:"tenant_id"`
+	AppID     uuid.UUID          `json:"app_id"`
+	Hostname  string             `json:"hostname"`
+	Active    bool               `json:"active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
 type IamBlockRule struct {
@@ -769,25 +997,35 @@ type NotifyDelivery struct {
 	Retryable         bool               `json:"retryable"`
 	RetryRisk         string             `json:"retry_risk"`
 	AppID             *uuid.UUID         `json:"app_id"`
+	PushDeviceID      *uuid.UUID         `json:"push_device_id"`
+	AcceptedAt        pgtype.Timestamptz `json:"accepted_at"`
+	OpenedAt          pgtype.Timestamptz `json:"opened_at"`
+	ProviderResult    *string            `json:"provider_result"`
+	ErrorCode         *string            `json:"error_code"`
 }
 
 type NotifyMessage struct {
-	ID           uuid.UUID          `json:"id"`
-	TenantID     uuid.UUID          `json:"tenant_id"`
-	SenderUserID *uuid.UUID         `json:"sender_user_id"`
-	MessageType  string             `json:"message_type"`
-	Title        string             `json:"title"`
-	Body         string             `json:"body"`
-	BodyFormat   string             `json:"body_format"`
-	Status       string             `json:"status"`
-	ScheduledAt  pgtype.Timestamptz `json:"scheduled_at"`
-	PublishedAt  pgtype.Timestamptz `json:"published_at"`
-	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
-	Metadata     []byte             `json:"metadata"`
-	CreatedAt    pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
-	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
-	AppID        uuid.UUID          `json:"app_id"`
+	ID              uuid.UUID          `json:"id"`
+	TenantID        uuid.UUID          `json:"tenant_id"`
+	SenderUserID    *uuid.UUID         `json:"sender_user_id"`
+	MessageType     string             `json:"message_type"`
+	Title           string             `json:"title"`
+	Body            string             `json:"body"`
+	BodyFormat      string             `json:"body_format"`
+	Status          string             `json:"status"`
+	ScheduledAt     pgtype.Timestamptz `json:"scheduled_at"`
+	PublishedAt     pgtype.Timestamptz `json:"published_at"`
+	ExpiresAt       pgtype.Timestamptz `json:"expires_at"`
+	Metadata        []byte             `json:"metadata"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	DeletedAt       pgtype.Timestamptz `json:"deleted_at"`
+	AppID           uuid.UUID          `json:"app_id"`
+	PushCategory    string             `json:"push_category"`
+	PushTtlSeconds  int32              `json:"push_ttl_seconds"`
+	PushCollapseKey *string            `json:"push_collapse_key"`
+	PushRouteKey    *string            `json:"push_route_key"`
+	PushRouteParams []byte             `json:"push_route_params"`
 }
 
 type NotifyPushDevice struct {
@@ -804,19 +1042,54 @@ type NotifyPushDevice struct {
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	AppID           uuid.UUID          `json:"app_id"`
+	TenantID        uuid.UUID          `json:"tenant_id"`
+	Platform        string             `json:"platform"`
+	BuildVariant    string             `json:"build_variant"`
+	Locale          string             `json:"locale"`
+	SdkVersion      string             `json:"sdk_version"`
+	AppVersion      string             `json:"app_version"`
+	RegisteredAt    pgtype.Timestamptz `json:"registered_at"`
+	TokenUpdatedAt  pgtype.Timestamptz `json:"token_updated_at"`
+	InvalidatedAt   pgtype.Timestamptz `json:"invalidated_at"`
+	InvalidReason   *string            `json:"invalid_reason"`
+}
+
+type NotifyPushProviderConfig struct {
+	ID                    uuid.UUID          `json:"id"`
+	TenantID              uuid.UUID          `json:"tenant_id"`
+	AppID                 uuid.UUID          `json:"app_id"`
+	Environment           string             `json:"environment"`
+	Provider              string             `json:"provider"`
+	ConfigSchemaVersion   int32              `json:"config_schema_version"`
+	PublicConfig          []byte             `json:"public_config"`
+	SecretCiphertext      []byte             `json:"secret_ciphertext"`
+	SecretKeyVersion      *int32             `json:"secret_key_version"`
+	SecretFieldNames      []string           `json:"secret_field_names"`
+	CredentialFingerprint *string            `json:"credential_fingerprint"`
+	Status                string             `json:"status"`
+	LastPreflightAt       pgtype.Timestamptz `json:"last_preflight_at"`
+	LastPreflightStatus   *string            `json:"last_preflight_status"`
+	LastPreflightIssues   []byte             `json:"last_preflight_issues"`
+	LockVersion           int32              `json:"lock_version"`
+	CreatedBy             *uuid.UUID         `json:"created_by"`
+	UpdatedBy             *uuid.UUID         `json:"updated_by"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
 }
 
 type NotifyRecipient struct {
-	TenantID       uuid.UUID          `json:"tenant_id"`
-	MessageID      uuid.UUID          `json:"message_id"`
-	UserID         uuid.UUID          `json:"user_id"`
-	DeliveryStatus string             `json:"delivery_status"`
-	DeliveredAt    pgtype.Timestamptz `json:"delivered_at"`
-	ReadAt         pgtype.Timestamptz `json:"read_at"`
-	ArchivedAt     pgtype.Timestamptz `json:"archived_at"`
-	CreatedAt      pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
-	AppID          uuid.UUID          `json:"app_id"`
+	TenantID        uuid.UUID          `json:"tenant_id"`
+	MessageID       uuid.UUID          `json:"message_id"`
+	UserID          uuid.UUID          `json:"user_id"`
+	DeliveryStatus  string             `json:"delivery_status"`
+	DeliveredAt     pgtype.Timestamptz `json:"delivered_at"`
+	ReadAt          pgtype.Timestamptz `json:"read_at"`
+	ArchivedAt      pgtype.Timestamptz `json:"archived_at"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+	AppID           uuid.UUID          `json:"app_id"`
+	PushSkipReason  *string            `json:"push_skip_reason"`
+	PushEvaluatedAt pgtype.Timestamptz `json:"push_evaluated_at"`
 }
 
 type NotifySmsTemplateBinding struct {
@@ -847,6 +1120,10 @@ type NotifyTemplate struct {
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 	BodyFormat      string             `json:"body_format"`
+	PushCategory    string             `json:"push_category"`
+	PushTtlSeconds  int32              `json:"push_ttl_seconds"`
+	PushCollapseKey *string            `json:"push_collapse_key"`
+	PushRouteKey    *string            `json:"push_route_key"`
 }
 
 type OrgPosition struct {
@@ -1200,6 +1477,27 @@ type SysRoleMenu struct {
 	RoleID    uuid.UUID          `json:"role_id"`
 	MenuID    uuid.UUID          `json:"menu_id"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type SysShareConfig struct {
+	ID                  uuid.UUID          `json:"id"`
+	TenantID            uuid.UUID          `json:"tenant_id"`
+	Name                string             `json:"name"`
+	Description         string             `json:"description"`
+	ProviderCode        string             `json:"provider_code"`
+	ExternalAppID       string             `json:"external_app_id"`
+	ConfigSchemaVersion int32              `json:"config_schema_version"`
+	PublicConfig        []byte             `json:"public_config"`
+	SecretCiphertext    []byte             `json:"secret_ciphertext"`
+	SecretKeyVersion    *int32             `json:"secret_key_version"`
+	SecretFieldNames    []string           `json:"secret_field_names"`
+	Status              string             `json:"status"`
+	LockVersion         int32              `json:"lock_version"`
+	CreatedBy           *uuid.UUID         `json:"created_by"`
+	UpdatedBy           *uuid.UUID         `json:"updated_by"`
+	DeletedAt           pgtype.Timestamptz `json:"deleted_at"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
 }
 
 type SysWebhookDelivery struct {
