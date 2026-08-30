@@ -43,3 +43,9 @@ apps/ak-mobile/scripts/build-platform.sh harmony
 ## 组件使用
 
 业务页面只能使用 `components/ak-ui` 暴露的 `ak-*`，不能直接绑定 `up-*`。从[移动组件总览](../mobile-components/)开始。
+
+## Push 与系统权限
+
+移动业务通过 `uni_modules/ak-push` 使用唯一 Push Adapter，并把授权查询、请求与系统设置跳转委托给 `uni_modules/ak-permissions`。页面加载不能主动申请权限；只有用户完成隐私同意并主动开启后，才能初始化 SDK、获取 Token 和注册服务端绑定。
+
+查看[移动端权限中心](./mobile-permissions)、[推送渠道配置](./push-channels)与[通知 API](../api/mobile-notifications)。Android Google/China 互斥变体和生产打包门禁见[移动端打包](./mobile-packaging.md)。

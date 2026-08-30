@@ -32,3 +32,9 @@ Completion depends on installed IDEs, SDKs, signing, and devices. A static check
 See [Mobile custom-base and release packaging](./mobile-packaging.md) for custom playgrounds, signed release artifacts, macOS/Windows variables, and root-level automation commands.
 
 Business pages must use `ak-*` components from `components/ak-ui`, never bind directly to `up-*`. Continue with the [mobile component overview](../mobile-components/).
+
+## Push and system permissions
+
+Mobile business code uses `uni_modules/ak-push` as its single push adapter and delegates authorization queries, requests, and system-settings navigation to `uni_modules/ak-permissions`. A page must not prompt on load. SDK initialization, token acquisition, and server registration start only after privacy consent and an explicit user action.
+
+See the [Mobile permission center](./mobile-permissions), [Push channel configuration](./push-channels), and [Notification API](../api/mobile-notifications). The mutually exclusive Google/China Android variants and production build gates are covered by [Mobile packaging](./mobile-packaging.md).

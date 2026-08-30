@@ -29,4 +29,4 @@ curl -X PATCH 'http://localhost:8080/api/v1/me' \
   -d '{"display_name":"AK Developer","locale":"en-US","time_zone":"America/Los_Angeles"}'
 ```
 
-Notifications use an opaque cursor. The server confirms read state. Articles and categories return published content in the current App/tenant scope. Bookmarks use `PUT` and `DELETE /me/article-bookmarks/{article_id}`.
+Notifications use an opaque cursor. The server confirms read state. See the [Notification and push API](./mobile-notifications) for push category preferences, device registration, notification-open metrics, and trusted-service M2M submission. Articles and categories return published content in the current App/tenant scope. Bookmarks use `PUT` and `DELETE /me/article-bookmarks/{article_id}`.

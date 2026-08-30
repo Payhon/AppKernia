@@ -4,6 +4,7 @@
   "conventions",
   "mobile-auth",
   "mobile-resources",
+  "mobile-notifications",
   "admin-auth",
   "admin-core"
 ]

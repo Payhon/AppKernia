@@ -1,7 +1,35 @@
 # AppKernia Codex 交付报告
 
-日期：2026-08-29
-范围：AppKernia 全仓交付记录；本轮未自动 commit、push 或外部部署。
+日期：2026-08-30
+范围：AppKernia 全仓交付记录；既有功能提交已推送，本轮文档补充尚未 commit、push 或外部部署。
+
+## 2026-08-30 消息推送功能文档站交付
+
+### 已交付
+
+- 新增中英文“消息推送架构”，用 Mermaid 展示 Admin/M2M → NotificationService → PostgreSQL/River → 发布/扇出/单设备 Worker → 九渠道 → Mobile/opened → 运营统计的完整链路，并明确厂商受理、设备展示、opened 和已读的不同语义。
+- 新增中英文“推送渠道配置”，覆盖 APNs、FCM、华为 Android、荣耀、小米、OPPO、vivo、魅族、Harmony 所需字段、write-only 凭据、预检/激活/故障状态、Admin 问号 Tab 申请指引、Google/China 互斥变体、隐私初始化和生产真机门禁。
+- 新增中英文“消息运营工作台”，说明概览、发布运行、队列任务、失败中心四个 URL 可恢复 Tab，任务/运行状态、15 秒条件轮询、90 天/13 个月保留、权限、排障顺序及 `unknown_after_write` 风险确认规则。
+- 新增中英文“移动端权限中心”，记录六种稳定权限状态、用户主动授权顺序、iOS/Android/Harmony 设置行为、`PermissionPort`、未使用能力不展示不申请，以及旧 API 缺少 `share`/`push` 时的 fail-closed 启动兼容。
+- 新增中英文“通知与推送 API”，区分 `ak-api` 与 `ak-mobile` 身份面，记录 API Client App allowlist、权限、M2M 幂等提交/状态/取消、Mobile 偏好/设备/opened 路径和内部 Go `NotificationService` 接入边界。同步 Guide/Concepts/API 导航、入口页、Mobile 开发和资源页交叉链接。
+
+### 实际验证
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `pnpm check:api-docs`（`apps/ak-docs`） | 0 | 147 条手写 API 路径全部存在于 `server/openapi/openapi.yaml`。 |
+| `DOCS_ORIGIN=https://payhon.github.io DOCS_BASE=/AppKernia pnpm check` | 0 | rslint 0 error/0 warning，TypeScript、Prettier、OpenAPI 同步、死链/锚点、Mermaid、80 页 Rspress 静态构建、双语 parity 与 Sitemap 全通过。 |
+| 新增静态产物与 LLM 文档探针 | 0 | 5 组、共 10 个中英文 HTML 页面均存在；`llms-full.txt` 与英文版本均包含新导航、正文和交叉链接。 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 45 routes、4 tabs、58 API delta、11 permission delta、40 components、11 privacy capabilities、26 tasks、3 platforms，0 error/0 warning。 |
+| `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN` / `en-US` 默认与回退契约通过。 |
+| `git diff --check` | 0 | 文档补丁无空白错误。 |
+
+### 验收边界
+
+- 本轮是文档源码与本地静态构建交付，没有提交、推送或触发 GitHub Pages；线上站点尚未包含这些页面。
+- 没有新增页面主题、组件或交互，因此未产生新的 UI Skill 或浏览器截图；静态构建、链接和双语检查不等于 Safari/Firefox/移动浏览器视觉验收。
+- 文档准确记录现有实现，但没有取得九渠道生产账号、签名包或物理设备证据；不把 Mock、编译、模拟器或厂商受理表述为真实到达。
+- 工作树中既有两个未跟踪 Skill 目录和 `output/playwright/ak-news-admin-debug.png` 未修改、未纳入本轮范围。
 
 ## 2026-08-29 消息推送运行时、可观测工作台与统一权限中心
 

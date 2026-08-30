@@ -73,6 +73,7 @@ sequenceDiagram
 5. Relevant writes produce audit or security events, while asynchronous work moves to the Worker.
 
 - [Architecture](./architecture)
+- [Notification and push architecture](./notification-architecture)
 - [Authentication and sessions](./authentication)
 - [Authorization and multi-tenancy](./permissions-tenancy)
 - [Internationalization](./internationalization)

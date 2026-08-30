@@ -11,13 +11,14 @@ AppKernia describes its server contract with OpenAPI 3.1. These pages explain co
 
 [Use the Admin online OpenAPI reference](./online-reference)
 
-| Surface      | Prefix          | Client                         | Identity boundary                          |
-| ------------ | --------------- | ------------------------------ | ------------------------------------------ |
-| App API      | `/api/v1`       | uni-app x and app users        | `ak-mobile` bearer token                   |
-| Admin API    | `/admin-api/v1` | React Admin                    | `ak-admin` access token plus secure cookie |
-| Internal API | `/internal/v1`  | Health and internal monitoring | Deployment network boundary                |
+| Surface             | Prefix          | Client                         | Identity boundary                          |
+| ------------------- | --------------- | ------------------------------ | ------------------------------------------ |
+| App user API        | `/api/v1`       | uni-app x and app users        | `ak-mobile` bearer token                   |
+| Trusted service API | `/api/v1`       | Internal business services     | Short-lived `ak-api` bearer token          |
+| Admin API           | `/admin-api/v1` | React Admin                    | `ak-admin` access token plus secure cookie |
+| Internal API        | `/internal/v1`  | Health and internal monitoring | Deployment network boundary                |
 
-Admin and Mobile tokens are not interchangeable. `X-AppID` selects a public active app; tenant and user scope still come from the verified session.
+Admin, Mobile, and API Client tokens are not interchangeable. On app-user routes, `X-AppID` selects a public active app while tenant and user scope come from the verified session. A trusted service uses the app ID in the route and must also pass the API Client app allowlist.
 
 ## Authentication flow
 
@@ -49,14 +50,15 @@ Admin and Mobile have separate entry points and audiences. A client must not bli
 
 ## API families
 
-| Family          | Typical resources                                  | Start here                             |
-| --------------- | -------------------------------------------------- | -------------------------------------- |
-| Public App      | Config, regions, dictionaries, version, legal      | [Mobile resources](./mobile-resources) |
-| Mobile identity | Sign-in, refresh, sign-out, recovery, registration | [Mobile authentication](./mobile-auth) |
-| Mobile user     | Profile, preferences, notifications, sessions      | [Mobile resources](./mobile-resources) |
-| Admin identity  | Sign-in, refresh, MFA, sessions                    | [Admin authentication](./admin-auth)   |
-| Admin business  | Users, org, access, content, files, jobs           | [Admin core resources](./admin-core)   |
-| Internal        | Live, ready, metrics                               | Deployment network only                |
+| Family          | Typical resources                                  | Start here                                 |
+| --------------- | -------------------------------------------------- | ------------------------------------------ |
+| Public App      | Config, regions, dictionaries, version, legal      | [Mobile resources](./mobile-resources)     |
+| Mobile identity | Sign-in, refresh, sign-out, recovery, registration | [Mobile authentication](./mobile-auth)     |
+| Mobile user     | Profile, preferences, notifications, sessions      | [Mobile resources](./mobile-resources)     |
+| Trusted service | Asynchronous notification submit, status, cancel   | [Notification API](./mobile-notifications) |
+| Admin identity  | Sign-in, refresh, MFA, sessions                    | [Admin authentication](./admin-auth)       |
+| Admin business  | Users, org, access, content, files, jobs           | [Admin core resources](./admin-core)       |
+| Internal        | Live, ready, metrics                               | Deployment network only                    |
 
 ```http
 Accept: application/json
@@ -89,6 +91,6 @@ A successful response has a 2xx status, a stable `code`, matching `Content-Langu
 - Define idempotency keys, retry limits, and audit behavior for writes.
 - Validate SQL isolation with integration data from two tenants.
 
-Start with the [online OpenAPI reference and System menu](./online-reference), [conventions](./conventions), [Mobile authentication](./mobile-auth), [Mobile resources](./mobile-resources), [Admin authentication](./admin-auth), or [Admin core resources](./admin-core).
+Start with the [online OpenAPI reference and System menu](./online-reference), [conventions](./conventions), [Mobile authentication](./mobile-auth), [Mobile resources](./mobile-resources), [Notification and push API](./mobile-notifications), [Admin authentication](./admin-auth), or [Admin core resources](./admin-core).
 
 <div class="ak-doc-callout"><strong>Version status</strong>The current API is 0.1.0 and the project has no stable release yet. Generate clients from OpenAPI and verify the schema hash instead of maintaining hand-written DTOs from this page.</div>

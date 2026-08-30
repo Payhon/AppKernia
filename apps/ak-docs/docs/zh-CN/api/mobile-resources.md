@@ -45,5 +45,6 @@ curl -X PATCH 'http://localhost:8080/api/v1/me' \
 - `GET /me/notifications?cursor=…&limit=20` 使用 opaque cursor。
 - `PATCH /me/notifications/{id}/read` 由服务端确认最终已读状态。
 - `GET /me/notifications/unread-count` 返回未读数量。
+- Push 分类偏好、设备注册、通知打开统计和可信服务 M2M 提交见[通知与推送 API](./mobile-notifications)。
 - `GET /articles`、`GET /articles/{slug}` 与 `GET /article-categories` 只返回当前 App/租户已发布内容。
 - 收藏使用 `PUT` / `DELETE /me/article-bookmarks/{article_id}`。

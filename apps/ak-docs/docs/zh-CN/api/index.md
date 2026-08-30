@@ -15,11 +15,12 @@ AppKernia 使用 OpenAPI 3.1 描述服务端契约。本文档提供最常用路
 
 | 面           | 前缀            | 使用者                    | 身份边界                              |
 | ------------ | --------------- | ------------------------- | ------------------------------------- |
-| App API      | `/api/v1`       | uni-app x 与普通 App 用户 | `ak-mobile` Bearer Token              |
+| App 用户 API | `/api/v1`       | uni-app x 与普通 App 用户 | `ak-mobile` Bearer Token              |
+| 可信服务 API | `/api/v1`       | 内部业务服务              | 短期 `ak-api` Bearer Token            |
 | Admin API    | `/admin-api/v1` | React 管理平台            | `ak-admin` Access Token + 安全 Cookie |
 | Internal API | `/internal/v1`  | 探活与内部监控            | 部署网络边界                          |
 
-Admin 与 Mobile Token 不能互换。`X-AppID` 只选择一个公开、启用的 App；租户和用户范围必须来自已验证 Session，不能由该 Header 越权指定。
+Admin、Mobile 与 API Client Token 不能互换。App 用户接口的 `X-AppID` 只选择一个公开、启用的 App；租户和用户范围必须来自已验证 Session，不能由该 Header 越权指定。可信服务使用路径中的 App ID，并额外受 API Client App allowlist 限制。
 
 ## 认证流程
 
@@ -51,14 +52,15 @@ Admin 和 Mobile 使用不同入口与 Audience。客户端不能把一次失败
 
 ## API 家族
 
-| 家族        | 常见资源                             | 从这里开始                        |
-| ----------- | ------------------------------------ | --------------------------------- |
-| 公共 App    | 配置、地区、字典、版本、法律文档     | [Mobile 资源](./mobile-resources) |
-| Mobile 身份 | 登录、刷新、退出、找回、注册与验证码 | [Mobile 认证](./mobile-auth)      |
-| Mobile 用户 | Profile、偏好、通知、会话与安全事件  | [Mobile 资源](./mobile-resources) |
-| Admin 身份  | 登录、刷新、MFA 与 Session           | [Admin 认证](./admin-auth)        |
-| Admin 业务  | 用户、组织、权限、内容、文件与任务   | [Admin 核心资源](./admin-core)    |
-| Internal    | Live、Ready 与 Metrics               | 仅部署网络内使用                  |
+| 家族        | 常见资源                             | 从这里开始                               |
+| ----------- | ------------------------------------ | ---------------------------------------- |
+| 公共 App    | 配置、地区、字典、版本、法律文档     | [Mobile 资源](./mobile-resources)        |
+| Mobile 身份 | 登录、刷新、退出、找回、注册与验证码 | [Mobile 认证](./mobile-auth)             |
+| Mobile 用户 | Profile、偏好、通知、会话与安全事件  | [Mobile 资源](./mobile-resources)        |
+| 可信服务    | 异步通知提交、状态和取消             | [通知与推送 API](./mobile-notifications) |
+| Admin 身份  | 登录、刷新、MFA 与 Session           | [Admin 认证](./admin-auth)               |
+| Admin 业务  | 用户、组织、权限、内容、文件与任务   | [Admin 核心资源](./admin-core)           |
+| Internal    | Live、Ready 与 Metrics               | 仅部署网络内使用                         |
 
 ## 所有客户端都应发送
 
@@ -109,6 +111,7 @@ curl --fail-with-body \
 - [响应、错误与幂等](./conventions)
 - [Mobile 认证 API](./mobile-auth)
 - [Mobile 用户与公共资源](./mobile-resources)
+- [通知与推送 API](./mobile-notifications)
 - [Admin 认证 API](./admin-auth)
 - [Admin 核心资源 API](./admin-core)
 

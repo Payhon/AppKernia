@@ -1,6 +1,7 @@
 [
   "index",
   "architecture",
+  "notification-architecture",
   "authentication",
   "permissions-tenancy",
   "internationalization",

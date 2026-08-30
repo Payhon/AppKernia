@@ -73,6 +73,7 @@ sequenceDiagram
 5. 必要的写操作同步形成审计或安全事件，异步工作交给 Worker。
 
 - [总体架构](./architecture)：Mobile、Admin、API、Worker 与 PostgreSQL 如何协作。
+- [消息推送架构](./notification-architecture)：消息如何异步发布、按设备扇出、调用多厂商渠道并形成运行统计。
 - [认证与会话](./authentication)：Access Token、Refresh Token 轮换与 Audience 隔离。
 - [权限与多租户](./permissions-tenancy)：菜单、权限、数据范围和 SQL 过滤的职责。
 - [国际化](./internationalization)：`zh-CN` / `en-US` 的统一契约。
