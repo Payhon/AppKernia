@@ -9,7 +9,7 @@
 | Backend             | Admin 蓝图所需 Backend 契约已完成至 `AKADM-310`；通知中心已补齐多厂商推送、通用 JobQueue、运行/尝试历史、统计聚合、M2M NotificationService 与消息运营 API                                           | 各厂商生产凭据、权益、频控和真实外网预检仍需外部账号联调                                                 |
 | Admin               | `AKADM-000`—`AKADM-310` 依赖图内全部 Task 已实现并通过最终硬化门禁；应用级“推送渠道”与四 Tab“消息运营”工作台已接入真实 API、权限、筛选与安全重试                                                       | 消息运营/推送页登录态双语浏览器截图、axe/键盘实测及生产配置联调                                           |
 | Mobile              | 36 个页面及统一 `ak-push`、`ak-permissions` Port 已覆盖 iOS、Android Google/China 双变体和 Harmony；权限检查、系统设置恢复、Token 生命周期、受控点击路由与站内消息回退已接线                              | APNs/FCM/国内六厂商/Harmony 签名包与真机矩阵；Google/China 最终产物依赖隔离需真实 SDK/凭据后验证            |
-| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：80 个静态页面、零门槛向导、消息推送/运营/权限/M2M 接入、核心 API、在线 OpenAPI/System 菜单指南、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；首页包含 9 个内容区、6 张特性卡、9 项技术栈、Admin/Mobile 双 Slider 及放大的真实产品 Hero | 本轮新增消息能力文档已完成本地构建但尚未提交、推送或发布；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
+| Docs / Website      | `apps/ak-docs` 已形成 Rspress 2 双语官网与文档站：80 个静态页面、零门槛向导、消息推送/运营/权限/M2M 接入、核心 API、在线 OpenAPI/System 菜单指南、AK Mobile 组件、搜索、暗色与响应式体验通过门禁；首页包含 9 个内容区、6 张特性卡、9 项技术栈、Admin/Mobile 双 Slider 及放大的真实产品 Hero | 消息能力文档已由 GitHub Pages run `33289498354` 发布；`appkernia.com` 仍待 DNS、域名验证和 Custom Domain 绑定 |
 | Cross-platform i18n | 蓝图契约通过；Admin 与 Mobile 均有 `zh-CN`/`en-US` 语言包、运行时切换与服务端用户偏好接线                                                                                                                              | Mobile 三端长英文/运行时视觉验收                                                                          |
 
 ## 2026-08-30 消息推送功能补充到文档站
@@ -18,7 +18,8 @@
 - Guide、Concepts、API 的双语 `_meta.json`、入口页、Mobile 开发页和 Mobile 资源页已交叉链接；API 首页新增可信服务身份面，明确 `ak-admin`、`ak-mobile`、`ak-api` Audience 不能互换。OpenAPI 仍以 `server/openapi/openapi.yaml` 为唯一事实源，没有复制维护第二份规范。
 - `DOCS_ORIGIN=https://payhon.github.io DOCS_BASE=/AppKernia pnpm check` 退出 0：147 条文档 API 路径与 OpenAPI 一致，rslint 0 error/0 warning，TypeScript、Prettier、死链/锚点、Mermaid 渲染、80 页静态构建、双语 parity 和 Sitemap 全部通过。
 - Mobile Blueprint 校验通过（45 routes、4 tabs、58 API delta、11 permission delta、40 components），统一 i18n 校验通过；10 个新增中英文 HTML 页面与两份 `llms-full.txt` 内容已在构建产物中确认存在，`git diff --check` 退出 0。
-- 本轮只更新文档源码和交付记录，没有修改服务端、Admin、Mobile 运行代码，没有执行外部发布，也没有把 Mock、模拟器或厂商受理表述为生产/真机验收。工作树中既有两个未跟踪 Skill 目录和 `output/playwright/ak-news-admin-debug.png` 均保持不变。
+- 文档内容提交 `4a69cddf8ed4f933c51c785f5d1b447632183686` 已推送 GitHub/Gitee；GitHub Pages run `33289498354` 的 build 和 deploy 均成功。中英文 10 个新页面均返回 HTTP 200，正文标记可读；线上 `/openapi.yaml` SHA-256 与仓库事实源一致，均为 `74dbd5c535cbaa6350ebe462892bf3eabd1010083b7d0284c9c2d8a295df27f6`。Pages 当前 `cname=null`，正式地址仍为 `https://payhon.github.io/AppKernia/`。
+- 本轮没有修改服务端、Admin、Mobile 运行代码，也没有把 Mock、模拟器或厂商受理表述为生产/真机验收。工作树中既有两个未跟踪 Skill 目录和 `output/playwright/ak-news-admin-debug.png` 均保持不变。
 
 ## 2026-08-29 消息推送运行时、可观测与统一权限中心
 

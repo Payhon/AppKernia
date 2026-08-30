@@ -1,7 +1,7 @@
 # AppKernia Codex 交付报告
 
 日期：2026-08-30
-范围：AppKernia 全仓交付记录；既有功能提交已推送，本轮文档补充尚未 commit、push 或外部部署。
+范围：AppKernia 全仓交付记录；本轮消息推送文档已提交、推送并发布到 GitHub Pages。
 
 ## 2026-08-30 消息推送功能文档站交付
 
@@ -23,10 +23,15 @@
 | `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` | 0 | 45 routes、4 tabs、58 API delta、11 permission delta、40 components、11 privacy capabilities、26 tasks、3 platforms，0 error/0 warning。 |
 | `python3 blueprint/scripts/validate_i18n_contract.py` | 0 | `zh-CN` / `en-US` 默认与回退契约通过。 |
 | `git diff --check` | 0 | 文档补丁无空白错误。 |
+| `git fetch origin main` / `git fetch gitee main` | 0 / 0 | 发布前确认 GitHub、Gitee 与本地基线均为 `17cf4472a8d3da22cf039c2bfed73ff08bd11f45`。 |
+| `git push origin main` / `git push gitee main` | 0 / 0 | 文档内容提交 `4a69cddf8ed4f933c51c785f5d1b447632183686` 到达两个远端。 |
+| GitHub Pages run `33289498354` | 0 | build 52 秒、deploy 10 秒，最终 conclusion=`success`。 |
+| 线上 10 个中英文页面 HTTP/正文探针 | 0 | 五组页面均为 HTTP 200；中英文架构标题正文标记可读。 |
+| 线上 OpenAPI SHA-256 探针 | 0 | `/openapi.yaml` 与 `server/openapi/openapi.yaml` 均为 `74dbd5c535cbaa6350ebe462892bf3eabd1010083b7d0284c9c2d8a295df27f6`。 |
 
 ### 验收边界
 
-- 本轮是文档源码与本地静态构建交付，没有提交、推送或触发 GitHub Pages；线上站点尚未包含这些页面。
+- 新页面已发布到 `https://payhon.github.io/AppKernia/`。GitHub Pages 配置仍为 workflow 且 `cname=null`；不能把该地址描述为已经绑定 `appkernia.com`。
 - 没有新增页面主题、组件或交互，因此未产生新的 UI Skill 或浏览器截图；静态构建、链接和双语检查不等于 Safari/Firefox/移动浏览器视觉验收。
 - 文档准确记录现有实现，但没有取得九渠道生产账号、签名包或物理设备证据；不把 Mock、编译、模拟器或厂商受理表述为真实到达。
 - 工作树中既有两个未跟踪 Skill 目录和 `output/playwright/ak-news-admin-debug.png` 未修改、未纳入本轮范围。
