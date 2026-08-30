@@ -1,0 +1,27 @@
+<template>
+  <ak-theme-root>
+    <view class="page">
+      <view class="header">
+        <ak-back-button :label="t('common.back', null)" @click="close" />
+        <text class="title">{{ t('scanner.webview.title', null) }}</text>
+        <view class="header-spacer" />
+      </view>
+      <web-view v-if="ready" class="webview" :src="targetURL" @loading="guardLoading" @load="guardLoad" @error="loadFailed" />
+      <ak-status-view v-else state="loading" :title="t('scanner.webview.loading', null)" :description="t('scanner.webview.loadingDescription', null)" />
+    </view>
+  </ak-theme-root>
+</template>
+<script lang="uts">
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+import { allowedHttpsTarget } from '../../../src/features/scanner/domain/url-policy.uts'
+import { AkWebViewTicket, webViewTicketStore } from '../../../src/features/scanner/application/webview-ticket-store.uts'
+let ticket:AkWebViewTicket|null=null
+export default{data(){return{ready:false,targetURL:'',closed:false}},computed:{t(){return akI18n.t}},onLoad(options:UTSJSONObject){const token=options['token'] as string|null;if(token==null){this.invalid();return};const decoded=decodeURIComponent(token)??'';ticket=webViewTicketStore.consume(decoded);if(ticket==null){this.invalid();return};if(allowedHttpsTarget(ticket!.targetURL,ticket!.allowedHostPatterns)==null){this.block('redirect_blocked');return};this.targetURL=ticket!.targetURL;this.ready=true},onUnload(){ticket=null},methods:{close(){uni.navigateBack()},guardLoading(event:UniWebViewLoadingEvent){this.guard(event.detail.src)},guardLoad(event:UniWebViewLoadEvent){this.guard(event.detail.src)},guard(value:string){const current=ticket;if(this.closed||current==null)return;if(allowedHttpsTarget(value,current.allowedHostPatterns)!=null)return;this.block('redirect_blocked')},loadFailed(_event:UniWebViewErrorEvent){this.block('load_failed')},block(reason:'redirect_blocked'|'load_failed'){const current=ticket;if(this.closed||current==null)return;this.closed=true;webViewTicketStore.reportBlocked(current.result,reason);uni.navigateBack()},invalid(){if(this.closed)return;this.closed=true;uni.showToast({title:akI18n.t('scanner.webview.invalid',null),icon:'none'});uni.navigateBack()}}}
+</script>
+<style lang="scss">
+.page{height:100%;background:var(--ak-page)}
+.header{padding:8px 12px;min-height:56px;flex-direction:row;align-items:center;background:var(--ak-surface);border-bottom:1px solid var(--ak-border)}
+.title{flex:1;text-align:center;color:var(--ak-text);font-size:18px;font-weight:700}
+.header-spacer{width:44px;height:44px}
+.webview{flex:1;width:100%}
+</style>

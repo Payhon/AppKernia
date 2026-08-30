@@ -572,6 +572,8 @@
       "actions": {
         "create": "app.application.create",
         "update": "app.application.update",
+        "readScannerConfig": "app.scanner_config.read",
+        "updateScannerConfig": "app.scanner_config.update",
         "publishOnboarding": "app.onboarding.publish",
         "disable": "app.application.disable",
         "delete": "app.application.delete"
@@ -580,6 +582,8 @@
         "app.application.read": "existing",
         "app.application.create": "existing",
         "app.application.update": "existing",
+        "app.scanner_config.read": "existing",
+        "app.scanner_config.update": "existing",
         "app.onboarding.publish": "existing",
         "app.application.disable": "existing",
         "app.application.delete": "existing"

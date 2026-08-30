@@ -15,7 +15,7 @@
 |---|---|
 | 阶段 | P2 |
 | View Permission | `app.application.read` |
-| Schema | `app.applications`, `app.application_team_members`, `app.application_assets`, `app.application_channels`, `app.application_share_bindings`, `app.application_store_listings`, `storage.files`, `storage.file_usages`, `sys.share_configs` |
+| Schema | `app.applications`, `app.application_team_members`, `app.application_assets`, `app.application_channels`, `app.application_share_bindings`, `app.application_scanner_configs`, `app.application_store_listings`, `storage.files`, `storage.file_usages`, `sys.share_configs` |
 | 后端状态 | `existing` |
 
 **API**
@@ -32,13 +32,17 @@
 - `PUT /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}`
 - `DELETE /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}`
 - `POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight`
+- `GET /admin-api/v1/apps/{app_id}/scanner-config`
+- `PUT /admin-api/v1/apps/{app_id}/scanner-config`
 
 **页面验收**
 
 - 每租户可管理多个应用；manifest AppID 设置后不可修改，App 类型创建后不可修改。
 - 图标、截图、渠道、团队和应用市场均保存关系数据；团队资料不改变 RBAC。
 - 仅可软删除已停用的非默认应用，批量删除至多 100 条且全有或全无。
-- “分享配置”独立 Drawer 只允许选择已启用 Provider；保存前必须预检 HTTPS 落地域名、场景和原生身份，成功后明确提示重新导出并打包。
+- 行操作中的“客户端配置”Modal 以代码注册的 Tab 整合分享配置与扫码配置；Tab 独立保存并在任一 Tab 未保存时拦截关闭。
+- 分享配置只允许选择已启用 Provider；保存前必须预检 HTTPS 落地域名、场景和原生身份，成功后明确提示重新导出并打包。
+- 扫码配置使用独立乐观锁接口；仅接受规范化的 ASCII/Punycode 精确域名或通配符域名，权限分别为 `app.scanner_config.read` 与 `app.scanner_config.update`。
 
 ## `app.upgrade-center` — App升级中心
 

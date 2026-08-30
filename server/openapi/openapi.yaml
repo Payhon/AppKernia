@@ -639,6 +639,22 @@ paths:
       security: [{adminBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: App soft-deleted., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/apps/{app_id}/scanner-config:
+    get:
+      summary: Read one App scanner configuration
+      operationId: getAdminAppScannerConfig
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Scanner configuration with zero lock version when it has not been saved yet., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppScannerConfigResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    put:
+      summary: Create or replace one App scanner configuration with optimistic locking
+      operationId: updateAdminAppScannerConfig
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppScannerConfigRequest"}}}}
+      responses: {"200": {description: Saved scanner configuration., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppScannerConfigResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/apps/{app_id}/push-provider-catalog:
     get:
       summary: List the compile-time push provider catalog and its strongly typed configuration fields
@@ -4229,6 +4245,7 @@ components:
               properties:
                 providers: {type: array, items: {$ref: "#/components/schemas/PublicShareProvider"}}
             push: {$ref: "#/components/schemas/PublicPushRuntime"}
+            scanner: {$ref: "#/components/schemas/PublicScannerConfig"}
         request_id: {type: string}
     PublicShareProvider:
       oneOf:
@@ -4254,6 +4271,19 @@ components:
         environment: {$ref: "#/components/schemas/PushEnvironment"}
         providers: {type: array, uniqueItems: true, items: {$ref: "#/components/schemas/PushProvider"}}
         build_variants: {type: array, uniqueItems: true, items: {$ref: "#/components/schemas/PushBuildVariant"}}
+    PublicScannerConfig:
+      type: object
+      additionalProperties: false
+      required: [webview]
+      properties:
+        webview: {$ref: "#/components/schemas/PublicScannerWebViewConfig"}
+    PublicScannerWebViewConfig:
+      type: object
+      additionalProperties: false
+      required: [enabled, allowed_host_patterns]
+      properties:
+        enabled: {type: boolean}
+        allowed_host_patterns: {type: array, maxItems: 100, uniqueItems: true, items: {type: string, maxLength: 255}}
     AdminPushProviderCatalogItem:
       type: object
       additionalProperties: false
@@ -4570,6 +4600,28 @@ components:
       additionalProperties: false
       required: [lock_version]
       properties: {lock_version: {type: integer, minimum: 1}}
+    AdminAppScannerConfig:
+      type: object
+      additionalProperties: false
+      required: [app_id, webview_enabled, allowed_host_patterns, lock_version, updated_at]
+      properties:
+        app_id: {type: string, format: uuid}
+        webview_enabled: {type: boolean}
+        allowed_host_patterns: {type: array, maxItems: 100, uniqueItems: true, items: {type: string, maxLength: 255}}
+        lock_version: {type: integer, format: int32, minimum: 0}
+        updated_at: {type: string, format: date-time}
+    AdminAppScannerConfigRequest:
+      type: object
+      additionalProperties: false
+      required: [webview_enabled, allowed_host_patterns, lock_version]
+      properties:
+        webview_enabled: {type: boolean}
+        allowed_host_patterns: {type: array, maxItems: 100, uniqueItems: true, items: {type: string, maxLength: 255}}
+        lock_version: {type: integer, format: int32, minimum: 0}
+    AdminAppScannerConfigResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminAppScannerConfig"}, request_id: {type: string}}
     AdminAppResponse:
       type: object
       required: [code, message, data, request_id]

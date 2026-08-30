@@ -1,0 +1,20 @@
+{
+  "id": "ak-scanner",
+  "displayName": "AK Scanner",
+  "version": "1.0.0",
+  "description": "Camera-only QR and barcode scanner port for AppKernia uni-app x builds.",
+  "engines": { "HBuilderX": "^5.06", "uni-app-x": "^5.06" },
+  "dcloudext": {
+    "type": "uts",
+    "declaration": {
+      "ads": "none",
+      "data": "Returns scanned content only to the calling AppKernia module. Content is not uploaded, persisted, or logged.",
+      "permissions": "Camera permission is requested only after the user taps the scan action. Album access is disabled."
+    }
+  },
+  "uni_modules": {
+    "dependencies": ["ak-permissions"],
+    "encrypt": [],
+    "platforms": { "client": { "uni-app-x": { "app": { "android": "√", "ios": "√", "harmony": "√" } } } }
+  }
+}

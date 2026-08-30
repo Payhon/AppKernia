@@ -176,6 +176,16 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 | `sys.webhook_deliveries` | Endpoint | Webhook 交付状态和响应摘要 | endpoint+event 唯一 |
 | `sys.mobile_releases` | 全局 | Android/iOS/Harmony 的受控发布与升级策略 | 每平台/包类型至多一条 active；双语发布说明；乐观锁；`uni_app_x` 禁止 WGT，内部原生包仅允许 Android APK |
 
+### 4.3.1 App
+
+| 表 | 租户范围 | 主要职责 | 关键约束 |
+|---|---|---|---|
+| `app.applications` | 租户 | App 身份、状态和移动运行时范围 | `(tenant_id,id)` 复合唯一；manifest AppID 配置后不可变 |
+| `app.application_share_bindings` | App | 绑定可复用分享平台身份 | Provider 稳定枚举；独立乐观锁 |
+| `app.application_scanner_configs` | App | 扫码可信 WebView 开关与域名白名单 | `(tenant_id,app_id)` 主外键；最多 100 条；启用时非空；独立乐观锁 |
+
+扫码域名只保存服务端规范化后的 ASCII/Punycode DNS 规则。允许精确域名与 `*.` 通配符；通配符不匹配根域，协议、路径、凭据、IP、localhost、非 443 端口和公共后缀通配符均不得入库。
+
 ### 4.4 Storage
 
 | 表 | 租户范围 | 主要职责 | 关键约束 |

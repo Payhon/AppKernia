@@ -192,12 +192,15 @@
       "outputs": [
         "tabBar",
         "home",
-        "AkCan/useCan"
+        "AkCan/useCan",
+        "ak-scanner UTS",
+        "scanner coordinator and guarded WebView"
       ],
       "acceptance": [
         "Tab 路由静态",
         "权限仅改善 UX",
-        "离线/错误/空状态完整"
+        "离线/错误/空状态完整",
+        "二维码条形码事件、处理器优先级、single-flight、相机权限和域名越界三端验证"
       ]
     },
     {

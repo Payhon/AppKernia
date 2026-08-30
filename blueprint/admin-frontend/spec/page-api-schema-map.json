@@ -710,14 +710,15 @@
       "phase": "P2",
       "schema": [
         "app.application_assets",
-    "app.application_channels",
-    "app.application_share_bindings",
-    "app.application_store_listings",
+        "app.application_channels",
+        "app.application_scanner_configs",
+        "app.application_share_bindings",
+        "app.application_store_listings",
         "app.application_team_members",
         "app.applications",
         "storage.file_usages",
-    "storage.files",
-    "sys.share_configs"
+        "storage.files",
+        "sys.share_configs"
       ],
       "endpoints": [
         "GET /admin-api/v1/apps",
@@ -732,6 +733,8 @@
     "PUT /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
     "DELETE /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
     "POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight"
+    ,"GET /admin-api/v1/apps/{app_id}/scanner-config"
+    ,"PUT /admin-api/v1/apps/{app_id}/scanner-config"
       ],
       "backend_status": "existing"
     },

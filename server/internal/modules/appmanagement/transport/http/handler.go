@@ -103,12 +103,60 @@ func (h *Handler) PublicConfig(r *ghttp.Request) {
 		h.fail(r, http.StatusServiceUnavailable, "APP.PUSH_CONFIG.UNAVAILABLE", "errors.common.unknown")
 		return
 	}
+	scanner, err := h.service.PublicScannerConfig(r.Context(), a.ID)
+	if err != nil {
+		h.fail(r, http.StatusServiceUnavailable, "APP.SCANNER_CONFIG.UNAVAILABLE", "errors.common.unknown")
+		return
+	}
 	r.Response.Header().Set("Cache-Control", "public, max-age=60")
 	r.Response.WriteJsonExit(httpx.Success[map[string]any]{Code: "OK", Message: "OK", RequestID: httpx.RequestID(r), Data: map[string]any{
 		"app_id": a.ID.String(), "appid": a.AppID, "app_type": a.AppType, "name": a.Name, "default_locale": a.DefaultLocale,
 		"registration_enabled": a.RegistrationEnabled, "registration_verification_mode": a.RegistrationVerification,
-		"startup": startup, "share": map[string]any{"providers": shareProviders}, "push": pushRuntime,
+		"startup": startup, "share": map[string]any{"providers": shareProviders}, "push": pushRuntime, "scanner": scanner,
 	}})
+}
+
+type adminScannerConfigRequest struct {
+	WebViewEnabled      bool     `json:"webview_enabled"`
+	AllowedHostPatterns []string `json:"allowed_host_patterns"`
+	LockVersion         int32    `json:"lock_version"`
+}
+
+func (h *Handler) AdminScannerConfig(r *ghttp.Request) {
+	appID, err := uuid.Parse(r.GetRouter("app_id").String())
+	if err != nil {
+		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	if r.Method == http.MethodGet {
+		item, getErr := h.service.GetAdminScannerConfig(r.Context(), bearer(r), appID)
+		if h.adminFailure(r, getErr) {
+			return
+		}
+		r.Response.WriteJsonExit(httpx.Success[app.ScannerConfig]{Code: "OK", Message: "OK", Data: item, RequestID: httpx.RequestID(r)})
+		return
+	}
+	var body adminScannerConfigRequest
+	if !decode(r, &body) {
+		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	item, updateErr := h.service.UpdateAdminScannerConfig(r.Context(), bearer(r), appID, app.ScannerConfigInput{
+		WebViewEnabled: body.WebViewEnabled, AllowedHostPatterns: body.AllowedHostPatterns, LockVersion: body.LockVersion,
+	}, httpx.RequestID(r))
+	var validation *app.ScannerConfigValidationError
+	if errors.As(updateErr, &validation) {
+		details := map[string]any{"field": validation.Field}
+		if validation.Index != nil {
+			details["index"] = *validation.Index
+		}
+		h.failDetails(r, http.StatusUnprocessableEntity, "APP.SCANNER_CONFIG.INVALID", "errors.validation.failed", details)
+		return
+	}
+	if h.adminFailure(r, updateErr) {
+		return
+	}
+	r.Response.WriteJsonExit(httpx.Success[app.ScannerConfig]{Code: "OK", Message: "OK", Data: item, RequestID: httpx.RequestID(r)})
 }
 
 func (h *Handler) StartupAsset(r *ghttp.Request) {
@@ -836,7 +884,10 @@ func decode(r *ghttp.Request, out any) bool {
 	return len(raw) > 0 && json.Unmarshal(raw, out) == nil
 }
 func (h *Handler) fail(r *ghttp.Request, status int, code, key string) {
+	h.failDetails(r, status, code, key, nil)
+}
+func (h *Handler) failDetails(r *ghttp.Request, status int, code, key string, details map[string]any) {
 	r.Response.Header().Set("Cache-Control", "no-store")
 	r.Response.WriteHeader(status)
-	r.Response.WriteJsonExit(httpx.Error{Error: httpx.ErrorBody{Code: code, MessageKey: key, Message: h.catalog.Translate(httpx.Locale(r), key, nil)}, RequestID: httpx.RequestID(r)})
+	r.Response.WriteJsonExit(httpx.Error{Error: httpx.ErrorBody{Code: code, MessageKey: key, Message: h.catalog.Translate(httpx.Locale(r), key, nil), Details: details}, RequestID: httpx.RequestID(r)})
 }

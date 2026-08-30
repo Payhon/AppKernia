@@ -54,6 +54,7 @@ export type AppPublicConfigResponse = {
             providers: Array<PublicShareProvider>;
         };
         push: PublicPushRuntime;
+        scanner?: PublicScannerConfig;
     };
     request_id: string;
 };
@@ -72,6 +73,15 @@ export type PublicPushRuntime = {
     environment: PushEnvironment;
     providers: Array<PushProvider>;
     build_variants: Array<PushBuildVariant>;
+};
+
+export type PublicScannerConfig = {
+    webview: PublicScannerWebViewConfig;
+};
+
+export type PublicScannerWebViewConfig = {
+    enabled: boolean;
+    allowed_host_patterns: Array<string>;
 };
 
 export type AdminPushProviderCatalogItem = {
@@ -400,6 +410,27 @@ export type AdminAppStoreListing = {
 
 export type AdminAppStatusRequest = {
     lock_version: number;
+};
+
+export type AdminAppScannerConfig = {
+    app_id: string;
+    webview_enabled: boolean;
+    allowed_host_patterns: Array<string>;
+    lock_version: number;
+    updated_at: string;
+};
+
+export type AdminAppScannerConfigRequest = {
+    webview_enabled: boolean;
+    allowed_host_patterns: Array<string>;
+    lock_version: number;
+};
+
+export type AdminAppScannerConfigResponse = {
+    code: string;
+    message: string;
+    data: AdminAppScannerConfig;
+    request_id: string;
 };
 
 export type AdminAppResponse = {
@@ -6206,6 +6237,76 @@ export type UpdateAdminAppResponses = {
 };
 
 export type UpdateAdminAppResponse = UpdateAdminAppResponses[keyof UpdateAdminAppResponses];
+
+export type GetAdminAppScannerConfigData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/scanner-config';
+};
+
+export type GetAdminAppScannerConfigErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppScannerConfigError = GetAdminAppScannerConfigErrors[keyof GetAdminAppScannerConfigErrors];
+
+export type GetAdminAppScannerConfigResponses = {
+    /**
+     * Scanner configuration with zero lock version when it has not been saved yet.
+     */
+    200: AdminAppScannerConfigResponse;
+};
+
+export type GetAdminAppScannerConfigResponse = GetAdminAppScannerConfigResponses[keyof GetAdminAppScannerConfigResponses];
+
+export type UpdateAdminAppScannerConfigData = {
+    body: AdminAppScannerConfigRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/scanner-config';
+};
+
+export type UpdateAdminAppScannerConfigErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateAdminAppScannerConfigError = UpdateAdminAppScannerConfigErrors[keyof UpdateAdminAppScannerConfigErrors];
+
+export type UpdateAdminAppScannerConfigResponses = {
+    /**
+     * Saved scanner configuration.
+     */
+    200: AdminAppScannerConfigResponse;
+};
+
+export type UpdateAdminAppScannerConfigResponse = UpdateAdminAppScannerConfigResponses[keyof UpdateAdminAppScannerConfigResponses];
 
 export type ListAdminAppPushProviderCatalogData = {
     body?: never;

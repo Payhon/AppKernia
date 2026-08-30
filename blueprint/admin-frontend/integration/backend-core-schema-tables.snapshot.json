@@ -5,6 +5,7 @@
   "tables": [
     "app.application_assets",
     "app.application_channels",
+    "app.application_scanner_configs",
     "app.application_store_listings",
     "app.application_team_members",
     "app.application_share_bindings",

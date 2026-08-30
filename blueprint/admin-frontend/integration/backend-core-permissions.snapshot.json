@@ -1164,6 +1164,24 @@
       "status": "active"
     },
     {
+      "code": "app.scanner_config.read",
+      "name": "查看应用扫码配置",
+      "module_code": "app",
+      "resource_name": "scanner_config",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.scanner_config.update",
+      "name": "更新应用扫码配置",
+      "module_code": "app",
+      "resource_name": "scanner_config",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
       "code": "app.onboarding.publish",
       "name": "发布应用启动介绍",
       "module_code": "app",

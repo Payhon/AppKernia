@@ -9,6 +9,7 @@
   "pages": [
     { "path": "pages/bootstrap/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/home/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/scanner/webview/index", "style": { "navigationStyle": "custom", "disableScroll": true } },
     { "path": "pages/browse/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/browse/search/index", "style": { "navigationStyle": "custom", "backgroundColor": "transparent" } },
     { "path": "pages/topics/index", "style": { "navigationStyle": "custom" } },

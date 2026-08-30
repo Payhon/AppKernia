@@ -1,0 +1,26 @@
+import { AkScanResult } from '@/uni_modules/ak-scanner'
+
+export class AkWebViewTicket {
+  readonly token:string
+  readonly targetURL:string
+  readonly allowedHostPatterns:Array<string>
+  readonly result:AkScanResult
+  readonly createdAt:number
+  constructor(token:string,targetURL:string,allowedHostPatterns:Array<string>,result:AkScanResult,createdAt:number){this.token=token;this.targetURL=targetURL;this.allowedHostPatterns=allowedHostPatterns;this.result=result;this.createdAt=createdAt}
+}
+export class AkBlockedScanResult {
+  readonly result:AkScanResult
+  readonly reason:'redirect_blocked'|'load_failed'
+  constructor(result:AkScanResult,reason:'redirect_blocked'|'load_failed'){this.result=result;this.reason=reason}
+}
+
+class WebViewTicketStore {
+  private tickets:Map<string,AkWebViewTicket>=new Map<string,AkWebViewTicket>()
+  private blocked:AkBlockedScanResult|null=null
+  issue(targetURL:string,allowedHostPatterns:Array<string>,result:AkScanResult):string{this.purge();const token='wv-'+Date.now().toString()+'-'+Math.floor(Math.random()*1000000000).toString();this.tickets.set(token,new AkWebViewTicket(token,targetURL,allowedHostPatterns.slice(),result,Date.now()));return token}
+  consume(token:string):AkWebViewTicket|null{this.purge();const value=this.tickets.get(token);this.tickets.delete(token);return value==null?null:value}
+  reportBlocked(result:AkScanResult,reason:'redirect_blocked'|'load_failed'):void{this.blocked=new AkBlockedScanResult(result,reason)}
+  takeBlocked():AkBlockedScanResult|null{const value=this.blocked;this.blocked=null;return value}
+  private purge():void{const now=Date.now();const expired:Array<string>=[];this.tickets.forEach((value:AkWebViewTicket,key:string)=>{if(now-value.createdAt>60000)expired.push(key)});expired.forEach((key:string)=>{this.tickets.delete(key)})}
+}
+export const webViewTicketStore=new WebViewTicketStore()

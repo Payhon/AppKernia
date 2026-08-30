@@ -11,6 +11,7 @@ const routes: Array<RouteDefinition> = [
   { key: 'legal.terms', path: 'pages/legal/terms/index', access: 'public', permission: null, featureFlag: null },
   { key: 'legal.page', path: 'pages/legal/page/index', access: 'public', permission: null, featureFlag: null },
   { key: 'home', path: 'pages/home/index', access: 'public', permission: null, featureFlag: null },
+  { key: 'scanner.webview', path: 'pages/scanner/webview/index', access: 'public', permission: null, featureFlag: null },
   { key: 'content.browse', path: 'pages/browse/index', access: 'public', permission: null, featureFlag: null },
   { key: 'content.browse-search', path: 'pages/browse/search/index', access: 'public', permission: null, featureFlag: null },
   { key: 'content.topics', path: 'pages/topics/index', access: 'public', permission: null, featureFlag: null },

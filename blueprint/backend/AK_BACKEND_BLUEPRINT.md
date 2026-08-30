@@ -558,6 +558,7 @@ WHERE id = $2 AND version = $3;
 | `sys.modules` | 编译期模块目录与版本 |
 | `sys.menus` | 管理端导航元数据 |
 | `sys.role_menus` | 角色菜单 |
+| `app.application_scanner_configs` | App 扫码 WebView 开关、规范化域名白名单和独立乐观锁；缺失即关闭 |
 | `sys.config_items` | 全局/租户配置，支持加密秘密值 |
 | `sys.dict_types` | 字典类型 |
 | `sys.dict_items` | 字典项 |

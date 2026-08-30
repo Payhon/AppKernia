@@ -1,4 +1,4 @@
 {
-  "frameworks": ["UIKit.framework", "UserNotifications.framework"],
+  "frameworks": ["UIKit.framework", "UserNotifications.framework", "AVFoundation.framework"],
   "deploymentTarget": "13.0"
 }

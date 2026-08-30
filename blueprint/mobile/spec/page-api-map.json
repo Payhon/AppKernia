@@ -87,9 +87,15 @@
     {
       "route_key": "home",
       "endpoints": [
+        "GET /api/v1/public/config",
         "GET /api/v1/public/content/home"
       ],
       "phase": "P0"
+    },
+    {
+      "route_key": "scanner.webview",
+      "endpoints": [],
+      "phase": "P1"
     },
     { "route_key": "content.browse", "endpoints": ["GET /api/v1/public/content/items", "GET /api/v1/public/content/search", "GET /api/v1/public/content/categories"], "phase": "P1" },
     { "route_key": "content.browse-search", "endpoints": ["GET /api/v1/public/content/search", "GET /api/v1/public/content/topics"], "phase": "P1" },

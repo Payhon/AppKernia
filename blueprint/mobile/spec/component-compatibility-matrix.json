@@ -359,6 +359,26 @@
       "harmony": "test_required"
     },
     {
+      "wrapper": "AkBottomSheet",
+      "implementation": "native view + scroll-view + AkIconButton",
+      "status": "approved",
+      "phase": "P1",
+      "notes": "扫码结果、权限恢复和复制动作使用安全区适配的浮动结果弹层",
+      "android": "compiled",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkScanner",
+      "implementation": "uni_modules/ak-scanner UTS + uni.scanCode",
+      "status": "conditional",
+      "phase": "P1",
+      "notes": "固定 onlyFromCamera，二维码与条形码；业务页禁止直接调用平台扫码 API",
+      "android": "compiled",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
       "wrapper": "AkSearchField",
       "implementation": "native input + AkIconButton",
       "status": "approved",

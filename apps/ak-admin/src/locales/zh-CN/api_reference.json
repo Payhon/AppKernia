@@ -383,6 +383,8 @@
   "api_reference.operation.putAdminAppShareBinding": "绑定应用分享配置",
   "api_reference.operation.deleteAdminAppShareBinding": "删除应用分享绑定",
   "api_reference.operation.preflightAdminAppShareBinding": "预检应用分享绑定",
+  "api_reference.operation.getAdminAppScannerConfig": "读取应用扫码配置",
+  "api_reference.operation.updateAdminAppScannerConfig": "使用乐观锁创建或替换应用扫码配置",
   "api_reference.operation.getAdminNotificationOperationsSummary": "查看应用消息运营汇总与队列健康状态",
   "api_reference.operation.getAdminNotificationOperationsTrends": "查看每日消息投递与打开趋势",
   "api_reference.operation.listAdminNotificationRuns": "查询应用消息发布运行列表",

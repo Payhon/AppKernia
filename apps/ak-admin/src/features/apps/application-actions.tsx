@@ -3,8 +3,8 @@ import {
   DeleteOutlined,
   EditOutlined,
   FileTextOutlined,
+  MobileOutlined,
   RocketOutlined,
-  ShareAltOutlined,
   StopOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
@@ -15,7 +15,7 @@ export interface ApplicationActionLabels {
   edit: string;
   upgradeCenter: string;
   content: string;
-  shareConfig: string;
+  clientConfig: string;
   enable: string;
   disable: string;
   delete: string;
@@ -25,7 +25,7 @@ export interface ApplicationActionHandlers {
   edit: () => void;
   upgradeCenter: () => void;
   content: () => void;
-  shareConfig: () => void;
+  clientConfig: () => void;
   changeStatus: () => void;
   delete: () => void;
 }
@@ -46,8 +46,8 @@ export function createApplicationActionItems(
     { key: "upgrade-center", icon: <RocketOutlined />, label: labels.upgradeCenter, onClick: handlers.upgradeCenter },
     { key: "content", icon: <FileTextOutlined />, label: labels.content, onClick: handlers.content },
   );
-  if (permissions.has("app.share_binding.read")) {
-    items.push({ key: "share-config", icon: <ShareAltOutlined />, label: labels.shareConfig, onClick: handlers.shareConfig });
+  if (permissions.has("app.share_binding.read") || permissions.has("app.scanner_config.read")) {
+    items.push({ key: "client-config", icon: <MobileOutlined />, label: labels.clientConfig, onClick: handlers.clientConfig });
   }
   if (permissions.has("app.application.disable")) {
     const disabling = item.status === "active";

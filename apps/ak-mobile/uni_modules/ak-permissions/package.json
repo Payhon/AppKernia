@@ -9,7 +9,7 @@
     "declaration": {
       "ads": "none",
       "data": "Reads operating-system permission state locally and never uploads it.",
-      "permissions": "Notification permission is requested only after an explicit user action."
+      "permissions": "Notification and camera permissions are requested only after an explicit user action."
     }
   },
   "uni_modules": {

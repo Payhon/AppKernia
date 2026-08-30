@@ -1,0 +1,51 @@
+import { startScan, AkScanFailureCode, AkScanResult } from '@/uni_modules/ak-scanner'
+import { PermissionCapability } from '../../../../uni_modules/ak-permissions/utssdk/interface.uts'
+import { permissionCenter } from '../../permissions/application/permission-center.uts'
+import { appPublicConfigRuntime } from '../../app-config/public-config-runtime.uts'
+import { allowedHttpsTarget } from '../domain/url-policy.uts'
+import { webViewTicketStore } from './webview-ticket-store.uts'
+import { AkScanEvent, AkScanHandler, AkScanResolution } from '../domain/models.uts'
+
+export type AkScanEventListener=(event:AkScanEvent)=>void
+export class AkScanSubscription {private disposeCallback:(()=>void)|null;constructor(callback:()=>void){this.disposeCallback=callback}dispose():void{const callback=this.disposeCallback;this.disposeCallback=null;if(callback!=null)callback()}}
+
+class ScannerCoordinator {
+  private handlers:Array<AkScanHandler>=[]
+  private listeners:Array<AkScanEventListener>=[]
+  private busy:boolean=false
+  private webViewEnabled:boolean=false
+  private allowedPatterns:Array<string>=[]
+
+  registerHandler(handler:AkScanHandler):AkScanSubscription{this.handlers.push(handler);this.handlers.sort((left:AkScanHandler,right:AkScanHandler)=>right.priority-left.priority);return new AkScanSubscription(()=>{this.handlers=this.handlers.filter((value:AkScanHandler)=>value.id!=handler.id)})}
+  subscribe(listener:AkScanEventListener):AkScanSubscription{this.listeners.push(listener);return new AkScanSubscription(()=>{this.listeners=this.listeners.filter((value:AkScanEventListener)=>value!=listener)})}
+  isBusy():boolean{return this.busy}
+  openCameraSettings():boolean{return permissionCenter.settings('camera')}
+
+  scan():void{
+    if(this.busy){this.emit(new AkScanEvent('failed',null,null,'busy'));return}
+    this.busy=true
+    permissionCenter.status('camera',(capability:PermissionCapability)=>this.afterPermissionStatus(capability),()=>this.refreshConfigAndStart())
+  }
+
+  private afterPermissionStatus(capability:PermissionCapability):void{
+    if(capability.status=='authorized'||capability.status=='limited'||capability.status=='unavailable'){this.refreshConfigAndStart();return}
+    if(capability.status=='not_determined'&&capability.canRequest){permissionCenter.ask('camera',(updated:PermissionCapability)=>{if(updated.status=='authorized'||updated.status=='limited'||updated.status=='not_determined'||updated.status=='unavailable'){this.refreshConfigAndStart();return};this.finishFailure('permission_denied')},()=>this.finishFailure('permission_denied'));return}
+    this.finishFailure('permission_denied')
+  }
+
+  private refreshConfigAndStart():void{
+    this.webViewEnabled=false;this.allowedPatterns=[]
+    const task=appPublicConfigRuntime.load(()=>{const config=appPublicConfigRuntime.get();if(config!=null){this.webViewEnabled=config.scannerWebViewEnabled;this.allowedPatterns=config.scannerAllowedHostPatterns.slice()};this.startNative()},()=>this.startNative())
+    if(task==null)this.startNative()
+  }
+
+  private startNative():void{startScan((result:AkScanResult)=>{this.emit(new AkScanEvent('captured',result,null,null));this.emit(new AkScanEvent('parsed',result,null,null));const resolution=this.resolve(result);this.busy=false;this.emit(new AkScanEvent('resolved',result,resolution,null))},()=>{this.busy=false;this.emit(new AkScanEvent('cancelled',null,null,null))},(code:AkScanFailureCode)=>this.finishFailure(code))}
+  private resolve(result:AkScanResult):AkScanResolution{
+    for(let index=0;index<this.handlers.length;index++){const handler=this.handlers[index];if(handler.canHandle(result))return handler.handle(result)}
+    if(this.webViewEnabled){const target=allowedHttpsTarget(result.rawValue,this.allowedPatterns);if(target!=null){const token=webViewTicketStore.issue(target.url,this.allowedPatterns,result);uni.navigateTo({url:'/pages/scanner/webview/index?token='+encodeURIComponent(token)});return 'open_webview'}}
+    return 'present_result'
+  }
+  private finishFailure(code:AkScanFailureCode):void{this.busy=false;this.emit(new AkScanEvent('failed',null,null,code))}
+  private emit(event:AkScanEvent):void{this.listeners.slice().forEach((listener:AkScanEventListener)=>listener(event))}
+}
+export const scannerCoordinator=new ScannerCoordinator()

@@ -2679,3 +2679,23 @@
 | `git diff --check`（本轮文件） | 0 | 补丁格式通过。 |
 
 - 运行截图：`output/playwright/ak-ios-public-config-compatibility.png`，SHA-256 `b69aacd487396ce5072d00cebb130faeea424d481bc3757039321c323c894493`。这是本地 iOS 模拟器证据；未执行 iOS 真机、Archive/TestFlight 或真实 APNs/厂商 Push 验收。
+
+### 移动端扫码、客户端配置与双语文档交付
+
+- Backend：`app.application_scanner_configs` 使用应用级租户联合外键和独立 `lock_version`；Admin 读写端点与 Mobile 公开配置使用同一规范化逻辑。更新审计只记录配置摘要，不包含扫码内容。扫码格式、事件和处理结果保持代码/OpenAPI 稳定枚举，不引入业务字典或服务端可执行处理器。
+- Admin：`AppClientConfigurationModal` 以 `ClientConfigTabDefinition` 注册分享/扫码 Tab；分享绑定原能力保持不变，扫码配置支持逐行校验、服务端行错误映射、冲突提示和成功后锁版本刷新。入口对任一客户端配置读取权限可见，编辑能力由各自更新权限控制。
+- Mobile：`ak-scanner` 封装相机权限和 `uni.scanCode`，公开 captured/parsed/resolved/cancelled/failed 事件与可释放处理器订阅；协调器按业务处理器、可信网页、结果兜底顺序执行。WebView 路由只接收一次性 token，每次导航都重新校验且无原生消息桥。
+- Docs：新增中英文 `mobile-components/scanner` 与 `guide/client-configuration`，补齐导航、首页、权限与安全交叉链接；公开 OpenAPI 由 `apps/ak-docs/scripts/sync-openapi.mjs` 从 `server/openapi/openapi.yaml` 同步。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| Backend `make check` | 0 | gofmt、go vet、全仓 Go 单元与契约测试通过。 |
+| PostgreSQL 18 migration `26 -> 25 -> 26` 与 scanner integration | 0 | 表和两项权限随 up/down 正确创建、删除并恢复；扫码配置真实 SQL、乐观锁、租户隔离与审计测试 1/1 通过。临时容器已自动删除。 |
+| Admin `npm run check && npm run check:ui-skill` | 0 | lint、strict typecheck、45 个 Vitest 文件/183 项测试、生产构建、Bundle 预算、OpenAPI 字节一致性、Blueprint 与 UI Skill 检查通过。 |
+| Mobile `bash scripts/check-project.sh` | 0 | Scanner 契约 6/6；Notification 5/5、Bookmark 4/4、Upgrade 6/6、Node 4/4；Blueprint、i18n、Catalog/Client/启动快照 current。 |
+| HBuilderX `build-platform.sh ios` / `android` / `harmony` | 0 / 0 / 0 | 最终 38 页面 iOS UTS、Android class、HarmonyOS UVue/UTS 编译通过；HarmonyOS 为未签名调试 HAP。 |
+| Docs `pnpm check` | 0 | OpenAPI 同步、中英文 84 页面语言配对、147 项 API Reference、lint、typecheck、format 和生产构建通过。 |
+| Admin/Mobile Blueprint 与跨端 i18n | 0 | Admin 48 menus、59 routes、166 permissions、84 tables、222 APIs + 13 deltas、43 page contracts；Mobile 46 routes、43 components、26 tasks；中英文 key/placeholder 一致。 |
+| `git diff --check` | 0 | 当前聚合工作树补丁格式通过。 |
+
+- 静态/编译结果没有被当作真机结果。仍待独立验收：Android、iOS、HarmonyOS 物理设备二维码和一维码，相机首次/拒绝/设置返回，取消分流，白名单 WebView 与越界重定向关闭，复制反馈，读屏、动态字号、高对比度、减少动效，以及 Admin 双语键盘/窄屏浏览器截图。

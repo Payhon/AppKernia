@@ -1,11 +1,13 @@
 import { GetPermissionStatus, ListPermissionCapabilities, OnPermissionStatusChanged, OpenPermissionSettings, PermissionCapability, PermissionFailure, PermissionKey, PermissionStatus, PermissionStatusListener, RequestPermission } from '../interface.uts'
 
 let listener:PermissionStatusListener|null=null
-function value(status:string):PermissionCapability{const normalized:PermissionStatus=status=='authorized'?'authorized':status=='limited'?'limited':status=='denied'?'denied':status=='restricted'?'restricted':status=='not_determined'?'not_determined':'unavailable';return new PermissionCapability('notifications',normalized,normalized=='not_determined',true,'ios',Date.now())}
-function read(ok:(capability:PermissionCapability)=>void):void{AkPermissionsIOSBridge.notificationStatus((status:string)=>ok(value(status)))}
+function normalized(status:string):PermissionStatus{return status=='authorized'?'authorized':status=='limited'?'limited':status=='denied'?'denied':status=='restricted'?'restricted':status=='not_determined'?'not_determined':'unavailable'}
+function notificationValue(status:string):PermissionCapability{const value=normalized(status);return new PermissionCapability('notifications',value,value=='not_determined',true,'ios',Date.now())}
+function cameraValue(status:string):PermissionCapability{const value=normalized(status);return new PermissionCapability('camera',value,value=='not_determined',true,'ios',Date.now())}
+function readNotification(ok:(capability:PermissionCapability)=>void):void{AkPermissionsIOSBridge.notificationStatus((status:string)=>ok(notificationValue(status)))}
 function emit(capability:PermissionCapability):void{const current=listener;if(current!=null)current(capability)}
-export const listCapabilities:ListPermissionCapabilities=function(success,_failure){read(capability=>success([capability]))}
-export const getStatus:GetPermissionStatus=function(key,success,failure){if(key!='notifications'){failure('invalid_capability');return};read(success)}
-export const request:RequestPermission=function(key,success,failure){if(key!='notifications'){failure('invalid_capability');return};AkPermissionsIOSBridge.requestNotifications((status:string)=>{const capability=value(status);emit(capability);success(capability)})}
-export const openSettings:OpenPermissionSettings=function(key){return key=='notifications'&&AkPermissionsIOSBridge.openNotificationSettings()}
+export const listCapabilities:ListPermissionCapabilities=function(success,_failure){readNotification(notification=>success([notification,cameraValue(AkPermissionsIOSBridge.cameraStatus())]))}
+export const getStatus:GetPermissionStatus=function(key,success,failure){if(key=='notifications'){readNotification(success);return};if(key=='camera'){success(cameraValue(AkPermissionsIOSBridge.cameraStatus()));return};failure('invalid_capability')}
+export const request:RequestPermission=function(key,success,failure){if(key=='notifications'){AkPermissionsIOSBridge.requestNotifications((status:string)=>{const capability=notificationValue(status);emit(capability);success(capability)});return};if(key=='camera'){AkPermissionsIOSBridge.requestCamera((status:string)=>{const capability=cameraValue(status);emit(capability);success(capability)});return};failure('invalid_capability')}
+export const openSettings:OpenPermissionSettings=function(key){if(key=='notifications')return AkPermissionsIOSBridge.openNotificationSettings();if(key=='camera')return AkPermissionsIOSBridge.openCameraSettings();return false}
 export const onStatusChanged:OnPermissionStatusChanged=function(value){listener=value}

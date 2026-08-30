@@ -13,7 +13,7 @@ export class PermissionDefinition {
 // a native adapter before it becomes visible; server data cannot add one.
 export const permissionRegistry:Array<PermissionDefinition>=[
   new PermissionDefinition('notifications',true,'permissions.notifications.title','permissions.notifications.description'),
-  new PermissionDefinition('camera',false,'permissions.camera.title','permissions.camera.description'),
+  new PermissionDefinition('camera',true,'permissions.camera.title','permissions.camera.description'),
   new PermissionDefinition('photos',false,'permissions.photos.title','permissions.photos.description'),
   new PermissionDefinition('file_picker',false,'permissions.filePicker.title','permissions.filePicker.description'),
   new PermissionDefinition('microphone',false,'permissions.microphone.title','permissions.microphone.description'),

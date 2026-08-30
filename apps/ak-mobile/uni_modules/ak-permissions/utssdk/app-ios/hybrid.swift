@@ -1,6 +1,7 @@
 import Foundation
 import UIKit
 import UserNotifications
+import AVFoundation
 
 @objc(AkPermissionsIOSBridge)
 public final class AkPermissionsIOSBridge: NSObject {
@@ -27,6 +28,28 @@ public final class AkPermissionsIOSBridge: NSObject {
         if #available(iOS 16.0, *) { raw = UIApplication.openNotificationSettingsURLString }
         else { raw = UIApplication.openSettingsURLString }
         guard let target = URL(string: raw), UIApplication.shared.canOpenURL(target) else { return false }
+        DispatchQueue.main.async { UIApplication.shared.open(target) }
+        return true
+    }
+
+    @objc public static func cameraStatus() -> String {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized: return "authorized"
+        case .denied: return "denied"
+        case .restricted: return "restricted"
+        case .notDetermined: return "not_determined"
+        @unknown default: return "unavailable"
+        }
+    }
+
+    @objc public static func requestCamera(_ callback: @escaping (String) -> Void) {
+        AVCaptureDevice.requestAccess(for: .video) { _ in
+            DispatchQueue.main.async { callback(cameraStatus()) }
+        }
+    }
+
+    @objc public static func openCameraSettings() -> Bool {
+        guard let target = URL(string: UIApplication.openSettingsURLString), UIApplication.shared.canOpenURL(target) else { return false }
         DispatchQueue.main.async { UIApplication.shared.open(target) }
         return true
     }

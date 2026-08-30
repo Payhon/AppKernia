@@ -1,0 +1,34 @@
+export type AkScanFormat = 'qr_code' | 'bar_code' | 'unknown'
+export type AkScanSource = 'camera'
+export type AkScanEventName = 'captured' | 'parsed' | 'resolved' | 'cancelled' | 'failed'
+export type AkScanResolution = 'consumed' | 'open_webview' | 'present_result'
+export type AkScanFailureCode = 'scanner_unavailable' | 'permission_denied' | 'native_failure' | 'busy'
+
+export class AkScanResult {
+  readonly scanId: string
+  readonly rawValue: string
+  readonly format: AkScanFormat
+  readonly source: AkScanSource
+  readonly scannedAt: number
+  constructor(scanId:string,rawValue:string,format:AkScanFormat,source:AkScanSource,scannedAt:number){this.scanId=scanId;this.rawValue=rawValue;this.format=format;this.source=source;this.scannedAt=scannedAt}
+}
+
+export class AkScanEvent {
+  readonly name: AkScanEventName
+  readonly result: AkScanResult | null
+  readonly resolution: AkScanResolution | null
+  readonly error: AkScanFailureCode | null
+  constructor(name:AkScanEventName,result:AkScanResult|null,resolution:AkScanResolution|null,error:AkScanFailureCode|null){this.name=name;this.result=result;this.resolution=resolution;this.error=error}
+}
+
+export type AkScanHandler = {
+  readonly id: string
+  readonly priority: number
+  readonly canHandle: (result: AkScanResult) => boolean
+  readonly handle: (result: AkScanResult) => AkScanResolution
+}
+
+export type AkScanSuccess = (result: AkScanResult) => void
+export type AkScanCancelled = () => void
+export type AkScanFailed = (code: AkScanFailureCode) => void
+export type StartScan = (success: AkScanSuccess, cancelled: AkScanCancelled, failed: AkScanFailed) => void

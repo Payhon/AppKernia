@@ -214,11 +214,27 @@
       "phase": "P0",
       "required_permissions": [],
       "apis": [
+        "GET /api/v1/public/config",
         "GET /api/v1/public/content/home"
       ],
       "feature_flag": null,
       "tab_key": "home",
       "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "scanner.webview",
+      "path": "pages/scanner/webview/index",
+      "file": "apps/ak-mobile/pages/scanner/webview/index.uvue",
+      "access": "public",
+      "kind": "page",
+      "title_key": "scanner.webview.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": [],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {"token": "one-time opaque in-memory token"},
       "ui_skill_required": true
     },
     {

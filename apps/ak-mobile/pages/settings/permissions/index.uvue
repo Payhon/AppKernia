@@ -14,6 +14,12 @@
         <ak-button v-if="primaryAction.length>0" class="primary-action" :disabled="busy" @click="act">{{primaryAction}}</ak-button>
         <ak-button v-if="canOpenSettings&&(authorization==='denied'||authorization==='restricted')" class="secondary-action" variant="secondary" :disabled="busy" @click="openSystemSettings">{{t('permissions.openSystemSettings',null)}}</ak-button>
       </ak-card>
+      <ak-card class="permission-card camera-card">
+        <view class="permission-heading"><view class="icon-well"><ak-icon name="scan"/></view><view class="permission-copy"><text class="permission-title">{{t('permissions.camera.title',null)}}</text><text class="permission-help">{{t('permissions.camera.description',null)}}</text></view></view>
+        <view class="fact"><text class="fact-label">{{t('permissions.osStatus',null)}}</text><text class="fact-value">{{cameraStatusLabel}}</text></view>
+        <text class="privacy-note">{{t('permissions.localOnly',null)}}</text>
+        <ak-button v-if="cameraCanOpenSettings&&(cameraAuthorization==='denied'||cameraAuthorization==='restricted')" class="secondary-action" variant="secondary" :disabled="busy" @click="openCameraSettings">{{t('permissions.openCameraSettings',null)}}</ak-button>
+      </ak-card>
       <ak-cell-list class="preference-list"><view class="preference-row" @click="openPreferences"><view><text class="preference-title">{{t('permissions.notificationPreferences',null)}}</text><text class="preference-help">{{t('permissions.notificationPreferencesDescription',null)}}</text></view><ak-icon name="chevron-right"/></view></ak-cell-list>
       <text v-if="errorText.length>0" class="error" role="alert" aria-live="assertive">{{errorText}}</text>
     </view>
@@ -35,10 +41,11 @@ let currentPreference:NotificationPrefs|null=null
 let currentDevice:PushDevice|null=null
 
 export default{
-  data(){return{state:'loading',busy:false,refreshing:false,authorization:'unavailable',canRequest:false,canOpenSettings:false,pushEnabled:false,provider:'',registered:false,errorText:''}},
+  data(){return{state:'loading',busy:false,refreshing:false,authorization:'unavailable',canRequest:false,canOpenSettings:false,cameraAuthorization:'unavailable',cameraCanOpenSettings:false,pushEnabled:false,provider:'',registered:false,errorText:''}},
   computed:{
     t(){return akI18n.t},
     statusLabel():string{return akI18n.t('permissions.status.'+this.authorization,null)},
+    cameraStatusLabel():string{return akI18n.t('permissions.status.'+this.cameraAuthorization,null)},
     pushLabel():string{return akI18n.t(this.pushEnabled?'permissions.enabled':'permissions.disabled',null)},
     providerLabel():string{return this.provider.length==0?akI18n.t('push.channelUnavailable',null):akI18n.t('push.provider.'+this.provider,null)},
     registrationLabel():string{return akI18n.t(this.registered?'push.registration.active':'push.registration.inactive',null)},
@@ -50,11 +57,13 @@ export default{
   methods:{
     reload(){this.state='loading';this.loadAll(()=>{this.state='content'},()=>{this.state='error'})},
     refresh(){if(this.refreshing)return;this.refreshing=true;this.loadAll(()=>{this.refreshing=false},()=>{this.refreshing=false;this.errorText=akI18n.t('permissions.error.refresh',null)})},
-    loadAll(done:()=>void,fail:()=>void){permissionCenter.status('notifications',(permission:PermissionCapability)=>{this.applyPermission(permission);const repository=preferencesRuntime.getRepository();if(repository==null){fail();return};task=repository.getNotification((value:NotificationPrefs)=>{currentPreference=value;this.pushEnabled=value.push;pushCoordinator.load((push:PushState)=>{currentDevice=push.device;this.applyPush(push);done()},(_code:string)=>{currentDevice=null;this.registered=false;done()})},(_error:AkError)=>fail())},_code=>fail())},
+    loadAll(done:()=>void,fail:()=>void){permissionCenter.status('notifications',(permission:PermissionCapability)=>{this.applyPermission(permission);this.loadCamera(()=>{const repository=preferencesRuntime.getRepository();if(repository==null){fail();return};task=repository.getNotification((value:NotificationPrefs)=>{currentPreference=value;this.pushEnabled=value.push;pushCoordinator.load((push:PushState)=>{currentDevice=push.device;this.applyPush(push);done()},(_code:string)=>{currentDevice=null;this.registered=false;done()})},(_error:AkError)=>fail())})},_code=>fail())},
+    loadCamera(done:()=>void){permissionCenter.status('camera',(permission:PermissionCapability)=>{this.cameraAuthorization=permission.status;this.cameraCanOpenSettings=permission.canOpenSettings;done()},_code=>{this.cameraAuthorization='unavailable';this.cameraCanOpenSettings=false;done()})},
     applyPermission(value:PermissionCapability){this.authorization=value.status;this.canRequest=value.canRequest;this.canOpenSettings=value.canOpenSettings},
     applyPush(value:PushState){const capability=value.capability;if(capability!=null)this.provider=capability.provider==null?'':capability.provider!;this.registered=value.device!=null&&value.device!.status=='active'},
     act(){if(this.busy)return;this.busy=true;this.errorText='';pushCoordinator.enable((push:PushState)=>{currentDevice=push.device;this.applyPush(push);const previous=currentPreference;if(previous==null){this.busy=false;this.errorText=akI18n.t('permissions.error.server',null);return};const desired:NotificationPrefs={email:previous.email,push:true,pushService:true,pushOperations:previous.pushOperations,inApp:previous.inApp};const repository=preferencesRuntime.getRepository();if(repository==null){this.busy=false;return};task=repository.putNotification(desired,(saved:NotificationPrefs)=>{currentPreference=saved;this.pushEnabled=saved.push;this.busy=false;this.refresh()},(_error:AkError)=>{pushCoordinator.disable(currentDevice,()=>{},_code=>{});this.busy=false;this.errorText=akI18n.t('permissions.error.server',null)})},(code:string)=>{this.busy=false;this.errorText=this.errorFor(code);this.refresh()})},
     openSystemSettings(){if(!permissionCenter.settings('notifications'))this.errorText=akI18n.t('permissions.error.settings',null)},
+    openCameraSettings(){if(!permissionCenter.settings('camera'))this.errorText=akI18n.t('scanner.permission.settingsFailed',null)},
     openPreferences(){uni.navigateTo({url:'/pages/settings/notifications/index'})},
     errorFor(code:string):string{if(code=='consent_required')return akI18n.t('push.error.consent',null);if(code=='permission_denied')return akI18n.t('push.error.permission',null);if(code=='configuration_missing')return akI18n.t('push.error.configuration',null);return akI18n.t('push.error.unavailable',null)},
   },
@@ -62,5 +71,5 @@ export default{
 </script>
 
 <style lang="scss">
-.page{height:100%;flex:1;padding:16px 20px 40px;background:var(--ak-page)}.nav,.permission-heading,.fact,.preference-row{flex-direction:row;align-items:center}.nav,.fact,.preference-row{justify-content:space-between}.nav{height:44px}.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}.nav-slot{width:44px;height:44px}.intro{color:var(--ak-muted);font-size:14px;line-height:21px;margin:12px 2px 20px}.permission-card{padding:18px}.permission-heading{margin-bottom:16px}.icon-well{width:44px;height:44px;border-radius:12px;background:var(--ak-brand-soft);color:var(--ak-brand);align-items:center;justify-content:center}.permission-copy{flex:1;margin-left:12px}.permission-title,.preference-title{color:var(--ak-text);font-size:16px;font-weight:600}.permission-help,.preference-help{color:var(--ak-muted);font-size:13px;line-height:19px;margin-top:3px}.fact{min-height:38px;border-top:1px solid var(--ak-border)}.fact-label{color:var(--ak-muted);font-size:14px}.fact-value{color:var(--ak-text);font-size:14px;font-weight:500;text-align:right;max-width:190px}.privacy-note{color:var(--ak-muted);font-size:13px;line-height:19px;margin-top:14px}.primary-action,.secondary-action{margin-top:14px}.preference-list{margin-top:20px}.preference-row{min-height:68px;padding:8px 16px}.error{color:var(--ak-danger);font-size:14px;line-height:21px;margin:12px 4px 0}
+.page{height:100%;flex:1;padding:16px 20px 40px;background:var(--ak-page)}.nav,.permission-heading,.fact,.preference-row{flex-direction:row;align-items:center}.nav,.fact,.preference-row{justify-content:space-between}.nav{height:44px}.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}.nav-slot{width:44px;height:44px}.intro{color:var(--ak-muted);font-size:14px;line-height:21px;margin:12px 2px 20px}.permission-card{padding:18px}.camera-card{margin-top:16px}.permission-heading{margin-bottom:16px}.icon-well{width:44px;height:44px;border-radius:12px;background:var(--ak-brand-soft);color:var(--ak-brand);align-items:center;justify-content:center}.permission-copy{flex:1;margin-left:12px}.permission-title,.preference-title{color:var(--ak-text);font-size:16px;font-weight:600}.permission-help,.preference-help{color:var(--ak-muted);font-size:13px;line-height:19px;margin-top:3px}.fact{min-height:38px;border-top:1px solid var(--ak-border)}.fact-label{color:var(--ak-muted);font-size:14px}.fact-value{color:var(--ak-text);font-size:14px;font-weight:500;text-align:right;max-width:190px}.privacy-note{color:var(--ak-muted);font-size:13px;line-height:19px;margin-top:14px}.primary-action,.secondary-action{margin-top:14px}.preference-list{margin-top:20px}.preference-row{min-height:68px;padding:8px 16px}.error{color:var(--ak-danger);font-size:14px;line-height:21px;margin:12px 4px 0}
 </style>

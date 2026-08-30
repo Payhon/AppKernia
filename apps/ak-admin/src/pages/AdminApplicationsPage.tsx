@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState, type Key } from "react";
 import { useTranslation } from "react-i18next";
 import { AkFilePicker } from "../components/AkFilePicker";
 import { AkLocalizedFormTabs } from "../components/AkLocalizedFormTabs";
-import { AppShareBindingsDrawer } from "../components/AppShareBindingsDrawer";
+import { AppClientConfigurationModal } from "../components/AppClientConfigurationModal";
 import { authSession, useAuthStore } from "../features/auth/store";
 import { createApplicationActionItems } from "../features/apps/application-actions";
 import { useApplicationMutations, useManagedApplications } from "../features/apps/hooks";
@@ -71,7 +71,7 @@ export function AdminApplicationsPage() {
   const [selected, setSelected] = useState<Key[]>([]);
   const [editor, setEditor] = useState<Editor>(null);
   const [picker, setPicker] = useState<PickerTarget>(null);
-  const [shareApp, setShareApp] = useState<ManagedApplication | null>(null);
+  const [clientConfigApp, setClientConfigApp] = useState<ManagedApplication | null>(null);
   const [feedback, setFeedback] = useState<{ key: string; error: boolean } | null>(null);
   const form = useForm<ApplicationInput>({ defaultValues: defaults(tenantId) });
   const applications = useManagedApplications({ q, status, app_type: appType, page, page_size: pageSize });
@@ -121,7 +121,7 @@ export function AdminApplicationsPage() {
       edit: t("common.actions.edit"),
       upgradeCenter: t("apps.application.actions.upgrade_center"),
       content: t("apps.application.actions.content"),
-      shareConfig: t("share_configs.actions.bind"),
+      clientConfig: t("apps.client_config.actions.open"),
       enable: t("apps.actions.enable"),
       disable: t("apps.actions.disable"),
       delete: t("common.actions.delete"),
@@ -129,7 +129,7 @@ export function AdminApplicationsPage() {
       edit: () => { open(item); },
       upgradeCenter: () => { void navigate({ to: "/app/upgrade-center", search: { app_id: item.id, q: "", package_type: "", platform: "", publish_status: "", page: 1, page_size: 20 } }); },
       content: () => { void navigate({ to: "/app/content/articles", search: { app_id: item.id } }); },
-      shareConfig: () => { setShareApp(item); },
+      clientConfig: () => { setClientConfigApp(item); },
       changeStatus: () => { void changeStatus(item); },
       delete: () => { deleteItems([item.id]); },
     }, mutations.status.isPending) }}
@@ -169,7 +169,7 @@ export function AdminApplicationsPage() {
       </div>}
     </Card>
     <ApplicationDrawer canPublish={permissions.has("app.onboarding.publish")} editor={editor} form={form} fullScreen={!screens.md} picker={picker} setPicker={setPicker} publishing={mutations.publishOnboarding.isPending} saving={mutations.create.isPending || mutations.update.isPending} onClose={() => { setEditor(null); }} onPublish={() => { Modal.confirm({ title: t("apps.startup.publish.title"), content: t("apps.startup.publish.description"), okText: t("apps.startup.actions.publish"), onOk: publishOnboarding }); }} onSave={() => void save()} />
-    <AppShareBindingsDrawer appId={shareApp?.id ?? null} appName={shareApp?.name} onClose={() => { setShareApp(null); }} />
+    <AppClientConfigurationModal app={clientConfigApp} permissions={permissions} onClose={() => { setClientConfigApp(null); }} />
   </div>;
 }
 

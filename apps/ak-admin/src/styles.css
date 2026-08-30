@@ -2667,6 +2667,52 @@ a,
   margin-bottom: 12px;
 }
 
+.ak-client-config-modal .ant-modal-body {
+  max-height: min(72vh, 760px);
+  overflow-y: auto;
+}
+
+.ak-client-config-panel,
+.ak-client-config-panel.ant-space,
+.ak-client-config-hosts,
+.ak-client-config-hosts.ant-space {
+  width: 100%;
+}
+
+.ak-client-config-actions,
+.ak-client-config-host-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.ak-client-config-host-row > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 767px) {
+  .ak-client-config-modal {
+    max-width: calc(100vw - 16px);
+    margin: 8px auto;
+    padding-bottom: 0;
+  }
+
+  .ak-client-config-modal .ant-modal-content {
+    min-height: calc(100dvh - 16px);
+  }
+
+  .ak-client-config-modal .ant-modal-body {
+    max-height: calc(100dvh - 92px);
+  }
+
+  .ak-client-config-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+}
+
 .ak-startup-status-row {
   display: flex;
   align-items: center;

@@ -4,7 +4,7 @@
 mobile application. The registry is compile-time only: a capability is shown
 only when it is enabled and implemented by the current build.
 
-The first release enables `notifications`. Camera, photos, file picker,
+The current release enables `notifications` and `camera`. Photos, file picker,
 microphone, location and Bluetooth remain registered but disabled until a real
 feature requires them. Reading status never displays a system prompt and OS
 status is never uploaded to AppKernia.

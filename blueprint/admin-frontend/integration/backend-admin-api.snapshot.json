@@ -751,6 +751,8 @@
     {"method": "PUT", "path": "/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}"},
     {"method": "DELETE", "path": "/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}"},
     {"method": "POST", "path": "/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight"},
+    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/scanner-config"},
+    {"method": "PUT", "path": "/admin-api/v1/apps/{app_id}/scanner-config"},
     {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/push-provider-catalog"},
     {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/push-provider-configs"},
     {"method": "PUT", "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{provider}"},

@@ -7,7 +7,7 @@ const labels: ApplicationActionLabels = {
   edit: "Edit",
   upgradeCenter: "Upgrade center",
   content: "Content",
-  shareConfig: "Share configuration",
+  clientConfig: "Client configuration",
   enable: "Enable",
   disable: "Disable",
   delete: "Delete",
@@ -16,7 +16,7 @@ const handlers: ApplicationActionHandlers = {
   edit: vi.fn(),
   upgradeCenter: vi.fn(),
   content: vi.fn(),
-  shareConfig: vi.fn(),
+  clientConfig: vi.fn(),
   changeStatus: vi.fn(),
   delete: vi.fn(),
 };
@@ -31,12 +31,18 @@ describe("application action menu", () => {
     const permissions = new Set([
       "app.application.update",
       "app.share_binding.read",
+      "app.scanner_config.read",
       "app.application.disable",
       "app.application.delete",
     ]);
     const items = createApplicationActionItems(application, permissions, labels, handlers, false);
-    expect(items.map((item) => item?.key)).toEqual(["edit", "upgrade-center", "content", "share-config", "status", "delete"]);
+    expect(items.map((item) => item?.key)).toEqual(["edit", "upgrade-center", "content", "client-config", "status", "delete"]);
     expect(items.every((item) => item !== null && "icon" in item && item.icon !== undefined)).toBe(true);
+  });
+
+  it("shows client configuration when only scanner configuration is readable", () => {
+    const items = createApplicationActionItems(application, new Set(["app.scanner_config.read"]), labels, handlers, false);
+    expect(items.map((item) => item?.key)).toEqual(["upgrade-center", "content", "client-config"]);
   });
 
   it("hides unauthorized and ineligible actions without hiding safe destinations", () => {

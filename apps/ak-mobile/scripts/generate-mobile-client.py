@@ -65,6 +65,8 @@ def render_public_config() -> str:
         "fallback_mode:",
         "PublicPushRuntime:",
         "build_variants:",
+        "PublicScannerConfig:",
+        "allowed_host_patterns:",
     )
     missing = [value for value in required if value not in source]
     if missing:
@@ -98,6 +100,7 @@ export type PublicConfigWire = {
   readonly startup: PublicStartupWire
   readonly share: PublicShareRuntimeWire
   readonly push: PublicPushRuntimeWire
+  readonly scanner: PublicScannerRuntimeWire | null
 }
 
 export type PublicShareProviderWire = {
@@ -116,6 +119,15 @@ export type PublicPushRuntimeWire = {
   readonly environment: 'development' | 'test' | 'staging' | 'production'
   readonly providers: Array<'apns' | 'fcm' | 'huawei_android' | 'honor' | 'xiaomi' | 'oppo' | 'vivo' | 'meizu' | 'harmony'>
   readonly build_variants: Array<'ios' | 'android_google' | 'android_china' | 'harmony'>
+}
+
+export type PublicScannerWebViewWire = {
+  readonly enabled: boolean
+  readonly allowed_host_patterns: Array<string>
+}
+
+export type PublicScannerRuntimeWire = {
+  readonly webview: PublicScannerWebViewWire | null
 }
 """
 

@@ -617,6 +617,14 @@
       "reason": "应用编辑表单维护各发布渠道元数据和二维码引用。"
     },
     {
+      "table": "app.application_scanner_configs",
+      "coverage": "page_backed",
+      "pages": [
+        "app.applications"
+      ],
+      "reason": "应用管理的客户端配置弹窗维护扫码 WebView 开关、域名白名单和独立乐观锁。"
+    },
+    {
       "table": "app.application_store_listings",
       "coverage": "page_backed",
       "pages": [

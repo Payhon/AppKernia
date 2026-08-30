@@ -1,5 +1,6 @@
 import { authSession } from "../auth/store";
 import { toApiError } from "../../shared/api/error";
+import type { AdminAppScannerConfig, AdminAppScannerConfigRequest } from "../../generated/api/types.gen";
 import type { AppListFilters, AppMember, AppMemberCreateInput, AppMemberUpdateInput, ApplicationInput, ManagedApplication, ManagedPage, AppPageInput, MemberListFilters, PageListFilters, Paginated } from "./model";
 
 async function data<T>(path: `/${string}`, init?: RequestInit): Promise<T> {
@@ -12,7 +13,7 @@ function query(filters: object) {
   Object.entries(filters).forEach(([key, value]) => { if (value !== "" && value !== undefined && value !== null) params.set(key, String(value)); });
   return params.size ? `?${params.toString()}` : "";
 }
-const json = (method: "POST" | "PATCH", body: unknown): RequestInit => ({ method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+const json = (method: "POST" | "PATCH" | "PUT", body: unknown): RequestInit => ({ method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 const appPath = (appId: string, suffix = "") => `/apps/${encodeURIComponent(appId)}${suffix}` as const;
 
 export const appAdminApi = {
@@ -23,6 +24,8 @@ export const appAdminApi = {
   batchDelete: (ids: string[]) => data<{ deleted_count: number }>("/apps/batch-delete", json("POST", { ids })),
   setStatus: (id: string, action: "enable" | "disable", lockVersion: number) => data<ManagedApplication>(`/apps/${encodeURIComponent(id)}/${action}`, json("POST", { lock_version: lockVersion })),
   publishOnboarding: (id: string, expectedPublishedVersion: number) => data<ManagedApplication>(appPath(id, "/startup/onboarding/publish"), json("POST", { expected_published_version: expectedPublishedVersion })),
+  scannerConfig: (id: string) => data<AdminAppScannerConfig>(appPath(id, "/scanner-config")),
+  updateScannerConfig: (id: string, input: AdminAppScannerConfigRequest) => data<AdminAppScannerConfig>(appPath(id, "/scanner-config"), json("PUT", input)),
   members: (appId: string, filters: MemberListFilters) => data<Paginated<AppMember>>(appPath(appId, `/users${query(filters)}`)),
   createMember: (appId: string, input: AppMemberCreateInput) => data<AppMember>(appPath(appId, "/users"), json("POST", input)),
   updateMember: (appId: string, memberId: string, input: AppMemberUpdateInput) => data<AppMember>(appPath(appId, `/users/${encodeURIComponent(memberId)}`), json("PATCH", input)),

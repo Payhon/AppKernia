@@ -1,0 +1,7 @@
+import { AkScanFailureCode, AkScanFormat, AkScanResult, StartScan } from '../interface.uts'
+
+function mapFormat(value:string):AkScanFormat{const normalized=value.toLowerCase();if(normalized=='qrcode'||normalized=='qr_code')return 'qr_code';if(normalized=='barcode'||normalized=='bar_code')return 'bar_code';return 'unknown'}
+function scanId():string{return 'scan-'+Date.now().toString()+'-'+Math.floor(Math.random()*1000000).toString()}
+export const startScan:StartScan=function(success,cancelled,failed){
+  try{uni.scanCode({onlyFromCamera:true,scanType:['qrCode','barCode'],success:(value:ScanCodeSuccess)=>success(new AkScanResult(scanId(),value.result,mapFormat(value.scanType),'camera',Date.now())),fail:(error:ScanCodeFail)=>{const detail=(JSON.stringify(error)??'').toLowerCase();if(detail.indexOf('cancel')>=0){cancelled();return};failed('native_failure' as AkScanFailureCode)}})}catch(error){failed('scanner_unavailable')}
+}

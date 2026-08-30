@@ -80,8 +80,8 @@
 - Phase：`P0I`
 - 依赖：AKMOB-020, AKMOB-060
 - UI Skill：必须
-- 产物：tabBar；home；AkCan/useCan
-- 验收：Tab 路由静态；权限仅改善 UX；离线/错误/空状态完整
+- 产物：tabBar；home；AkCan/useCan；`ak-scanner` UTS；扫码协调器与受控 WebView
+- 验收：Tab 路由静态；权限仅改善 UX；离线/错误/空状态完整；二维码/条形码、事件顺序、处理器优先级、single-flight、相机权限和域名越界三端验证
 
 ## AKMOB-090 — 个人中心、基本资料与头像上传
 

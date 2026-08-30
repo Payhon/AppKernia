@@ -23,3 +23,7 @@ This page family inherits `../MASTER.md`.
 - Limit the draft to ten positions. Provide labelled Move up / Move down controls with disabled boundary states; drag-only ordering is not permitted.
 - Keep the onboarding draft when the enabled switch is off. Re-enabling an unchanged published version must not be presented as a new user-visible revision.
 - At 768 px and below the startup fields, asset pair editors and action row stack to one column. File UUIDs remain secondary technical text and thumbnails never replace accessible labels.
+- Replace the App-row “Share configuration” destination with one “Client configuration” Modal. Keep the existing action order and show the destination when at least one registered client-config Tab is readable.
+- The client configuration Modal is 760 px on desktop and full-screen at narrow widths. Tabs remain in code-defined order: Sharing, then Scanner; switching Tabs never saves or discards local state.
+- Each client configuration Tab owns its loading, validation and save actions. Never add a global Save button. Confirm before closing when any mounted Tab is dirty.
+- Scanner host rows provide inline, screen-reader-announced validation, 44 px remove controls and no horizontal overflow. The enable switch retains host rows when disabled and the security explanation stays visible in read-only mode.

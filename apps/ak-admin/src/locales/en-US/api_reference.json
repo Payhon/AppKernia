@@ -383,6 +383,8 @@
   "api_reference.operation.putAdminAppShareBinding": "Create or replace the current App binding for a registered provider",
   "api_reference.operation.deleteAdminAppShareBinding": "Remove the current App binding for a provider",
   "api_reference.operation.preflightAdminAppShareBinding": "Validate provider lifecycle, native identity and share origin before binding",
+  "api_reference.operation.getAdminAppScannerConfig": "Read one App scanner configuration",
+  "api_reference.operation.updateAdminAppScannerConfig": "Create or replace one App scanner configuration with optimistic locking",
   "api_reference.operation.getAdminNotificationOperationsSummary": "Read application notification operations totals and queue health",
   "api_reference.operation.getAdminNotificationOperationsTrends": "Read daily notification delivery and opening trends",
   "api_reference.operation.listAdminNotificationRuns": "List application notification pipeline runs",

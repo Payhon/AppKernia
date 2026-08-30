@@ -69,6 +69,7 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 - Push permission and channel state follows `pages/push-notifications.md`; SDK authorization is always initiated by an explicit user action after legal consent.
 
 - The official information-app surfaces additionally follow `pages/information-app.md` for four-tab discovery, controlled content detail, authentication sheets and sharing.
+- Home scanning, permission recovery, result presentation and the guarded static WebView additionally follow `pages/scanner.md`.
 
 - Every user-visible string is an `AkI18n` key in both catalogs.
 - Business pages use only `ak-*` components. The adapter may be implemented on native uni components until the pinned uView module is present.

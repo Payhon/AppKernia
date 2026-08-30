@@ -26,7 +26,8 @@ initial → loading → content | empty | error | offline | forbidden
 | `auth.verify-contact` | `pages/auth/verify-contact/index` | mixed | P0 | — | — | POST /api/v1/auth/email/send-code<br>POST /api/v1/auth/email/verify<br>POST /api/v1/auth/mobile/send-code<br>POST /api/v1/auth/mobile/verify |
 | `auth.mfa-challenge` | `pages/auth/mfa-challenge/index` | challenge | P1 | mfa_enabled | — | POST /api/v1/auth/mfa/verify |
 | `auth.oauth-callback` | `pages/auth/oauth-callback/index` | mixed | P2 | oauth_login_enabled | — | POST /api/v1/auth/oauth/{provider}/callback |
-| `home` | `pages/home/index` | authenticated | P0 | — | — | GET /api/v1/auth/context<br>GET /api/v1/me/notifications/unread-count |
+| `home` | `pages/home/index` | public | P0 | — | — | GET /api/v1/public/config<br>GET /api/v1/public/content/home |
+| `scanner.webview` | `pages/scanner/webview/index` | public | P1 | — | — | — |
 | `notifications.list` | `pages/notifications/index` | authenticated | P1 | — | notify.message.read_self | GET /api/v1/me/notifications<br>POST /api/v1/me/notifications/read-all |
 | `notifications.detail` | `pages/notifications/detail` | authenticated | P1 | — | notify.message.read_self<br>notify.message.mark_read_self | GET /api/v1/me/notifications/{message_id}<br>PATCH /api/v1/me/notifications/{message_id}/read |
 | `profile.index` | `pages/profile/index` | authenticated | P0 | — | iam.user.read_self | GET /api/v1/me |
@@ -51,6 +52,13 @@ initial → loading → content | empty | error | offline | forbidden
 | `error.forbidden` | `pages/error/forbidden/index` | mixed | P0 | — | — | — |
 | `error.offline` | `pages/error/offline/index` | mixed | P0 | — | — | — |
 | `dev.components` | `pages/dev/components/index` | development | P0 | dev_component_gallery | — | — |
+
+### 首页扫码与受控 WebView
+
+- 首页标题栏消息按钮右侧使用 44 × 44 `ak-icon-button` 触发扫码，游客可用；扫码 single-flight，业务页面不得直接调用 `uni.scanCode`。
+- `ak-scanner` 固定只从相机读取二维码和条形码。协调器依次执行代码注册的业务处理器、可信网页处理器和结果展示兜底；取消不显示错误。
+- 仅成功刷新 `/api/v1/public/config` 且绝对 HTTPS 地址命中规范化白名单时，才通过一次性内存 token 进入静态 WebView 页。初始加载和每次跳转都复验，越界后关闭并显示原始扫码结果。
+- 普通文本、条码、未命中域名、配置缺失或刷新失败使用 `ak-bottom-sheet` 展示；只有用户点击复制后才写剪贴板。扫码内容不上传、不持久化、不写日志。
 
 ## 3. 认证页面关键约束
 

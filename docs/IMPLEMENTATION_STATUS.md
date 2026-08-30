@@ -959,3 +959,13 @@
 - `check-project.sh` 新增回归门禁，禁止再次直接解引用 `response.data.share.providers` 或 `response.data.push.*`，并要求保留兼容归一化与 Push 默认关闭。
 - HBuilderX 5.24 完成 36 页面 iOS 编译；iPhone 16 Pro / iOS 18.6 模拟器使用 `com.appkernia.mobile` 自定义基座安装、同步并启动成功。在本地 API 仍缺少两个能力块的条件下进入资讯浏览页，最近 10 分钟进程日志中原 TypeError、`share.providers`/`push.enabled` 访问异常及 fatal/exception 均为 0。
 - 模拟器截图保存为 `output/playwright/ak-ios-public-config-compatibility.png`，SHA-256 `b69aacd487396ce5072d00cebb130faeea424d481bc3757039321c323c894493`。本结果是 iOS 模拟器运行验收，不替代 iOS 真机、签名归档或 Push 厂商生产验收。
+
+### 2026-08-30 移动端扫码与客户端配置
+
+- Backend 新增独立的应用扫码配置表、读写接口、公开运行时配置、乐观锁、权限和审计事件；域名规则统一规范化并拒绝协议、路径、凭据、IP、localhost、非 443 端口与公共后缀通配符，缺失或异常配置均按关闭处理。
+- Admin 将应用行操作中的“分享配置”升级为可扩展的“客户端配置”Modal，使用注册式 Tab 定义整合“分享配置”和“扫码配置”；两个 Tab 独立加载与保存、保留未提交状态并在关闭时统一确认，权限分别控制查看和更新。
+- Mobile 新增 `uni_modules/ak-scanner` UTS 模块、强类型扫码事件、优先级处理器和 single-flight 协调器；首页消息按钮右侧提供匿名可用入口。可信 HTTPS 地址使用一次性内存 token 进入内置 WebView，并在初始地址和加载事件中重复执行白名单校验；其他结果使用 `ak-bottom-sheet` 展示并由用户主动复制。
+- 三端相机权限适配、Manifest、权限中心、双语文案、Mobile/Admin 设计系统 override 与 UI Skill 证据已同步。首期固定只从相机扫描二维码和一维码，不读取相册，不向网页开放原生桥，也不上传、持久化或记录扫码内容。
+- Backend 临时 PostgreSQL 18 已真实验证 migration `26 -> 25 -> 26`、权限 Seed、租户隔离和扫码配置集成测试；Server、Admin、Mobile、Docs、OpenAPI、三套 Blueprint、跨端 i18n 和补丁格式门禁均通过。
+- HBuilderX 5.24 已完成 38 页面 iOS、Android、HarmonyOS 源码编译，HarmonyOS 生成未签名调试 HAP。二维码/条形码真机扫描、权限拒绝与设置返回、WebView 越界跳转、三端读屏/动态字号/高对比度/减少动效及 Admin 浏览器截图仍需匹配设备和交互环境验收，未标记为通过。
+- 双语 Scanner 与客户端配置开发者文档、导航、权限/安全交叉链接和由服务端事实源同步的公开 OpenAPI 已完成；线上 Pages 发布结果以对应远端提交和 workflow 回读为准。

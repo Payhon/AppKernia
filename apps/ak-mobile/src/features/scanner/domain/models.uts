@@ -1,0 +1,12 @@
+import { AkScanFailureCode, AkScanResult } from '@/uni_modules/ak-scanner'
+
+export type AkScanEventName = 'captured' | 'parsed' | 'resolved' | 'cancelled' | 'failed'
+export type AkScanResolution = 'consumed' | 'open_webview' | 'present_result'
+export class AkScanEvent {
+  readonly name:AkScanEventName
+  readonly result:AkScanResult|null
+  readonly resolution:AkScanResolution|null
+  readonly error:AkScanFailureCode|null
+  constructor(name:AkScanEventName,result:AkScanResult|null,resolution:AkScanResolution|null,error:AkScanFailureCode|null){this.name=name;this.result=result;this.resolution=resolution;this.error=error}
+}
+export type AkScanHandler={readonly id:string;readonly priority:number;readonly canHandle:(result:AkScanResult)=>boolean;readonly handle:(result:AkScanResult)=>AkScanResolution}

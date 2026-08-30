@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTenantKey } from "../tenants/hooks";
 import { appAdminApi } from "./api";
+import type { AdminAppScannerConfigRequest } from "../../generated/api/types.gen";
 import type { AppListFilters, AppMemberCreateInput, AppMemberUpdateInput, ApplicationInput, AppPageInput, MemberListFilters, PageListFilters } from "./model";
 
 const rootKey = (tenantId: string) => ["tenant", tenantId, "applications"] as const;
@@ -16,6 +17,23 @@ export function useAppMembers(appId: string | null, filters: MemberListFilters) 
 export function useAppPages(appId: string | null, filters: PageListFilters) {
   const tenantId = useTenantKey();
   return useQuery({ queryKey: [...rootKey(tenantId), appId ?? "none", "pages", filters], queryFn: () => appId ? appAdminApi.pages(appId, filters) : Promise.reject(new Error("APP_SCOPE_REQUIRED")), enabled: appId !== null, placeholderData: (value) => value });
+}
+export function useAppScannerConfig(appId: string | null) {
+  const tenantId = useTenantKey();
+  return useQuery({
+    queryKey: [...rootKey(tenantId), appId ?? "none", "scanner-config"],
+    queryFn: () => appId ? appAdminApi.scannerConfig(appId) : Promise.reject(new Error("APP_SCOPE_REQUIRED")),
+    enabled: appId !== null,
+  });
+}
+export function useAppScannerConfigMutation(appId: string | null) {
+  const tenantId = useTenantKey();
+  const client = useQueryClient();
+  const key = [...rootKey(tenantId), appId ?? "none", "scanner-config"] as const;
+  return useMutation({
+    mutationFn: (input: AdminAppScannerConfigRequest) => appId ? appAdminApi.updateScannerConfig(appId, input) : Promise.reject(new Error("APP_SCOPE_REQUIRED")),
+    onSuccess: (value) => { client.setQueryData(key, value); },
+  });
 }
 export function useApplicationMutations() {
   const tenantId = useTenantKey();

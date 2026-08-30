@@ -74,6 +74,12 @@
       "action_permissions": [],
       "feature_flag": null
     },
+    {
+      "route_key": "scanner.webview",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
     { "route_key": "content.browse", "view_permissions": [], "action_permissions": [], "feature_flag": null },
     { "route_key": "content.browse-search", "view_permissions": [], "action_permissions": [], "feature_flag": null },
     { "route_key": "content.topics", "view_permissions": [], "action_permissions": [], "feature_flag": null },

@@ -30,13 +30,16 @@ describe("App management admin API requests", () => {
     await appAdminApi.update("app/a", { ...input, default_locale: "en-US", registration_enabled: false, registration_verification_mode: "none", lock_version: 3 });
     await appAdminApi.setStatus("app/a", "disable", 4);
     await appAdminApi.publishOnboarding("app/a", 2);
+    await appAdminApi.scannerConfig("app/a");
+    await appAdminApi.updateScannerConfig("app/a", { webview_enabled: true, allowed_host_patterns: ["example.com", "*.example.com"], lock_version: 0 });
     expect(requestCalls()).toEqual([
-      ["/apps?q=alpha&page=2&page_size=20", undefined], ["/apps", "POST"], ["/apps/app%2Fa", "PATCH"], ["/apps/app%2Fa/disable", "POST"], ["/apps/app%2Fa/startup/onboarding/publish", "POST"],
+      ["/apps?q=alpha&page=2&page_size=20", undefined], ["/apps", "POST"], ["/apps/app%2Fa", "PATCH"], ["/apps/app%2Fa/disable", "POST"], ["/apps/app%2Fa/startup/onboarding/publish", "POST"], ["/apps/app%2Fa/scanner-config", undefined], ["/apps/app%2Fa/scanner-config", "PUT"],
     ]);
     expect(jsonBody(adminRequest.mock.calls[1])).toMatchObject({ registration_verification_mode: "email_otp" });
     expect(jsonBody(adminRequest.mock.calls[2])).toMatchObject({ lock_version: 3 });
     expect(jsonBody(adminRequest.mock.calls[3])).toEqual({ lock_version: 4 });
     expect(jsonBody(adminRequest.mock.calls[4])).toEqual({ expected_published_version: 2 });
+    expect(jsonBody(adminRequest.mock.calls[6])).toEqual({ webview_enabled: true, allowed_host_patterns: ["example.com", "*.example.com"], lock_version: 0 });
   });
 
   it("uses every App user endpoint with its required password and lock body", async () => {

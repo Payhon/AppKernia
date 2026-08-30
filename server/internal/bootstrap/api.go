@@ -431,6 +431,8 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/apps/{app_id}", appManagementHandler.AdminApp)
 		group.PATCH("/apps/{app_id}", appManagementHandler.AdminApp)
 		group.DELETE("/apps/{app_id}", appManagementHandler.AdminApp)
+		group.GET("/apps/{app_id}/scanner-config", appManagementHandler.AdminScannerConfig)
+		group.PUT("/apps/{app_id}/scanner-config", appManagementHandler.AdminScannerConfig)
 		group.POST("/apps/batch-delete", appManagementHandler.AdminBatchDeleteApps)
 		group.POST("/apps/{app_id}/enable", appManagementHandler.AdminEnableApp)
 		group.POST("/apps/{app_id}/disable", appManagementHandler.AdminDisableApp)

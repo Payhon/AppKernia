@@ -1,0 +1,2 @@
+import { StartScan } from '../interface.uts'
+export const startScan:StartScan=function(_success,_cancelled,failed){failed('scanner_unavailable')}

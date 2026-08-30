@@ -534,6 +534,8 @@ POST  /admin-api/v1/configs
 PATCH /admin-api/v1/configs/{id}
 POST  /admin-api/v1/configs/{id}/rotate-secret
 GET   /admin-api/v1/files/upload-policy
+GET   /admin-api/v1/apps/{app_id}/scanner-config
+PUT   /admin-api/v1/apps/{app_id}/scanner-config
 ```
 
 **权限码**
@@ -543,11 +545,16 @@ sys.config.read
 sys.config.create
 sys.config.update
 sys.config.rotate_secret
+app.scanner_config.read
+app.scanner_config.update
 ```
 
 **验收**
 
 - 公开接口只返回 `is_public=true` 且非秘密配置。
+- `/api/v1/public/config` 的 `scanner.webview` 默认关闭且白名单为空；配置缺失和解析失败均不得放宽客户端行为。
+- 扫码配置更新使用独立乐观锁、租户范围查询和专用审计事件；审计只记录开关、域名摘要和锁版本，不记录任何扫码内容。
+- 域名规则由服务端统一小写、去尾点、去重和排序；只接受 ASCII/Punycode 精确域名与非公共后缀通配符，启用时至少一条、最多 100 条。
 - 秘密配置加密存储；列表和详情不返回明文。
 - 配置按 value_type 和 JSON Schema 校验。
 - 修改后缓存精确失效。

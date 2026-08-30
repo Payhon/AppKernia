@@ -1,0 +1,54 @@
+export class AkHttpsTarget {
+  readonly url:string
+  readonly hostname:string
+  constructor(url:string,hostname:string){this.url=url;this.hostname=hostname}
+}
+
+function validLabel(value:string):boolean{
+  if(value.length<1||value.length>63||value.startsWith('-')||value.endsWith('-'))return false
+  for(let index=0;index<value.length;index++){const code=value.charCodeAt(index)??0;const alpha=code>=97&&code<=122;const digit=code>=48&&code<=57;if(!alpha&&!digit&&code!=45)return false}
+  return true
+}
+
+export function normalizedHostname(value:string):string|null{
+  let host=value.toLowerCase()
+  while(host.endsWith('.'))host=host.substring(0,host.length-1)
+  if(host.length<1||host.length>253||host=='localhost'||host.endsWith('.local')||host.indexOf(':')>=0)return null
+  const labels=host.split('.')
+  if(labels.length<2)return null
+  let numeric=true
+  for(let index=0;index<labels.length;index++){if(!validLabel(labels[index]))return null;for(let offset=0;offset<labels[index].length;offset++){const code=labels[index].charCodeAt(offset)??0;if(code<48||code>57)numeric=false}}
+  if(numeric)return null
+  return host
+}
+
+export function parseTrustedHttps(value:string):AkHttpsTarget|null{
+  const raw=value.trim()
+  if(!raw.toLowerCase().startsWith('https://'))return null
+  const remainder=raw.substring(8)
+  const slash=remainder.indexOf('/');const query=remainder.indexOf('?');const hash=remainder.indexOf('#')
+  let end:number=remainder.length
+  if(slash>=0&&slash<end)end=slash;if(query>=0&&query<end)end=query;if(hash>=0&&hash<end)end=hash
+  const authority=remainder.substring(0,end)
+  if(authority.length==0||authority.indexOf('@')>=0||authority.indexOf('[')>=0||authority.indexOf(']')>=0)return null
+  let host=authority
+  const colon=authority.lastIndexOf(':')
+  if(colon>=0){if(authority.substring(colon+1)!='443'||authority.substring(0,colon).indexOf(':')>=0)return null;host=authority.substring(0,colon)}
+  const normalized=normalizedHostname(host)
+  if(normalized==null)return null
+  return new AkHttpsTarget(raw,normalized)
+}
+
+export function matchesAllowedHost(hostname:string,patterns:Array<string>):boolean{
+  const host=normalizedHostname(hostname)
+  if(host==null)return false
+  for(let index=0;index<patterns.length;index++){
+    let pattern=patterns[index].trim().toLowerCase()
+    while(pattern.endsWith('.'))pattern=pattern.substring(0,pattern.length-1)
+    if(pattern.startsWith('*.')){const suffix=normalizedHostname(pattern.substring(2));if(suffix!=null&&host!=suffix&&host.endsWith('.'+suffix))return true}
+    else{const exact=normalizedHostname(pattern);if(exact!=null&&host==exact)return true}
+  }
+  return false
+}
+
+export function allowedHttpsTarget(value:string,patterns:Array<string>):AkHttpsTarget|null{const target=parseTrustedHttps(value);return target!=null&&matchesAllowedHost(target.hostname,patterns)?target:null}

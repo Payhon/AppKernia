@@ -33,6 +33,10 @@
 		"minSdkVersion": 26,
 		"distribute": {
 			"syncDebug": true,
+			"excludePermissions": [
+				"<uses-permission android:name=\"android.permission.READ_MEDIA_IMAGES\"/>",
+				"<uses-permission android:name=\"android.permission.READ_MEDIA_VIDEO\"/>"
+			],
 			"modules": { "Share": {} },
 			"icons": {
 				"hdpi": "static/app-icons/android/icon-72.png",
@@ -58,6 +62,9 @@
 			"deploymentTarget": "13.0",
 			"pushRegisterMode": "manual",
 			"modules": { "Share": {}, "Push": {} },
+			"privacyDescription": {
+				"NSCameraUsageDescription": "%app.ios.des.camera%"
+			},
 			"icons": {
 				"appstore": "static/app-icons/ios/appstore-1024.png"
 			},
