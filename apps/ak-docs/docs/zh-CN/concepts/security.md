@@ -15,6 +15,7 @@ AppKernia 的安全默认值不是可选示例：
 - 定时任务只运行编译期注册的 Handler，不执行数据库中的 Shell/SQL/源码。
 - 模块是编译期目录，不支持上传、安装或执行未知二进制插件。
 - 审计与日志必须字段级脱敏，不能记录 Authorization、Cookie 或预签名 URL。
+- 扫码内容不上传、不持久化、不写日志；只有命中运行时白名单的绝对 HTTPS 地址才进入无消息桥的内置 WebView，跳转越界立即关闭。详见[扫码能力](../mobile-components/scanner)。
 
 ## 漏洞报告
 

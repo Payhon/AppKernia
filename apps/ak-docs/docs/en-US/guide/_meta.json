@@ -5,6 +5,7 @@
   "source-development",
   "docker",
   "mobile-development",
+  "client-configuration",
   "mobile-permissions",
   "push-channels",
   "notification-operations",

@@ -52,6 +52,7 @@ The Props/Event/Slot tables on component pages reflect current source. A new fie
 
 | Component                           | Purpose                                 | Status      |
 | ----------------------------------- | --------------------------------------- | ----------- |
+| [`ak-scanner`](./scanner)           | QR/barcode events and trusted web flow  | Implemented |
 | [`ak-button`](./button)             | Primary, secondary, danger, loading     | Implemented |
 | [`ak-text-field`](./text-field)     | Label, input, password, disabled, error | Implemented |
 | [`ak-card`](./layout-status)        | Content container                       | Implemented |

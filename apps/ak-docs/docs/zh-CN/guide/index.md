@@ -18,6 +18,7 @@ description: 选择最适合你的 AppKernia 启动路径。
 | 配置多厂商离线推送             | [推送渠道配置](./push-channels)             | 厂商账号、App 身份与凭据          |
 | 观察消息队列并处理失败         | [消息运营工作台](./notification-operations) | Admin 通知运营权限                |
 | 接入或检查 App 系统权限        | [移动端权限中心](./mobile-permissions)      | 目标平台工具链                    |
+| 配置应用分享和扫码域名         | [客户端配置](./client-configuration)        | Admin 客户端配置读取权限          |
 | 先理解整个项目                 | [仓库结构](./project-structure)             | 5–10 分钟                         |
 | 先判断项目是否适合自己         | [什么是 AppKernia？](./what-is-appkernia)   | 8–12 分钟                         |
 
@@ -42,6 +43,7 @@ description: 选择最适合你的 AppKernia 启动路径。
 | 新增业务 API               | 先读[服务端约定](../api/conventions)与 OpenAPI 事实源                                              |
 | 新增后台页面               | 先确认权限、菜单、API Client 和双语键                                                              |
 | 新增 App 页面或组件        | 进入[移动端开发](./mobile-development)与 AK UI 文档                                                |
+| 配置分享绑定或扫码网页     | 使用[客户端配置](./client-configuration)，再阅读[扫码能力](../mobile-components/scanner)           |
 | 接入业务消息与离线 Push    | 阅读[消息推送架构](../concepts/notification-architecture)和[通知 API](../api/mobile-notifications) |
 | 配置、预检和测试厂商渠道   | 按[推送渠道配置](./push-channels)准备账号和构建身份                                                |
 | 排查积压或失败投递         | 使用[消息运营工作台](./notification-operations)                                                    |

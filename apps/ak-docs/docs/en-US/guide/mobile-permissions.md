@@ -5,9 +5,9 @@ description: Query notification permission, request it on user action, open syst
 
 # Mobile permission center
 
-“Me → App permissions” lists only capabilities that are compiled into the current build and used by the product. Notification permission is fully wired in the first release. Camera, photos, file picking, microphone, location, and Bluetooth have stable reserved definitions but stay hidden and unrequested until a feature needs them.
+“Me → App permissions” lists only capabilities that are compiled into the current build and used by the product. Notification and camera permission are fully wired. Photos, file picking, microphone, location, and Bluetooth retain stable definitions but stay hidden and unrequested until a feature needs them.
 
-Opening the page or returning from system settings only queries status; it never prompts. Denying notification permission does not block sign-in, in-app messages, or other features.
+Opening the page or returning from system settings only queries status; it never prompts. Camera access is requested only after the user taps Scan or explicitly takes a profile photo, and scanning never reads the photo library. Denying notification or camera access does not block sign-in or in-app messages.
 
 ## Stable permission states
 
@@ -39,6 +39,7 @@ Any failure keeps or rolls back the switch and shows a recoverable error. Disabl
 - iOS distinguishes not determined, authorized, provisional/limited, and denied, and prefers the notification-specific settings destination.
 - HarmonyOS NEXT queries, requests, and opens settings through notification management, with a controlled fallback only when required.
 - `ak-push` delegates authorization and settings operations to `ak-permissions`, preventing two OS-status sources.
+- Scanning also delegates camera status, requests, and settings to `ak-permissions`; see the [Scanner capability](../mobile-components/scanner).
 
 OS permission state is not uploaded in the first release. The server stores only notification preferences and push device bindings. On return from settings, the client refreshes in `onShow` and deactivates a binding that is no longer usable.
 
@@ -56,7 +57,7 @@ A compile-time registry owns capability definitions. File access prefers the sys
 
 ## Public-config compatibility
 
-Mobile normalizes the `share` and `push` sections of public app configuration at runtime. When an older server omits either section, both capabilities fail closed and the app can still start; missing fields are never interpreted as enabled.
+Mobile normalizes the `share`, `push`, and `scanner` sections of public app configuration at runtime. When an older server omits a section, that capability fails closed and the app can still start; missing fields are never interpreted as enabled.
 
 This compatibility prevents a startup crash during version skew, but it is not a substitute for a server upgrade. Public configuration, build variant, provider channel, and device registration must all be ready before push can be enabled.
 

@@ -9,17 +9,18 @@ You do not need to understand every blueprint before trying AppKernia. Run the c
 
 If you are still deciding whether it fits your project, start with [What is AppKernia?](./what-is-appkernia) for the origin, name, technology choices, real product surfaces, and future direction.
 
-| Goal                                | Start here                                           | Requirements                       |
-| ----------------------------------- | ---------------------------------------------------- | ---------------------------------- |
-| See the complete system quickly     | [Docker quick start](./quick-start)                  | Docker Desktop and Git             |
-| Change Go or React source           | [Source development](./source-development)           | Go 1.26, Node 24, pnpm 11, Docker  |
-| Build Android, iOS, or HarmonyOS    | [Mobile development](./mobile-development)           | HBuilderX and platform toolchains  |
-| Build custom bases or releases      | [Mobile packaging](./mobile-packaging)               | HBuilderX, DevEco, and signing     |
-| Configure multi-provider push       | [Push channel configuration](./push-channels)        | Provider accounts and app identity |
-| Inspect queues and handle failures  | [Notification operations](./notification-operations) | Admin notification permission      |
-| Integrate or inspect OS permissions | [Mobile permission center](./mobile-permissions)     | Target-platform toolchain          |
-| Understand the repository first     | [Repository structure](./project-structure)          | 5–10 minutes                       |
-| Decide whether the project fits     | [What is AppKernia?](./what-is-appkernia)            | 8–12 minutes                       |
+| Goal                                 | Start here                                           | Requirements                       |
+| ------------------------------------ | ---------------------------------------------------- | ---------------------------------- |
+| See the complete system quickly      | [Docker quick start](./quick-start)                  | Docker Desktop and Git             |
+| Change Go or React source            | [Source development](./source-development)           | Go 1.26, Node 24, pnpm 11, Docker  |
+| Build Android, iOS, or HarmonyOS     | [Mobile development](./mobile-development)           | HBuilderX and platform toolchains  |
+| Build custom bases or releases       | [Mobile packaging](./mobile-packaging)               | HBuilderX, DevEco, and signing     |
+| Configure multi-provider push        | [Push channel configuration](./push-channels)        | Provider accounts and app identity |
+| Inspect queues and handle failures   | [Notification operations](./notification-operations) | Admin notification permission      |
+| Integrate or inspect OS permissions  | [Mobile permission center](./mobile-permissions)     | Target-platform toolchain          |
+| Configure app sharing and scan hosts | [Client configuration](./client-configuration)       | Admin client-config read access    |
+| Understand the repository first      | [Repository structure](./project-structure)          | 5–10 minutes                       |
+| Decide whether the project fits      | [What is AppKernia?](./what-is-appkernia)            | 8–12 minutes                       |
 
 <div class="ak-doc-callout"><strong>Project maturity</strong>AppKernia has not published a stable release yet. APIs, migrations, and component contracts may change. Before production use, complete security, performance, and platform acceptance in your own environment.</div>
 
@@ -42,6 +43,7 @@ If any check fails, go to [troubleshooting](./troubleshooting), keep the first f
 | Add a business API                   | Read [server conventions](../api/conventions) and the OpenAPI source                                                            |
 | Add an Admin page                    | Confirm permission, menu, generated client, and bilingual keys                                                                  |
 | Add a Mobile page or component       | Continue with [Mobile development](./mobile-development) and AK UI                                                              |
+| Configure share or trusted scan URLs | Use [Client configuration](./client-configuration), then read the [Scanner capability](../mobile-components/scanner)            |
 | Integrate business notifications     | Read [notification architecture](../concepts/notification-architecture) and the [notification API](../api/mobile-notifications) |
 | Configure and preflight providers    | Prepare accounts and build identity with [push channel configuration](./push-channels)                                          |
 | Investigate queue or delivery errors | Use [notification operations](./notification-operations)                                                                        |
