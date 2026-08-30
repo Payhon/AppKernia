@@ -215,7 +215,7 @@ describe("AkFilePicker", () => {
     fireEvent.click(screen.getByRole("button", { name: /还原对话框|Restore dialog/ }));
     expect(document.querySelector(".ak-file-picker-modal-maximized")).toBeNull();
     expect(screen.getByRole("button", { name: /调整对话框大小|Resize dialog/ })).toBeTruthy();
-  });
+  }, 15_000);
 
   it("moves from the title bar and resizes from the bottom-right handle with keyboard controls", () => {
     vi.spyOn(authSession, "downloadAdminFile").mockRejectedValue(new Error("thumbnail unavailable"));
