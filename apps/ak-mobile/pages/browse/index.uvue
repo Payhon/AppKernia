@@ -5,8 +5,8 @@
         <view class="header-row">
           <text class="title">{{ t('information.browse.title', null) }}</text>
           <view class="header-actions">
-            <ak-icon-button name="search" :label="t('information.search', null)" @click="openSearch" />
-            <ak-icon-button class="filter-action" name="filter" :label="t('information.filters.title', null)" :active="filtersOpen" :badge="hasFilters" @click="toggleFilters" />
+            <ak-icon-button name="search" :icon-size="20" :label="t('information.search', null)" @click="openSearch" />
+            <ak-icon-button class="filter-action" name="filter" :icon-size="20" :label="t('information.filters.title', null)" :active="filtersOpen" :badge="hasFilters" @click="toggleFilters" />
           </view>
         </view>
         <view v-if="filtersOpen" class="filter-panel">

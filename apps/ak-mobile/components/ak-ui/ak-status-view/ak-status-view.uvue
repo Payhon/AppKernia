@@ -1,7 +1,41 @@
 <template>
-  <view class="ak-status"><ak-loading v-if="state === 'loading'" :label="loadingLabel" /><ak-empty-state v-else :title="title" :description="description"><ak-button v-if="retryLabel" variant="secondary" @click="$emit('retry')">{{ retryLabel }}</ak-button></ak-empty-state></view>
+  <view class="ak-status">
+    <ak-loading v-if="state === 'loading'" :label="loadingLabel" />
+    <ak-empty
+      v-else
+      :icon="stateIcon"
+      :title="title"
+      :description="description"
+      :action-label="retryLabel"
+      action-icon="retry"
+      @action="$emit('retry')"
+    />
+  </view>
 </template>
 <script lang="uts">
-export default { props: { state: { type: String, default: 'empty' }, title: { type: String, default: '' }, description: { type: String, default: '' }, loadingLabel: { type: String, default: '' }, retryLabel: { type: String, default: '' } }, emits: ['retry'] }
+export default {
+  props: {
+    state: { type: String, default: 'empty' },
+    title: { type: String, default: '' },
+    description: { type: String, default: '' },
+    loadingLabel: { type: String, default: '' },
+    retryLabel: { type: String, default: '' },
+  },
+  emits: ['retry'],
+  computed: {
+    stateIcon(): string {
+      if (this.state == 'offline') return 'offline'
+      if (this.state == 'error' || this.state == 'forbidden') return 'error'
+      return 'empty'
+    },
+  },
+}
 </script>
-<style lang="scss">.ak-status { flex:1; min-height:160px; padding:var(--ak-space-2) 0; box-sizing:border-box; }</style>
+<style lang="scss">
+.ak-status {
+  flex: 1;
+  min-height: 220px;
+  padding: var(--ak-space-2) 0;
+  box-sizing: border-box;
+}
+</style>

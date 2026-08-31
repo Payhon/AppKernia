@@ -4,7 +4,7 @@
       <view v-if="!videoVertical" class="nav">
         <ak-back-button />
         <text class="nav-title">{{ typeLabel }}</text>
-        <ak-icon-button name="share" :label="t('common.share', null)" @click="shareOpen = true" />
+        <ak-icon-button name="share" :icon-size="20" :label="t('common.share', null)" @click="shareOpen = true" />
       </view>
       <scroll-view class="content" scroll-y>
         <ak-status-view v-if="state !== 'content'" :state="state" :title="stateTitle" :description="t('information.state.description', null)" @retry="reload" />
@@ -44,15 +44,17 @@
         <ak-icon-button class="action-icon" name="share" :label="t('common.share', null)" @click="shareOpen = true" />
       </view>
       <ak-auth-prompt :open="authOpen" @close="authOpen = false" @authenticated="authenticated" />
-      <ak-bottom-sheet :open="commentsOpen" :title="t('information.comments.title', null)" @close="commentsOpen = false">
-        <ak-text-field v-model="commentBody" :label="t('information.comments.placeholder', null)" />
-        <ak-button :disabled="commentBody.trim().length == 0" :label="t('information.comments.submit', null)" @click="submitComment" />
-        <text v-if="commentFeedback.length > 0" class="feedback">{{ commentFeedback }}</text>
+      <ak-bottom-sheet :open="commentsOpen" :expanded="true" :title="t('information.comments.title', null)" @close="commentsOpen = false">
         <ak-card v-for="comment in comments" :key="comment.id" class="comment">
-          <text class="comment-author">{{ comment.authorName }}</text>
+          <view class="comment-header"><ak-avatar :src="asset(comment.authorAvatarUrl)" :fallback="comment.authorName" :label="commentAvatarLabel(comment.authorName)" :size="36" /><text class="comment-author">{{ comment.authorName }}</text></view>
           <text class="comment-body">{{ comment.body }}</text>
           <view class="comment-actions"><text class="comment-action" @click="report(comment.id)">{{ t('information.comments.report', null) }}</text><text class="comment-action comment-action-last" @click="block(comment.authorId)">{{ t('information.comments.block', null) }}</text></view>
         </ak-card>
+        <view class="comment-composer">
+          <ak-text-field v-model="commentBody" :label="t('information.comments.placeholder', null)" />
+          <ak-button :disabled="commentBody.trim().length == 0" :label="t('information.comments.submit', null)" @click="submitComment" />
+          <text v-if="commentFeedback.length > 0" class="feedback">{{ commentFeedback }}</text>
+        </view>
       </ak-bottom-sheet>
       <ak-bottom-sheet :open="shareOpen" :title="t('information.share.title', null)" @close="shareOpen = false">
         <ak-card class="share-preview"><image v-if="coverPath.length > 0" class="share-cover" :src="coverPath" mode="aspectFill" /><text class="share-title">{{ articleTitle }}</text></ak-card>
@@ -99,6 +101,7 @@ export default {
   onUnload() { this.pauseVideo() },
   methods: {
     asset(value: string | null): string { return articleRuntime.assetUrl(value) },
+    commentAvatarLabel(name:string):string{return akI18n.t('information.comments.avatarAlt',new Map<string,string>([['name',name]]))},
     videoModeChanged(mode: string) { this.videoVertical = mode === 'vertical' },
     reload() {
       const repo = articleRuntime.getRepository()
@@ -157,7 +160,10 @@ export default {
 .action-spacer { flex: 1; }
 .feedback { color: var(--ak-brand); font-size: 14px; margin: 12px 0; }
 .comment { padding: 16px; margin-top: 12px; }
+.comment-composer { margin-top: 16px; }
+.comment-header { flex-direction:row; align-items:center; }
 .comment-author { font-size: 15px; font-weight: 700; color: var(--ak-text); }
+.comment-header .comment-author { margin-left:10px; }
 .comment-body { font-size: 16px; line-height: 24px; color: var(--ak-text); margin-top: 8px; }
 .comment-actions { min-height: 44px; flex-direction: row; align-items: center; }
 .comment-action { min-height: 44px; line-height: 44px; color: var(--ak-muted); font-size: 13px; }

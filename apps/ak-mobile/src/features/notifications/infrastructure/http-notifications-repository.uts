@@ -7,6 +7,8 @@ export type MobileNotificationPage = { readonly items: Array<MobileNotification>
 type Wire = { readonly id: string; readonly title: string; readonly body: string; readonly body_format: string; readonly read_at: string | null; readonly created_at: string }
 type Page = { readonly items: Array<Wire>; readonly next_cursor: string | null }
 type Bool = { readonly value: boolean }
+type Count = { readonly count: number }
+type ReadAll = { readonly updated_count: number }
 
 export class HttpNotificationsRepository {
   private readonly http: AkHttpPort
@@ -23,6 +25,14 @@ export class HttpNotificationsRepository {
   read(id: string, ok: () => void, fail: (error: AkError) => void): HttpCancellation {
     const request: HttpRequest<UTSJSONObject> = { method: 'PATCH', path: '/me/notifications/' + encodeURIComponent(id) + '/read', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
     return this.http.execute<UTSJSONObject, Bool>(request, _response => ok(), fail)
+  }
+  unreadCount(ok: (count: number) => void, fail: (error: AkError) => void): HttpCancellation {
+    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/me/notifications/unread-count', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: true, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
+    return this.http.execute<UTSJSONObject, Count>(request, response => ok(response.data.count), fail)
+  }
+  readAll(ok: (updated: number) => void, fail: (error: AkError) => void): HttpCancellation {
+    const request: HttpRequest<UTSJSONObject> = { method: 'POST', path: '/me/notifications/read-all', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
+    return this.http.execute<UTSJSONObject, ReadAll>(request, response => ok(response.data.updated_count), fail)
   }
   private pageValue(value: Page): MobileNotificationPage { return { items: value.items.map(item => this.notificationValue(item)), nextCursor: value.next_cursor } }
   private notificationValue(value: Wire): MobileNotification { return { id: value.id, title: value.title, body: value.body, bodyFormat: value.body_format, readAt: value.read_at, createdAt: value.created_at } }

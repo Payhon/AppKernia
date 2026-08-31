@@ -1,3 +1,217 @@
-<template><ak-theme-root><scroll-view class="page" scroll-y><view class="nav"><ak-back-button/><text class="nav-title">{{t('routes.profile.edit.title', null)}}</text><view class="nav-slot"/></view><ak-status-view v-if="state==='loading'" state="loading" :loading-label="t('common.loading', null)"/><view v-else><ak-card class="form-card"><ak-text-field v-model="displayName" :label="t('profile.displayName', null)" :error="nameError"/><ak-text-field :model-value="email" :label="t('profile.email', null)" disabled/><ak-text-field v-model="timeZone" :label="t('profile.timeZone', null)"/></ak-card><ak-button class="submit-button" variant="primary" :loading="mutating" :loading-text="t('state.mutating', null)" @click="save">{{t('common.save', null)}}</ak-button></view></scroll-view></ak-theme-root></template>
-<script lang="uts">import {HttpCancellation} from '../../../src/core/network/http-port.uts';import {akI18n} from '../../../src/core/i18n/ak-i18n.uts';import {profileRuntime} from '../../../src/features/profile/infrastructure/profile-runtime.uts';let task:HttpCancellation|null=null;export default{data(){return{state:'loading',displayName:'',email:'',timeZone:'',locale:'zh-CN',nameError:'',mutating:false}},computed:{t(){return akI18n.t}},onLoad(){this.load()},onUnload(){const activeTask=task;if(activeTask!=null)activeTask.cancel()},methods:{load(){const repo=profileRuntime.getRepository();if(repo==null){this.state='error';return}task=repo.profile(x=>{this.displayName=x.displayName;this.email=x.email;this.timeZone=x.timeZone;this.locale=x.locale;this.state='content'},()=>{this.state='error'})},save(){if(this.displayName.length==0){this.nameError=akI18n.t('errors.validation.required', null);return}const repo=profileRuntime.getRepository();if(repo==null)return;this.mutating=true;task=repo.update({displayName:this.displayName,locale:this.locale,timeZone:this.timeZone},()=>{this.mutating=false;uni.redirectTo({url:'/pages/profile/basic/index'})},()=>{this.mutating=false})}}}</script>
-<style lang="scss">.page{height:100%;flex:1;padding:16px 20px 32px;background:var(--ak-page)}.nav{height:44px;flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:20px}.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}.nav-slot{width:44px;height:44px}.form-card{padding:20px;border-radius:18px}.submit-button{margin-top:20px}</style>
+<template>
+  <ak-theme-root>
+    <scroll-view class="page" scroll-y>
+      <view class="nav"><ak-back-button/><text class="nav-title">{{t('routes.profile.edit.title', null)}}</text><view class="nav-slot"/></view>
+      <ak-status-view v-if="state==='loading'" state="loading" :loading-label="t('common.loading', null)"/>
+      <view v-else>
+        <ak-card class="avatar-card">
+          <ak-avatar :src="avatarPath" :fallback="initials" :label="t('profile.avatar.alt', avatarParams)" :size="96" />
+          <ak-button class="avatar-change" variant="secondary" :disabled="mutating || avatarUploading" :label="t('profile.avatar.change', null)" @click="chooseAvatarSource" />
+          <text v-if="avatarFeedback.length>0" class="avatar-feedback" :class="{'avatar-feedback-error':avatarError}">{{avatarFeedback}}</text>
+          <ak-progress v-if="avatarUploading" :percent="avatarProgress" :label="t('profile.avatar.progress', null)" />
+        </ak-card>
+        <ak-card class="form-card"><ak-text-field v-model="displayName" :label="t('profile.displayName', null)" :error="nameError"/><ak-text-field :model-value="email" :label="t('profile.email', null)" disabled/><ak-text-field v-model="timeZone" :label="t('profile.timeZone', null)"/></ak-card>
+        <ak-button class="submit-button" variant="primary" :loading="mutating" :loading-text="t('state.mutating', null)" :disabled="avatarUploading" @click="save">{{t('common.save', null)}}</ak-button>
+      </view>
+    </scroll-view>
+    <ak-bottom-sheet :open="cropOpen" :dismissible="!cropProcessing" :title="t('profile.avatar.crop.title', null)" @close="cancelCrop">
+      <view class="crop-content">
+        <view class="crop-stage">
+          <canvas id="avatar-crop-canvas" class="crop-canvas" :width="512" :height="512" />
+          <image v-if="cropSourcePath.length>0" class="crop-source" :src="cropSourcePath" :style="cropSourceStyle" mode="scaleToFill" @load="cropSourceLoaded" @error="cropSourceFailed" />
+          <view class="crop-guide-contrast" />
+          <view class="crop-guide" />
+          <view class="crop-gesture-layer" role="adjustable" :aria-label="t('profile.avatar.crop.description', null)" @touchstart="cropTouchStart" @touchmove.stop.prevent="cropTouchMove" @touchend="cropTouchEnd" @touchcancel="cropTouchEnd" />
+          <view class="crop-tools">
+            <view :class="cropZoom<=1 ? 'crop-tool crop-tool-disabled' : 'crop-tool'"><ak-icon-button name="zoom-out" :icon-size="20" :disabled="!cropReady || cropProcessing || cropZoom<=1" :label="t('profile.avatar.crop.zoomOut', null)" @click="changeCropZoom(-0.25)" /></view>
+            <view class="crop-tool-spacer" />
+            <view :class="cropZoom>=3 ? 'crop-tool crop-tool-disabled' : 'crop-tool'"><ak-icon-button name="zoom-in" :icon-size="20" :disabled="!cropReady || cropProcessing || cropZoom>=3" :label="t('profile.avatar.crop.zoomIn', null)" @click="changeCropZoom(0.25)" /></view>
+            <view class="crop-tool-spacer" />
+            <view class="crop-tool"><ak-icon-button name="reset" :icon-size="20" :disabled="!cropReady || cropProcessing" :label="t('profile.avatar.crop.reset', null)" @click="resetCrop" /></view>
+          </view>
+          <loading v-if="!cropReady" class="crop-loading" />
+        </view>
+        <text class="crop-description">{{t('profile.avatar.crop.description', null)}}</text>
+        <view class="crop-actions"><view class="crop-action"><ak-button variant="secondary" :disabled="cropProcessing" :label="t('common.cancel', null)" @click="cancelCrop" /></view><view class="crop-action-spacer"/><view class="crop-action"><ak-button variant="primary" :loading="cropProcessing" :loading-text="t('profile.avatar.crop.processing', null)" :disabled="!cropReady" :label="t('profile.avatar.crop.confirm', null)" @click="confirmCrop" /></view></view>
+      </view>
+    </ak-bottom-sheet>
+    <ak-bottom-sheet :open="previewOpen" :dismissible="!avatarUploading" :title="t('profile.avatar.preview.title', null)" @close="cancelPreview">
+      <view class="preview-content">
+        <image class="avatar-preview" :src="previewPath" mode="aspectFill" />
+        <text class="preview-description">{{t('profile.avatar.preview.description', null)}}</text>
+        <ak-progress v-if="avatarUploading" :percent="avatarProgress" :label="t('profile.avatar.progress', null)" />
+        <view class="preview-actions"><view class="preview-action"><ak-button variant="secondary" :disabled="avatarUploading" :label="t('common.cancel', null)" @click="cancelPreview" /></view><view class="preview-action-spacer"/><view class="preview-action"><ak-button variant="primary" :loading="avatarUploading" :loading-text="t('profile.avatar.uploading', null)" :label="t('profile.avatar.preview.confirm', null)" @click="uploadAvatar" /></view></view>
+      </view>
+    </ak-bottom-sheet>
+  </ak-theme-root>
+</template>
+
+<script lang="uts">
+import { HttpCancellation } from '../../../src/core/network/http-port.uts'
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+import { profileRuntime } from '../../../src/features/profile/infrastructure/profile-runtime.uts'
+
+let task:HttpCancellation|null=null
+let avatarTask:HttpCancellation|null=null
+let cropCanvas:CanvasContext|null=null
+let cropRendering:CanvasRenderingContext2D|null=null
+let cropImage:Image|null=null
+const CROP_STAGE_SIZE:number=320
+
+export default {
+  data(){return{state:'loading',displayName:'',email:'',timeZone:'',locale:'zh-CN',nameError:'',mutating:false,avatarUrl:null as string|null,avatarPath:'',cropOpen:false,cropSourcePath:'',cropSourceWidth:0,cropSourceHeight:0,cropCenterX:0.5,cropCenterY:0.5,cropZoom:1.0,cropReady:false,cropDisplayReady:false,cropCanvasImageReady:false,cropProcessing:false,cropTouching:false,cropPinching:false,cropTouchX:0,cropTouchY:0,cropPinchDistance:0,cropPinchZoom:1.0,previewOpen:false,previewPath:'',previewFileName:'',previewMediaType:'',previewSize:0,avatarUploading:false,avatarProgress:0,avatarFeedback:'',avatarError:false}},
+  computed:{
+    t(){return akI18n.t},
+    initials():string{return this.displayName.length>0?this.displayName.substring(0,1):'?'},
+    avatarParams(){return new Map<string,string>([['name',this.displayName]])},
+    cropSourceStyle():string{
+      if(this.cropSourceWidth<=0||this.cropSourceHeight<=0)return''
+      const side=this.cropSide();const scale=CROP_STAGE_SIZE/side
+      const left=CROP_STAGE_SIZE/2-this.cropCenterX*this.cropSourceWidth*scale;const top=CROP_STAGE_SIZE/2-this.cropCenterY*this.cropSourceHeight*scale
+      return 'left:'+left.toString()+'px;top:'+top.toString()+'px;width:'+(this.cropSourceWidth*scale).toString()+'px;height:'+(this.cropSourceHeight*scale).toString()+'px;'
+    },
+  },
+  onLoad(){this.load()},
+  onUnload(){if(task!=null)task!.cancel();if(avatarTask!=null)avatarTask!.cancel()},
+  methods:{
+    load(){const repo=profileRuntime.getRepository();if(repo==null){this.state='error';return}task=repo.profile(x=>{this.displayName=x.displayName;this.email=x.email;this.timeZone=x.timeZone;this.locale=x.locale;this.avatarUrl=x.avatarUrl;this.loadAvatar(x.avatarUrl);this.state='content'},()=>{this.state='error'})},
+    loadAvatar(path:string|null){if(avatarTask!=null)avatarTask!.cancel();this.avatarPath='';if(path==null)return;const loader=profileRuntime.getAvatarLoader();if(loader==null)return;avatarTask=loader.load(path,value=>{this.avatarPath=value},()=>{})},
+    chooseAvatarSource(){
+      if(this.avatarUploading)return
+      uni.showActionSheet({title:akI18n.t('profile.avatar.source.title',null),itemList:[akI18n.t('profile.avatar.source.camera',null),akI18n.t('profile.avatar.source.album',null)],success:result=>{this.chooseAvatar(result.tapIndex==0?'camera':'album')}})
+    },
+    chooseAvatar(source:string){
+      this.avatarFeedback='';this.avatarError=false
+      const options={
+        count:1,sourceType:[source],sizeType:['compressed'],
+        success:result=>{
+          if(result.tempFilePaths.length==0||result.tempFiles.length==0)return
+          const path=result.tempFilePaths[0];const size=result.tempFiles[0].size
+          uni.getImageInfo({
+            src:path,
+            success:info=>{
+              const rawType=info.type;const type=rawType!=null?rawType.toLowerCase():'';const mediaType=type=='png'?'image/png':type=='webp'?'image/webp':type=='jpg'||type=='jpeg'?'image/jpeg':''
+              if(mediaType.length==0||size<=0||size>5242880){this.setAvatarError('profile.avatar.error.invalid');return}
+              this.openCrop(info.path,info.width,info.height)
+            },
+            fail:()=>{this.setAvatarError('profile.avatar.error.invalid')},
+          })
+        },
+        fail:error=>{if(error.errCode==1101001)return;this.setAvatarError(error.errCode==1101005?'profile.avatar.error.permission':'profile.avatar.error.invalid')},
+      } as ChooseImageOptions
+      // Android's system picker avoids broad photo-library permissions. albumMode is not supported on iOS or HarmonyOS.
+      // #ifdef APP-ANDROID
+      options.albumMode='system'
+      // #endif
+      uni.chooseImage(options)
+    },
+    openCrop(path:string,width:number,height:number){
+      if(width<=0||height<=0){this.setAvatarError('profile.avatar.error.invalid');return}
+      this.cropSourcePath=path;this.cropSourceWidth=width;this.cropSourceHeight=height;this.cropCenterX=0.5;this.cropCenterY=0.5;this.cropZoom=1.0;this.cropReady=false;this.cropDisplayReady=false;this.cropCanvasImageReady=false;this.cropProcessing=false;this.cropOpen=true
+      this.$nextTick(()=>{this.setupCropCanvas()})
+    },
+    setupCropCanvas(){
+      uni.createCanvasContextAsync({
+        id:'avatar-crop-canvas',component:this,
+        success:(context:CanvasContext)=>{
+          cropCanvas=context;cropRendering=context.getContext('2d')
+          if(cropRendering==null){this.cancelCrop();this.setAvatarError('profile.avatar.error.invalid');return}
+          cropRendering!.canvas.width=512;cropRendering!.canvas.height=512
+          cropImage=context.createImage()
+          cropImage!.onload=()=>{this.cropCanvasImageReady=true;this.updateCropReady()}
+          cropImage!.onerror=()=>{this.cancelCrop();this.setAvatarError('profile.avatar.error.invalid')}
+          cropImage!.src=this.cropSourcePath
+        },
+        fail:()=>{this.cancelCrop();this.setAvatarError('profile.avatar.error.invalid')},
+      })
+    },
+    cropSide():number{return Math.min(this.cropSourceWidth,this.cropSourceHeight)/this.cropZoom},
+    cropSourceLoaded(){this.cropDisplayReady=true;this.updateCropReady()},
+    cropSourceFailed(){this.cancelCrop();this.setAvatarError('profile.avatar.error.invalid')},
+    updateCropReady(){this.cropReady=this.cropDisplayReady&&this.cropCanvasImageReady},
+    clampCropCenter(){
+      const side=this.cropSide();const minX=side/(this.cropSourceWidth*2);const minY=side/(this.cropSourceHeight*2)
+      this.cropCenterX=Math.max(minX,Math.min(1-minX,this.cropCenterX));this.cropCenterY=Math.max(minY,Math.min(1-minY,this.cropCenterY))
+    },
+    renderCrop(){
+      if(!this.cropReady||cropRendering==null||cropImage==null)return
+      this.clampCropCenter();const side=this.cropSide();const sx=this.cropCenterX*this.cropSourceWidth-side/2;const sy=this.cropCenterY*this.cropSourceHeight-side/2
+      const canvasWidth=cropRendering!.canvas.width;const canvasHeight=cropRendering!.canvas.height
+      const scale=canvasWidth/side
+      cropRendering!.clearRect(0,0,canvasWidth,canvasHeight);cropRendering!.save();cropRendering!.translate(-sx*scale,-sy*scale);cropRendering!.drawImage(cropImage!,0,0,this.cropSourceWidth*scale,this.cropSourceHeight*scale);cropRendering!.restore()
+    },
+    changeCropZoom(delta:number){this.cropZoom=Math.max(1,Math.min(3,this.cropZoom+delta));this.clampCropCenter()},
+    resetCrop(){this.cropZoom=1;this.cropCenterX=0.5;this.cropCenterY=0.5;this.cropTouching=false;this.cropPinching=false},
+    touchDistance(event:UniTouchEvent):number{if(event.touches.length<2)return 0;const dx=event.touches[0].clientX-event.touches[1].clientX;const dy=event.touches[0].clientY-event.touches[1].clientY;return Math.sqrt(dx*dx+dy*dy)},
+    cropTouchStart(event:UniTouchEvent){
+      if(!this.cropReady||event.touches.length==0)return
+      if(event.touches.length>=2){this.cropTouching=false;this.cropPinching=true;this.cropPinchDistance=this.touchDistance(event);this.cropPinchZoom=this.cropZoom;return}
+      this.cropPinching=false;this.cropTouching=true;this.cropTouchX=event.touches[0].clientX;this.cropTouchY=event.touches[0].clientY
+    },
+    cropTouchMove(event:UniTouchEvent){
+      if(!this.cropReady||event.touches.length==0)return
+      if(event.touches.length>=2){
+        const distance=this.touchDistance(event)
+        if(!this.cropPinching||this.cropPinchDistance<=0){this.cropPinching=true;this.cropPinchDistance=distance;this.cropPinchZoom=this.cropZoom}
+        if(this.cropPinchDistance>0){this.cropZoom=Math.max(1,Math.min(3,this.cropPinchZoom*distance/this.cropPinchDistance));this.clampCropCenter()}
+        this.cropTouching=false;return
+      }
+      if(this.cropPinching){this.cropPinching=false;this.cropTouching=true;this.cropTouchX=event.touches[0].clientX;this.cropTouchY=event.touches[0].clientY;return}
+      if(!this.cropTouching)return
+      const x=event.touches[0].clientX;const y=event.touches[0].clientY;const side=this.cropSide()
+      this.cropCenterX-=(x-this.cropTouchX)*side/(CROP_STAGE_SIZE*this.cropSourceWidth);this.cropCenterY-=(y-this.cropTouchY)*side/(CROP_STAGE_SIZE*this.cropSourceHeight);this.cropTouchX=x;this.cropTouchY=y;this.clampCropCenter()
+    },
+    cropTouchEnd(event:UniTouchEvent){
+      if(event.touches.length>=2){this.cropPinching=true;this.cropPinchDistance=this.touchDistance(event);this.cropPinchZoom=this.cropZoom;this.cropTouching=false;return}
+      if(event.touches.length==1){this.cropPinching=false;this.cropTouching=true;this.cropTouchX=event.touches[0].clientX;this.cropTouchY=event.touches[0].clientY;return}
+      this.cropTouching=false;this.cropPinching=false
+    },
+    cancelCrop(){if(this.cropProcessing)return;this.cropOpen=false;this.clearCrop()},
+    clearCrop(){this.cropSourcePath='';this.cropSourceWidth=0;this.cropSourceHeight=0;this.cropReady=false;this.cropDisplayReady=false;this.cropCanvasImageReady=false;this.cropTouching=false;this.cropPinching=false;this.cropPinchDistance=0;cropCanvas=null;cropRendering=null;cropImage=null},
+    confirmCrop(){
+      if(!this.cropReady||this.cropProcessing||cropCanvas==null)return
+      this.cropProcessing=true;this.renderCrop();const dataUrl=cropCanvas!.toDataURL();const marker='data:image/png;base64,'
+      if(!dataUrl.startsWith(marker)){this.cropProcessing=false;this.setAvatarError('profile.avatar.error.invalid');return}
+      const path=uni.env.CACHE_PATH+'ak-avatar-crop-'+Date.now().toString()+'.png';const base64=dataUrl.substring(marker.length);const files=uni.getFileSystemManager()
+      files.writeFile({filePath:path,data:base64,encoding:'base64',success:()=>{files.getFileInfo({filePath:path,success:info=>{this.cropProcessing=false;if(info.size<=0||info.size>5242880){this.setAvatarError('profile.avatar.error.invalid');return};this.cropOpen=false;this.clearCrop();this.previewPath=path;this.previewSize=info.size;this.previewMediaType='image/png';this.previewFileName='avatar.png';this.previewOpen=true},fail:()=>{this.cropProcessing=false;this.setAvatarError('profile.avatar.error.invalid')}})},fail:()=>{this.cropProcessing=false;this.setAvatarError('profile.avatar.error.invalid')}})
+    },
+    cancelPreview(){if(this.avatarUploading)return;this.previewOpen=false;this.clearPreview()},
+    clearPreview(){this.previewPath='';this.previewFileName='';this.previewMediaType='';this.previewSize=0;this.avatarProgress=0},
+    uploadAvatar(){if(this.avatarUploading||this.previewPath.length==0)return;const uploader=profileRuntime.getAvatarUploader();if(uploader==null){this.setAvatarError('profile.avatar.error.upload');return};this.avatarUploading=true;this.avatarProgress=0;this.avatarFeedback='';this.avatarError=false;avatarTask=uploader.upload(this.previewPath,this.previewFileName,this.previewMediaType,this.previewSize,percent=>{this.avatarProgress=percent},result=>{this.avatarUploading=false;this.previewOpen=false;this.avatarUrl=result.avatarUrl;this.clearPreview();this.avatarFeedback=akI18n.t('profile.avatar.updated',null);this.loadAvatar(result.avatarUrl)},error=>{this.avatarUploading=false;this.setAvatarError(error.messageKey.startsWith('profile.avatar.')?error.messageKey:'profile.avatar.error.upload')})},
+    setAvatarError(key:string){this.avatarError=true;this.avatarFeedback=akI18n.t(key,null)},
+    save(){if(this.displayName.length==0){this.nameError=akI18n.t('errors.validation.required', null);return}const repo=profileRuntime.getRepository();if(repo==null)return;this.mutating=true;task=repo.update({displayName:this.displayName,locale:this.locale,timeZone:this.timeZone},()=>{this.mutating=false;uni.redirectTo({url:'/pages/profile/basic/index'})},()=>{this.mutating=false})},
+  },
+}
+</script>
+
+<style lang="scss">
+.page{height:100%;flex:1;padding:16px 20px 32px;background:var(--ak-page)}
+.nav{height:44px;flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:20px}
+.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}
+.nav-slot{width:44px;height:44px}
+.avatar-card{padding:20px;align-items:center;margin-bottom:16px;border-radius:18px}
+.avatar-change{min-width:160px;margin-top:16px}
+.avatar-feedback{margin-top:12px;color:var(--ak-success);font-size:14px;line-height:20px;text-align:center}
+.avatar-feedback-error{color:var(--ak-danger)}
+.form-card{padding:20px;border-radius:18px}
+.submit-button{margin-top:20px}
+.crop-content{align-items:center;padding-bottom:8px}
+.crop-stage{position:relative;width:320px;height:320px;border-radius:24px;overflow:hidden;background:#111827}
+.crop-canvas{position:absolute;left:0;top:0;width:320px;height:320px;opacity:0;z-index:0}
+.crop-source{position:absolute;z-index:1}
+.crop-guide-contrast{position:absolute;left:3px;top:3px;width:314px;height:314px;border-radius:157px;border:4px solid rgba(15,23,42,0.58);z-index:2}
+.crop-guide{position:absolute;left:5px;top:5px;width:310px;height:310px;border-radius:155px;border:2px solid rgba(255,255,255,0.96);z-index:2}
+.crop-gesture-layer{position:absolute;left:0;right:0;top:0;bottom:0;z-index:3}
+.crop-tools{position:absolute;left:12px;top:12px;flex-direction:row;z-index:4}
+.crop-tool{width:44px;height:44px;border-radius:22px;background:rgba(15,23,42,0.78);border:1px solid rgba(255,255,255,0.34)}
+.crop-tool-disabled{opacity:0.42}
+.crop-tool-spacer{width:8px}
+.crop-loading{position:absolute;left:148px;top:148px;width:24px;height:24px;z-index:5}
+.crop-description{margin:14px 12px 0;color:var(--ak-muted);font-size:14px;line-height:20px;text-align:center}
+.crop-actions{width:100%;margin-top:20px;flex-direction:row;align-items:center}.crop-action{flex:1}.crop-action-spacer{width:8px}
+.preview-content{align-items:center;padding-bottom:8px}
+.avatar-preview{width:220px;height:220px;border-radius:110px;background:var(--ak-surface-subtle)}
+.preview-description{margin:16px 0;color:var(--ak-muted);font-size:14px;line-height:20px;text-align:center}
+.preview-actions{width:100%;margin-top:20px;flex-direction:row;align-items:center}
+.preview-action{flex:1}.preview-action-spacer{width:8px}
+</style>

@@ -200,10 +200,20 @@
     },
     {
       "wrapper": "AkEmptyState",
-      "implementation": "up-empty",
+      "implementation": "compatibility alias to AkEmpty",
       "status": "approved",
       "phase": "P0",
-      "notes": "统一空状态与下一步动作",
+      "notes": "兼容既有调用；新页面统一使用 AkEmpty",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
+      "wrapper": "AkEmpty",
+      "implementation": "native view + AkIcon",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "统一空内容图标、浅灰文案与带图标的小型恢复操作；视觉按钮不缩小 44px 命中区",
       "android": "test_required",
       "ios": "test_required",
       "harmony": "test_required"

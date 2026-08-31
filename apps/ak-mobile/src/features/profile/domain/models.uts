@@ -1,5 +1,7 @@
 export type SelfProfile = { id: string; email: string; displayName: string; locale: 'zh-CN' | 'en-US'; timeZone: string; avatarUrl: string | null }
 export type SelfProfileUpdate = { displayName: string; locale: 'zh-CN' | 'en-US'; timeZone: string }
+export type AvatarUploadTarget = { id: string; uploadUrl: string; method: 'POST'; expiresAt: string }
+export type AvatarUploadResult = { fileId: string; avatarUrl: string }
 export type PasswordChange = { currentPassword: string; newPassword: string }
 export type SelfSession = { id: string; userAgent: string; lastSeenAt: string; absoluteExpiresAt: string; current: boolean }
 export type SelfDevice = { id: string; platform: string; deviceName: string; model: string; osVersion: string; appVersion: string; lastSeenAt: string | null; current: boolean }

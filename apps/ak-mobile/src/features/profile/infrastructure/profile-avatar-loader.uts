@@ -1,0 +1,41 @@
+import { AkConfig } from '../../../core/config/config.uts'
+import { AkError } from '../../../core/errors/ak-error.uts'
+import { HttpCancellation } from '../../../core/network/http-port.uts'
+import { RefreshCoordinator } from '../../../core/network/refresh-coordinator.uts'
+import { SessionStore } from '../../../core/stores/session-store.uts'
+
+class AvatarDownloadCancellation implements HttpCancellation {
+  private task: DownloadTask | null = null
+  private cancelled: boolean = false
+  private finished: boolean = false
+  setTask(task: DownloadTask): void { if (this.cancelled) { task.abort(); return }; if (this.finished) return; this.task = task }
+  clearTask(): void { this.task = null }
+  finish(): void { this.finished = true; this.task = null }
+  cancel(): void { if (this.cancelled || this.finished) return; this.cancelled = true; const active=this.task;this.task=null;if(active!=null)active.abort() }
+  isCancelled(): boolean { return this.cancelled }
+}
+
+/** Downloads the authenticated self-avatar without putting credentials in an image URL. */
+export class ProfileAvatarLoader {
+  private readonly config: AkConfig
+  private readonly session: SessionStore
+  private readonly refresh: RefreshCoordinator
+  constructor(config: AkConfig, session: SessionStore, refresh: RefreshCoordinator) { this.config=config;this.session=session;this.refresh=refresh }
+
+  load(path:string,onSuccess:(localPath:string)=>void,onFailure:(error:AkError)=>void):HttpCancellation {
+    const cancellation=new AvatarDownloadCancellation();this.attempt(path,false,cancellation,onSuccess,onFailure);return cancellation
+  }
+  private attempt(path:string,replayed:boolean,cancellation:AvatarDownloadCancellation,onSuccess:(localPath:string)=>void,onFailure:(error:AkError)=>void):void {
+    if (!/^\/me\/avatar\/content(?:\?v=[0-9a-f-]{36})?$/.test(path)) { cancellation.finish();onFailure(new AkError('forbidden','profile.avatar.invalid_path','errors.auth.forbidden',null));return }
+    const token=this.session.getAccessToken();if(token==null){cancellation.finish();onFailure(new AkError('unauthorized','auth.unauthorized','errors.auth.unauthorized',null));return}
+    const task=uni.downloadFile({url:this.config.apiBaseUrl+path,header:{Authorization:'Bearer '+token,'X-AppID':this.config.appId},success:result=>{
+      cancellation.clearTask()
+      if(cancellation.isCancelled())return
+      if(result.statusCode>=200&&result.statusCode<300){cancellation.finish();onSuccess(result.tempFilePath);return}
+      if(result.statusCode==401&&!replayed){this.refresh.refresh(()=>{if(!cancellation.isCancelled())this.attempt(path,true,cancellation,onSuccess,onFailure)},onFailure);return}
+      cancellation.finish();onFailure(this.error(result.statusCode))
+    },fail:()=>{cancellation.clearTask();if(!cancellation.isCancelled()){cancellation.finish();onFailure(new AkError('network_unavailable','request.network_unavailable','errors.request.network_unavailable',null))}}})
+    cancellation.setTask(task)
+  }
+  private error(status:number):AkError { if(status==401)return new AkError('unauthorized','auth.unauthorized','errors.auth.unauthorized',null);if(status==403)return new AkError('forbidden','auth.forbidden','errors.auth.forbidden',null);return new AkError('unknown','profile.avatar.http_'+status.toString(),'profile.avatar.error.upload',null) }
+}

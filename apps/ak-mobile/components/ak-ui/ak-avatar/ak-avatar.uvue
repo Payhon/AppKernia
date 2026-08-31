@@ -1,0 +1,33 @@
+<template>
+  <view class="ak-avatar" :style="avatarStyle" role="img" :aria-label="label">
+    <image v-if="usableSource" class="ak-avatar__image" :src="src" mode="aspectFill" @error="imageFailed" />
+    <text v-else class="ak-avatar__fallback" :style="fallbackStyle">{{ fallbackValue }}</text>
+  </view>
+</template>
+
+<script lang="uts">
+export default {
+  name: 'AkAvatar',
+  props: {
+    src: { type: String, default: '' },
+    fallback: { type: String, default: '?' },
+    label: { type: String, default: '' },
+    size: { type: Number, default: 40 },
+  },
+  data() { return { failed: false } },
+  computed: {
+    usableSource(): boolean { return this.src.length > 0 && !this.failed },
+    fallbackValue(): string { return this.fallback.length > 0 ? this.fallback.substring(0, 1).toUpperCase() : '?' },
+    avatarStyle(): string { return 'width:' + this.size.toString() + 'px;height:' + this.size.toString() + 'px;border-radius:' + (this.size / 2).toString() + 'px' },
+    fallbackStyle(): string { return 'font-size:' + Math.max(13, Math.round(this.size * 0.36)).toString() + 'px' },
+  },
+  watch: { src() { this.failed = false } },
+  methods: { imageFailed() { this.failed = true } },
+}
+</script>
+
+<style lang="scss">
+.ak-avatar { flex-shrink:0; overflow:hidden; align-items:center; justify-content:center; background:var(--ak-brand); }
+.ak-avatar__image { width:100%; height:100%; }
+.ak-avatar__fallback { color:#fff; font-weight:700; text-align:center; }
+</style>

@@ -1,6 +1,6 @@
 <template>
   <ak-theme-root><scroll-view class="page" scroll-y>
-    <view class="nav"><ak-back-button/><text class="nav-title">{{t('routes.settings.notifications.title', null)}}</text><view class="nav-slot"/></view>
+    <view class="nav"><ak-back-button/><text class="nav-title" role="heading" :aria-label="t('routes.settings.notifications.title', null)">{{t('routes.settings.notifications.title', null)}}</text><view class="nav-slot"/></view>
     <ak-status-view v-if="state!=='content'" :state="state" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/>
     <view v-else>
       <ak-cell-list class="preference-list">

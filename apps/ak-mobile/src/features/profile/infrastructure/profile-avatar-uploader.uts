@@ -1,0 +1,48 @@
+import { AkConfig } from '../../../core/config/config.uts'
+import { AkError } from '../../../core/errors/ak-error.uts'
+import { HttpCancellation } from '../../../core/network/http-port.uts'
+import { RefreshCoordinator } from '../../../core/network/refresh-coordinator.uts'
+import { SessionStore } from '../../../core/stores/session-store.uts'
+import { akI18n } from '../../../core/i18n/ak-i18n.uts'
+import { AvatarUploadResult, AvatarUploadTarget } from '../domain/models.uts'
+import { HttpProfileRepository } from './http-profile-repository.uts'
+
+type AvatarCompleteWire = { readonly file_id:string; readonly avatar_url:string }
+type AvatarCompleteEnvelope = { readonly data:AvatarCompleteWire; readonly request_id:string }
+
+class AvatarUploadCancellation implements HttpCancellation {
+  private sessionTask: HttpCancellation | null = null
+  private uploadTask: UploadTask | null = null
+  private cancelled:boolean=false
+  setSessionTask(task:HttpCancellation):void{this.sessionTask=task;if(this.cancelled)task.cancel()}
+  setUploadTask(task:UploadTask):void{this.uploadTask=task;if(this.cancelled)task.abort()}
+  cancel():void{this.cancelled=true;if(this.sessionTask!=null)this.sessionTask!.cancel();if(this.uploadTask!=null)this.uploadTask!.abort()}
+  isCancelled():boolean{return this.cancelled}
+}
+
+export class ProfileAvatarUploader {
+  private readonly config:AkConfig
+  private readonly session:SessionStore
+  private readonly refresh:RefreshCoordinator
+  private readonly repository:HttpProfileRepository
+  constructor(config:AkConfig,session:SessionStore,refresh:RefreshCoordinator,repository:HttpProfileRepository){this.config=config;this.session=session;this.refresh=refresh;this.repository=repository}
+
+  upload(filePath:string,fileName:string,mediaType:string,sizeBytes:number,onProgress:(percent:number)=>void,onSuccess:(result:AvatarUploadResult)=>void,onFailure:(error:AkError)=>void):HttpCancellation{
+    const cancellation=new AvatarUploadCancellation()
+    const sessionTask=this.repository.createAvatarUpload(fileName,mediaType,sizeBytes,(target:AvatarUploadTarget)=>{if(!cancellation.isCancelled()){onProgress(10);this.send(target,filePath,false,cancellation,onProgress,onSuccess,onFailure)}},onFailure)
+    cancellation.setSessionTask(sessionTask)
+    return cancellation
+  }
+  private send(target:AvatarUploadTarget,filePath:string,replayed:boolean,cancellation:AvatarUploadCancellation,onProgress:(percent:number)=>void,onSuccess:(result:AvatarUploadResult)=>void,onFailure:(error:AkError)=>void):void{
+    const token=this.session.getAccessToken();if(token==null){onFailure(new AkError('unauthorized','auth.unauthorized','errors.auth.unauthorized',null));return}
+    const task=uni.uploadFile({url:this.config.apiBaseUrl+target.uploadUrl,filePath:filePath,name:'file',header:{Authorization:'Bearer '+token,'X-AppID':this.config.appId,'Accept-Language':akI18n.getLocale()},success:response=>{
+      if(cancellation.isCancelled())return
+      if(response.statusCode>=200&&response.statusCode<300){const body=JSON.parse<AvatarCompleteEnvelope>(response.data);if(body!=null&&body.data.avatar_url.length>0){onProgress(100);onSuccess({fileId:body.data.file_id,avatarUrl:body.data.avatar_url});return}}
+      if(response.statusCode==401&&!replayed){this.refresh.refresh(()=>{if(!cancellation.isCancelled())this.send(target,filePath,true,cancellation,onProgress,onSuccess,onFailure)},onFailure);return}
+      onFailure(this.error(response.statusCode))
+    },fail:()=>{if(!cancellation.isCancelled())onFailure(new AkError('network_unavailable','request.network_unavailable','profile.avatar.error.upload',null))}})
+    task.onProgressUpdate(progress=>{if(!cancellation.isCancelled())onProgress(Math.max(10,progress.progress))})
+    cancellation.setUploadTask(task)
+  }
+  private error(status:number):AkError { if(status==401)return new AkError('unauthorized','auth.unauthorized','errors.auth.unauthorized',null);if(status==403)return new AkError('forbidden','auth.forbidden','errors.auth.forbidden',null);if(status==422)return new AkError('validation','storage.avatar.invalid','profile.avatar.error.invalid',null);return new AkError('unknown','profile.avatar.http_'+status.toString(),'profile.avatar.error.upload',null) }
+}

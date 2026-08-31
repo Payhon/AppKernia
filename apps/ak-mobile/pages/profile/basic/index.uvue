@@ -4,15 +4,17 @@
       <view class="nav">
         <ak-back-button />
         <text class="nav-title">{{ t('routes.profile.basic.title', null) }}</text>
-        <ak-icon-button name="edit" :label="t('common.edit', null)" @click="edit" />
+        <ak-icon-button name="edit" :icon-size="20" :label="t('common.edit', null)" @click="edit" />
       </view>
       <ak-status-view v-if="state !== 'content'" :state="state" :title="stateTitle" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload" />
-      <ak-cell-list v-else class="details-list">
+      <view v-else>
+      <ak-card class="identity-card"><ak-avatar :src="avatarPath" :fallback="initials" :label="t('profile.avatar.alt', avatarParams)" :size="80" /><text class="identity-name">{{ displayName }}</text></ak-card>
+      <ak-cell-list class="details-list">
         <view class="row"><text class="row-label">{{ t('displayName', null) }}</text><text class="row-value">{{ displayName }}</text></view>
         <view class="row"><text class="row-label">{{ t('email', null) }}</text><text class="row-value">{{ email }}</text></view>
         <view class="row"><text class="row-label">{{ t('settings.language', null) }}</text><text class="row-value">{{ locale }}</text></view>
         <view class="row"><text class="row-label">{{ t('timeZone', null) }}</text><text class="row-value">{{ timeZone }}</text></view>
-      </ak-cell-list>
+      </ak-cell-list></view>
     </scroll-view>
   </ak-theme-root>
 </template>
@@ -23,15 +25,17 @@ import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
 import { profileRuntime } from '../../../src/features/profile/infrastructure/profile-runtime.uts'
 
 let task: HttpCancellation | null = null
+let avatarTask: HttpCancellation | null = null
 
 export default {
-  data() { return { state: 'loading', displayName: '', email: '', locale: '', timeZone: '' } },
+  data() { return { state: 'loading', displayName: '', email: '', locale: '', timeZone: '', avatarPath: '', initials: '' } },
   computed: {
     t() { return akI18n.t },
     stateTitle(): string { return akI18n.t(this.state === 'offline' ? 'state.offline.title' : 'state.error.title', null) },
+    avatarParams() { return new Map<string,string>([['name',this.displayName]]) },
   },
   onLoad() { this.reload() },
-  onUnload() { const activeTask = task; if (activeTask != null) activeTask.cancel() },
+  onUnload() { const activeTask = task; if (activeTask != null) activeTask.cancel(); if (avatarTask != null) avatarTask!.cancel() },
   methods: {
     edit() { uni.navigateTo({ url: '/pages/profile/edit/index' }) },
     reload() {
@@ -43,9 +47,12 @@ export default {
         this.email = value.email
         this.locale = value.locale
         this.timeZone = value.timeZone
+        this.initials = value.displayName.substring(0, 1)
+        this.loadAvatar(value.avatarUrl)
         this.state = 'content'
       }, (error) => { this.state = error.kind === 'network_unavailable' ? 'offline' : 'error' })
     },
+    loadAvatar(path: string | null) { if (avatarTask != null) avatarTask!.cancel(); this.avatarPath = ''; if (path == null) return; const loader=profileRuntime.getAvatarLoader(); if(loader==null)return; avatarTask=loader.load(path,value=>{this.avatarPath=value},()=>{}) },
   },
 }
 </script>
@@ -55,6 +62,8 @@ export default {
 .nav, .row { flex-direction: row; align-items: center; }
 .nav { height: 44px; justify-content: space-between; margin-bottom: 20px; }
 .nav-title { color: var(--ak-text); font-size: 17px; font-weight: 600; }
+.identity-card { padding:20px; margin-bottom:16px; align-items:center; }
+.identity-name { margin-top:12px; color:var(--ak-text); font-size:18px; font-weight:700; }
 .details-list { border-radius: 18px; }
 .row { min-height: 60px; padding: 0 16px; justify-content: space-between; border-bottom: 1px solid var(--ak-border); }
 .row-label { color: var(--ak-text); font-size: 16px; }

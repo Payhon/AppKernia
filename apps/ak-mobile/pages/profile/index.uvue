@@ -3,22 +3,26 @@
     ><scroll-view class="page" scroll-y
       ><view class="topbar"
         ><text class="brand">{{ t("information.appName", null) }}</text
-        ><view
+        ><ak-icon-button
           class="notification"
+          name="bell"
+          :icon-size="20"
+          :label="t('routes.notifications.title', null)"
           @click="protectedGo('/pages/notifications/index')"
-          ><ak-icon name="bell" /></view></view
+        /></view
       ><text class="page-title">{{ t("profile.title", null) }}</text
-      ><view class="identity-action" role="button" :aria-label="t('routes.profile.basic.title', null)" @click="identity"><ak-card class="identity"
-        ><view class="avatar" :class="{ 'avatar-guest': guest }"
-          ><text>{{ guest ? "?" : initials }}</text></view
-        ><view class="identity-copy"
+      ><view class="identity-action" role="button" :aria-label="t('routes.profile.basic.title', null)" @click="identity"
+        ><ak-card class="identity"
+          ><ak-avatar :src="avatarPath" :fallback="guest ? '?' : initials" :label="t('profile.avatar.alt', avatarParams)" :size="60" />
+          <view class="identity-copy"
           ><text class="identity-name">{{
             guest ? t("profile.guest", null) : displayName
           }}</text
           ><text class="identity-email">{{
             guest ? t("profile.guestHint", null) : email
           }}</text></view
-        ><ak-icon name="chevron-right" /></ak-card></view
+          ><ak-icon name="chevron-right" /></ak-card
+        ></view
       ><ak-cell-list class="menu-group"
         ><view class="row" role="button" :aria-label="t('profile.bookmarks', null)" @click="protectedGo('/pages/bookmarks/index')"
           ><view class="row-lead"
@@ -26,7 +30,7 @@
               t("profile.bookmarks", null)
             }}</text></view
           ><ak-icon name="chevron-right" /></view
-        ><view class="row" @click="protectedGo('/pages/notifications/index')"
+        ><view class="row" role="button" :aria-label="t('profile.notifications', null)" @click="protectedGo('/pages/settings/notifications/index')"
           ><view class="row-lead"
             ><ak-icon name="bell" /><text class="row-label">{{
               t("profile.notifications", null)
@@ -40,7 +44,7 @@
           ><ak-icon name="chevron-right" /></view
         ><view class="row" @click="publicGo('/pages/settings/language/index')"
           ><view class="row-lead"
-            ><ak-icon name="settings" /><text class="row-label">{{
+            ><ak-icon name="language" /><text class="row-label">{{
               t("profile.languageAppearance", null)
             }}</text></view
           ><ak-icon name="chevron-right" /></view
@@ -73,7 +77,7 @@
   /></ak-theme-root>
 </template>
 <script lang="uts">
-import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{profileRuntime}from'../../src/features/profile/infrastructure/profile-runtime.uts';import{authRuntime}from'../../src/features/auth/auth-runtime.uts';import{appSessionStore}from'../../src/core/stores/session-store.uts';import{authContextStore}from'../../src/core/stores/auth-context-store.uts';import{akNavigator,authenticatedNavigationContext}from'../../src/core/navigation/app-routes.uts';import{pushCoordinator}from'../../src/features/push/application/push-coordinator.uts';export default{data(){return{guest:true,authOpen:false,accountDeletionEnabled:false,displayName:'',email:'',initials:''}},computed:{t(){return akI18n.t}},onShow(){this.reload()},methods:{reload(){this.guest=appSessionStore.getAccessToken()==null;this.accountDeletionEnabled=!this.guest&&authContextStore.hasEnabledFlag('account_deletion');if(this.guest)return;authRuntime.refreshContext(()=>{this.accountDeletionEnabled=!this.guest&&authContextStore.hasEnabledFlag('account_deletion')},()=>{});const repo=profileRuntime.getRepository();if(repo==null)return;repo.profile(x=>{this.displayName=x.displayName;this.email=x.email;this.initials=x.displayName.substring(0,1)},error=>{if(error.kind==='unauthorized'){this.guest=true;this.accountDeletionEnabled=false;this.authOpen=true}})},identity(){if(this.guest){this.authOpen=true;return};this.publicGo('/pages/profile/basic/index')},protectedGo(url:string){if(this.guest){this.authOpen=true;return};this.publicGo(url)},publicGo(url:string){uni.navigateTo({url:url})},deleteAccount(){akNavigator.navigate('account.deletion',authenticatedNavigationContext())},authenticated(){this.authOpen=false;this.reload()},signOut(){pushCoordinator.disableActive(()=>{authRuntime.signOut(()=>{this.guest=true;this.accountDeletionEnabled=false;this.displayName='';this.email='';this.initials=''})})}}}
+import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{HttpCancellation}from'../../src/core/network/http-port.uts';import{profileRuntime}from'../../src/features/profile/infrastructure/profile-runtime.uts';import{authRuntime}from'../../src/features/auth/auth-runtime.uts';import{appSessionStore}from'../../src/core/stores/session-store.uts';import{authContextStore}from'../../src/core/stores/auth-context-store.uts';import{akNavigator,authenticatedNavigationContext}from'../../src/core/navigation/app-routes.uts';import{pushCoordinator}from'../../src/features/push/application/push-coordinator.uts';let avatarTask:HttpCancellation|null=null;export default{data(){return{guest:true,authOpen:false,accountDeletionEnabled:false,displayName:'',email:'',initials:'',avatarPath:''}},computed:{t(){return akI18n.t},avatarParams(){return new Map<string,string>([['name',this.guest?akI18n.t('profile.guest',null):this.displayName]])}},onShow(){this.reload()},onUnload(){if(avatarTask!=null)avatarTask!.cancel()},methods:{reload(){this.guest=appSessionStore.getAccessToken()==null;this.accountDeletionEnabled=!this.guest&&authContextStore.hasEnabledFlag('account_deletion');if(this.guest){this.avatarPath='';return};authRuntime.refreshContext(()=>{this.accountDeletionEnabled=!this.guest&&authContextStore.hasEnabledFlag('account_deletion')},()=>{});const repo=profileRuntime.getRepository();if(repo==null)return;repo.profile(x=>{this.displayName=x.displayName;this.email=x.email;this.initials=x.displayName.substring(0,1);this.loadAvatar(x.avatarUrl)},error=>{if(error.kind==='unauthorized'){this.guest=true;this.accountDeletionEnabled=false;this.avatarPath='';this.authOpen=true}})},loadAvatar(path:string|null){if(avatarTask!=null)avatarTask!.cancel();this.avatarPath='';if(path==null)return;const loader=profileRuntime.getAvatarLoader();if(loader==null)return;avatarTask=loader.load(path,value=>{this.avatarPath=value},()=>{})},identity(){if(this.guest){this.authOpen=true;return};this.publicGo('/pages/profile/basic/index')},protectedGo(url:string){if(this.guest){this.authOpen=true;return};this.publicGo(url)},publicGo(url:string){uni.navigateTo({url:url})},deleteAccount(){akNavigator.navigate('account.deletion',authenticatedNavigationContext())},authenticated(){this.authOpen=false;this.reload()},signOut(){pushCoordinator.disableActive(()=>{authRuntime.signOut(()=>{this.guest=true;this.accountDeletionEnabled=false;this.displayName='';this.email='';this.initials='';this.avatarPath=''})})}}}
 </script>
 <style lang="scss">
 .page {
@@ -113,27 +117,12 @@ import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{profileRuntime}from'.
   color: var(--ak-text);
   margin: 24px 0 16px;
 }
-.identity-action {
-  margin-bottom: 20px;
-}
 .identity {
   padding: 18px;
   min-height: 92px;
 }
-.avatar {
-  width: 60px;
-  height: 60px;
-  border-radius: 30px;
-  background: var(--ak-brand);
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 22px;
-  font-weight: 700;
-}
-.avatar-guest {
-  background: #c7c7cc;
-  color: #fff;
+.identity-action {
+  margin-bottom: 20px;
 }
 .identity-copy {
   flex: 1;

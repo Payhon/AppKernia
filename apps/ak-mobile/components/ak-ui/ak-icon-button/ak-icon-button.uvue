@@ -8,7 +8,7 @@
   >
     <loading v-if="loading" class="ak-icon-button__loading" />
     <ak-icon v-else :name="name" :tone="tone" :filled="filled || active" :size="iconSize" />
-    <view v-if="badge" class="ak-icon-button__badge" />
+    <view v-if="badge" :class="badgeTone == 'danger' ? 'ak-icon-button__badge ak-icon-button__badge--danger' : 'ak-icon-button__badge'" />
   </view>
 </template>
 
@@ -23,6 +23,7 @@ export default {
     disabled: { type: Boolean, default: false },
     loading: { type: Boolean, default: false },
     badge: { type: Boolean, default: false },
+    badgeTone: { type: String, default: 'brand' },
     iconSize: { type: Number, default: 16 },
   },
   emits: ['click'],
@@ -48,6 +49,7 @@ export default {
 .ak-icon-button__loading { width: 16px; height: 16px; }
 .ak-icon-button__badge {
   position: absolute;
+  z-index: 2;
   top: 7px;
   right: 7px;
   width: 7px;
@@ -56,4 +58,5 @@ export default {
   background: var(--ak-brand);
   border: 1px solid var(--ak-surface);
 }
+.ak-icon-button__badge--danger { background: var(--ak-danger); }
 </style>

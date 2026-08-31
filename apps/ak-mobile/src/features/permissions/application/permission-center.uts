@@ -14,7 +14,7 @@ export class PermissionDefinition {
 export const permissionRegistry:Array<PermissionDefinition>=[
   new PermissionDefinition('notifications',true,'permissions.notifications.title','permissions.notifications.description'),
   new PermissionDefinition('camera',true,'permissions.camera.title','permissions.camera.description'),
-  new PermissionDefinition('photos',false,'permissions.photos.title','permissions.photos.description'),
+  new PermissionDefinition('photos',true,'permissions.photos.title','permissions.photos.description'),
   new PermissionDefinition('file_picker',false,'permissions.filePicker.title','permissions.filePicker.description'),
   new PermissionDefinition('microphone',false,'permissions.microphone.title','permissions.microphone.description'),
   new PermissionDefinition('location',false,'permissions.location.title','permissions.location.description'),

@@ -63,7 +63,8 @@
 			"pushRegisterMode": "manual",
 			"modules": { "Share": {}, "Push": {} },
 			"privacyDescription": {
-				"NSCameraUsageDescription": "%app.ios.des.camera%"
+				"NSCameraUsageDescription": "%app.ios.des.camera%",
+				"NSPhotoLibraryUsageDescription": "%app.ios.des.photos%"
 			},
 			"icons": {
 				"appstore": "static/app-icons/ios/appstore-1024.png"

@@ -1,7 +1,7 @@
 import { AkError } from '../../../core/errors/ak-error.uts'
 import { akI18n } from '../../../core/i18n/ak-i18n.uts'
 import { AkHttpPort, HttpCancellation, HttpRequest } from '../../../core/network/http-port.uts'
-import { PasswordChange, SecurityEvent, SelfDevice, SelfProfile, SelfProfileUpdate, SelfSession } from '../domain/models.uts'
+import { AvatarUploadTarget, PasswordChange, SecurityEvent, SelfDevice, SelfProfile, SelfProfileUpdate, SelfSession } from '../domain/models.uts'
 
 type ProfileWire = { readonly id:string; readonly email:string; readonly display_name:string; readonly locale:'zh-CN'|'en-US'; readonly time_zone:string; readonly avatar_url:string|null }
 type SessionWire = { readonly id:string; readonly user_agent:string; readonly last_seen_at:string; readonly absolute_expires_at:string; readonly current:boolean }
@@ -11,12 +11,15 @@ type ProfileUpdateWire = { readonly display_name:string; readonly locale:'zh-CN'
 type PasswordWire = { readonly current_password:string; readonly new_password:string }
 type BooleanWire = { readonly value:boolean }
 type CountWire = { readonly count:number }
+type AvatarUploadTargetWire = { readonly id:string; readonly upload_url:string; readonly method:'POST'; readonly expires_at:string }
+type AvatarUploadInputWire = { readonly file_name:string; readonly media_type:string; readonly size_bytes:number }
 
 export class HttpProfileRepository {
   private readonly http: AkHttpPort
   constructor(http: AkHttpPort) { this.http = http }
   profile(ok:(value:SelfProfile)=>void, fail:(error:AkError)=>void):HttpCancellation { return this.http.execute<UTSJSONObject,ProfileWire>(this.request('GET','/me',{} as UTSJSONObject,true), r=>ok(this.profileValue(r.data)),fail) }
   update(input:SelfProfileUpdate,ok:(value:SelfProfile)=>void,fail:(error:AkError)=>void):HttpCancellation { const body:ProfileUpdateWire={display_name:input.displayName,locale:input.locale,time_zone:input.timeZone};return this.http.execute<ProfileUpdateWire,ProfileWire>(this.request('PATCH','/me',body,false),r=>ok(this.profileValue(r.data)),fail) }
+  createAvatarUpload(fileName:string,mediaType:string,sizeBytes:number,ok:(value:AvatarUploadTarget)=>void,fail:(error:AkError)=>void):HttpCancellation { const body:AvatarUploadInputWire={file_name:fileName,media_type:mediaType,size_bytes:sizeBytes};return this.http.execute<AvatarUploadInputWire,AvatarUploadTargetWire>(this.request('POST','/me/avatar/upload-session',body,false),r=>ok({id:r.data.id,uploadUrl:r.data.upload_url,method:r.data.method,expiresAt:r.data.expires_at}),fail) }
   changePassword(input:PasswordChange,ok:()=>void,fail:(error:AkError)=>void):HttpCancellation { const body:PasswordWire={current_password:input.currentPassword,new_password:input.newPassword};return this.http.execute<PasswordWire,BooleanWire>(this.request('POST','/auth/password/change',body,false),()=>ok(),fail) }
   sessions(ok:(values:Array<SelfSession>)=>void,fail:(error:AkError)=>void):HttpCancellation { return this.http.execute<UTSJSONObject,Array<SessionWire>>(this.request('GET','/me/sessions',{} as UTSJSONObject,true),r=>ok(r.data.map(x=>this.sessionValue(x))),fail) }
   revokeSession(id:string,ok:()=>void,fail:(error:AkError)=>void):HttpCancellation{return this.http.execute<UTSJSONObject,BooleanWire>(this.request('DELETE','/me/sessions/'+encodeURIComponent(id),{} as UTSJSONObject,false),()=>ok(),fail)}

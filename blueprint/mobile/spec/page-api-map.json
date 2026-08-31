@@ -137,7 +137,9 @@
       "endpoints": [
         "GET /api/v1/me",
         "PATCH /api/v1/me",
-        "POST /api/v1/me/avatar/upload-session"
+        "POST /api/v1/me/avatar/upload-session",
+        "POST /api/v1/me/avatar/upload-sessions/{id}/content",
+        "GET /api/v1/me/avatar/content"
       ],
       "phase": "P1"
     },

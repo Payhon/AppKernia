@@ -13,9 +13,9 @@
 - Every custom-navigation page reserves `var(--status-bar-height)` before its 44 px navigation/header row. Backgrounds may extend behind hardware; text and controls may not.
 - Root Tab pages use a 44 px header after the safe-area inset and reserve at least 16 px of content clearance above the native TabBar.
 - The Profile root keeps sign-out and account-deletion actions in a non-scrolling footer inside the page viewport, while profile content scrolls independently. The footer must remain above the native TabBar on every supported screen height.
-- Pushed pages use a 44 px navigation row with a 44 × 44 px back target, centered title and an equal-width trailing slot.
+- Pushed pages use a 44 px navigation row with a 44 × 44 px back target, centered title and an equal-width trailing slot. When a pushed page contains a long feed, the navigation row is a non-scrolling sibling above a flexible native scroll container; it must remain visible without overlapping the first item.
 - Scroll content uses flex sizing. Do not use fixed 620/640 px viewport heights; the page must adapt to iPhone SE-class widths, Dynamic Island devices and larger text.
-- Native TabBar keeps four semantic destinations (home, browse, topics and profile), text labels and paired outline/filled local assets. Selected state is communicated by icon form and label color, not color alone.
+- Native TabBar keeps four semantic destinations (home, browse, topics and profile), text labels and paired outline/filled local assets. Selected state is communicated by icon form and label color, not color alone. Each 81 × 81 px source canvas keeps its glyph optically centered with a maximum edge of about 66 px (about 22 pt at 3×).
 
 ## Semantic tokens
 
@@ -48,7 +48,7 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 - Primary buttons are filled AppKernia blue with explicit white label text inside the component. Secondary actions use a quiet surface or text style; destructive actions use semantic red.
 - Text fields use a subtle grouped fill, visible focus/error border and explicit label/error text. Forms group related controls inside a single elevated surface.
 - Grouped rows use a leading icon well, 16–17 px label, optional secondary value and trailing chevron/switch. Adjacent rows are separated by a hairline inset from the leading content.
-- Empty/loading/error states live in a bounded content area with a clear title, optional explanation and one 44 px recovery action. They must never be clipped by the TabBar or action bar.
+- Empty/loading/error states live in a bounded content area and use the shared `ak-empty` presentation: a muted semantic icon, concise muted title, optional explanation and at most one compact recovery control. The recovery control has a 32 px visual surface inside a 44 × 44 px minimum target, a 14 px leading icon and an 8 px icon/label gap. States must never be clipped by the TabBar or action bar.
 - Modals use a dim backdrop, rounded surface and horizontally balanced actions with at least 8 px separation.
 
 ## Icons
@@ -56,7 +56,9 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 - Use original geometric icons with a 24 × 24 viewBox, rounded caps/joins and consistent 1.8 px optical stroke.
 - Standard tabs use outline icons when inactive and filled icons when selected. Do not redistribute SF Symbols or use emoji.
 - Page icon buttons are hosted by a 44 × 44 px target. Decorative icons are not separate actions.
-- Top-bar and operation glyphs use a 14–16 px optical size inside the unchanged 44 × 44 px target. Form submits, destructive confirmations and ambiguous actions keep text labels.
+- Icon-button badges use the brand tone for neutral active-state hints and semantic danger red for unread notifications. An unread badge must also change the control's accessible label, so color is never the only signal.
+- Top-bar glyphs use a 20 px optical size inside the unchanged 44 × 44 px target. Compact inline, content and modal operations remain 14–16 px unless their page override says otherwise. Form submits, destructive confirmations and ambiguous actions keep text labels.
+- Adjacent settings rows must not reuse the same glyph when their meanings differ. Language/appearance uses a globe-style glyph; application permissions keeps the settings/capability glyph.
 
 ## Native application identity
 
@@ -75,6 +77,7 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 - Every user-visible string is an `AkI18n` key in both catalogs.
 - Business pages use only `ak-*` components. The adapter may be implemented on native uni components until the pinned uView module is present.
 - Async states are explicit: loading, empty, error, offline, forbidden and mutating. Mutations disable duplicate input and show localised feedback.
+- Reversible collection-wide actions such as marking all messages read use a concise top-bar text action, preserve a 44 px target, remain disabled when there is nothing to change and provide localized completion/error feedback.
 - Use outline glyphs or text affordances consistently; do not use emoji as UI icons.
 - Reserve safe-area space around the bottom tab/action bars and leave room for English expansion.
 - Respect native swipe-back, pull-to-refresh and modal-dismiss gestures; do not bind conflicting horizontal gestures.

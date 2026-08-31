@@ -18,7 +18,7 @@
 </template>
 <script lang="uts">
 import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
-export default { name:'AkBottomSheet', props:{ open:{type:Boolean,default:false}, title:{type:String,default:''}, dismissible:{type:Boolean,default:true} }, emits:['close'], computed:{ t(){return akI18n.t}, sheetStyle():string { const info=uni.getWindowInfo(); const top=Math.max(info.safeAreaInsets.top,20); return 'max-height:calc(100vh - '+(top+12).toString()+'px);padding-bottom:'+Math.max(info.safeAreaInsets.bottom,12).toString()+'px' } }, methods:{ requestClose(){if(this.dismissible)this.$emit('close')} } }
+export default { name:'AkBottomSheet', props:{ open:{type:Boolean,default:false}, title:{type:String,default:''}, dismissible:{type:Boolean,default:true}, expanded:{type:Boolean,default:false} }, emits:['close'], computed:{ t(){return akI18n.t}, sheetStyle():string { const info=uni.getWindowInfo(); const top=Math.max(info.safeAreaInsets.top,20); const size=this.expanded?'height':'max-height'; const available=Math.max(280,info.windowHeight-top-12); return size+':'+available.toString()+'px;padding-bottom:'+Math.max(info.safeAreaInsets.bottom,12).toString()+'px' } }, methods:{ requestClose(){if(this.dismissible)this.$emit('close')} } }
 </script>
 <style lang="scss">
 .ak-sheet-layer {
@@ -44,6 +44,7 @@ export default { name:'AkBottomSheet', props:{ open:{type:Boolean,default:false}
   border-radius: 24px 24px 0 0;
   min-height: 280px;
   width: 100%;
+  overflow: hidden;
 }
 .ak-sheet-handle {
   width: 36px;
@@ -73,6 +74,8 @@ export default { name:'AkBottomSheet', props:{ open:{type:Boolean,default:false}
   margin-left: 12px;
 }
 .ak-sheet-content {
+  flex: 1;
+  min-height: 0;
   padding: 20px;
   max-height: 620px;
 }

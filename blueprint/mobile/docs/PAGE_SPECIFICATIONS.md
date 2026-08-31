@@ -26,13 +26,13 @@ initial → loading → content | empty | error | offline | forbidden
 | `auth.verify-contact` | `pages/auth/verify-contact/index` | mixed | P0 | — | — | POST /api/v1/auth/email/send-code<br>POST /api/v1/auth/email/verify<br>POST /api/v1/auth/mobile/send-code<br>POST /api/v1/auth/mobile/verify |
 | `auth.mfa-challenge` | `pages/auth/mfa-challenge/index` | challenge | P1 | mfa_enabled | — | POST /api/v1/auth/mfa/verify |
 | `auth.oauth-callback` | `pages/auth/oauth-callback/index` | mixed | P2 | oauth_login_enabled | — | POST /api/v1/auth/oauth/{provider}/callback |
-| `home` | `pages/home/index` | public | P0 | — | — | GET /api/v1/public/config<br>GET /api/v1/public/content/home |
+| `home` | `pages/home/index` | public | P0 | — | — | GET /api/v1/public/config<br>GET /api/v1/public/content/home<br>GET /api/v1/me/notifications/unread-count（登录后） |
 | `scanner.webview` | `pages/scanner/webview/index` | public | P1 | — | — | — |
 | `notifications.list` | `pages/notifications/index` | authenticated | P1 | — | notify.message.read_self | GET /api/v1/me/notifications<br>POST /api/v1/me/notifications/read-all |
 | `notifications.detail` | `pages/notifications/detail` | authenticated | P1 | — | notify.message.read_self<br>notify.message.mark_read_self | GET /api/v1/me/notifications/{message_id}<br>PATCH /api/v1/me/notifications/{message_id}/read |
 | `profile.index` | `pages/profile/index` | authenticated | P0 | — | iam.user.read_self | GET /api/v1/me |
 | `profile.basic` | `pages/profile/basic/index` | authenticated | P1 | — | iam.user.read_self | GET /api/v1/me |
-| `profile.edit` | `pages/profile/edit/index` | authenticated | P1 | — | iam.user.update_self | GET /api/v1/me<br>PATCH /api/v1/me<br>POST /api/v1/me/avatar/upload-session |
+| `profile.edit` | `pages/profile/edit/index` | authenticated | P1 | — | iam.user.update_self, storage.file.upload_self | GET /api/v1/me<br>PATCH /api/v1/me<br>POST /api/v1/me/avatar/upload-session<br>POST /api/v1/me/avatar/upload-sessions/{id}/content<br>GET /api/v1/me/avatar/content |
 | `profile.security` | `pages/profile/security/index` | authenticated | P1 | — | iam.user.read_self | GET /api/v1/me/login-events<br>GET /api/v1/me/security-events |
 | `profile.change-password` | `pages/profile/change-password/index` | authenticated | P1 | — | iam.user.update_self | POST /api/v1/auth/password/change |
 | `profile.sessions` | `pages/profile/sessions/index` | authenticated | P1 | — | iam.session.read_self<br>iam.session.revoke_self | GET /api/v1/me/sessions<br>DELETE /api/v1/me/sessions/{session_id}<br>POST /api/v1/auth/logout-all |

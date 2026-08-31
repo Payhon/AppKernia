@@ -6,5 +6,7 @@ import { RefreshingHttpPort } from '../../../core/network/refreshing-http-port.u
 import { SessionRuntime } from '../../../core/stores/session-runtime.uts'
 import { MobileAuthService } from '../../auth/mobile-auth-service.uts'
 import { HttpProfileRepository } from './http-profile-repository.uts'
-export class ProfileRuntime { private repository:HttpProfileRepository|null=null; configure(config:AkConfig,session:SessionStore,sessions:SessionRuntime,auth:MobileAuthService):void{this.repository=new HttpProfileRepository(new RefreshingHttpPort(new AkHttpClient(config,session),new RefreshCoordinator(sessions,auth)))} getRepository():HttpProfileRepository|null{return this.repository} }
+import { ProfileAvatarLoader } from './profile-avatar-loader.uts'
+import { ProfileAvatarUploader } from './profile-avatar-uploader.uts'
+export class ProfileRuntime { private repository:HttpProfileRepository|null=null;private avatarLoader:ProfileAvatarLoader|null=null;private avatarUploader:ProfileAvatarUploader|null=null; configure(config:AkConfig,session:SessionStore,sessions:SessionRuntime,auth:MobileAuthService):void{const refresh=new RefreshCoordinator(sessions,auth);this.repository=new HttpProfileRepository(new RefreshingHttpPort(new AkHttpClient(config,session),refresh));this.avatarLoader=new ProfileAvatarLoader(config,session,refresh);this.avatarUploader=new ProfileAvatarUploader(config,session,refresh,this.repository!)} getRepository():HttpProfileRepository|null{return this.repository} getAvatarLoader():ProfileAvatarLoader|null{return this.avatarLoader} getAvatarUploader():ProfileAvatarUploader|null{return this.avatarUploader} }
 export const profileRuntime=new ProfileRuntime()

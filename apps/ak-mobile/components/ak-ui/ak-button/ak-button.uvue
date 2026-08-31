@@ -1,5 +1,5 @@
 <template>
-  <view class="ak-button" :class="[variantClass, disabled || loading ? 'ak-button-disabled' : 'ak-button-enabled']" @click="handleClick">
+  <view class="ak-button" :class="[variantClass, disabled || loading ? 'ak-button-disabled' : 'ak-button-enabled']" role="button" :aria-label="label" @click="handleClick">
     <text v-if="loading" :class="labelClass">{{ loadingText }}</text>
     <text v-else-if="label.length > 0" :class="labelClass">{{ label }}</text>
     <text v-else :class="labelClass"><slot /></text>
@@ -20,11 +20,13 @@ export default {
     variantClass(): string {
       if (this.variant == 'secondary') return 'ak-button-secondary'
       if (this.variant == 'danger') return 'ak-button-danger'
+      if (this.variant == 'text') return 'ak-button-text'
       return 'ak-button-primary'
     },
     labelClass(): string {
       if (this.variant == 'secondary') return 'ak-button__label ak-button__label-secondary'
       if (this.variant == 'danger') return 'ak-button__label ak-button__label-danger'
+      if (this.variant == 'text') return 'ak-button__label ak-button__label-text'
       return 'ak-button__label ak-button__label-primary'
     },
   },
@@ -41,10 +43,12 @@ export default {
 .ak-button-primary { background:var(--ak-brand); }
 .ak-button-secondary { background:var(--ak-surface-subtle); border:1px solid var(--ak-border); }
 .ak-button-danger { background:var(--ak-danger); }
+.ak-button-text { background:transparent; }
 .ak-button-enabled { opacity:1; }
 .ak-button-disabled { opacity:0.5; }
 .ak-button__label { font-size:16px; font-weight:600; line-height:22px; }
 .ak-button__label-primary { color:var(--ak-on-brand); }
 .ak-button__label-secondary { color:var(--ak-text); }
 .ak-button__label-danger { color:var(--ak-on-danger); }
+.ak-button__label-text { color:var(--ak-brand); font-size:14px; }
 </style>

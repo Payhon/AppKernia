@@ -4,3 +4,13 @@
 - Each row uses a distinct leading icon well, primary label, optional secondary value and chevron. Repeated generic icons are not acceptable.
 - Destructive sign-out is isolated below the regular groups and requires confirmation.
 - Navigation rows expose a 44 px target and a visible chevron; profile data stays server-confirmed.
+- The top-right bell opens the message inbox. The row labelled “Notification settings” opens `settings.notifications`; these destinations must remain distinct because the latter manages in-app, email and push preferences rather than message content.
+- Authenticated identity surfaces use the shared circular `ak-avatar`: show the server-confirmed image when available and a localized-safe initial fallback while loading or on failure. Never put bearer tokens in image URLs.
+- The edit page places avatar editing before text fields. Tapping it opens an explicit camera/gallery choice; an app-owned crop editor provides the same square pan/zoom flow on Android, iOS and HarmonyOS, followed by a separate circular preview. Upload starts only after preview confirmation.
+- The crop editor uses the normalized local path returned by `getImageInfo`, not the picker URI. A native `image` layer owns the visible 320 px preview while Canvas is reserved for the final 512 px export, preventing iOS Canvas timing/path failures from producing a blank preview.
+- The crop viewport supports one-finger pan and two-finger pinch zoom from 1× to 3×. Zoom out, zoom in and reset are 44 px icon controls floating at the viewport top left with 8 px spacing and localized accessibility labels; text-button duplicates are not allowed.
+- The circular crop boundary uses a dark/light dual stroke so it remains visible on both white and dark photos. Controls may overlap the boundary but must never obscure the central subject area.
+- Avatar selection, crop, preview and upload are distinct states. Cancellation preserves the current avatar; upload disables duplicate input, exposes progress, and keeps a retry path on failure.
+- Camera/gallery permissions are requested only by the user's direct source action. The system picker is preferred for gallery access where supported so broad photo-library access is not required.
+- `albumMode: system` is Android-only and must be guarded by the platform compiler; passing it to iOS or HarmonyOS is not allowed.
+- Self-closing identity components must be followed directly by the next element; a standalone template angle bracket is visible text, not a second navigation affordance. The identity card exposes exactly one trailing chevron.

@@ -25,7 +25,7 @@
     { "path": "pages/legal/privacy/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/legal/terms/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/legal/page/index", "style": { "navigationStyle": "custom" } },
-    { "path": "pages/notifications/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/notifications/index", "style": { "navigationStyle": "custom", "disableScroll": true } },
     { "path": "pages/profile/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/profile/basic/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/profile/edit/index", "style": { "navigationStyle": "custom" } },

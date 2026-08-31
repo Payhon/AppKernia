@@ -101,7 +101,7 @@
   "permissions.notifications.title": "Notifications",
   "permissions.notifications.description": "Receive service, security, and content updates you explicitly subscribe to.",
   "permissions.camera.title": "Camera",
-  "permissions.camera.description": "Used only after you tap Scan. Scanning never reads your photo library.",
+  "permissions.camera.description": "Used only when you scan a code or take a profile photo. Scanning never reads your photo library.",
   "permissions.photos.title": "Photos",
   "permissions.photos.description": "Used to select or save photos.",
   "permissions.filePicker.title": "File Picker",

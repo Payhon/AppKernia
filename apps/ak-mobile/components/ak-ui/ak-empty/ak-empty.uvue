@@ -1,0 +1,87 @@
+<template>
+  <view class="ak-empty">
+    <ak-icon :name="icon" :size="48" />
+    <text class="ak-empty__title">{{ title }}</text>
+    <text v-if="description.length > 0" class="ak-empty__description">{{ description }}</text>
+    <view
+      v-if="actionLabel.length > 0"
+      class="ak-empty__action"
+      role="button"
+      :aria-label="actionLabel"
+      @click="activate"
+    >
+      <view class="ak-empty__action-surface">
+        <ak-icon :name="actionIcon" :size="14" />
+        <text class="ak-empty__action-label">{{ actionLabel }}</text>
+      </view>
+    </view>
+    <slot />
+  </view>
+</template>
+
+<script lang="uts">
+export default {
+  props: {
+    title: { type: String, default: '' },
+    description: { type: String, default: '' },
+    icon: { type: String, default: 'empty' },
+    actionLabel: { type: String, default: '' },
+    actionIcon: { type: String, default: 'retry' },
+  },
+  emits: ['action'],
+  methods: {
+    activate() {
+      this.$emit('action')
+    },
+  },
+}
+</script>
+
+<style lang="scss">
+.ak-empty {
+  min-height: 220px;
+  padding: 40px 20px;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.ak-empty__title {
+  color: var(--ak-muted);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 24px;
+  text-align: center;
+  margin-top: 16px;
+}
+.ak-empty__description {
+  color: var(--ak-muted);
+  font-size: 14px;
+  line-height: 21px;
+  text-align: center;
+  margin-top: 8px;
+}
+.ak-empty__action {
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 18px;
+}
+.ak-empty__action-surface {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  border: 1px solid var(--ak-border);
+  background: var(--ak-surface);
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+.ak-empty__action-label {
+  color: var(--ak-brand);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  margin-left: 8px;
+}
+</style>

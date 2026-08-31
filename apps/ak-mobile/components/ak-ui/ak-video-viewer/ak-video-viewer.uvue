@@ -3,8 +3,8 @@
     <view :class="stageClass">
       <image v-if="cover.length > 0" class="orientation-probe" :src="cover" mode="aspectFit" @load="onCoverLoad" />
       <video id="content-video" :class="playerClass" :style="playerStyle" :src="videoUrl" :poster="cover" controls :object-fit="videoFit" @error="$emit('video-error')" />
-      <view v-if="mode === 'horizontal'" class="horizontal-switch"><ak-icon-button name="layout-vertical" :label="verticalLabel" @click="toggleMode" /></view>
-      <view v-else class="vertical-top"><view class="vertical-control"><ak-back-button /></view><view class="vertical-control"><ak-icon-button name="layout-horizontal" :label="horizontalLabel" @click="toggleMode" /></view></view>
+      <view v-if="mode === 'horizontal'" class="horizontal-switch"><ak-icon-button name="layout-vertical" :icon-size="20" :label="verticalLabel" @click="toggleMode" /></view>
+      <view v-else class="vertical-top"><view class="vertical-control"><ak-back-button /></view><view class="vertical-control"><ak-icon-button name="layout-horizontal" :icon-size="20" :label="horizontalLabel" @click="toggleMode" /></view></view>
       <view v-if="mode === 'vertical'" class="vertical-actions">
         <view class="vertical-control vertical-action"><ak-icon-button name="bookmark" :label="bookmarkLabel" :active="bookmarked" :loading="bookmarkLoading" @click="$emit('bookmark')" /></view>
         <view class="vertical-control vertical-action"><ak-icon-button name="comment" :label="commentLabel" @click="$emit('comments')" /></view>

@@ -7,6 +7,7 @@ repo_root="$(cd "$project_root/../.." && pwd)"
 python3 "$repo_root/blueprint/mobile/scripts/validate_blueprint_specs.py"
 python3 "$repo_root/blueprint/scripts/validate_i18n_contract.py"
 python3 "$project_root/scripts/check-i18n-catalogs.py"
+python3 "$project_root/scripts/test_notification_contract.py"
 python3 "$project_root/scripts/test_bookmark_filter_contract.py"
 python3 "$project_root/scripts/test_scanner_contract.py"
 python3 "$project_root/scripts/generate-mobile-client.py"
@@ -151,6 +152,146 @@ for tab_icon in \
     exit 1
   fi
 done
+python3 "$project_root/scripts/verify-tabbar-icons.py"
+
+back_button_icon_size="$project_root/components/ak-ui/ak-back-button/ak-back-button.uvue"
+if ! rg -Uq 'ak-back-button__icon \{[[:space:]]+width: 20px;[[:space:]]+height: 20px;' "$back_button_icon_size"; then
+  printf 'AK back button must use the 20px top-navigation glyph size\n' >&2
+  exit 1
+fi
+
+home_page="$project_root/pages/home/index.uvue"
+for home_navigation_pattern in 'class="nav-title-row"' 'class="nav-actions"' 'name="search" :icon-size="20"' 'name="bell" :icon-size="20"' 'nav-action-last { margin-left: 8px; }'; do
+  if ! rg -Fq "$home_navigation_pattern" "$home_page"; then
+    printf 'home page is missing the aligned 20px navigation layout: %s\n' "$home_navigation_pattern" >&2
+    exit 1
+  fi
+done
+
+for top_navigation_spec in \
+  'pages/browse/index.uvue|name="search" :icon-size="20"' \
+  'pages/browse/index.uvue|name="filter" :icon-size="20"' \
+  'pages/articles/detail/index.uvue|name="share" :icon-size="20"' \
+  'pages/profile/basic/index.uvue|name="edit" :icon-size="20"' \
+  'pages/profile/index.uvue|name="bell"' \
+  'pages/profile/index.uvue|:icon-size="20"' \
+  'components/ak-ui/ak-video-viewer/ak-video-viewer.uvue|name="layout-vertical" :icon-size="20"' \
+  'components/ak-ui/ak-video-viewer/ak-video-viewer.uvue|name="layout-horizontal" :icon-size="20"'; do
+  navigation_file="${top_navigation_spec%%|*}"
+  navigation_pattern="${top_navigation_spec#*|}"
+  if ! rg -Fq "$navigation_pattern" "$project_root/$navigation_file"; then
+    printf 'mobile top navigation is missing the 20px icon contract: %s (%s)\n' "$navigation_file" "$navigation_pattern" >&2
+    exit 1
+  fi
+done
+
+if rg -n 'class="action-icon"[^>]*:icon-size="20"' "$project_root/pages/articles/detail/index.uvue" || rg -n 'class="ak-sheet-close"[^>]*:icon-size="20"' "$project_root/components/ak-ui/ak-bottom-sheet/ak-bottom-sheet.uvue"; then
+  printf 'compact content and modal actions must not inherit the 20px top-navigation size\n' >&2
+  exit 1
+fi
+
+empty_component="$project_root/components/ak-ui/ak-empty/ak-empty.uvue"
+status_view="$project_root/components/ak-ui/ak-status-view/ak-status-view.uvue"
+for empty_pattern in \
+  ':name="icon" :size="48"' \
+  'color: var(--ak-muted)' \
+  'min-width: 44px' \
+  'min-height: 44px' \
+  'min-height: 32px' \
+  ':name="actionIcon" :size="14"' \
+  'margin-left: 8px'; do
+  if ! rg -Fq "$empty_pattern" "$empty_component"; then
+    printf 'AK empty component is missing the shared visual or touch contract: %s\n' "$empty_pattern" >&2
+    exit 1
+  fi
+done
+for empty_icon in empty.svg offline.svg error.svg retry.svg; do
+  if [[ ! -f "$project_root/static/ak-icons/$empty_icon" ]]; then
+    printf 'AK empty component is missing its semantic icon: %s\n' "$empty_icon" >&2
+    exit 1
+  fi
+done
+if ! rg -Fq '<ak-empty' "$status_view" || rg -Fq '<ak-empty-state' "$status_view" || rg -n '<ak-empty-state' "$project_root/pages"; then
+  printf 'mobile empty content states must be routed through the shared ak-empty component\n' >&2
+  exit 1
+fi
+
+profile_page="$project_root/pages/profile/index.uvue"
+if ! rg -Fq '<ak-icon name="language"' "$profile_page" || ! rg -Fq '<ak-icon name="settings"' "$profile_page" || [[ ! -f "$project_root/static/ak-icons/language.svg" ]]; then
+  printf 'profile language/appearance and application permissions must use distinct semantic icons\n' >&2
+  exit 1
+fi
+if rg -Uq '<ak-avatar[^>]*?/>[[:space:]]+>' "$profile_page"; then
+  printf 'profile avatar must not be followed by a standalone angle-bracket text node\n' >&2
+  exit 1
+fi
+
+profile_edit_page="$project_root/pages/profile/edit/index.uvue"
+for avatar_crop_pattern in \
+  'this.openCrop(info.path,info.width,info.height)' \
+  'class="crop-source"' \
+  'class="crop-gesture-layer"' \
+  'event.touches.length>=2' \
+  'name="zoom-out"' \
+  'name="zoom-in"' \
+  'name="reset"' \
+  'width:320px;height:320px'; do
+  if ! rg -Fq "$avatar_crop_pattern" "$profile_edit_page"; then
+    printf 'profile avatar crop is missing normalized iOS preview or pinch controls: %s\n' "$avatar_crop_pattern" >&2
+    exit 1
+  fi
+done
+if rg -Fq 'class="crop-controls"' "$profile_edit_page"; then
+  printf 'profile avatar crop must keep zoom/reset controls as floating icons, not text buttons\n' >&2
+  exit 1
+fi
+for avatar_crop_icon in zoom-out.svg zoom-in.svg reset.svg; do
+  if [[ ! -f "$project_root/static/ak-icons/$avatar_crop_icon" ]]; then
+    printf 'profile avatar crop icon is missing: %s\n' "$avatar_crop_icon" >&2
+    exit 1
+  fi
+done
+avatar_loader="$project_root/src/features/profile/infrastructure/profile-avatar-loader.uts"
+for avatar_loader_pattern in 'private finished: boolean = false' 'if (this.cancelled || this.finished) return' 'cancellation.finish();onSuccess'; do
+  if ! rg -Fq "$avatar_loader_pattern" "$avatar_loader"; then
+    printf 'profile avatar loader cancellation must be idempotent after native task completion: %s\n' "$avatar_loader_pattern" >&2
+    exit 1
+  fi
+done
+
+bookmarks_page="$project_root/pages/bookmarks/index.uvue"
+for bookmark_tab_pattern in 'filter-label-active' 'color: var(--ak-on-brand)' 'font-weight: 600'; do
+  if ! rg -Fq "$bookmark_tab_pattern" "$bookmarks_page"; then
+    printf 'bookmark tabs are missing the high-contrast selected label contract: %s\n' "$bookmark_tab_pattern" >&2
+    exit 1
+  fi
+done
+
+notifications_page="$project_root/pages/notifications/index.uvue"
+for notification_nav_pattern in '<ak-back-button/>' 'class="nav-title"' '<view class="page">' 'class="notification-scroll"' '.page{height:100%;flex:1;overflow:hidden' '.nav{height:44px' 'flex-shrink:0' '.notification-scroll{height:0;flex:1;min-height:0}' '.nav-side{width:88px;height:44px' 'notifications.markAllRead'; do
+  if ! rg -Fq "$notification_nav_pattern" "$notifications_page"; then
+    printf 'notifications page is missing the fixed navigation and independent scroll contract: %s\n' "$notification_nav_pattern" >&2
+    exit 1
+  fi
+done
+if ! grep -Fq '"path": "pages/notifications/index", "style": { "navigationStyle": "custom", "disableScroll": true }' "$project_root/pages.json"; then
+  echo "notifications page must disable native page scrolling" >&2
+  exit 1
+fi
+python3 - "$notifications_page" <<'PY'
+import re
+import sys
+
+source = open(sys.argv[1], encoding="utf-8").read()
+template = source.split("</template>", 1)[0]
+fixed_header = re.search(
+    r'<view class="page">\s*<view class="nav">.*?</view>\s*<scroll-view class="notification-scroll"',
+    template,
+    re.S,
+)
+if fixed_header is None:
+    raise SystemExit("notifications navigation must be a non-scrolling sibling before the message scroll-view")
+PY
 
 video_viewer="$project_root/components/ak-ui/ak-video-viewer/ak-video-viewer.uvue"
 if rg -n 'uni\.getVideoInfo|getVideoInfo\(' "$video_viewer"; then

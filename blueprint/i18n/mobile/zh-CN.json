@@ -101,7 +101,7 @@
   "permissions.notifications.title": "通知权限",
   "permissions.notifications.description": "用于接收服务、安全和你主动订阅的资讯消息。",
   "permissions.camera.title": "相机",
-  "permissions.camera.description": "仅在你主动扫码后使用相机。扫码不会读取相册。",
+  "permissions.camera.description": "仅在你主动扫码或拍摄头像时使用相机。扫码不会读取相册。",
   "permissions.photos.title": "照片",
   "permissions.photos.description": "用于选择或保存照片。",
   "permissions.filePicker.title": "文件选择",

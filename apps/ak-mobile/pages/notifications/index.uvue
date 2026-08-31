@@ -1,15 +1,17 @@
 <template>
-  <ak-theme-root><scroll-view class="page" scroll-y @scrolltolower="more">
-    <view class="header"><text class="title">{{t('tabs.notifications', null)}}</text></view>
-    <view v-if="state!=='content'" class="state"><ak-status-view :state="state" :title="title" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/></view>
-    <view v-else class="notification-list">
-      <ak-card v-for="item in items" :key="item.id" :class="item.readAt==null?'notification-card notification-card-unread':'notification-card'" @click="read(item)">
-        <view class="notification-card__header"><text class="notification-card__title">{{item.title}}</text><view v-if="item.readAt==null" class="unread-dot"/></view>
-        <text class="notification-card__body">{{plain(item.body)}}</text><text class="notification-card__time">{{item.createdAt}}</text>
-      </ak-card>
-      <ak-button v-if="cursor.length>0&&!focused" class="load-more" variant="secondary" :loading="moreLoading" @click="more">{{t('articles.loadMore', null)}}</ak-button>
-    </view>
-  </scroll-view></ak-theme-root>
+  <ak-theme-root><view class="page">
+    <view class="nav"><view class="nav-side"><ak-back-button/></view><text class="nav-title">{{t('routes.notifications.title', null)}}</text><view class="nav-side nav-side-trailing"><ak-button class="mark-all" variant="text" :label="t('notifications.markAllRead', null)" :loading="markAllLoading" :loading-text="t('notifications.markingAllRead', null)" :disabled="!hasUnread" @click="markAllRead"/></view></view>
+    <scroll-view class="notification-scroll" scroll-y @scrolltolower="more">
+      <view v-if="state!=='content'" class="state"><ak-status-view :state="state" :title="title" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload"/></view>
+      <view v-else class="notification-list">
+        <ak-card v-for="item in items" :key="item.id" :class="item.readAt==null?'notification-card notification-card-unread':'notification-card'" @click="read(item)">
+          <view class="notification-card__header"><text class="notification-card__title">{{item.title}}</text><view v-if="item.readAt==null" class="unread-dot"/></view>
+          <text class="notification-card__body">{{plain(item.body)}}</text><text class="notification-card__time">{{item.createdAt}}</text>
+        </ak-card>
+        <ak-button v-if="cursor.length>0&&!focused" class="load-more" variant="secondary" :loading="moreLoading" @click="more">{{t('articles.loadMore', null)}}</ak-button>
+      </view>
+    </scroll-view>
+  </view></ak-theme-root>
 </template>
 
 <script lang="uts">
@@ -21,12 +23,13 @@ import { MobileNotification, MobileNotificationPage } from '../../src/features/n
 import { notificationsRuntime } from '../../src/features/notifications/infrastructure/notifications-runtime.uts'
 
 let task: HttpCancellation | null = null
+let actionTask: HttpCancellation | null = null
 export default {
-  data() { return { state: 'loading', items: [] as Array<MobileNotification>, cursor: '', moreLoading: false, focused: false, focusId: '' } },
-  computed: { t() { return akI18n.t }, title() { return akI18n.t(this.state==='empty'?'state.empty.title':'state.error.title',null) } },
+  data() { return { state: 'loading', items: [] as Array<MobileNotification>, cursor: '', moreLoading: false, markAllLoading: false, focused: false, focusId: '' } },
+  computed: { t() { return akI18n.t }, title() { return akI18n.t(this.state==='empty'?'state.empty.title':'state.error.title',null) }, hasUnread():boolean{for(let index=0;index<this.items.length;index++){if(this.items[index].readAt==null)return true}return false} },
   onLoad(options: UTSJSONObject) { const value=options.getString('message_id');this.focusId=value==null?'':value;this.focused=this.validId(this.focusId);this.reload() },
   onShow() { new NavigationLocaleSync(akI18n).apply(akI18n.getLocale(),'routes.notifications.title') },
-  onUnload() { const activeTask=task;if(activeTask!=null)activeTask.cancel() },
+  onUnload() { const activeTask=task;if(activeTask!=null)activeTask.cancel();const activeAction=actionTask;if(activeAction!=null)activeAction.cancel() },
   methods: {
     validId(value:string):boolean{return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)},
     plain(value:string){return notificationPlainText(value)},
@@ -35,11 +38,12 @@ export default {
       task=repository.list(null as string|null,(page:MobileNotificationPage)=>{this.items=page.items;this.cursor=page.nextCursor!=null?page.nextCursor:'';this.state=this.items.length>0?'content':'empty'},()=>{this.state='error'})
     },
     more(){if(this.focused||this.cursor.length==0||this.moreLoading)return;const repository=notificationsRuntime.getRepository();if(repository==null)return;this.moreLoading=true;task=repository.list(this.cursor,(page:MobileNotificationPage)=>{this.items=this.items.concat(page.items);this.cursor=page.nextCursor!=null?page.nextCursor:'';this.moreLoading=false},()=>{this.moreLoading=false})},
-    read(item:MobileNotification){if(item.readAt!=null)return;const repository=notificationsRuntime.getRepository();if(repository==null)return;task=repository.read(item.id,()=>{item.readAt='now'},()=>{})},
+    read(item:MobileNotification){if(item.readAt!=null)return;const repository=notificationsRuntime.getRepository();if(repository==null)return;actionTask=repository.read(item.id,()=>{item.readAt='now'},()=>{})},
+    markAllRead(){if(!this.hasUnread||this.markAllLoading)return;const repository=notificationsRuntime.getRepository();if(repository==null)return;this.markAllLoading=true;actionTask=repository.readAll((_updated:number)=>{for(let index=0;index<this.items.length;index++)this.items[index].readAt='now';this.markAllLoading=false;uni.showToast({title:akI18n.t('notifications.markAllReadSuccess',null),icon:'none'})},()=>{this.markAllLoading=false;uni.showToast({title:akI18n.t('notifications.markAllReadError',null),icon:'none'})})},
   },
 }
 </script>
 
 <style lang="scss">
-.page{flex:1;background:var(--ak-page);padding:16px 16px 48px}.header{min-height:64px;justify-content:flex-end;margin-bottom:16px}.title{color:var(--ak-text);font-size:32px;font-weight:700;line-height:40px}.state{min-height:360px;justify-content:center}.notification-list{padding-bottom:16px}.notification-card{padding:16px;margin-bottom:12px}.notification-card-unread{border-color:var(--ak-brand);background:var(--ak-surface)}.notification-card__header{flex-direction:row;align-items:center;justify-content:space-between}.notification-card__title{flex:1;color:var(--ak-text);font-size:17px;font-weight:600;line-height:24px}.unread-dot{width:8px;height:8px;border-radius:4px;background:var(--ak-brand);margin-left:12px}.notification-card__body{color:var(--ak-muted);font-size:15px;line-height:22px;margin-top:8px}.notification-card__time{color:var(--ak-muted);font-size:13px;margin-top:12px}.load-more{margin-top:4px}
+.page{height:100%;flex:1;overflow:hidden;background:var(--ak-page);padding:0 16px}.nav{height:44px;flex-direction:row;align-items:center;margin-bottom:16px;flex-shrink:0}.nav-side{width:88px;height:44px;flex-direction:row;align-items:center}.nav-side-trailing{justify-content:flex-end}.nav-title{flex:1;color:var(--ak-text);font-size:17px;font-weight:600;line-height:24px;text-align:center}.mark-all{width:88px;padding:0}.notification-scroll{height:0;flex:1;min-height:0}.state{min-height:360px;justify-content:center}.notification-list{padding-bottom:48px}.notification-card{padding:16px;margin-bottom:12px}.notification-card-unread{border-color:var(--ak-brand);background:var(--ak-surface)}.notification-card__header{flex-direction:row;align-items:center;justify-content:space-between}.notification-card__title{flex:1;color:var(--ak-text);font-size:17px;font-weight:600;line-height:24px}.unread-dot{width:8px;height:8px;border-radius:4px;background:var(--ak-brand);margin-left:12px}.notification-card__body{color:var(--ak-muted);font-size:15px;line-height:22px;margin-top:8px}.notification-card__time{color:var(--ak-muted);font-size:13px;margin-top:12px}.load-more{margin-top:4px}
 </style>
