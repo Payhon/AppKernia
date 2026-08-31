@@ -960,6 +960,18 @@
 - HBuilderX 5.24 完成 36 页面 iOS 编译；iPhone 16 Pro / iOS 18.6 模拟器使用 `com.appkernia.mobile` 自定义基座安装、同步并启动成功。在本地 API 仍缺少两个能力块的条件下进入资讯浏览页，最近 10 分钟进程日志中原 TypeError、`share.providers`/`push.enabled` 访问异常及 fatal/exception 均为 0。
 - 模拟器截图保存为 `output/playwright/ak-ios-public-config-compatibility.png`，SHA-256 `b69aacd487396ce5072d00cebb130faeea424d481bc3757039321c323c894493`。本结果是 iOS 模拟器运行验收，不替代 iOS 真机、签名归档或 Push 厂商生产验收。
 
+### 2026-08-30 Mobile “我的收藏”类型 Tab 筛选修复
+
+- 2026-08-31 局部提交预检：仅暂存收藏筛选及配套测试/UI 证据，其他功能改动保留。独立暂存快照的 Server `make check`、14 项 Content 测试及 Mobile 总检查（含 4 项收藏契约测试、Blueprint/i18n）均退出 0；本次只做本地提交，不推送。
+
+- 根因位于服务端收藏查询：移动端切换“全部、文章、图文、视频”时已正确发送 `type`，OpenAPI 也已声明该参数，但 `ListBookmarks` SQL 只使用 `limit`，忽略了 `type`、`q` 和 `cursor`，因此每个 Tab 返回同一集合。
+- 收藏查询现按 tenant、app、user 和 published 状态强制隔离，并落实 `q`、`type`、`cursor`、`limit`；按收藏时间与 article ID 稳定倒序，使用 `limit+1` 生成下一页游标。无数据库迁移、OpenAPI 或权限变更。
+- 移动端切换 Tab 时立即进入 loading，取消上一条请求，并以请求序号拒绝过期响应；重复点击当前 Tab 不重复请求。发生错误时清空旧列表，避免把上一个类型的内容留在当前筛选下。
+- Tab 补齐 `tablist`、`tab`、本地化 label 和 `aria-selected`；“我的收藏”入口及可点击资讯卡补齐按钮名称。选中态仍由品牌蓝背景、白色标签和增强字重共同表达。
+- Server `make check`、4 项 Mobile 跨层契约、临时 PostgreSQL 18 实际查询集成测试及 Mobile 总检查均退出 0；HBuilderX 5.24 完成最终 37 页面 iOS、Android、HarmonyOS 编译，HarmonyOS 生成未签名调试 HAP。
+- iPhone 16 Pro / iOS 18.6 当前源码实际安装同步；Maestro 1/1、20 秒通过，自动确认文章、图文、视频各自只显示对应类型，切回“全部”后恢复组合集合。2 条临时验收资讯及收藏已删除，演示用户恢复为原有 1 条文章收藏。
+- UI 证据位于 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-bookmark-type-filter/`。Android/HarmonyOS 未执行运行交互或物理设备验收；VoiceOver/TalkBack、最大动态字号、暗色模式和三端物理设备仍待复测。本轮未 commit、未 push，保留全部既有无关修改。
+
 ### 2026-08-30 移动端扫码与客户端配置
 
 - Backend 新增独立的应用扫码配置表、读写接口、公开运行时配置、乐观锁、权限和审计事件；域名规则统一规范化并拒绝协议、路径、凭据、IP、localhost、非 443 端口与公共后缀通配符，缺失或异常配置均按关闭处理。

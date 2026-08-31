@@ -20,7 +20,7 @@
           }}</text></view
         ><ak-icon name="chevron-right" /></ak-card
       ><ak-cell-list class="menu-group"
-        ><view class="row" @click="protectedGo('/pages/bookmarks/index')"
+        ><view class="row" role="button" :aria-label="t('profile.bookmarks', null)" @click="protectedGo('/pages/bookmarks/index')"
           ><view class="row-lead"
             ><ak-icon name="bookmark" /><text class="row-label">{{
               t("profile.bookmarks", null)

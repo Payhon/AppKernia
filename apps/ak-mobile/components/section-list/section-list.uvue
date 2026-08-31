@@ -3,7 +3,7 @@
     <text v-if="title.length > 0" class="section-title">{{ title }}</text>
     <scroll-view v-if="horizontal" class="horizontal" scroll-x>
       <view class="row">
-        <ak-card v-for="item in items" :key="item.id" class="horizontal-card" @click="$emit('open', item.slug)">
+        <ak-card v-for="item in items" :key="item.id" class="horizontal-card" role="button" :aria-label="item.title" @click="$emit('open', item.slug)">
           <image v-if="item.coverUrl != null" class="thumb-wide" :src="asset(item.coverUrl)" mode="aspectFill" :alt="item.title" />
           <text class="item-type horizontal-type">{{ typeLabel(item.contentType) }}</text>
           <text class="item-title horizontal-title">{{ item.title }}</text>
@@ -11,7 +11,7 @@
       </view>
     </scroll-view>
     <view v-else>
-      <ak-card v-for="item in items" :key="item.id" class="content-card" @click="$emit('open', item.slug)">
+      <ak-card v-for="item in items" :key="item.id" class="content-card" role="button" :aria-label="item.title" @click="$emit('open', item.slug)">
         <view v-if="item.contentType === 'article'" class="article-card">
           <view class="article-copy">
             <text class="item-type">{{ typeLabel(item.contentType) }}</text>

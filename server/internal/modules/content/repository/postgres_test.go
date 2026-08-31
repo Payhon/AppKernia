@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	content "github.com/appkernia/appkernia/server/internal/modules/content/domain"
 	"github.com/google/uuid"
 )
 
@@ -65,6 +66,48 @@ func TestCommentRateLimitQueryUsesEveryBoundParameter(t *testing.T) {
 		if !strings.Contains(commentRateLimitSQL, clause) {
 			t.Fatalf("comment rate-limit query missing bound parameter clause %q", clause)
 		}
+	}
+}
+
+func TestBookmarkListQueryAppliesTypeSearchCursorAndLimit(t *testing.T) {
+	tenantID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	appID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	userID := uuid.MustParse("00000000-0000-0000-0000-000000000003")
+	cursor := uuid.MustParse("00000000-0000-0000-0000-000000000004")
+	query, args, err := bookmarkListQuery(tenantID, appID, userID, "zh-CN", content.PublicFilter{
+		Query:       "相册",
+		ContentType: "gallery",
+		Cursor:      cursor.String(),
+		Limit:       20,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, clause := range []string{
+		"bm.tenant_id=a.tenant_id",
+		"a.tenant_id=$3",
+		"a.app_id=$4",
+		"t.search_text ILIKE '%'||$5||'%'",
+		"a.content_type=$6",
+		"cursor_bm.tenant_id=$3",
+		"cursor_bm.app_id=$4",
+		"cursor_bm.user_id=$1",
+		"cursor_bm.article_id=$7",
+		"ORDER BY bm.created_at DESC,a.id DESC LIMIT $8",
+	} {
+		if !strings.Contains(query, clause) {
+			t.Fatalf("bookmark list query missing %q\n%s", clause, query)
+		}
+	}
+	if len(args) != 8 || args[4] != "相册" || args[5] != "gallery" || args[6] != cursor || args[7] != int32(21) {
+		t.Fatalf("unexpected bookmark list args: %#v", args)
+	}
+}
+
+func TestBookmarkListQueryRejectsInvalidCursor(t *testing.T) {
+	_, _, err := bookmarkListQuery(uuid.New(), uuid.New(), uuid.New(), "en-US", content.PublicFilter{Cursor: "not-a-uuid", Limit: 20})
+	if err != content.ErrInvalid {
+		t.Fatalf("bookmarkListQuery invalid cursor error=%v", err)
 	}
 }
 

@@ -2707,3 +2707,28 @@
 - 静态/编译结果没有被当作真机结果。Android 物理设备二维码识别、结果展示和取消分流已通过；仍待独立验收：Android 一维码、iOS/HarmonyOS 物理设备二维码和一维码、相机首次/拒绝/设置返回、白名单 WebView 与越界重定向关闭、复制反馈、读屏、动态字号、高对比度、减少动效，以及 Admin 双语键盘/窄屏浏览器截图。HarmonyOS 真机继续受 `com.appkernia.mobile` 调试签名阻断。
 - 探索失败均保留真实边界：iOS 首次复编译因 HBuilder 缓存目录瞬时 `ENOENT` 退出 1，原命令重跑通过；三次早期 Maestro 分别被遗留文章详情、首次隐私页和未暴露的同意按钮定位阻断，改为清空状态并点击确定坐标后最终通过。Android Maestro 因该双显示 vivo 设备的 `tcp:7001 closed` / gRPC driver 关闭超时退出 130，后续改用 HBuilderX 资源同步和指定显示 ADB 操作取得真机结果，未把自动化驱动失败算作产品失败。
 - Docs `pnpm check` 首轮因非 TTY 依赖目录确认退出 1，`CI=true pnpm check` 重跑退出 0：147 个 API 引用、0 lint/type/format 错误、中英文 84 页面构建与语言配对通过。宿主 Node 26.5.0 高于仓库要求的 Node 24，正式 CI 仍应使用 Node 24。含二维码原文的临时真机截图已删除，仅保留不含扫码内容的取消截图和测试条码目标。
+
+### Mobile “我的收藏”类型 Tab 筛选修复交付
+
+- 2026-08-31 提交预检：从暂存区导出独立快照，执行 `server make check`、`go test -count=1 -v ./internal/modules/content/repository ./internal/modules/content/application ./internal/modules/content/transport/http`（14 项）及 `bash apps/ak-mobile/scripts/check-project.sh`（含 4 项收藏测试），全部退出 0。快照为 46 routes、42 components；本次未重跑三端构建/模拟器，下面的原生构建与截图记录属于 2026-08-30 集成工作树验收。提交只包含收藏筛选边界，不包含头像、通知、账户注销等其他未提交功能，不推送。
+
+- 调用链核对结果：收藏页把 `selectedType` 写入 `ArticleQuery.contentType`，HTTP repository 将其序列化为 `type`，Handler 解析进 `PublicFilter.ContentType`，Application 也完成合法值校验；唯一断点是 PostgreSQL `ListBookmarks` 没有把 filter 放进 SQL。
+- 后端新增可单测的收藏查询构建器，实际应用搜索、内容类型和 UUID 游标，恢复既有 OpenAPI 契约。Bookmark JOIN 新增 tenant 等值约束，游标子查询同时约束 tenant/app/user，分页使用收藏时间与 article ID 的稳定复合顺序。
+- 页面请求生命周期新增取消和版本保护，避免快速连续点击时较慢的旧响应覆盖新 Tab；加载、空、离线、错误状态继续复用 `ak-status-view`。`ui-ux-pro-max` 用于确认 active state、非颜色选中表达、异步反馈、空状态与读屏语义。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `go test ./internal/modules/content/repository ./internal/modules/content/application ./internal/modules/content/transport/http` | 0 | Content repository/application 通过；transport 无测试文件。新增查询构建测试覆盖类型、搜索、游标、limit+1、租户/App/用户约束和非法游标。 |
+| 临时 PostgreSQL 18 migration + `go test -count=1 -tags=integration ... -run TestBookmarkListFiltersContentTypeSearchAndCursor` | 0 | 完整迁移到 version 25；真实插入 article/gallery/video 收藏，验证 gallery 筛选、关键词筛选和游标翻页。临时容器随后停止并自动删除。 |
+| Server `make check` | 0 | gofmt、go vet 与全仓 Go 单元/契约测试通过。 |
+| `python3 apps/ak-mobile/scripts/test_bookmark_filter_contract.py` | 0 | 4/4 通过，覆盖页面筛选参数、旧响应保护、Tab/入口/卡片语义、repository/OpenAPI 和服务端 SQL。 |
+| `bash apps/ak-mobile/scripts/check-project.sh` | 0 | 45 routes、4 tabs、57 API delta、11 permission delta、41 components、3 platforms；Blueprint/i18n 0 error/0 warning，5 项通知测试、4 项收藏测试、生成物、Client、启动快照与静态门禁 current。 |
+| `build-platform.sh ios` / `android` / `harmony` | 0 / 0 / 0 | HBuilderX 5.24 以最终源码完成 37 页面 iOS UTS、Android class、HarmonyOS UVue/UTS 编译；HarmonyOS 生成未签名调试 HAP。 |
+| HBuilderX `launch app-ios --deviceId 229E...` | 0 | iPhone 16 Pro / iOS 18.6 自定义基座安装成功，当前源码和程序文件同步成功。 |
+| `maestro test ... ak-mobile-bookmark-type-filter.yaml` | 0 | 1/1 flow passed in 20s：文章、图文、视频三个 Tab 分别只出现对应收藏，切回“全部”后组合集合恢复。Junit 位于 `output/maestro/ak-mobile-bookmark-type-filter.junit.xml`。 |
+| `git diff --check` | 0 | 最终聚合工作树补丁格式通过。 |
+
+- iOS 三张原始 1206×2622 PNG：文章 `708ca42a...b7beb`、图文 `29c76874...7df7c`、视频 `daaa7cf5...d1170`。截图索引、request、Skill output、decisions 和 review checklist 位于 `AKMOB-bookmark-type-filter`。
+- 验收数据采用精确 slug 的 1 条图文和 1 条视频临时资讯。最终流程通过后删除 2 条临时收藏及 2 条临时资讯，数据库复核临时 slug 数为 0，`demo-reader@appkernia.local` 恢复为原有 1 条 article 收藏。
+- 探索阶段 PostgreSQL 集成测试首次因 Fixture 中同一参数被推断为 `varchar` 与 `text` 两种类型而失败；显式转换测试参数后最终真实 SQL 通过。首个 Maestro 流程因“我的收藏”入口未暴露可访问名称而失败，第二个流程已正确显示文章结果但卡片标题未暴露为按钮名称；补齐两处语义后最终流程通过。这些探索失败均未计为产品通过。
+- 未完成门槛：Android/HarmonyOS 匹配基座运行、VoiceOver/TalkBack、最大动态字号、暗色模式和三端物理设备。HarmonyOS HAP 未签名；这些未执行项未标记为通过。本轮未 commit、未 push，也未清理或覆盖工作区中其他功能的未提交修改。

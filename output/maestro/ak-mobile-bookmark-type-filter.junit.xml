@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<testsuites>
+  <testsuite name="Test Suite" device="iPhone 16 Pro - iOS 18.6 - 229E457D-D39B-463E-9EEB-F7CDE79D6439" tests="1" failures="0" time="20.0">
+    <testcase id="我的收藏类型 Tab 筛选验收" name="我的收藏类型 Tab 筛选验收" classname="我的收藏类型 Tab 筛选验收" time="20.0" status="SUCCESS"/>
+  </testsuite>
+</testsuites>

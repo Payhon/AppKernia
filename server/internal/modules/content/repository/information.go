@@ -651,7 +651,11 @@ func (r *Postgres) ListBookmarks(ctx context.Context, tenantID, appID, userID uu
 	if err != nil {
 		return content.PublicArticlePage{}, err
 	}
-	rows, err := r.pool.Query(ctx, publicArticleSelect+` JOIN content.article_bookmarks bm ON bm.article_id=a.id AND bm.app_id=a.app_id AND bm.user_id=$1 WHERE a.tenant_id=$3 AND a.app_id=$4 AND a.status='published' ORDER BY bm.created_at DESC,a.id DESC LIMIT $5`, &userID, locale, tenantID, appID, f.Limit)
+	query, args, err := bookmarkListQuery(tenantID, appID, userID, locale, f)
+	if err != nil {
+		return content.PublicArticlePage{}, err
+	}
+	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return content.PublicArticlePage{}, err
 	}
@@ -667,7 +671,40 @@ func (r *Postgres) ListBookmarks(ctx context.Context, tenantID, appID, userID uu
 		}
 		out.Items = append(out.Items, x)
 	}
-	return out, rows.Err()
+	if err = rows.Err(); err != nil {
+		return out, err
+	}
+	if len(out.Items) > int(f.Limit) {
+		next := out.Items[f.Limit-1].ID.String()
+		out.NextCursor = &next
+		out.Items = out.Items[:f.Limit]
+	}
+	return out, nil
+}
+
+func bookmarkListQuery(tenantID, appID, userID uuid.UUID, locale string, f content.PublicFilter) (string, []any, error) {
+	args := []any{&userID, locale, tenantID, appID}
+	where := []string{"a.tenant_id=$3", "a.app_id=$4", "a.status='published'"}
+	add := func(query string, value any) {
+		args = append(args, value)
+		where = append(where, fmt.Sprintf(query, len(args)))
+	}
+	if f.Query != "" {
+		add("(t.search_text ILIKE '%%'||$%[1]d||'%%' OR EXISTS(SELECT 1 FROM content.article_tags sat JOIN content.tags st ON st.id=sat.tag_id WHERE sat.article_id=a.id AND st.status='active' AND st.normalized_name ILIKE '%%'||$%[1]d||'%%') OR EXISTS(SELECT 1 FROM content.article_categories sac JOIN content.category_translations sct ON sct.category_id=sac.category_id WHERE sac.article_id=a.id AND sct.locale IN ($2,'zh-CN') AND (lower(sct.name) ILIKE '%%'||$%[1]d||'%%' OR lower(sct.description) ILIKE '%%'||$%[1]d||'%%')))", strings.ToLower(f.Query))
+	}
+	if f.ContentType != "" {
+		add("a.content_type=$%d", f.ContentType)
+	}
+	if f.Cursor != "" {
+		id, err := uuid.Parse(f.Cursor)
+		if err != nil {
+			return "", nil, content.ErrInvalid
+		}
+		add("(bm.created_at,a.id) < (SELECT cursor_bm.created_at,cursor_bm.article_id FROM content.article_bookmarks cursor_bm WHERE cursor_bm.tenant_id=$3 AND cursor_bm.app_id=$4 AND cursor_bm.user_id=$1 AND cursor_bm.article_id=$%d)", id)
+	}
+	args = append(args, f.Limit+1)
+	query := publicArticleSelect + ` JOIN content.article_bookmarks bm ON bm.tenant_id=a.tenant_id AND bm.app_id=a.app_id AND bm.article_id=a.id AND bm.user_id=$1 WHERE ` + strings.Join(where, " AND ") + fmt.Sprintf(" ORDER BY bm.created_at DESC,a.id DESC LIMIT $%d", len(args))
+	return query, args, nil
 }
 
 func (r *Postgres) ListComments(ctx context.Context, tenantID, appID uuid.UUID, viewer *uuid.UUID, articleID uuid.UUID, status string, f content.PageFilter) (content.CommentPage, error) {

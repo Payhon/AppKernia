@@ -1,0 +1,42 @@
+appId: com.appkernia.mobile
+name: 我的收藏类型 Tab 筛选验收
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "首页"
+    timeout: 15000
+- tapOn: "我的"
+- extendedWaitUntil:
+    visible: "我的收藏"
+    timeout: 15000
+- tapOn: "我的收藏"
+- extendedWaitUntil:
+    visible: "全部"
+    timeout: 15000
+- tapOn: "文章"
+- extendedWaitUntil:
+    visible: "应核 AppKernia 资讯 App 一期正式启动"
+    timeout: 15000
+- assertNotVisible: "收藏筛选测试·图文"
+- assertNotVisible: "收藏筛选测试·视频"
+- takeScreenshot: apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-bookmark-type-filter/screenshots/ios-402x874-bookmarks-article
+- tapOn: "图文"
+- extendedWaitUntil:
+    visible: "收藏筛选测试·图文"
+    timeout: 15000
+- assertNotVisible: "应核 AppKernia 资讯 App 一期正式启动"
+- assertNotVisible: "收藏筛选测试·视频"
+- takeScreenshot: apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-bookmark-type-filter/screenshots/ios-402x874-bookmarks-gallery
+- tapOn: "视频"
+- extendedWaitUntil:
+    visible: "收藏筛选测试·视频"
+    timeout: 15000
+- assertNotVisible: "应核 AppKernia 资讯 App 一期正式启动"
+- assertNotVisible: "收藏筛选测试·图文"
+- takeScreenshot: apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-bookmark-type-filter/screenshots/ios-402x874-bookmarks-video
+- tapOn: "全部"
+- extendedWaitUntil:
+    visible: "收藏筛选测试·视频"
+    timeout: 15000
+- assertVisible: "收藏筛选测试·图文"

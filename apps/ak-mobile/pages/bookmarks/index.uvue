@@ -10,14 +10,17 @@
         v-model="query"
         :label="t('information.searchBookmarks', null)"
         @confirm="reload" /><scroll-view class="types" scroll-x
-        ><view class="row"
+        ><view class="row" role="tablist"
           ><view
             v-for="type in types"
             :key="type"
             class="filter"
             :class="{ active: selectedType === type }"
+            role="tab"
+            :aria-label="typeName(type)"
+            :aria-selected="selectedType === type"
             @click="select(type)"
-            ><text>{{ typeName(type) }}</text></view
+            ><text :class="selectedType === type ? 'filter-label filter-label-active' : 'filter-label'">{{ typeName(type) }}</text></view
           ></view
         ></scroll-view
       ><ak-status-view
@@ -33,7 +36,7 @@
   ></ak-theme-root>
 </template>
 <script lang="uts">
-import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{articleRuntime}from'../../src/features/articles/infrastructure/article-runtime.uts';import{ArticlePage,ArticleQuery,ArticleSummary}from'../../src/features/articles/domain/models.uts';import{navigateArticleDetail}from'../../src/core/navigation/app-routes.uts';export default{data(){return{state:'loading',query:'',selectedType:'',types:['','article','gallery','video']as Array<string>,items:[]as Array<ArticleSummary>}},computed:{t(){return akI18n.t},stateTitle():string{return akI18n.t(this.state==='empty'?'state.empty.title':this.state==='offline'?'state.offline.title':'state.error.title',null)}},onLoad(){this.reload()},methods:{typeName(x:string):string{return x.length==0?akI18n.t('information.all',null):akI18n.t('information.type.'+x,null)},select(x:string){this.selectedType=x;this.reload()},reload(){const repo=articleRuntime.getRepository();if(repo==null){this.state='error';return};const request:ArticleQuery={query:this.query.trim().length>0?this.query.trim():null,category:null,topic:null,tag:null,contentType:this.selectedType.length>0?this.selectedType:null,featured:null,cursor:null,limit:50};repo.listBookmarks(request,(page:ArticlePage)=>{this.items=page.items;this.state=page.items.length==0?'empty':'content'},error=>{this.state=error.kind==='network_unavailable'?'offline':'error'})},open(slug:string){navigateArticleDetail(slug)}}}
+import{HttpCancellation}from'../../src/core/network/http-port.uts';import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{articleRuntime}from'../../src/features/articles/infrastructure/article-runtime.uts';import{ArticlePage,ArticleQuery,ArticleSummary}from'../../src/features/articles/domain/models.uts';import{navigateArticleDetail}from'../../src/core/navigation/app-routes.uts';let task:HttpCancellation|null=null;let requestVersion=0;export default{data(){return{state:'loading',query:'',selectedType:'',types:['','article','gallery','video']as Array<string>,items:[]as Array<ArticleSummary>}},computed:{t(){return akI18n.t},stateTitle():string{return akI18n.t(this.state==='empty'?'state.empty.title':this.state==='offline'?'state.offline.title':'state.error.title',null)}},onLoad(){this.reload()},onUnload(){requestVersion+=1;const active=task;if(active!=null)active.cancel();task=null},methods:{typeName(x:string):string{return x.length==0?akI18n.t('information.all',null):akI18n.t('information.type.'+x,null)},select(x:string){if(this.selectedType===x)return;this.selectedType=x;this.reload()},reload(){const active=task;if(active!=null)active.cancel();task=null;requestVersion+=1;const version=requestVersion;const repo=articleRuntime.getRepository();if(repo==null){this.state='error';return};this.state='loading';const request:ArticleQuery={query:this.query.trim().length>0?this.query.trim():null,category:null,topic:null,tag:null,contentType:this.selectedType.length>0?this.selectedType:null,featured:null,cursor:null,limit:50};task=repo.listBookmarks(request,(page:ArticlePage)=>{if(version!==requestVersion)return;task=null;this.items=page.items;this.state=page.items.length==0?'empty':'content'},error=>{if(version!==requestVersion)return;task=null;this.items=[];this.state=error.kind==='network_unavailable'?'offline':'error'})},open(slug:string){navigateArticleDetail(slug)}}}
 </script>
 <style lang="scss">
 .page {
@@ -69,8 +72,16 @@ import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{articleRuntime}from'.
   margin-right: 8px;
   justify-content: center;
 }
+.filter-label {
+  color: var(--ak-text);
+  font-size: 15px;
+  line-height: 21px;
+}
+.filter-label-active {
+  color: var(--ak-on-brand);
+  font-weight: 600;
+}
 .active {
   background: var(--ak-brand);
-  color: #fff;
 }
 </style>
