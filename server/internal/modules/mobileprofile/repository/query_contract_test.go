@@ -12,18 +12,24 @@ func TestNotificationQueryScopesTenantUserAndDeliveryState(t *testing.T) {
 		t.Fatal(err)
 	}
 	sql := string(raw)
-	for _, name := range []string{"CountMobileUnreadNotifications", "ListMobileNotifications"} {
+	for _, name := range []string{"CountMobileUnreadNotifications", "ListMobileNotifications", "MarkAllMobileNotificationsRead"} {
 		start := strings.Index(sql, "-- name: "+name)
-		end := strings.Index(sql[start+1:], "-- name:")
-		if start < 0 || end < 0 {
+		if start < 0 {
 			t.Fatalf("%s query not found", name)
 		}
-		query := sql[start : start+1+end]
+		query := sql[start:]
+		if end := strings.Index(query[1:], "-- name:"); end >= 0 {
+			query = query[:1+end]
+		}
 		for _, required := range []string{"r.tenant_id = sqlc.arg(tenant_id)", "r.user_id = sqlc.arg(user_id)", "r.delivery_status = 'delivered'", "m.status = 'published'", "m.deleted_at IS NULL", "r.archived_at IS NULL"} {
 			if !strings.Contains(query, required) {
 				t.Fatalf("%s query missing %q", name, required)
 			}
 		}
+	}
+	bulkStart := strings.Index(sql, "-- name: MarkAllMobileNotificationsRead")
+	if bulkStart < 0 || !strings.Contains(sql[bulkStart:], "r.read_at IS NULL") || !strings.Contains(sql[bulkStart:], "m.app_id = r.app_id") {
+		t.Fatal("bulk notification read query must be idempotent and app scoped")
 	}
 }
 

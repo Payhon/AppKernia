@@ -69,3 +69,20 @@ WHERE tenant_id = sqlc.arg(tenant_id)
   AND message_id = sqlc.arg(message_id)
   AND delivery_status = 'delivered'
   AND archived_at IS NULL;
+
+-- name: MarkAllMobileNotificationsRead :execrows
+UPDATE notify.recipients AS r
+SET read_at = now()
+FROM notify.messages AS m
+WHERE r.tenant_id = sqlc.arg(tenant_id)
+  AND r.app_id = sqlc.arg(app_id)
+  AND r.user_id = sqlc.arg(user_id)
+  AND r.delivery_status = 'delivered'
+  AND r.read_at IS NULL
+  AND r.archived_at IS NULL
+  AND m.tenant_id = r.tenant_id
+  AND m.app_id = r.app_id
+  AND m.id = r.message_id
+  AND m.status = 'published'
+  AND m.deleted_at IS NULL
+  AND (m.expires_at IS NULL OR m.expires_at > now());

@@ -71,6 +71,7 @@
   "api_reference.operation.getMobileUnreadNotificationCount": "Count unread in-app notifications for the current user",
   "api_reference.operation.listMobileNotifications": "List delivered current-user in-app notifications with an opaque cursor",
   "api_reference.operation.getMobileNotification": "Read one delivered current-user in-app notification",
+  "api_reference.operation.markAllMobileNotificationsRead": "Idempotently mark every visible current-user notification as read",
   "api_reference.operation.markMobileNotificationRead": "Mark one delivered current-user notification as read",
   "api_reference.operation.getMobileCurrentPushDevice": "Read the current authenticated installation push binding without exposing its token",
   "api_reference.operation.registerMobilePushDevice": "Idempotently register or refresh the current installation push token",

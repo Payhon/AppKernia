@@ -552,3 +552,10 @@ func (service *Service) MarkNotificationRead(ctx context.Context, token, request
 	}
 	return service.repository.MarkNotificationRead(ctx, p.User.ID, p.Tenant.ID, *p.AppID, p.SessionID, messageID, requestID)
 }
+func (service *Service) MarkAllNotificationsRead(ctx context.Context, token, requestID string) (int64, error) {
+	p, err := service.authenticate(ctx, token)
+	if err != nil {
+		return 0, err
+	}
+	return service.repository.MarkAllNotificationsRead(ctx, p.User.ID, p.Tenant.ID, *p.AppID, p.SessionID, requestID)
+}

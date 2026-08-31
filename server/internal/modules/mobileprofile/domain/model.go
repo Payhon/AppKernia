@@ -64,4 +64,5 @@ type Repository interface {
 	Notifications(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, int) (NotificationPage, error)
 	Notification(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID) (Notification, error)
 	MarkNotificationRead(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, string) error
+	MarkAllNotificationsRead(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID, string) (int64, error)
 }

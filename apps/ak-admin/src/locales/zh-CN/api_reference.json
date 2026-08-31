@@ -71,6 +71,7 @@
   "api_reference.operation.getMobileUnreadNotificationCount": "获取移动端未读通知数量",
   "api_reference.operation.listMobileNotifications": "列出移动端通知",
   "api_reference.operation.getMobileNotification": "读取当前用户的一条站内通知",
+  "api_reference.operation.markAllMobileNotificationsRead": "将当前用户的所有可见通知标记为已读",
   "api_reference.operation.markMobileNotificationRead": "将移动端通知标记为已读",
   "api_reference.operation.getMobileCurrentPushDevice": "读取当前安装实例的推送绑定状态且不返回令牌",
   "api_reference.operation.registerMobilePushDevice": "幂等注册或刷新当前安装实例的推送令牌",

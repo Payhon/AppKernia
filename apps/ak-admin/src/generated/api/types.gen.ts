@@ -4103,6 +4103,15 @@ export type MobileNotificationResponse = {
     request_id: string;
 };
 
+export type MobileMarkAllNotificationsReadResponse = {
+    code: string;
+    message: string;
+    data: {
+        updated_count: number;
+    };
+    request_id: string;
+};
+
 export type MobilePushDevice = {
     id: string;
     provider: PushProvider;
@@ -5780,6 +5789,37 @@ export type ListMobileNotificationsResponses = {
 };
 
 export type ListMobileNotificationsResponse = ListMobileNotificationsResponses[keyof ListMobileNotificationsResponses];
+
+export type MarkAllMobileNotificationsReadData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/notifications/read-all';
+};
+
+export type MarkAllMobileNotificationsReadErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type MarkAllMobileNotificationsReadError = MarkAllMobileNotificationsReadErrors[keyof MarkAllMobileNotificationsReadErrors];
+
+export type MarkAllMobileNotificationsReadResponses = {
+    /**
+     * All visible unread notifications were marked read.
+     */
+    200: MobileMarkAllNotificationsReadResponse;
+};
+
+export type MarkAllMobileNotificationsReadResponse = MarkAllMobileNotificationsReadResponses[keyof MarkAllMobileNotificationsReadResponses];
 
 export type GetMobileNotificationData = {
     body?: never;

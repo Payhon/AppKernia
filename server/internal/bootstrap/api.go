@@ -380,6 +380,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.PATCH("/me/notification-preferences", mobileProfileHandler.UpdateNotificationPreferences)
 		group.GET("/me/notifications/unread-count", mobileProfileHandler.UnreadCount)
 		group.GET("/me/notifications", mobileProfileHandler.Notifications)
+		group.POST("/me/notifications/read-all", mobileProfileHandler.MarkAllNotificationsRead)
 		group.GET("/me/notifications/{id}", mobileProfileHandler.Notification)
 		group.PATCH("/me/notifications/{id}/read", mobileProfileHandler.MarkNotificationRead)
 		group.GET("/me/push-devices/current", pushHandler.CurrentDevice)

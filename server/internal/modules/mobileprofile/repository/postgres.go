@@ -201,3 +201,25 @@ func (repository *Postgres) MarkNotificationRead(ctx context.Context, userID, te
 	}
 	return tx.Commit(ctx)
 }
+func (repository *Postgres) MarkAllNotificationsRead(ctx context.Context, userID, tenantID, appID, sessionID uuid.UUID, requestID string) (int64, error) {
+	tx, err := repository.pool.Begin(ctx)
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	updated, err := db.New(tx).MarkAllMobileNotificationsRead(ctx, db.MarkAllMobileNotificationsReadParams{TenantID: tenantID, AppID: appID, UserID: userID})
+	if err != nil {
+		return 0, err
+	}
+	after, err := json.Marshal(map[string]int64{"updated_count": updated})
+	if err != nil {
+		return 0, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO audit.operation_logs(tenant_id,user_id,session_id,request_id,module_code,action_name,permission_code,resource_type,resource_id,http_method,request_path,after_data,succeeded) VALUES($1,$2,$3,$4,'notify','recipient.read_all','notify.message.mark_read_self','notify.recipient',$5,'POST','/api/v1/me/notifications/read-all',$6,true)`, tenantID, userID, sessionID, requestID, appID.String()+":"+userID.String(), after); err != nil {
+		return 0, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return 0, err
+	}
+	return updated, nil
+}

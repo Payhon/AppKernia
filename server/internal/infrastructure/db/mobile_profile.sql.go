@@ -233,6 +233,38 @@ func (q *Queries) ListMobileSecurityEvents(ctx context.Context, arg ListMobileSe
 	return items, nil
 }
 
+const markAllMobileNotificationsRead = `-- name: MarkAllMobileNotificationsRead :execrows
+UPDATE notify.recipients AS r
+SET read_at = now()
+FROM notify.messages AS m
+WHERE r.tenant_id = $1
+  AND r.app_id = $2
+  AND r.user_id = $3
+  AND r.delivery_status = 'delivered'
+  AND r.read_at IS NULL
+  AND r.archived_at IS NULL
+  AND m.tenant_id = r.tenant_id
+  AND m.app_id = r.app_id
+  AND m.id = r.message_id
+  AND m.status = 'published'
+  AND m.deleted_at IS NULL
+  AND (m.expires_at IS NULL OR m.expires_at > now())
+`
+
+type MarkAllMobileNotificationsReadParams struct {
+	TenantID uuid.UUID `json:"tenant_id"`
+	AppID    uuid.UUID `json:"app_id"`
+	UserID   uuid.UUID `json:"user_id"`
+}
+
+func (q *Queries) MarkAllMobileNotificationsRead(ctx context.Context, arg MarkAllMobileNotificationsReadParams) (int64, error) {
+	result, err := q.db.Exec(ctx, markAllMobileNotificationsRead, arg.TenantID, arg.AppID, arg.UserID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const markMobileNotificationRead = `-- name: MarkMobileNotificationRead :execrows
 UPDATE notify.recipients
 SET read_at = COALESCE(read_at, now())

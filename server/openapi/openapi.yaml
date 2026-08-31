@@ -579,6 +579,13 @@ paths:
       tags: [mobile-notifications]
       parameters: [{name: cursor, in: query, schema: {type: string}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Delivered notifications visible only to the authenticated tenant member., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPageResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/me/notifications/read-all:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    post:
+      summary: Idempotently mark every visible current-user notification as read
+      operationId: markAllMobileNotificationsRead
+      tags: [mobile-notifications]
+      responses: {"200": {description: All visible unread notifications were marked read., content: {application/json: {schema: {$ref: "#/components/schemas/MobileMarkAllNotificationsReadResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/me/notifications/{id}:
     parameters: [{$ref: "#/components/parameters/AppID"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
     get:
@@ -7744,6 +7751,10 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/MobileNotification"}, request_id: {type: string}}
+    MobileMarkAllNotificationsReadResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {type: object, additionalProperties: false, required: [updated_count], properties: {updated_count: {type: integer, format: int64, minimum: 0}}}, request_id: {type: string}}
     MobilePushDevice:
       type: object
       additionalProperties: false

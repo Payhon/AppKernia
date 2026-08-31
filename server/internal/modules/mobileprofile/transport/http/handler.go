@@ -174,6 +174,15 @@ func (handler *Handler) MarkNotificationRead(request *ghttp.Request) {
 	handler.success(request, map[string]bool{"read": true})
 }
 
+func (handler *Handler) MarkAllNotificationsRead(request *ghttp.Request) {
+	updated, err := handler.service.MarkAllNotificationsRead(request.Context(), bearer(request), httpx.RequestID(request))
+	if err != nil {
+		handler.authFailure(request)
+		return
+	}
+	handler.success(request, map[string]int64{"updated_count": updated})
+}
+
 func (handler *Handler) AppVersion(request *ghttp.Request) {
 	appID, ok := requestAppID(request)
 	if !ok {

@@ -82,6 +82,26 @@ func TestPostgresMobileReleaseAndNotificationTenantScope(t *testing.T) {
 	if err = repo.MarkNotificationRead(ctx, userID, tenantID, appID, uuid.Nil, otherMessageID, "integration-test"); !errors.Is(err, domain.ErrNotificationNotFound) {
 		t.Fatalf("cross-tenant read error=%v", err)
 	}
+	var sessionID uuid.UUID
+	if err = pool.QueryRow(ctx, `INSERT INTO iam.sessions(user_id,tenant_id,audience,absolute_expires_at) VALUES($1,$2,'ak-mobile',now()+interval '1 hour') RETURNING id`, userID, tenantID).Scan(&sessionID); err != nil {
+		t.Fatal(err)
+	}
+	updated, err := repo.MarkAllNotificationsRead(ctx, userID, tenantID, appID, sessionID, "integration-read-all")
+	if err != nil || updated != 1 {
+		t.Fatalf("mark all updated=%d err=%v", updated, err)
+	}
+	updated, err = repo.MarkAllNotificationsRead(ctx, userID, tenantID, appID, sessionID, "integration-read-all-idempotent")
+	if err != nil || updated != 0 {
+		t.Fatalf("idempotent mark all updated=%d err=%v", updated, err)
+	}
+	unread, err = repo.UnreadCount(ctx, userID, tenantID, appID)
+	if err != nil || unread != 0 {
+		t.Fatalf("unread count after mark all=%d err=%v", unread, err)
+	}
+	var otherRead bool
+	if err = pool.QueryRow(ctx, `SELECT read_at IS NOT NULL FROM notify.recipients WHERE tenant_id=$1 AND app_id=$2 AND message_id=$3 AND user_id=$4`, otherTenantID, otherAppID, otherMessageID, otherUserID).Scan(&otherRead); err != nil || otherRead {
+		t.Fatalf("cross-tenant notification changed=%t err=%v", otherRead, err)
+	}
 	created, err := repo.CreateRelease(ctx, appID, domain.Release{Platform: "ios", CurrentVersion: "2.0.0", MinimumVersion: "1.0.0", UpgradeURL: ptr("https://example.test/ios"), ReleaseNotes: map[string]string{"zh-CN": "说明", "en-US": "Notes"}, Active: true}, userID, "integration-test")
 	if err != nil {
 		t.Fatal(err)
