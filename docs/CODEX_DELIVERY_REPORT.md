@@ -3004,7 +3004,7 @@
 
 - 本轮仅整理当前工作区并本地提交，不 push、不发布、不改动演示数据库。按依赖拆为：账号删除 API Reference 补齐；头像服务、Admin 展示及匹配契约；通知批量已读服务及匹配契约；共享组件、头像裁剪、通知导航与图标组成的 Mobile 交付；公众号写作 Skill；快学 AI 草稿工作流；交付记录与本地产物忽略规则。共享 OpenAPI、生成 Client、翻译按提交内容拆分。
 - 审查补齐 Admin 头像的 `apps.users.avatar_alt`、`apps.users.avatar_self_managed` 中英文翻译。没有扩展 API 或替换既有 UI 设计。
-- 实际命令：`make check-blueprints`、`make -C server check`、`GOTOOLCHAIN=go1.26.5 go test -race -json ./...`（server）、`make sqlc-generate`（server）、`pnpm --filter @appkernia/admin check`、`make check-mobile`、`python3 blueprint/scripts/validate_i18n_contract.py`、`git diff --check` 均退出 0。sqlc 再生成未改变生成文件；OpenAPI 路径对比新增 5 个操作，没有移除旧操作。
+- 实际命令：`make check-blueprints`、`make -C server check`、`GOTOOLCHAIN=go1.26.5 go test -race -json ./...`（server）、`make sqlc-generate`（server）、`pnpm --filter @appkernia/admin check`、`make check-mobile`、`python3 blueprint/scripts/validate_i18n_contract.py`、`git diff --check` 均退出 0。sqlc 再生成补出此前遗漏的 `AppApplicationScannerConfig` 模型，另行提交同步；OpenAPI 路径对比新增 5 个操作，没有移除旧操作。
 - 测试数量：Go race 227 项通过（含子测试），1 项数据库测试跳过；随后在独立 PostgreSQL 18.4 容器应用 26 组现有 up migration 后执行该 Repository，3 项均通过、退出 0，临时容器已删除。Admin 45 个 Vitest 文件、183 项通过。Mobile 通知 5 项、收藏 4 项、扫码 7 项、升级 SemVer 6 项、Node 打包 4 项及 12 张 TabBar 图标几何校验通过。
 - 两套 Skill 仅做本地验证：6 个 Python 文件语法解析、2 个 JSON 文件解析、图片 manifest 校验及 HTML 渲染、草稿构建与 `publish_via_ssh.py ... --dry-run` 均通过；未执行 SSH 或微信公众号写操作。针对待提交文件的私钥、服务 Token 与硬编码微信 AppSecret 模式扫描无命中。
 - 额外门禁未通过：`staticcheck ./...` 退出 1（24 项）；`golangci-lint run` 退出 1（18 项）；`govulncheck ./...` 退出 3（8 个调用路径相关漏洞）。原始提交 `8c2dfc2` 的独立源码快照复跑得到相同问题及漏洞编号。本轮未升级工具链或依赖，也没有把这些既有问题标为通过。

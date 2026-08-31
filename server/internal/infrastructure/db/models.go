@@ -112,6 +112,18 @@ type AppApplicationOnboardingRevisionSlide struct {
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
+type AppApplicationScannerConfig struct {
+	TenantID            uuid.UUID          `json:"tenant_id"`
+	AppID               uuid.UUID          `json:"app_id"`
+	WebviewEnabled      bool               `json:"webview_enabled"`
+	AllowedHostPatterns []string           `json:"allowed_host_patterns"`
+	LockVersion         int32              `json:"lock_version"`
+	CreatedBy           *uuid.UUID         `json:"created_by"`
+	UpdatedBy           *uuid.UUID         `json:"updated_by"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
 type AppApplicationShareBinding struct {
 	ID            uuid.UUID          `json:"id"`
 	TenantID      uuid.UUID          `json:"tenant_id"`
