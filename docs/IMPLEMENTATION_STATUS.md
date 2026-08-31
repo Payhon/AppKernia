@@ -2,6 +2,16 @@
 
 更新时间：2026-08-30（Asia/Shanghai）
 
+## 2026-08-30 Mobile 用户头像、评论头像与 Admin 用户列表
+
+- Mobile 个人中心、基本资料页新增登录用户头像展示与回退头像；基本资料页支持相册和拍照两个来源，选取后进入 App 内正方形 Canvas 裁剪，可拖动、缩放、重置、预览，再显示上传进度并提交，失败可重试。iOS 相册选择、裁剪、预览和更新已在当前自定义基座完成运行验收。
+- 后端新增 Mobile 头像上传会话、multipart 内容上传和本人头像读取接口；沿用私有对象存储、图片 magic/解码、大小/像素、所有权、去重与审计边界。首次运行上传暴露 GoFrame 路由参数读取提前解析 multipart、导致正文为 0 字节的问题，现改为只读取 Router 参数并用 HTTP multipart 回归测试锁定。
+- 公开资讯评论返回已发布评论作者的同 App 头像 URL，匿名内容接口只允许读取已批准、已发布 App 内容引用的头像；Mobile 评论 Sheet 改为可展开高度、评论列表在输入框之前，头像、名称和正文均能正常显示。
+- Admin“App 管理 > 用户管理”列表和详情抽屉新增受保护头像展示；头像通过当前 Admin 会话读取 Blob，不把受保护 URL 或二进制持久化到客户端缓存，未设置或加载失败时回退显示名称首字符。本阶段 Admin 只展示、不代替 App 用户修改头像。
+- OpenAPI、生成 Client、双语 Catalog、相机/相册权限说明、Mobile/Admin Design System、`ui-ux-pro-max` 产物与截图索引已同步。三端编译、Backend 全仓 220 项 Go 测试、Admin 44 个文件 169 项测试和 iOS 模拟器头像闭环通过。
+- 仍需外部验收：iOS/Android/HarmonyOS 物理设备相机拍摄与权限拒绝/恢复、Android/HarmonyOS 运行基座、VoiceOver/TalkBack 和最大字号；当前 Admin 浏览器登录态已过期，因此未把构建或 jsdom 结果标作登录态页面截图验收。实现、自动化测试和本地 API/数据库闭环均无未完成代码项。
+- 用户截图反馈的头像右侧多余 `>` 已修复。根因是 `ak-avatar` 已用 `/>` 自闭合，下一行却残留了一个模板闭合符，UVue 将其渲染成普通文本；现已删除该文本节点，并增加静态门禁。Mobile 全量静态检查和 37 页面 iOS 编译通过，iPhone 16 Pro / iOS 18.6 当前自定义基座复测确认身份卡只保留最右侧一个导航 chevron。
+
 ## 总体状态
 
 | Surface             | 当前可交付状态                                                                                                                                                                                                         | 下一依赖                                                                                                  |
@@ -960,6 +970,16 @@
 - HBuilderX 5.24 完成 36 页面 iOS 编译；iPhone 16 Pro / iOS 18.6 模拟器使用 `com.appkernia.mobile` 自定义基座安装、同步并启动成功。在本地 API 仍缺少两个能力块的条件下进入资讯浏览页，最近 10 分钟进程日志中原 TypeError、`share.providers`/`push.enabled` 访问异常及 fatal/exception 均为 0。
 - 模拟器截图保存为 `output/playwright/ak-ios-public-config-compatibility.png`，SHA-256 `b69aacd487396ce5072d00cebb130faeea424d481bc3757039321c323c894493`。本结果是 iOS 模拟器运行验收，不替代 iOS 真机、签名归档或 Push 厂商生产验收。
 
+### 2026-08-30 Mobile 顶部与 TabBar 图标放大
+
+- 首页改为品牌眉题独占上行，“首页”标题与搜索/消息按钮同排、垂直居中，两个操作保持 8px 间距；顶部搜索、消息、筛选、返回、分享、编辑及视频布局切换统一为 20px 视觉尺寸，原 44×44px 触控区域不变。
+- 个人中心消息入口改为带本地化读屏标签的 `ak-icon-button`。正文、列表、搜索框清除、Sheet 和资讯详情底部操作图标保持原紧凑尺寸，没有随导航区域整体膨胀。
+- 四栏默认、选中和深色选中共 12 个 TabBar PNG 保持 81×81px 画布，图形等比放大到最大边 66px 并居中；栏高、文字、颜色、栏目顺序和图标语义不变。
+- Mobile Master、Information override 和 `AKMOB-navigation-icon-scale` 的 request、Skill output、decisions、review checklist、修复前/后截图索引已同步；新增脚本门禁校验顶部规格、首页结构以及 12 个 TabBar 资源的尺寸、透明边界和居中度。
+- `check-project.sh`、Mobile Blueprint、跨端 i18n、生成物、6 个升级版本用例、4 个 Node 打包测试和 `git diff --check` 均退出 0；HBuilderX 5.24 的 iOS、Android、HarmonyOS 均完成当前 36 页面编译，HarmonyOS 生成未签名调试 HAP。
+- 当前 36 页面 iOS 自定义基座已在 iOS 18.6 的 390×844、430×932 和 402×874 模拟器运行；首页、文章详情、个人中心及 TabBar 状态截图通过。360×800、英文长标题、最大动态字号、VoiceOver/TalkBack、Android/HarmonyOS 运行基座和三端物理设备仍待验收，不以编译代替运行结果。
+- iOS HIG 当前评估为 9/10；达到 10/10 仍需最大动态字号、VoiceOver 和物理设备复测。本轮未提交、未推送，未改动 API、路由、翻译键或公共组件属性。
+
 ### 2026-08-31 账号删除提交前复核
 
 - 按本任务边界隔离提交快照：账号删除前后端、Migration 25、权限/契约/双语、入口与 RequestTask 生命周期修复、Compose 配置及对应交付证据；头像、消息、图标、空状态等无关修改留在工作区。
@@ -992,6 +1012,60 @@
 - `/healthz`、API readiness、Admin auth public-config、Mobile public config 和部署产物中的 OpenAPI 均返回成功；未认证访问账号删除验证码接口返回稳定 401，证明新路由已装载且认证边界生效。
 - 本轮没有 commit、push、重置或清理工作树；保留全部既有未提交修改。真实登录态验证码邮件、账号删除和对象最终清除没有在演示数据上执行，避免破坏本地账号，仍需使用专用测试账号验收。
 
+### 2026-08-30 Mobile 我的页、收藏、消息与统一空状态优化
+
+- “语言与外观”改用原创地球线框图标，“应用权限”保留设置齿轮，两个入口不再复用同一语义；390×844 的当前 iOS 自定义基座已确认显示正常。
+- 收藏页类型 Tab 的选中标签改为品牌背景上的 `on-brand` 白色并提高字重，规避 UVue 父级颜色继承造成的黑字暗底；未选中标签继续使用正文色。
+- 消息页补充标准导航行：44×44px 返回命中区、20px 返回图标、居中标题和等宽尾部占位，安全区与页面列表结构不变。
+- 新增 `ak-empty`，提供 empty/offline/error 语义图标、浅灰标题/说明和带 14px 图标的小型恢复操作；操作视觉面为 32px，外层命中区仍不小于 44×44px。`ak-status-view` 的 empty/offline/error 以及直接错误页统一复用，新旧 `ak-empty-state` 通过兼容别名继续可编译。
+- Mobile Blueprint、Information override、组件兼容矩阵和 `AKMOB-empty-state-polish` 的 request、Skill 输出、设计决策、检查清单、截图索引均已同步；新增静态门禁锁定图标语义、收藏对比度、消息返回导航和空状态几何规格。
+- `check-project.sh`、Mobile Blueprint、跨端 i18n、生成物、6 个升级用例、4 个 Node 打包测试及 `git diff --check` 均通过；HBuilderX 5.24 完成 iOS、Android、HarmonyOS 37 页面编译，HarmonyOS 生成未签名调试 HAP。iOS 当前自定义基座已重新云构建并运行验证“我的”页。
+- 收藏和消息属于登录保护页面，当前模拟器没有可用测试会话，未伪造认证截图；Android/HarmonyOS 运行基座、最大动态字号、VoiceOver/TalkBack、暗色与物理设备仍待验收。iOS HIG 当前评分 9/10；本轮未 commit、未 push，保留工作区中无关修改。
+
+### 2026-08-30 Mobile 测试用户消息排版数据与运行验收
+
+- 本地 `appkernia-news-demo` 仅有一个 active 的 Mobile 测试成员，已为该成员写入 24 条可识别测试消息，批次标签为 `mobile-notification-layout-20260830`；覆盖短/长标题、短/长正文、多行中文、英文、符号、Markdown/HTML 安全纯文本、已读/未读和 20+4 分页边界。
+- 数据库确认共 24 条、未读 13 条；均为 `published + delivered`，Push 标记为 `test/no_active_device`，不会尝试真实厂商推送。重复填充时只替换同批次数据，不影响其他消息或账号。
+- iPhone 16 Pro / iOS 18.6（402×874）当前自定义基座使用既有有效登录态运行：首屏长标题自然换行且不与未读圆点重叠，多行/英文内容无裁切和横向溢出，返回按钮存在；滚动到底部后从首批 20 条自动取得第 21–24 条，顺序连续且无重复。
+- Maestro 最终流程 1/1、20 秒退出 0；最近 10 分钟定向模拟器日志未匹配 error/exception/fatal/crash。发现一个待优化项：消息时间当前直接显示完整 UTC ISO 字符串，信息正确但视觉噪声较大，后续应使用现有 Locale/时区格式化能力输出本地短日期时间。
+- 截图和可复跑流程分别位于 `AKMOB-empty-state-polish/screenshots/ios-402x874-notifications-*.png` 与 `output/maestro/ak-mobile-notification-layout.yaml`。本轮未修改测试用户密码，未 commit、未 push。
+
+### 2026-08-30 Mobile 消息页固定标题与独立列表滚动
+
+- 消息页改为非滚动导航与消息列表两个兄弟区域；页面占满视口并裁切外层溢出，列表通过 `height: 0; flex: 1` 获得明确滚动高度，`pages.json` 同时关闭原生页面级滚动。
+- 返回按钮、居中标题和 44px 导航高度保持不变；消息卡片、已读/未读状态、20+4 游标分页、加载状态和 API 均未改动。
+- iPhone 16 Pro / iOS 18.6（402×874）连续 8 次上滑到第 20–24 条后，状态栏、返回按钮和“消息”标题仍固定；Maestro 1/1 flow passed，最近 10 分钟定向日志未匹配 error、exception、fatal、crash 或 undefined。
+- Mobile Blueprint、跨端 i18n、生成物、静态结构门禁和补丁格式通过；HBuilderX 5.24 完成 iOS、Android、HarmonyOS 37 页面最终源码编译，HarmonyOS 生成未签名调试 HAP。
+- 修复后截图与 UI 证据位于 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-notification-fixed-header/`。Android/HarmonyOS 运行基座、最大动态字号、VoiceOver/TalkBack 和三端物理设备仍待验收；本轮未 commit、未 push。
+
+### 2026-08-30 iOS 头像裁剪预览与手势优化
+
+- iOS 相册图片在裁剪区空白的直接原因是选择结果先经 `getImageInfo` 成功解析，但后续仍把原始 picker URI 交给 Canvas；该 URI 在 iOS Canvas 中存在已触发 load、照片像素却未稳定绘制的路径/时序问题。现统一使用 `info.path` 返回的规范化本地路径。
+- 可见预览改为原生 `image`，Canvas 仅在确认时按同一几何导出 512 × 512 PNG；裁剪区由 280 px 放大到 320 px。缩小、放大、重置改为左上角三枚 44 px 浮动图标，支持 1×–3× 图标缩放、单指拖动和双指捏合缩放。
+- 裁剪圆框使用深浅双层描边，白底与深色照片都可见；双语说明同步改为提示拖动、双指缩放和图标微调。头像下载取消同时补齐完成态，避免页面卸载时 abort 已销毁的 iOS `DownloadTask`。
+- Mobile 静态门禁、Mobile Blueprint、跨端 i18n、生成物、6 个升级用例、4 个 Node 测试与补丁格式均通过；HBuilderX 5.24 完成 iOS、Android、HarmonyOS 37 页面编译，HarmonyOS 生成未签名调试 HAP。
+- iPhone 16 Pro / iOS 18.6（402 × 874）已完成相册入口、照片可见、图标放大、放大后拖动、裁剪导出及独立预览的 3 条 Maestro 回归。双指分支已三端编译并由静态门禁锁定，但 Maestro 未生成真实双指轨迹；物理设备双指、相机、VoiceOver、最大动态字号及 Android/HarmonyOS 运行基座仍待验收。
+- iOS HIG 当前评分 9/10；补齐物理设备双指/相机、VoiceOver 与最大动态字号复测后可达到 10/10。本轮未 commit、未 push，保留全部既有工作树修改。
+
+### 2026-08-30 Mobile 首页未读红点与消息全部已读
+
+- 首页消息铃铛在登录用户存在未读站内消息时显示语义红点，并将读屏名称切换为“消息，有未读消息”；页面每次 `onShow` 都重新读取未读数，从消息中心返回后可立即清除提示。匿名状态不请求受保护接口。
+- 消息中心固定导航右侧新增双语“全部已读”操作：无未读时禁用，提交期间阻止重复点击，成功后同步更新当前已加载消息并给出 Toast 反馈。标题左右区域等宽，保持居中和 44px 触控规格。
+- Backend 新增 `POST /api/v1/me/notifications/read-all`，使用单条集合 SQL 按 tenant、app、user、delivered、unread、unarchived、published、unexpired 条件更新并返回实际数量；重复调用返回 0。操作写入 `recipient.read_all` 审计，权限为 `notify.message.mark_read_self`。
+- OpenAPI、sqlc、Mobile repository、Admin 生成 Client 与中英文 API Reference 已同步；无数据库迁移或新权限 Seed。新增 4 项跨层 Mobile 通知契约测试，并扩展 PostgreSQL 集成测试覆盖首调、幂等、未读归零和跨租户不受影响。
+- Server `make check`、临时 PostgreSQL 18 集成测试、Admin 全量检查（44 个 Vitest 文件/169 项）、Mobile 总检查（含新增 4 项）、Mobile/跨端 i18n 校验均退出 0。HBuilderX 5.24 完成最终 37 页面 iOS、Android、HarmonyOS 编译；HarmonyOS 生成未签名调试 HAP。
+- iPhone 16 Pro / iOS 18.6（402×874）当前源码已实际安装同步到模拟器。Maestro 1/1、18 秒通过：首页红点可见、消息中心批量操作成功、返回首页红点消失。演示库未读数由 6 变为 0，最新审计 `after_data={"updated_count":6}` 且 `succeeded=true`。
+- 截图与设计证据位于 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-notification-unread-actions/`。Android/HarmonyOS 本轮只有源码编译与 HAP 产物，不标记为运行交互验收；VoiceOver/TalkBack、最大动态字号、暗色和三端物理设备仍待复测。本轮未 commit、未 push，保留全部既有无关修改。
+
+### 2026-08-30 Mobile “通知设置”入口路由纠错
+
+- 确认该问题是链接错误，不是重复入口：顶部消息铃铛用于进入消息中心；Route Registry、API Map 和 Permission Matrix 已将 `settings.notifications` 定义为 Push、邮件与应用内通知偏好的独立设置页。
+- “我的”页“通知设置”菜单从 `/pages/notifications/index` 更正为 `/pages/settings/notifications/index`，原有图标、排序和登录保护不变；顶部消息铃铛继续进入消息中心。
+- 自定义菜单行补齐 `button` 角色和本地化 `aria-label`，目标页标题补齐 `heading` 角色和本地化 `aria-label`。通知契约回归新增第 5 项，锁定两个入口的不同职责与目标路由。
+- Mobile 总检查、Blueprint、跨端 i18n、生成物和静态门禁全部退出 0；HBuilderX 5.24 完成最终源码的 iOS、Android、HarmonyOS 37 页面编译，HarmonyOS 生成未签名调试 HAP。
+- iPhone 16 Pro / iOS 18.6 当前源码已安装同步；Maestro 1/1、13 秒通过，从“我的”页点击“通知设置”后到达独立设置页。截图和 UI 证据位于 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-profile-notification-settings-link/`。
+- Android/HarmonyOS 本轮仅完成源码编译，未执行匹配基座或物理设备交互验收；VoiceOver/TalkBack、最大动态字号和暗色模式仍待复测。本轮未 commit、未 push，保留全部既有无关修改。
+
 ### 2026-08-30 Mobile “我的收藏”类型 Tab 筛选修复
 
 - 2026-08-31 局部提交预检：仅暂存收藏筛选及配套测试/UI 证据，其他功能改动保留。独立暂存快照的 Server `make check`、14 项 Content 测试及 Mobile 总检查（含 4 项收藏契约测试、Blueprint/i18n）均退出 0；本次只做本地提交，不推送。
@@ -1015,3 +1089,16 @@
 - iPhone 16 Pro / iOS 18.6 模拟器 Maestro 回归 1/1、16 秒通过：首次隐私确认后点击“扫一扫”，出现安全降级提示且应用保留在首页；21:17 后没有新增崩溃报告。Android vivo V2545A 真机已安装新基座并同步 38 页面资源，真实二维码识别后以“二维码”结果弹层展示，随后再次拉起相机并取消，正常返回首页且无错误提示。
 - HBuilderX 5.24 已完成 38 页面 iOS、Android、HarmonyOS 源码编译；HarmonyOS 真机 `ALN-AL00` 已连接，但当前 HAP 无签名，`hdc install -r` 明确返回 `code:9568320 / no signature file`。DevEco Signing Configs 仅检查到自动签名入口，未在缺少本轮凭据创建确认的情况下生成或保存证书/Profile。Android 一维码目标已生成，但设备镜头未对准目标，因此条形码解码、权限拒绝与设置返回、WebView 越界跳转、三端读屏/动态字号/高对比度/减少动效及 Admin 浏览器截图仍需验收。
 - 双语 Scanner 与客户端配置开发者文档、导航、权限/安全交叉链接和由服务端事实源同步的公开 OpenAPI 已完成；线上 Pages 发布结果以对应远端提交和 workflow 回读为准。
+
+### 2026-08-31 未提交改动拆分与复核
+
+- 本轮仅整理当前工作区并本地提交，不 push、不发布、不改动演示数据库。按依赖拆为：账号删除 API Reference 补齐；头像服务、Admin 展示及匹配契约；通知批量已读服务及匹配契约；共享组件、头像裁剪、通知导航与图标组成的 Mobile 交付；公众号写作 Skill；快学 AI 草稿工作流；交付记录与本地产物忽略规则。共享 OpenAPI、生成 Client、翻译按提交内容拆分。
+- 审查补齐 Admin 头像的 `apps.users.avatar_alt`、`apps.users.avatar_self_managed` 中英文翻译。没有扩展 API 或替换既有 UI 设计。
+- 实际命令：`make check-blueprints`、`make -C server check`、`GOTOOLCHAIN=go1.26.5 go test -race -json ./...`（server）、`make sqlc-generate`（server）、`pnpm --filter @appkernia/admin check`、`make check-mobile`、`python3 blueprint/scripts/validate_i18n_contract.py`、`git diff --check` 均退出 0。sqlc 再生成未改变生成文件；OpenAPI 路径对比新增 5 个操作，没有移除旧操作。
+- 测试数量：Go race 227 项通过（含子测试），1 项数据库测试跳过；随后在独立 PostgreSQL 18.4 容器应用 26 组现有 up migration 后执行该 Repository，3 项均通过、退出 0，临时容器已删除。Admin 45 个 Vitest 文件、183 项通过。Mobile 通知 5 项、收藏 4 项、扫码 7 项、升级 SemVer 6 项、Node 打包 4 项及 12 张 TabBar 图标几何校验通过。
+- 两套 Skill 仅做本地验证：6 个 Python 文件语法解析、2 个 JSON 文件解析、图片 manifest 校验及 HTML 渲染、草稿构建与 `publish_via_ssh.py ... --dry-run` 均通过；未执行 SSH 或微信公众号写操作。针对待提交文件的私钥、服务 Token 与硬编码微信 AppSecret 模式扫描无命中。
+- 额外门禁未通过：`staticcheck ./...` 退出 1（24 项）；`golangci-lint run` 退出 1（18 项）；`govulncheck ./...` 退出 3（8 个调用路径相关漏洞）。原始提交 `8c2dfc2` 的独立源码快照复跑得到相同问题及漏洞编号。本轮未升级工具链或依赖，也没有把这些既有问题标为通过。
+- 平台边界：Admin Web 生产构建已验证；本轮未重跑 Android、iOS、HarmonyOS 编译、真机/模拟器、读屏或动态字号验收。Admin `test:e2e` 所需测试密码及审计环境变量未配置，未执行。历史平台与部署记录不代表本轮重新验证。
+- 截图保留：`output/playwright/ak-news-ios-bookmarks.png` 与 `output/playwright/ak-news-ios-profile-authenticated.png` 内容相同，实际为基本资料页，且显示未翻译的 `displayName/email/timeZone`；保留原文件不提交。`output/maestro/ak-news-ios-comment-section.junit.xml` 仅改变历史耗时，同样保留不提交。没有新增本轮运行截图，其他被忽略的本地产物不强制加入 Git。
+- 命令日志与原始工作区快照保存在本机 `/tmp/appkernia-split-20260831/`，仅作本轮复核备份，不是长期归档。
+- 拆分后的头像独立暂存快照另行通过 Server `make check`、TypeScript `tsc --noEmit` 与 API Reference 校验（均退出 0）；临时快照的 pnpm 包装命令失败后直接调用现有 TypeScript 工具完成检查。补齐翻译后重新执行 Admin `build`、`validate:bundle`、`validate:openapi-docs`，均退出 0。新增 Skill 的 3 处行尾空白与 4 处末尾空行已按补丁检查要求清理，未改变脚本逻辑。
