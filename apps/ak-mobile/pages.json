@@ -33,6 +33,7 @@
     { "path": "pages/profile/change-password/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/profile/sessions/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/profile/devices/index", "style": { "navigationStyle": "custom" } },
+    { "path": "pages/profile/account-deletion/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/settings/language/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/settings/permissions/index", "style": { "navigationStyle": "custom" } },
     { "path": "pages/settings/notifications/index", "style": { "navigationStyle": "custom" } },

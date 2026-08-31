@@ -16,6 +16,8 @@ import (
 	apiclientadminrepo "github.com/appkernia/appkernia/server/internal/modules/apiclientadmin/repository"
 	apiclientadminhttp "github.com/appkernia/appkernia/server/internal/modules/apiclientadmin/transport/http"
 	appmanagementapp "github.com/appkernia/appkernia/server/internal/modules/appmanagement/application"
+	appmanagementjobdefs "github.com/appkernia/appkernia/server/internal/modules/appmanagement/jobdefs"
+	appmanagementrepo "github.com/appkernia/appkernia/server/internal/modules/appmanagement/repository"
 	appmanagementhttp "github.com/appkernia/appkernia/server/internal/modules/appmanagement/transport/http"
 	auditadminapp "github.com/appkernia/appkernia/server/internal/modules/auditadmin/application"
 	auditadminrepo "github.com/appkernia/appkernia/server/internal/modules/auditadmin/repository"
@@ -118,7 +120,8 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		pool.Close()
 		return nil, fmt.Errorf("create River insert client: %w", err)
 	}
-	trackedQueue := jobqueue.NewRiverAdapter(pool, riverInsertClient, notificationjobdefs.Registry())
+	queueDefinitions := append(notificationjobdefs.Definitions(), appmanagementjobdefs.Definitions()...)
+	trackedQueue := jobqueue.NewRiverAdapter(pool, riverInsertClient, jobqueue.MustRegistry(queueDefinitions...))
 	catalog, err := i18n.LoadCatalog()
 	if err != nil {
 		pool.Close()
@@ -157,7 +160,9 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		pool.Close()
 		return nil, fmt.Errorf("create auth service: %w", err)
 	}
+	accountDeletionEnabled := true
 	featureFlags := map[string]bool{
+		"account_deletion":   accountDeletionEnabled,
 		"admin_registration": cfg.AdminRegistrationEnabled,
 		"password_recovery":  cfg.PasswordRecoveryEnabled,
 		"avatar_upload":      cfg.AvatarUploadEnabled,
@@ -209,6 +214,8 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	pushHandler := pushhttp.NewHandler(pushService, catalog)
 	appManagementService := appmanagementapp.NewService(pool, authService,
 		appmanagementapp.WithOTPNotifier(appOTPNotifier),
+		appmanagementapp.WithAccountDeletionEnabled(accountDeletionEnabled),
+		appmanagementapp.WithObjectErasureQueue(appmanagementrepo.NewObjectErasureQueue(trackedQueue)),
 		appmanagementapp.WithObjectStore(objectStore),
 		appmanagementapp.WithShareRuntime(func(ctx context.Context, appID uuid.UUID) ([]appmanagementapp.ShareRuntimeProvider, error) {
 			providers, loadErr := shareConfigService.Runtime(ctx, appID)
@@ -356,6 +363,8 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/auth/context", authHandler.MobileContext)
 		group.POST("/auth/password/change", authHandler.MobileChangeSelfPassword)
 		group.POST("/me/legal-consents", appManagementHandler.LegalConsent)
+		group.POST("/me/account-deletion/verification-code", appManagementHandler.AccountDeletionVerificationCode)
+		group.POST("/me/account-deletion/confirm", appManagementHandler.ConfirmAccountDeletion)
 		group.GET("/me", authHandler.MobileMe)
 		group.PATCH("/me", authHandler.MobileUpdateMe)
 		group.GET("/me/sessions", authHandler.MobileSelfSessions)

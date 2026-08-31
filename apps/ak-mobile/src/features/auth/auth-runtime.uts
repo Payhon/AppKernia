@@ -8,6 +8,7 @@ import { authContextStore } from '../../core/stores/auth-context-store.uts'
 export class AuthRuntime {
   private service: MobileAuthService | null = null
   private client: AkHttpClient | null = null
+  private sessions: SessionRuntime | null = null
   private deviceKey: string = ''
 
   private randomHex(length: number): string {
@@ -43,6 +44,7 @@ export class AuthRuntime {
 
   configure(client: AkHttpClient, sessions: SessionRuntime): void {
     this.client = client
+    this.sessions = sessions
     this.service = new MobileAuthService(new HttpAuthRepository(client, client.getAppId()), sessions)
     this.resetDeviceKey()
   }
@@ -55,13 +57,20 @@ export class AuthRuntime {
     this.service.refresh(credential.refreshToken, onSuccess, () => { authContextStore.clear(); this.resetDeviceKey(); onFailure() })
   }
   refreshContext(onSuccess: () => void, onFailure: () => void): void {
-    if (this.service == null) { authContextStore.clear(); onFailure(); return }
-    this.service.loadContext(context => { authContextStore.set(context.permissions, context.enabledFlags); onSuccess() }, () => { authContextStore.clear(); onFailure() })
+    if (this.service == null) { onFailure(); return }
+    this.service.loadContext(context => { authContextStore.set(context.permissions, context.enabledFlags); onSuccess() }, () => { onFailure() })
   }
   signOut(onComplete: () => void): void {
     authContextStore.clear()
     if (this.service == null) { onComplete(); return }
     this.service.signOut(onComplete)
+  }
+  clearDeletedAccount(onComplete: () => void): void {
+    authContextStore.clear()
+    this.resetDeviceKey()
+    const activeSessions = this.sessions
+    if (activeSessions == null) { onComplete(); return }
+    activeSessions.signOut(onComplete)
   }
 }
 

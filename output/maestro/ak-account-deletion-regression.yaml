@@ -1,0 +1,41 @@
+appId: com.appkernia.mobile
+name: 账号删除入口与个人资料请求取消回归
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "首页"
+    timeout: 15000
+- tapOn: "我的"
+- extendedWaitUntil:
+    visible: "删除账号"
+    timeout: 15000
+- takeScreenshot: apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-180-account-deletion/screenshots/profile-delete-entry-fixed.zh-CN.390x844
+- tapOn:
+    point: "50%, 30%"
+- extendedWaitUntil:
+    visible: "基本资料"
+    timeout: 15000
+- takeScreenshot: apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-180-account-deletion/screenshots/profile-basic-request-lifecycle.zh-CN.390x844
+- back
+- extendedWaitUntil:
+    visible: "我的"
+    timeout: 15000
+- tapOn:
+    point: "50%, 30%"
+- extendedWaitUntil:
+    visible: "基本资料"
+    timeout: 15000
+- back
+- extendedWaitUntil:
+    visible: "我的"
+    timeout: 15000
+- tapOn:
+    point: "50%, 30%"
+- extendedWaitUntil:
+    visible: "基本资料"
+    timeout: 15000
+- back
+- extendedWaitUntil:
+    visible: "我的"
+    timeout: 15000

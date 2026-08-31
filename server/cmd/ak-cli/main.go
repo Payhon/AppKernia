@@ -159,6 +159,7 @@ func seedCorePermissions(args []string) error {
 	permissionPaths := []string{
 		"../blueprint/backend/spec/core-permissions.json",
 		"../blueprint/admin-frontend/integration/core-permissions.delta.json",
+		"../blueprint/mobile/integration/app-permissions.delta.json",
 	}
 	permissionCount := 0
 	for _, catalogPath := range permissionPaths {

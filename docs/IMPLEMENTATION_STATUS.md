@@ -960,6 +960,38 @@
 - HBuilderX 5.24 完成 36 页面 iOS 编译；iPhone 16 Pro / iOS 18.6 模拟器使用 `com.appkernia.mobile` 自定义基座安装、同步并启动成功。在本地 API 仍缺少两个能力块的条件下进入资讯浏览页，最近 10 分钟进程日志中原 TypeError、`share.providers`/`push.enabled` 访问异常及 fatal/exception 均为 0。
 - 模拟器截图保存为 `output/playwright/ak-ios-public-config-compatibility.png`，SHA-256 `b69aacd487396ce5072d00cebb130faeea424d481bc3757039321c323c894493`。本结果是 iOS 模拟器运行验收，不替代 iOS 真机、签名归档或 Push 厂商生产验收。
 
+### 2026-08-31 账号删除提交前复核
+
+- 按本任务边界隔离提交快照：账号删除前后端、Migration 25、权限/契约/双语、入口与 RequestTask 生命周期修复、Compose 配置及对应交付证据；头像、消息、图标、空状态等无关修改留在工作区。
+- 独立快照的 Mobile 总检查、Backend/Admin Blueprint、跨端 i18n、Admin API 生成与类型检查、Backend `make check build` 均退出 0；Go JSON 结果为 222 项通过、1 项跳过、0 失败，API/Worker/CLI 三个二进制构建成功。
+- 本轮未重新部署、未发送验证码或删除账号，未重跑三平台构建、真机或数据库集成测试。sqlc 重生成发现已提交 Migration 26 的扫码配置模型在原基线中缺失；该既有差异不混入本次提交，账号删除对应模型保持本次范围。
+
+### 2026-08-30 App 当前账号删除
+
+- Mobile “我的”页已在退出登录下方增加受登录态与 `account_deletion` 功能开关共同控制的“删除账号”文字入口；新增双语独立页面，提供当前 App 范围、不可恢复、匿名化留存说明、已验证邮箱验证码、服务端重发倒计时、确认勾选、危险按钮和二次确认。
+- Mobile 删除成功后只做本地 Push 注销和安全会话/认证上下文清理，再 `reLaunch` 到登录页；确认接口关闭自动重试，客户端不发送邮箱、用户 ID 或目标 App 参数。
+- Backend 新增两个 `/api/v1/me/account-deletion/*` 接口、稳定错误码、`iam.user.delete_self` 权限/审计动作和公开功能标志。验证码固定 6 位、10 分钟有效、60 秒冷却、最多 5 次、单次消费，并绑定当前会话解析出的 `app_id + user_id + verified email`。
+- Migration 25 支持当前 App 范围的关系清理、法律/安全审计匿名化、评论回复脱离已删父评论、文件 App 归属，以及不含用户标识的隐私清除事件/对象任务。串行化事务立即失效当前 App 会话和令牌；仅在不存在其他 App、Admin、组织、角色、计费或资源关系时物理删除共享 IAM 身份。
+- 对象存储清理由 River `privacy` 队列幂等执行；集成测试覆盖临时失败重试、终态失败和重复执行。空库 migration `up/down/up`、版本 24 数据库副本升级、新增 6 项删除/对象清理测试、Go check/race/build、Mobile 静态门禁及 iOS/Android/HarmonyOS 编译均通过。
+- 补充验收已取得 iPhone 16 Pro / iOS 18.6（402×874）中文“我的”入口、删除说明页和基本资料页截图；英文、Android/HarmonyOS 运行截图、最大动态字号、VoiceOver/TalkBack、真机交互和 App Store 审核仍未执行。完整 Backend integration 入口仍被本次未修改的既有 Seed 用例 `permissions=19 menus=0` 阻断，新增两个集成包已独立通过。
+
+### 2026-08-30 账号删除入口与资料页取消回归
+
+- “删除账号”缺失的直接原因是 Auth Context 把 `UTSJSONObject.toMap()` 按错误的单参数 entry 形态遍历，导致 `enabledFlags` 始终为空；现改为跨平台 `Map.forEach(value, key)`，并在“我的”每次显示时刷新服务端功能快照，瞬时失败不再清空仍有效的认证上下文。
+- 入口最初虽已渲染，但 402×874 视口中落在原生 TabBar 覆盖区。现将退出登录和删除账号改为页面内非滚动账号操作区，菜单独立滚动；入口位于退出登录正下方，保持 44px 命中区并稳定显示在 TabBar 上方。
+- 基本资料页报错源于页面卸载时对已经完成并被原生框架销毁的 `RequestTask` 再次调用 `abort()`。取消对象现显式区分进行中、已完成和已取消状态：完成即释放 task，取消保持幂等，取消后的回调不再触达已卸载页面。
+- 本地 8080 端口此前仍由 8 月 27 日的旧独立 API 容器占用，Compose 内的新 API 并非模拟器实际访问目标。已将旧容器停止并保留为 `appkernia-news-demo-api-host-pre-20260830` 回滚副本，Compose API 现在直接发布 `8080:8080`；运行容器与最新镜像 ID 一致，readiness 为 `ready`，账号删除路由无会话返回稳定 401。
+- iOS 回归验证入口首屏可见、删除页可进入、基本资料连续进入/返回 3 次；模拟器最近 10 分钟定向统一日志中原 `instance object does not exist` / `may have been destoryed` / `ak-http-client.uts:48` 匹配为 0。Mobile 静态门禁和 iOS/Android/HarmonyOS 37 页面编译均通过；本轮未发送验证码或删除演示账号。
+
+### 2026-08-30 本地 Admin / Backend 环境更新
+
+- 已将当前工作树重新构建并更新到 Compose 项目 `appkernia-news-demo`：Admin 与 API 为 healthy，Worker 正常运行，PostgreSQL 保持 healthy；Admin 入口为 `http://localhost:4174`，API 由 Compose 直接发布在 `http://127.0.0.1:8080`。
+- 数据库执行可逆迁移并从版本 24 升级到 25，`dirty=false`；Core Seed 已同步，`iam.user.delete_self` 权限以及隐私清除事件/对象任务表已落库。
+- 部署前 PostgreSQL 逻辑备份保存在 `/tmp/appkernia-news-demo-backup.njLdyC/appkernia-before-update.dump`，SHA-256 为 `d7a1079090b45564504a186e535f7343f0f66e669db02c0ce6d431011a63df31`。
+- 补齐 Worker 的文件/头像能力、配置存储密钥版本、对象存储 Adapter 与共享 `ak-object-storage` 卷，确保账号删除事务提交后的隐私对象清理任务可访问与 API 相同的本地对象存储。
+- `/healthz`、API readiness、Admin auth public-config、Mobile public config 和部署产物中的 OpenAPI 均返回成功；未认证访问账号删除验证码接口返回稳定 401，证明新路由已装载且认证边界生效。
+- 本轮没有 commit、push、重置或清理工作树；保留全部既有未提交修改。真实登录态验证码邮件、账号删除和对象最终清除没有在演示数据上执行，避免破坏本地账号，仍需使用专用测试账号验收。
+
 ### 2026-08-30 Mobile “我的收藏”类型 Tab 筛选修复
 
 - 2026-08-31 局部提交预检：仅暂存收藏筛选及配套测试/UI 证据，其他功能改动保留。独立暂存快照的 Server `make check`、14 项 Content 测试及 Mobile 总检查（含 4 项收藏契约测试、Blueprint/i18n）均退出 0；本次只做本地提交，不推送。

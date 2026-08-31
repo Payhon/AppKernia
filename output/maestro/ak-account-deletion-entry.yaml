@@ -1,0 +1,17 @@
+appId: com.appkernia.mobile
+name: 账号删除入口导航回归
+---
+- launchApp:
+    clearState: false
+- extendedWaitUntil:
+    visible: "首页"
+    timeout: 15000
+- tapOn: "我的"
+- extendedWaitUntil:
+    visible: "删除账号"
+    timeout: 15000
+- takeScreenshot: apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-180-account-deletion/screenshots/profile-delete-entry-fixed.zh-CN.390x844
+- tapOn:
+    point: "50%, 86%"
+- waitForAnimationToEnd
+- takeScreenshot: apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-180-account-deletion/screenshots/account-deletion-page.zh-CN.390x844

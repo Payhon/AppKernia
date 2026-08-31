@@ -106,12 +106,14 @@ type PublicPage struct {
 }
 
 type Service struct {
-	pool         *pgxpool.Pool
-	auth         Authenticator
-	otp          OTPNotifier
-	objects      storagedomain.ObjectStore
-	shareRuntime ShareRuntimeLoader
-	pushRuntime  PushRuntimeLoader
+	pool                   *pgxpool.Pool
+	auth                   Authenticator
+	otp                    OTPNotifier
+	erasureQueue           ObjectErasureQueue
+	objects                storagedomain.ObjectStore
+	accountDeletionEnabled bool
+	shareRuntime           ShareRuntimeLoader
+	pushRuntime            PushRuntimeLoader
 }
 
 type Authenticator interface {
@@ -125,6 +127,9 @@ type OTPNotification struct {
 }
 type OTPNotifier interface {
 	QueueOTP(context.Context, pgx.Tx, OTPNotification) error
+}
+type ObjectErasureQueue interface {
+	Enqueue(context.Context, pgx.Tx, uuid.UUID, uuid.UUID, uuid.UUID, uuid.UUID) error
 }
 type ShareRuntimeProvider struct {
 	ProviderCode string   `json:"provider_code"`
@@ -146,8 +151,16 @@ func WithOTPNotifier(notifier OTPNotifier) Option {
 	return func(service *Service) { service.otp = notifier }
 }
 
+func WithObjectErasureQueue(queue ObjectErasureQueue) Option {
+	return func(service *Service) { service.erasureQueue = queue }
+}
+
 func WithObjectStore(objects storagedomain.ObjectStore) Option {
 	return func(service *Service) { service.objects = objects }
+}
+
+func WithAccountDeletionEnabled(enabled bool) Option {
+	return func(service *Service) { service.accountDeletionEnabled = enabled }
 }
 
 func WithShareRuntime(loader ShareRuntimeLoader) Option {

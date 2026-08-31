@@ -1,0 +1,155 @@
+<template>
+  <ak-theme-root>
+    <scroll-view class="page" scroll-y>
+      <view class="nav">
+        <ak-back-button />
+        <text class="nav-title">{{ t('routes.profile.accountDeletion.title', null) }}</text>
+        <view class="nav-slot" />
+      </view>
+
+      <ak-card class="warning-card">
+        <text class="warning-title">{{ t('accountDeletion.warningTitle', null) }}</text>
+        <text class="warning-copy">{{ t('accountDeletion.warningDescription', null) }}</text>
+      </ak-card>
+
+      <ak-card class="scope-card">
+        <text class="section-title">{{ t('accountDeletion.scopeTitle', null) }}</text>
+        <view class="detail-row"><view class="detail-dot" /><text class="detail-copy">{{ t('accountDeletion.scopeCurrentApp', null) }}</text></view>
+        <view class="detail-row"><view class="detail-dot" /><text class="detail-copy">{{ t('accountDeletion.scopeOtherApps', null) }}</text></view>
+        <text class="detail-title">{{ t('accountDeletion.deleteIncludesTitle', null) }}</text>
+        <text class="detail-copy detail-block">{{ t('accountDeletion.deleteIncludes', null) }}</text>
+        <text class="detail-title">{{ t('accountDeletion.retainedTitle', null) }}</text>
+        <text class="detail-copy detail-block">{{ t('accountDeletion.retained', null) }}</text>
+      </ak-card>
+
+      <ak-card class="verification-card">
+        <text class="section-title">{{ t('accountDeletion.verificationTitle', null) }}</text>
+        <text class="section-copy">{{ t('accountDeletion.verificationDescription', null) }}</text>
+        <text v-if="targetHint.length > 0" class="sent-copy">{{ t('accountDeletion.sentTo', sentParams) }}</text>
+        <ak-button v-if="targetHint.length == 0" class="code-action" variant="secondary" :loading="sending" :loading-text="t('common.loading', null)" @click="requestCode">{{ t('accountDeletion.sendCode', null) }}</ak-button>
+        <ak-button v-else class="code-action" variant="secondary" :disabled="seconds > 0" :loading="sending" :loading-text="t('common.loading', null)" @click="requestCode">{{ seconds > 0 ? t('accountDeletion.resendIn', secondsParams) : t('accountDeletion.resend', null) }}</ak-button>
+        <ak-text-field v-model="verificationCode" :label="t('accountDeletion.codeLabel', null)" :placeholder="t('accountDeletion.codePlaceholder', null)" :error="codeError" input-type="number" :max-length="6" :accessibility-label="t('accountDeletion.codeLabel', null)" :disabled="deleting" />
+        <ak-status-view v-if="errorText.length > 0" state="error" :title="t('state.error.title', null)" :description="errorText" />
+      </ak-card>
+
+      <view class="acknowledgement-row">
+        <ak-switch v-model="acknowledged" :disabled="deleting" :accessibility-label="t('accountDeletion.acknowledgement', null)" />
+        <text class="acknowledgement-copy">{{ t('accountDeletion.acknowledgement', null) }}</text>
+      </view>
+
+      <ak-button class="delete-button" variant="danger" :disabled="!canDelete" :loading="deleting" :loading-text="t('accountDeletion.deleting', null)" @click="confirmDelete">{{ t('accountDeletion.deleteButton', null) }}</ak-button>
+      <view class="safe-bottom" />
+    </scroll-view>
+  </ak-theme-root>
+</template>
+
+<script lang="uts">
+import { AkError } from '../../../src/core/errors/ak-error.uts'
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+import { HttpCancellation } from '../../../src/core/network/http-port.uts'
+import { authContextStore } from '../../../src/core/stores/auth-context-store.uts'
+import { appSessionStore } from '../../../src/core/stores/session-store.uts'
+import { accountDeletionRuntime } from '../../../src/features/account-deletion/infrastructure/account-deletion-runtime.uts'
+import { AccountDeletionVerification } from '../../../src/features/account-deletion/domain/models.uts'
+import { authRuntime } from '../../../src/features/auth/auth-runtime.uts'
+import { pushCoordinator } from '../../../src/features/push/application/push-coordinator.uts'
+
+let activeTask: HttpCancellation | null = null
+
+export default {
+  data() {
+    return { targetHint: '', verificationCode: '', acknowledged: false, sending: false, deleting: false, seconds: 0, timer: 0, codeError: '', errorText: '' }
+  },
+  computed: {
+    t() { return akI18n.t },
+    sentParams(): Map<string, string> { return new Map<string, string>([['email', this.targetHint]]) },
+    secondsParams(): Map<string, string> { return new Map<string, string>([['seconds', this.seconds.toString()]]) },
+    canDelete(): boolean { return this.verificationCode.length == 6 && this.acknowledged && !this.sending && !this.deleting },
+  },
+  onLoad() {
+    if (appSessionStore.getAccessToken() == null) { uni.reLaunch({ url: '/pages/auth/login/index' }); return }
+    if (!authContextStore.hasEnabledFlag('account_deletion')) { uni.redirectTo({ url: '/pages/error/forbidden/index?reason=account_deletion_disabled' }) }
+  },
+  onUnload() {
+    if (activeTask != null) activeTask!.cancel()
+    if (this.timer > 0) clearInterval(this.timer)
+  },
+  methods: {
+    startTimer(value: number): void {
+      this.seconds = value
+      if (this.timer > 0) clearInterval(this.timer)
+      this.timer = setInterval(() => { if (this.seconds > 0) this.seconds -= 1; else if (this.timer > 0) { clearInterval(this.timer); this.timer = 0 } }, 1000)
+    },
+    requestCode(): void {
+      if (this.sending || this.deleting || this.seconds > 0) return
+      const repository = accountDeletionRuntime.getRepository()
+      if (repository == null) { this.errorText = akI18n.t('errors.runtime.unavailable', null); return }
+      this.sending = true
+      this.errorText = ''
+      this.codeError = ''
+      activeTask = repository.requestCode((value: AccountDeletionVerification) => {
+        this.sending = false
+        this.targetHint = value.targetHint
+        this.startTimer(value.retryAfterSeconds)
+      }, (error: AkError) => {
+        this.sending = false
+        if (error.targetHint.length > 0) this.targetHint = error.targetHint
+        if (error.retryAfterSeconds > 0) this.startTimer(error.retryAfterSeconds)
+        this.errorText = akI18n.t(error.messageKey, null)
+      })
+    },
+    confirmDelete(): void {
+      if (!this.canDelete) return
+      uni.showModal({
+        title: akI18n.t('accountDeletion.confirmTitle', null),
+        content: akI18n.t('accountDeletion.confirmMessage', null),
+        confirmText: akI18n.t('accountDeletion.confirmAction', null),
+        confirmColor: '#FF3B30',
+        cancelText: akI18n.t('common.cancel', null),
+        success: result => { if (result.confirm) this.deleteAccount() },
+      })
+    },
+    deleteAccount(): void {
+      const repository = accountDeletionRuntime.getRepository()
+      if (repository == null || this.deleting) return
+      this.deleting = true
+      this.errorText = ''
+      this.codeError = ''
+      activeTask = repository.confirm({ verificationCode: this.verificationCode, acknowledged: true }, () => {
+        pushCoordinator.unregisterLocal(() => {
+          authRuntime.clearDeletedAccount(() => { uni.reLaunch({ url: '/pages/auth/login/index?account_deleted=1' }) })
+        })
+      }, (error: AkError) => {
+        this.deleting = false
+        if (error.code == 'IAM.ACCOUNT_DELETION.CODE_INVALID' || error.code == 'IAM.ACCOUNT_DELETION.CODE_EXPIRED' || error.code == 'IAM.ACCOUNT_DELETION.CODE_ATTEMPTS_EXHAUSTED') this.codeError = akI18n.t(error.messageKey, null)
+        else this.errorText = akI18n.t(error.messageKey, null)
+      })
+    },
+  },
+}
+</script>
+
+<style lang="scss">
+.page{height:100%;flex:1;padding:16px 20px 40px;background:var(--ak-page);box-sizing:border-box}
+.nav{height:44px;margin-bottom:20px;flex-direction:row;align-items:center;justify-content:space-between}
+.nav-title{color:var(--ak-text);font-size:17px;font-weight:600}
+.nav-slot{width:44px;height:44px}
+.warning-card,.scope-card,.verification-card{padding:20px;border-radius:18px;margin-bottom:16px}
+.warning-card{background:var(--ak-surface);border:1px solid var(--ak-danger)}
+.warning-title{color:var(--ak-danger);font-size:20px;font-weight:700;line-height:26px}
+.warning-copy{color:var(--ak-text);font-size:15px;line-height:23px;margin-top:8px}
+.section-title{color:var(--ak-text);font-size:18px;font-weight:700;line-height:25px}
+.section-copy,.detail-copy,.sent-copy,.acknowledgement-copy{color:var(--ak-muted);font-size:15px;line-height:23px}
+.section-copy{margin-top:8px}
+.detail-row{flex-direction:row;align-items:flex-start;margin-top:12px}
+.detail-dot{width:6px;height:6px;border-radius:3px;background:var(--ak-danger);margin:8px 10px 0 2px}
+.detail-row .detail-copy{flex:1;color:var(--ak-text)}
+.detail-title{color:var(--ak-text);font-size:15px;font-weight:700;margin-top:18px}
+.detail-block{margin-top:6px}
+.sent-copy{color:var(--ak-text);margin-top:14px}
+.code-action{margin:14px 0 18px}
+.acknowledgement-row{min-height:64px;padding:4px 2px 12px;flex-direction:row;align-items:flex-start}
+.acknowledgement-copy{flex:1;color:var(--ak-text);margin:10px 0 0 10px}
+.delete-button{margin-top:8px}
+.safe-bottom{height:env(safe-area-inset-bottom)}
+</style>

@@ -141,12 +141,12 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 | `iam.login_captcha_challenges` | HMAC 保护范围 | Admin 短时图形验证码 | 答案仅存随机盐哈希；5 分钟过期、最多 5 次尝试、成功后一次性消费 |
 | `iam.sessions` | 可选租户 | 可撤销登录会话 | audience、绝对过期、租户成员约束 |
 | `iam.refresh_tokens` | 会话 | Refresh Token 轮换链 | 只存 32 字节哈希；哈希唯一 |
-| `iam.verification_challenges` | 全局 | OTP、邮箱/手机验证、密码重置 | 目标存 Keyed HMAC/Hint，验证码存哈希、尝试次数和过期时间 |
+| `iam.verification_challenges` | 全局/App | OTP、邮箱/手机验证、密码重置和账号删除 | 目标存哈希/Hint，验证码存哈希、尝试次数和过期时间；`account_delete` 元数据绑定 App 与用户 |
 | `iam.mfa_factors` | 全局 | TOTP/WebAuthn 因子 | 因子材料与类型匹配 |
 | `iam.mfa_recovery_codes` | 全局 | MFA 恢复码 | 只存哈希；哈希唯一 |
 | `iam.block_rules` | 全局/租户 | IP、CIDR、用户、设备和标识风控规则 | subject/action/status Check |
 | `iam.role_scope_units` | 租户 | 自定义角色组织数据范围 | 同租户角色与组织复合外键 |
-| `iam.user_preferences` | 全局 | 用户主题与通知偏好 | locale 继续以 `iam.users.locale` 为唯一事实源 |
+| `iam.user_preferences` | App | 用户语言、主题与通知偏好 | `(app_id,user_id)` 主键；App 成员删除时级联清理 |
 
 ### 4.2 Organization
 
@@ -190,8 +190,8 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 
 | 表 | 租户范围 | 主要职责 | 关键约束 |
 |---|---|---|---|
-| `storage.files` | 租户 | 对象元数据、哈希、扫描和可见性 | 对象地址唯一；同租户内容可去重 |
-| `storage.upload_sessions` | 租户 | 预签名/分片上传生命周期 | 上传用户必须是租户成员；过期时间 |
+| `storage.files` | 租户/App | 对象元数据、哈希、扫描和可见性 | 对象地址唯一；Mobile 文件可记录 `app_id`，仅独占且无引用对象允许删除 |
+| `storage.upload_sessions` | 租户/App | 预签名/分片上传生命周期 | 上传用户必须是租户成员；Mobile 会话可记录 `app_id`；过期时间 |
 | `storage.upload_parts` | Session | 分片 ETag、大小和校验和 | `(session,part_number)` 主键 |
 | `storage.file_usages` | 租户 | 文件与业务实体引用关系 | 文件与使用记录同租户；引用唯一 |
 
@@ -218,9 +218,11 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 
 | 表 | 租户范围 | 主要职责 | 关键约束 |
 |---|---|---|---|
-| `audit.operation_logs` | 全局/租户 | 管理和敏感业务操作审计 | request/trace/resource 索引；内容必须脱敏 |
+| `audit.operation_logs` | 全局/租户/App | 管理和敏感业务操作审计 | Mobile Session 自动投影 `app_id`；request/trace/resource 索引；内容必须脱敏 |
 | `audit.login_events` | 全局/租户 | 登录成功、失败和阻断事件 | 登录标识只存哈希与 Hint |
 | `audit.security_events` | 全局/租户 | Token 重放、越权尝试等安全事件 | 严重级别和未解决索引 |
+| `audit.privacy_erasure_events` | App | 不含用户标识的账号清除证明 | 固定动作码 `iam.user.delete_self`，只记录范围、结果、数量和时间 |
+| `audit.privacy_erasure_objects` | 清除事件 | 对象存储幂等清除任务状态 | 对象定位唯一；pending/succeeded/failed 状态与尝试次数受约束 |
 
 ### 4.8 Optional Billing
 

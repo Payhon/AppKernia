@@ -12,6 +12,7 @@
 
 - Every custom-navigation page reserves `var(--status-bar-height)` before its 44 px navigation/header row. Backgrounds may extend behind hardware; text and controls may not.
 - Root Tab pages use a 44 px header after the safe-area inset and reserve at least 16 px of content clearance above the native TabBar.
+- The Profile root keeps sign-out and account-deletion actions in a non-scrolling footer inside the page viewport, while profile content scrolls independently. The footer must remain above the native TabBar on every supported screen height.
 - Pushed pages use a 44 px navigation row with a 44 × 44 px back target, centered title and an equal-width trailing slot.
 - Scroll content uses flex sizing. Do not use fixed 620/640 px viewport heights; the page must adapt to iPhone SE-class widths, Dynamic Island devices and larger text.
 - Native TabBar keeps four semantic destinations (home, browse, topics and profile), text labels and paired outline/filled local assets. Selected state is communicated by icon form and label color, not color alone.
@@ -81,6 +82,7 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 ## Authentication and legal surfaces
 
 - Authentication pages use one clear primary action, labelled fields, inline validation and a secondary action hierarchy for password recovery and registration.
+- Irreversible self-service account actions use a dedicated page with explicit scope, data-retention disclosure, recent verification, an unchecked acknowledgement and a second native confirmation. The destructive submit remains disabled until every prerequisite is satisfied.
 - Legal links remain visible on the login screen, are never preselected as consent, and open static allowlisted routes.
 - Privacy consent is a dedicated pre-bootstrap surface: bundled text is readable offline, primary consent has a 44 px target, and no sensitive SDK or device capability may initialize before acceptance.
 - Legal CMS content is rendered as text-only, allowlisted Markdown/blocks; raw HTML, URLs, scripts and remote components are never interpreted by a page.

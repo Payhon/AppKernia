@@ -1,0 +1,29 @@
+import { AkError } from '../../../core/errors/ak-error.uts'
+import { akI18n } from '../../../core/i18n/ak-i18n.uts'
+import { AkHttpPort, HttpCancellation, HttpRequest } from '../../../core/network/http-port.uts'
+import { AccountDeletionConfirmWire, AccountDeletionResultWire, AccountDeletionVerificationCodeWire } from '../../../generated/api/mobile-account-deletion.uts'
+import { AccountDeletionConfirmation, AccountDeletionVerification } from '../domain/models.uts'
+
+export class HttpAccountDeletionRepository {
+  private readonly http: AkHttpPort
+
+  constructor(http: AkHttpPort) { this.http = http }
+
+  requestCode(ok: (value: AccountDeletionVerification) => void, fail: (error: AkError) => void): HttpCancellation {
+    return this.http.execute<UTSJSONObject, AccountDeletionVerificationCodeWire>(this.request('POST', '/me/account-deletion/verification-code', {} as UTSJSONObject), response => {
+      ok({ targetHint: response.data.target_hint, expiresInSeconds: response.data.expires_in_seconds, retryAfterSeconds: response.data.retry_after_seconds })
+    }, fail)
+  }
+
+  confirm(input: AccountDeletionConfirmation, ok: () => void, fail: (error: AkError) => void): HttpCancellation {
+    const body: AccountDeletionConfirmWire = { verification_code: input.verificationCode, acknowledged: input.acknowledged }
+    return this.http.execute<AccountDeletionConfirmWire, AccountDeletionResultWire>(this.request('POST', '/me/account-deletion/confirm', body), response => {
+      if (response.data.deleted) ok()
+      else fail(new AkError('unknown', 'account_deletion.invalid_result', 'errors.unknown', response.requestId))
+    }, fail)
+  }
+
+  private request<T>(method: 'POST', path: string, body: T): HttpRequest<T> {
+    return { method, path, query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body, locale: akI18n.getLocale() }
+  }
+}

@@ -1,6 +1,6 @@
 # AK Mobile 所需后端增量
 
-Backend Blueprint 已有 **26** 个 App API 基线；移动端完整页面建议增加 **28** 个端点。机器清单：
+Backend Blueprint 已有 **26** 个 App API 基线；移动端增量以机器清单为准。机器清单：
 
 - `app-api-baseline.json`
 - `app-api-delta.json`
@@ -21,7 +21,7 @@ Backend Blueprint 已有 **26** 个 App API 基线；移动端完整页面建议
 - OAuth PKCE Provider。
 - Push Device 与通知偏好。
 - 多租户切换。
-- 账号注销冷静期。
+- 当前 App 账号即时删除、邮箱验证码校验与匿名化留存。
 
 ## 数据表映射
 
@@ -35,13 +35,13 @@ Backend Blueprint 已有 **26** 个 App API 基线；移动端完整页面建议
 - 安全记录：`audit.login_events`、`audit.security_events`。
 - 偏好：优先增加受约束的 user preference 表或明确 JSONB Schema，不把任意配置塞入客户端。
 - 扫码配置：`app.application_scanner_configs` 按 `(tenant_id,app_id)` 隔离，独立乐观锁；只保存规范化域名，不保存扫码内容。
-- 注销：建议新增不可变状态流转表，不直接软删用户。
+- 删除：由串行化事务即时删除当前 App 关系与可清除资料；共享身份有其他关系时保留，无其他关系时物理删除。法规所需事件只匿名化留存，独占对象通过可靠任务队列幂等清除。
 
 ## 安全要求
 
 - Refresh Rotation 与 Replay Detection 沿用 Backend Blueprint。
 - Context 只返回当前 Session 可见的权限与租户。
-- Step-up Token 短生命周期、单用途或按 action audience 限制。
+- 账号删除验证码必须绑定 `app_id + user_id`，哈希存储、10 分钟有效、最多 5 次尝试并且单次消费；客户端不得自动重试确认接口。
 - Push Token 服务端加密保存，日志只显示 Hash/后四位。
 - App Version 只返回可信商店链接，不返回可执行脚本或任意下载地址。
 - 扫码域名只允许 ASCII/Punycode 精确域名与受控通配符；拒绝协议、路径、凭据、非 443 端口、IP、localhost 和公共后缀通配符。服务端不得下发可执行处理器。

@@ -10,11 +10,15 @@ import (
 	"syscall"
 	"time"
 
+	appmanagementjobdefs "github.com/appkernia/appkernia/server/internal/modules/appmanagement/jobdefs"
+	appmanagementworker "github.com/appkernia/appkernia/server/internal/modules/appmanagement/worker"
 	jobworker "github.com/appkernia/appkernia/server/internal/modules/jobadmin/worker"
 	notificationjobdefs "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/jobdefs"
 	notificationworker "github.com/appkernia/appkernia/server/internal/modules/notificationadmin/worker"
 	pushdomain "github.com/appkernia/appkernia/server/internal/modules/push/domain"
 	pushprovider "github.com/appkernia/appkernia/server/internal/modules/push/provider"
+	storagedomain "github.com/appkernia/appkernia/server/internal/modules/storage/domain"
+	storagerepo "github.com/appkernia/appkernia/server/internal/modules/storage/repository"
 	settingsrepo "github.com/appkernia/appkernia/server/internal/modules/systemsettings/repository"
 	"github.com/appkernia/appkernia/server/internal/platform/buildinfo"
 	"github.com/appkernia/appkernia/server/internal/platform/config"
@@ -61,7 +65,20 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("create River insert client: %w", err)
 	}
-	trackedQueue := jobqueue.NewRiverAdapter(pool, insertClient, notificationjobdefs.Registry())
+	queueDefinitions := append(notificationjobdefs.Definitions(), appmanagementjobdefs.Definitions()...)
+	trackedQueue := jobqueue.NewRiverAdapter(pool, insertClient, jobqueue.MustRegistry(queueDefinitions...))
+	var objectStore storagedomain.ObjectStore
+	if cfg.AvatarUploadEnabled || cfg.FileStorageEnabled {
+		switch cfg.ObjectStorageAdapter {
+		case "local":
+			objectStore, err = storagerepo.NewLocalObjectStore(cfg.LocalObjectStorageDir)
+		case "configured":
+			objectStore, err = storagerepo.NewConfiguredObjectStore(pool, sealer, cfg.LocalObjectStorageDir, cfg.Environment)
+		}
+		if err != nil {
+			return fmt.Errorf("create object storage adapter: %w", err)
+		}
+	}
 	var pushSender pushdomain.Sender
 	if cfg.PushAdapter == "local-mock" {
 		pushSender = pushprovider.NewMockSender()
@@ -71,8 +88,9 @@ func run() error {
 	river.AddWorker(workers, notificationworker.NewDeliveryWorker(pool, sealer, cfg.Environment, cfg.PushEnabled, pushSender))
 	river.AddWorker(workers, notificationworker.NewMessagePublishWorker(pool, trackedQueue))
 	river.AddWorker(workers, notificationworker.NewPushFanoutWorker(pool, trackedQueue, sealer, cfg.Environment, cfg.PushEnabled))
+	river.AddWorker(workers, appmanagementworker.NewObjectErasureWorker(pool, objectStore))
 	client, err := river.NewClient(riverpgxv5.New(pool), &river.Config{
-		Queues:          map[string]river.QueueConfig{"default": {MaxWorkers: 4}, "notifications": {MaxWorkers: 8}},
+		Queues:          map[string]river.QueueConfig{"default": {MaxWorkers: 4}, "notifications": {MaxWorkers: 8}, "privacy": {MaxWorkers: 2}},
 		Workers:         workers,
 		JobTimeout:      24 * time.Hour,
 		SoftStopTimeout: cfg.ShutdownTimeout,

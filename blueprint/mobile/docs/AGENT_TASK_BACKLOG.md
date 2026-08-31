@@ -160,8 +160,8 @@
 - Phase：`P2E`
 - 依赖：AKMOB-110, AKMOB-150
 - UI Skill：必须
-- 产物：account deletion page；cooling-off state
-- 验收：Step-up 必须；冷静期/撤销明确；退出并清理本地数据
+- 产物：account deletion page；verified email code flow；immediate scoped erasure
+- 验收：当前已验证邮箱验证码必须；仅删除当前 App 且即时生效、不可撤销；删除后仅本地注销 Push 并清理安全 Session、认证上下文和敏感缓存
 
 ## AKMOB-190 — 离线、重试、取消、恢复和性能预算
 

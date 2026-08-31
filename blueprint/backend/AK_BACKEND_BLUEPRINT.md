@@ -537,7 +537,7 @@ WHERE id = $2 AND version = $3;
 | `iam.devices` | 已识别设备 |
 | `iam.sessions` | 可撤销登录会话 |
 | `iam.refresh_tokens` | Refresh Token 轮换链和重放检测 |
-| `iam.verification_challenges` | 邮件/SMS OTP、验证和密码重置挑战 |
+| `iam.verification_challenges` | 邮件/SMS OTP、验证、密码重置和 App 账号删除挑战 |
 | `iam.mfa_factors` | TOTP/WebAuthn 因子 |
 | `iam.mfa_recovery_codes` | MFA 恢复码哈希 |
 | `iam.block_rules` | IP、网段、账号、设备黑名单/挑战/限流规则 |
@@ -574,8 +574,8 @@ WHERE id = $2 AND version = $3;
 
 | 表 | 说明 |
 |---|---|
-| `storage.files` | 对象元数据、哈希、扫描和可见性 |
-| `storage.upload_sessions` | 预签名/分片上传会话 |
+| `storage.files` | 对象元数据、哈希、扫描、可见性及可选 App 归属 |
+| `storage.upload_sessions` | 预签名/分片上传会话及可选 App 归属 |
 | `storage.upload_parts` | 分片 ETag 和校验 |
 | `storage.file_usages` | 文件与业务实体引用关系 |
 
@@ -609,6 +609,8 @@ WHERE id = $2 AND version = $3;
 | `audit.operation_logs` | 管理操作和关键业务变更审计 |
 | `audit.login_events` | 登录、刷新、MFA、API Client 鉴权事件 |
 | `audit.security_events` | Token 重放、权限探测、异常下载等安全事件 |
+| `audit.privacy_erasure_events` | 不含用户标识的 App 账号清除证明 |
+| `audit.privacy_erasure_objects` | 对象存储幂等清除状态 |
 
 ### 10.8 可选 Billing
 

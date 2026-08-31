@@ -21,11 +21,11 @@
       "status": "active"
     },
     {
-      "code": "iam.user.request_deletion_self",
-      "name": "申请或撤销自己的账号注销",
+      "code": "iam.user.delete_self",
+      "name": "删除自己的 App 账号",
       "module_code": "iam",
       "resource_name": "user",
-      "action_name": "request_deletion_self",
+      "action_name": "delete_self",
       "permission_kind": "api",
       "status": "active"
     },

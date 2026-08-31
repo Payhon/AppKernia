@@ -8,7 +8,7 @@
           @click="protectedGo('/pages/notifications/index')"
           ><ak-icon name="bell" /></view></view
       ><text class="page-title">{{ t("profile.title", null) }}</text
-      ><ak-card class="identity" @click="identity"
+      ><view class="identity-action" role="button" :aria-label="t('routes.profile.basic.title', null)" @click="identity"><ak-card class="identity"
         ><view class="avatar" :class="{ 'avatar-guest': guest }"
           ><text>{{ guest ? "?" : initials }}</text></view
         ><view class="identity-copy"
@@ -18,7 +18,7 @@
           ><text class="identity-email">{{
             guest ? t("profile.guestHint", null) : email
           }}</text></view
-        ><ak-icon name="chevron-right" /></ak-card
+        ><ak-icon name="chevron-right" /></ak-card></view
       ><ak-cell-list class="menu-group"
         ><view class="row" role="button" :aria-label="t('profile.bookmarks', null)" @click="protectedGo('/pages/bookmarks/index')"
           ><view class="row-lead"
@@ -56,13 +56,16 @@
               t("profile.helpAbout", null)
             }}</text></view
           ><ak-icon name="chevron-right" /></view></ak-cell-list
+      ></scroll-view
+    ><view v-if="!guest" class="profile-actions"
       ><ak-button
-        v-if="!guest"
         class="sign-out"
         variant="danger"
         @click="signOut"
         >{{ t("common.signOut", null) }}</ak-button
-      ></scroll-view
+      ><view v-if="accountDeletionEnabled" class="delete-account-link" role="button" :aria-label="t('profile.deleteAccount', null)" @click="deleteAccount"
+        ><text class="delete-account-text">{{ t('profile.deleteAccount', null) }}</text></view
+      ></view
     ><ak-auth-prompt
       :open="authOpen"
       @close="authOpen = false"
@@ -70,13 +73,14 @@
   /></ak-theme-root>
 </template>
 <script lang="uts">
-import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{profileRuntime}from'../../src/features/profile/infrastructure/profile-runtime.uts';import{authRuntime}from'../../src/features/auth/auth-runtime.uts';import{appSessionStore}from'../../src/core/stores/session-store.uts';import{pushCoordinator}from'../../src/features/push/application/push-coordinator.uts';export default{data(){return{guest:true,authOpen:false,displayName:'',email:'',initials:''}},computed:{t(){return akI18n.t}},onShow(){this.reload()},methods:{reload(){this.guest=appSessionStore.getAccessToken()==null;if(this.guest)return;const repo=profileRuntime.getRepository();if(repo==null)return;repo.profile(x=>{this.displayName=x.displayName;this.email=x.email;this.initials=x.displayName.substring(0,1)},error=>{if(error.kind==='unauthorized'){this.guest=true;this.authOpen=true}})},identity(){if(this.guest){this.authOpen=true;return};this.publicGo('/pages/profile/basic/index')},protectedGo(url:string){if(this.guest){this.authOpen=true;return};this.publicGo(url)},publicGo(url:string){uni.navigateTo({url:url})},authenticated(){this.authOpen=false;this.reload()},signOut(){pushCoordinator.disableActive(()=>{authRuntime.signOut(()=>{this.guest=true;this.displayName='';this.email='';this.initials=''})})}}}
+import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{profileRuntime}from'../../src/features/profile/infrastructure/profile-runtime.uts';import{authRuntime}from'../../src/features/auth/auth-runtime.uts';import{appSessionStore}from'../../src/core/stores/session-store.uts';import{authContextStore}from'../../src/core/stores/auth-context-store.uts';import{akNavigator,authenticatedNavigationContext}from'../../src/core/navigation/app-routes.uts';import{pushCoordinator}from'../../src/features/push/application/push-coordinator.uts';export default{data(){return{guest:true,authOpen:false,accountDeletionEnabled:false,displayName:'',email:'',initials:''}},computed:{t(){return akI18n.t}},onShow(){this.reload()},methods:{reload(){this.guest=appSessionStore.getAccessToken()==null;this.accountDeletionEnabled=!this.guest&&authContextStore.hasEnabledFlag('account_deletion');if(this.guest)return;authRuntime.refreshContext(()=>{this.accountDeletionEnabled=!this.guest&&authContextStore.hasEnabledFlag('account_deletion')},()=>{});const repo=profileRuntime.getRepository();if(repo==null)return;repo.profile(x=>{this.displayName=x.displayName;this.email=x.email;this.initials=x.displayName.substring(0,1)},error=>{if(error.kind==='unauthorized'){this.guest=true;this.accountDeletionEnabled=false;this.authOpen=true}})},identity(){if(this.guest){this.authOpen=true;return};this.publicGo('/pages/profile/basic/index')},protectedGo(url:string){if(this.guest){this.authOpen=true;return};this.publicGo(url)},publicGo(url:string){uni.navigateTo({url:url})},deleteAccount(){akNavigator.navigate('account.deletion',authenticatedNavigationContext())},authenticated(){this.authOpen=false;this.reload()},signOut(){pushCoordinator.disableActive(()=>{authRuntime.signOut(()=>{this.guest=true;this.accountDeletionEnabled=false;this.displayName='';this.email='';this.initials=''})})}}}
 </script>
 <style lang="scss">
 .page {
-  height: 100%;
+  flex: 1;
+  height: auto;
   background: var(--ak-page);
-  padding: 16px 20px 120px;
+  padding: 16px 20px;
 }
 .topbar,
 .identity,
@@ -109,9 +113,11 @@ import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{profileRuntime}from'.
   color: var(--ak-text);
   margin: 24px 0 16px;
 }
+.identity-action {
+  margin-bottom: 20px;
+}
 .identity {
   padding: 18px;
-  margin-bottom: 20px;
   min-height: 92px;
 }
 .avatar {
@@ -159,6 +165,23 @@ import{akI18n}from'../../src/core/i18n/ak-i18n.uts';import{profileRuntime}from'.
   margin-left: 12px;
 }
 .sign-out {
+  margin-top: 0;
+}
+.profile-actions {
+  flex-shrink: 0;
+  padding: 8px 20px 12px;
+  background: var(--ak-page);
+}
+.delete-account-link {
+  min-height: 44px;
   margin-top: 8px;
+  align-items: center;
+  justify-content: center;
+}
+.delete-account-text {
+  color: var(--ak-danger);
+  font-size: 15px;
+  line-height: 22px;
+  text-decoration-line: underline;
 }
 </style>

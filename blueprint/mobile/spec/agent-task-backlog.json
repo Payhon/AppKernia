@@ -387,12 +387,13 @@
       "ui_skill_required": true,
       "outputs": [
         "account deletion page",
-        "cooling-off state"
+        "verified email code flow",
+        "immediate scoped erasure"
       ],
       "acceptance": [
-        "Step-up 必须",
-        "冷静期/撤销明确",
-        "退出并清理本地数据"
+        "当前已验证邮箱验证码校验必须",
+        "仅删除当前 App 且即时生效、不可撤销",
+        "删除后仅做本地 Push 注销并清理安全会话与敏感缓存"
       ]
     },
     {

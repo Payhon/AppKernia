@@ -738,20 +738,18 @@
     },
     {
       "route_key": "account.deletion",
-      "path": "pages/account/deletion/index",
-      "file": "apps/ak-mobile/pages/account/deletion/index.uvue",
+      "path": "pages/profile/account-deletion/index",
+      "file": "apps/ak-mobile/pages/profile/account-deletion/index.uvue",
       "access": "authenticated",
       "kind": "page",
-      "title_key": "routes.accountDeletion.title",
+      "title_key": "routes.profile.accountDeletion.title",
       "phase": "P2",
       "required_permissions": [
-        "iam.user.request_deletion_self"
+        "iam.user.delete_self"
       ],
       "apis": [
-        "POST /api/v1/auth/step-up",
-        "POST /api/v1/me/account-deletion",
-        "GET /api/v1/me/account-deletion",
-        "DELETE /api/v1/me/account-deletion"
+        "POST /api/v1/me/account-deletion/verification-code",
+        "POST /api/v1/me/account-deletion/confirm"
       ],
       "feature_flag": "account_deletion",
       "tab_key": null,

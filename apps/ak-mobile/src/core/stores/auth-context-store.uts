@@ -8,6 +8,8 @@ export class AuthContextStore {
 
   set(permissions: Array<string>, enabledFlags: Array<string>): void { this.authenticated = true; this.permissions = permissions; this.enabledFlags = enabledFlags }
   clear(): void { this.authenticated = false; this.permissions = []; this.enabledFlags = [] }
+  hasEnabledFlag(value: string): boolean { return this.enabledFlags.includes(value) }
+  hasPermission(value: string): boolean { return this.permissions.includes(value) }
   navigationContext(): NavigationContext { return { authenticated: this.authenticated, challenge: false, permissions: this.permissions, enabledFlags: this.enabledFlags } }
 }
 

@@ -32,7 +32,7 @@ func NewAppOTPNotifier(queue jobqueue.Enqueuer, sealer notify.TargetSealer) (*Ap
 }
 
 func (n *AppOTPNotifier) QueueOTP(ctx context.Context, tx pgx.Tx, input app.OTPNotification) error {
-	if tx == nil || input.AppID == uuid.Nil || input.TenantID == uuid.Nil || strings.TrimSpace(input.Email) == "" || len(input.Code) != 6 || (input.Purpose != "email_otp" && input.Purpose != "password_reset") {
+	if tx == nil || input.AppID == uuid.Nil || input.TenantID == uuid.Nil || strings.TrimSpace(input.Email) == "" || len(input.Code) != 6 || (input.Purpose != "email_otp" && input.Purpose != "password_reset" && input.Purpose != "account_delete") {
 		return errors.New("app OTP notification is invalid")
 	}
 	locale := input.Locale

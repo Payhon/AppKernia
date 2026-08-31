@@ -47,6 +47,8 @@ services:
     restart: "no"
   api:
     build: *server-build
+    ports:
+      - "${AK_API_PORT:-8080}:8080"
     environment:
       AK_ENV: development
       AK_HTTP_ADDR: :8080
@@ -89,7 +91,15 @@ services:
     environment:
       AK_ENV: development
       AK_DATABASE_URL: postgres://appkernia:appkernia-dev-only@postgres:5432/appkernia?sslmode=disable
+      AK_AVATAR_UPLOAD_ENABLED: ${AK_AVATAR_UPLOAD_ENABLED:-true}
+      AK_FILE_STORAGE_ENABLED: ${AK_FILE_STORAGE_ENABLED:-true}
+      AK_OBJECT_STORAGE_ADAPTER: configured
+      AK_LOCAL_OBJECT_STORAGE_DIR: /app/data/object-storage
+      AK_CONFIG_MASTER_KEY_BASE64: ${AK_CONFIG_MASTER_KEY_BASE64:-YXBwa2VybmlhLWRldi1tYXN0ZXIta2V5LTMyYnl0ZSE=}
+      AK_CONFIG_MASTER_KEY_VERSION: ${AK_CONFIG_MASTER_KEY_VERSION:-1}
       AK_SHUTDOWN_TIMEOUT: 15s
+    volumes:
+      - ak-object-storage:/app/data/object-storage
     depends_on:
       seed:
         condition: service_completed_successfully

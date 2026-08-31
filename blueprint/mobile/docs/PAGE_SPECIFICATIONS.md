@@ -48,7 +48,7 @@ initial → loading → content | empty | error | offline | forbidden
 | `legal.terms` | `pages/legal/terms/index` | public | P0 | — | — | GET /api/v1/public/legal/{document_type} |
 | `about` | `pages/about/index` | public | P1 | — | — | GET /api/v1/public/app-version<br>GET /api/v1/public/pages/{slug} |
 | `upgrade.dialog` | `uni_modules/ak-upgrade/pages/upgrade-dialog` | public | P1 | — | — | GET /api/v1/public/app-version<br>GET /api/v1/public/app-version/download/{release_id}/{file_id} |
-| `account.deletion` | `pages/account/deletion/index` | authenticated | P2 | account_deletion | iam.user.request_deletion_self | POST /api/v1/auth/step-up<br>POST /api/v1/me/account-deletion<br>GET /api/v1/me/account-deletion<br>DELETE /api/v1/me/account-deletion |
+| `account.deletion` | `pages/profile/account-deletion/index` | authenticated | P2 | account_deletion | iam.user.delete_self | POST /api/v1/me/account-deletion/verification-code<br>POST /api/v1/me/account-deletion/confirm |
 | `error.forbidden` | `pages/error/forbidden/index` | mixed | P0 | — | — | — |
 | `error.offline` | `pages/error/offline/index` | mixed | P0 | — | — | — |
 | `dev.components` | `pages/dev/components/index` | development | P0 | dev_component_gallery | — | — |
@@ -89,7 +89,7 @@ initial → loading → content | empty | error | offline | forbidden
 
 ## 7. 账号注销
 
-必须显示：影响范围、冷静期、生效时间、可撤销条件、数据保留规则和 Step-up。注销成功后撤销 Session、Push Token 并清理本地用户数据。
+必须明确显示当前 App 删除范围、其他 App/管理端不受影响、不可恢复警告、清除内容与依法匿名留存规则。使用当前账号已验证邮箱的 6 位验证码，验证码完整且已勾选确认后才允许二次确认；成功后不得再调用已失效会话接口，只执行本地 Push 注销、清除安全 Session、认证上下文和敏感缓存并 reLaunch 登录页。
 
 ## 8. 双语页面验收
 

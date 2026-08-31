@@ -52,6 +52,10 @@ export class PushCoordinator {
     const repository=pushRuntime.getRepository();if(repository==null){unregister(()=>ok(),_code=>ok());return}
     repository.current(device=>this.disable(device,ok,_code=>ok()),_error=>{unregister(()=>ok(),_code=>ok())})
   }
+  unregisterLocal(ok: () => void): void {
+    this.cancel()
+    unregister(() => ok(), (_code: PushErrorCode) => ok())
+  }
   settings(): boolean { return openSystemSettings() }
   resume(): void { if(this.initialized)consumeNotificationOpened() }
   cancel(): void { const task=this.task;if(task!=null)task.cancel();this.task=null }

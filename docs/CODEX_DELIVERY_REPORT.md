@@ -2708,6 +2708,87 @@
 - 探索失败均保留真实边界：iOS 首次复编译因 HBuilder 缓存目录瞬时 `ENOENT` 退出 1，原命令重跑通过；三次早期 Maestro 分别被遗留文章详情、首次隐私页和未暴露的同意按钮定位阻断，改为清空状态并点击确定坐标后最终通过。Android Maestro 因该双显示 vivo 设备的 `tcp:7001 closed` / gRPC driver 关闭超时退出 130，后续改用 HBuilderX 资源同步和指定显示 ADB 操作取得真机结果，未把自动化驱动失败算作产品失败。
 - Docs `pnpm check` 首轮因非 TTY 依赖目录确认退出 1，`CI=true pnpm check` 重跑退出 0：147 个 API 引用、0 lint/type/format 错误、中英文 84 页面构建与语言配对通过。宿主 Node 26.5.0 高于仓库要求的 Node 24，正式 CI 仍应使用 Node 24。含二维码原文的临时真机截图已删除，仅保留不含扫码内容的取消截图和测试条码目标。
 
+### 2026-08-31 账号删除本地提交前快照复核
+
+- 提交内容从混合工作区按功能拆分，在独立临时快照验证；不包含头像、通知、空状态和导航图标等其他未提交功能，也不推送远端。
+
+| 实际命令 | Exit | 结果 |
+|---|---:|---|
+| `bash apps/ak-mobile/scripts/check-project.sh` | 0 | 46 routes、57 API delta、11 permission delta、42 components；Blueprint/i18n/生成物和静态门禁通过，4 项收藏、7 项扫码、6 个 SemVer 用例及 4 项 Node 测试通过。 |
+| `python3 blueprint/backend/tools/validate_blueprint.py` | 0 | 26 对迁移、112 张表，0 errors/warnings。 |
+| `python3 blueprint/admin-frontend/scripts/validate_blueprint_specs.py` | 0 | 48 menus、59 routes、166 permissions 等契约通过。 |
+| `npm run generate:api --prefix apps/ak-admin` / `npm run typecheck --prefix apps/ak-admin` | 0 / 0 | 基于本次快照 OpenAPI 生成 Client，Admin 类型检查通过。 |
+| `make check build`（server） | 0 | gofmt、vet、单测及 API/Worker/CLI 三个二进制构建通过。 |
+| `GOTOOLCHAIN=go1.26.5 go test -json ./...`（server） | 0 | 222 项通过、1 项跳过、0 失败；43 个测试包通过。 |
+| `make sqlc-generate`（server） | 0 | 生成执行成功；发现原基线已缺少 Migration 26 的扫码配置模型，本次保留该既有差异，不扩展账号删除提交范围。 |
+
+- 本轮只作本地提交前复核，未重跑平台构建、模拟器交互、数据库集成或真实账号删除；既有截图索引及真机、英文运行截图、邮件投递、App Store 验收门槛见下方原始交付记录。无部署或账号数据变更。
+
+### App 当前账号删除交付
+
+- 前端入口、删除页、双语 Catalog、路由、生成 UTS Client、功能开关和本地安全清理已完成。页面严格说明只删除当前 App；其他 App/Admin 身份关系继续保留。成功响应后不再调用已失效会话的服务端解绑接口。
+- Backend 以 Mobile Bearer 会话和 `X-AppID` 解析身份，客户端无法指定邮箱、用户或目标 App。验证码按 `account_delete` 用途绑定 `app_id + user_id + target_hash`，提供 600 秒有效期、60 秒冷却、5 次尝试、单次消费及 `Retry-After`。
+- 删除协调器在 Serializable 事务内清除当前 App 成员、偏好、会话/令牌、Push/通知、收藏/评论/举报/屏蔽、验证码和 App 专属文件元数据；法律同意与审计清空用户引用、邮箱/哈希、IP、设备、User-Agent 和可含个人信息的 JSON。存在跨 App、Admin、组织、角色、资源所有或计费关系时保留共享身份，否则物理删除全局用户及凭据。
+- Migration 25 增加 App 范围存储字段、匿名清除事件和对象任务；事件不保存用户 ID、邮箱哈希、IP 或设备信息。River `privacy` Worker 只接收对象定位信息，支持重试、终态失败和已成功任务幂等短路。
+- `ui-ux-pro-max` 用于确认危险操作层级、44px 命中区、明确标签、内联错误、键盘/安全区和双语长文本要求；request、skill output、decisions、页面 override 与 review checklist 已保存在 `AKMOB-180-account-deletion` artifacts。iOS 首轮编译发现 UVue 不支持 `padding-bottom: calc(... + env(...))`，改为独立安全区占位后复跑通过。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| 临时空库 `ak-cli migrate up` / `down 1` / `up` | 0 / 0 / 0 | PostgreSQL 迁移版本依次为 25 / 24 / 25，`dirty=false`；版本 24 的本地数据库副本升级到 25 也通过，未改写原演示库。 |
+| `go test -count=1 -tags=integration ./internal/modules/appmanagement/application ./internal/modules/appmanagement/worker` | 0 | 6 项本功能用例通过：验证码绑定/过期/冷却/次数、双 App/双租户隔离、最后 Mobile 身份物理删除、Admin 会话保护、评论回复保留、文件任务、重新注册空白状态、对象重试/终态/幂等。 |
+| `make check` | 0 | gofmt、go vet 与全仓 Go 单测通过。 |
+| `make test-race` | 0 | 全仓 Race 检查通过。 |
+| `make build` | 0 | `ak-api`、`ak-worker`、`ak-cli` 三个二进制构建通过。 |
+| `make test-integration`（全新版本 25 数据库） | 2 | 在执行新增包前被既有且本次未修改的 `internal/seed` 用例阻断：`TestBootstrapAdminReusesExistingTenantAndPreservesCredential` 得到 `permissions=19 menus=0`；新增 application/worker 集成包已由上一行独立通过。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | 45 routes、57 API delta、11 permission delta、40 components；Mobile Blueprint、跨端 i18n、生成 Client、启动快照、6 项升级用例、4 项 Node 测试和静态门禁全部通过。 |
+| `build-platform.sh ios`（首轮） | 1 | 发现删除页安全区 `calc()` CSS 不受 UVue 支持；该失败已用于修复，未记为通过。 |
+| `build-platform.sh ios`（修复后） | 0 | HBuilderX 5.24 完成 37 页面及 iOS UTS 编译。 |
+| `build-platform.sh android` | 0 | HBuilderX 5.24 完成 37 页面 Android class 编译。 |
+| `build-platform.sh harmony` | 0 | HBuilderX 5.24 完成 37 页面编译、依赖安装并生成未签名调试 HAP。 |
+| Backend/Mobile Blueprint、跨端 i18n、OpenAPI YAML parse、`git diff --check` | 0 | 25 对迁移、111 张表、283 个 OpenAPI paths、双语 key/placeholder parity 与补丁格式通过。最初按根文档尝试不存在的 Backend validator 路径退出 2，随后使用实际 `blueprint/backend/tools/validate_blueprint.py` 通过。 |
+
+- 截图索引：已补充 iPhone 16 Pro / iOS 18.6（402×874 逻辑视口）的中文入口、删除页和基本资料页真实运行截图，位于 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-180-account-deletion/screenshots/`。文件名沿用原计划的 `390x844` 标识，实际三张图片均为 1206×2622 像素。
+- 未完成门槛：`en-US` 与 Android/HarmonyOS 运行截图、验证码邮件真实投递、最大动态字号、VoiceOver/TalkBack、三端真机、签名包/TestFlight/App Store 审核及生产 `account_deletion=true` 核验。上述结果均未标记为已通过。
+- 本轮未 commit、未 push，保留了工作区中既有的 Profile、图标、Design System、文档和其他未提交修改。
+
+### Mobile 测试反馈：删除入口与基本资料请求取消修复
+
+- 入口缺失由三个条件叠加造成：Auth Context 使用了错误的 `Map.forEach` 单参数 entry 解析，功能开关实际被丢弃；模拟器访问的宿主 8080 仍属于旧独立 API 容器；入口首次正确渲染后又位于原生 TabBar 覆盖区。现已修正为 `forEach(value, key)`、在“我的”显示时刷新上下文，并把退出登录/删除账号放入页面内非滚动底部操作区。
+- 基本资料页错误来自已完成的原生 `RequestTask` 在页面卸载时再次 `abort()`。取消对象新增 `finished` 生命周期，完成时清空 task，取消保持幂等；页面取消后的 success/fail 回调直接终止，不再访问已卸载页面。
+- 旧 API 容器已停止并保留为 `appkernia-news-demo-api-host-pre-20260830`，Compose API 现在直接发布 `8080:8080`。这是可恢复的本地环境调整，没有重建 PostgreSQL 数据卷，也没有发送验证码或删除演示账号。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `bash apps/ak-mobile/scripts/check-project.sh` | 0 | 45 routes、57 API delta、11 permission delta、40 components、3 platforms；Mobile Blueprint、跨端 i18n、生成 Client、启动快照、6 个升级用例、4 个 Node 测试、功能开关遍历与 RequestTask 生命周期门禁均通过。 |
+| `build-platform.sh ios` | 0 | HBuilderX 5.24 完成最终源码的 37 页面和 iOS UTS 编译，`ready in 58327ms`。 |
+| `build-platform.sh android` | 0 | HBuilderX 5.24 完成最终源码的 37 页面 Android class 编译，`ready in 46464ms`。 |
+| `build-platform.sh harmony` | 0 | HBuilderX 5.24 完成最终源码的 37 页面编译、依赖安装并生成未签名调试 HAP。 |
+| `maestro ... ak-account-deletion-entry.yaml` | 0 | 当前登录态下“删除账号”首次进入“我的”即显示，点击后打开“删除后无法恢复”说明页并保存截图。 |
+| `maestro ... ak-account-deletion-regression.yaml` | 0 | 基本资料页连续进入/返回 3 次，期间账号删除入口持续可见；整条回归流通过。 |
+| iOS Simulator unified log 定向检查 | 0 | 最近 10 分钟对 `instance object does not exist`、`may have been destoryed`、`ak-http-client.uts:48` 的 App 事件匹配为 0。 |
+| iOS app-service SHA-256 比对 | 0 | 编译产物与模拟器当前资源均为 `9be8afc8071dc14571aca48c1b096fb85977621f2ba1ef11ef079e155dee5659`。 |
+| Compose / HTTP 验收 | 0 | API 容器与 latest 镜像同为 `sha256:748d89...a505`，`/internal/v1/health/ready` 返回 `ready`；无会话访问验证码接口返回 HTTP 401 / `APP.SESSION.MISMATCH`。 |
+
+- 截图 SHA-256：入口 `41ec36e6...18136b0`，删除页 `19685c3a...67f0e6d`，基本资料 `bf4f0750...01ba872`。本轮是 iOS 模拟器运行验收，不替代真实邮箱验证码、实际删除、物理设备或商店审核。
+
+### 本地 Admin / Backend 环境更新
+
+- 当前工作树已构建为本地 `appkernia-news-demo` 的 Admin、API、Worker 镜像并替换运行容器；PostgreSQL 数据卷未重建。
+- 部署前备份：`/tmp/appkernia-news-demo-backup.njLdyC/appkernia-before-update.dump`，SHA-256 `d7a1079090b45564504a186e535f7343f0f66e669db02c0ce6d431011a63df31`。
+- Worker 已补齐与 API 一致的对象存储能力开关、Adapter、密钥版本和 `/app/data/object-storage` 共享卷，避免隐私对象清理任务因 Adapter 不可用而重试失败；交付记录未输出配置主密钥。
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `docker compose -p appkernia-news-demo build migrate seed api worker admin` | 0 | Admin 生产构建完成 9,969 modules transformed；API、Worker、CLI 与迁移/Seed 镜像构建成功。 |
+| `docker compose -p appkernia-news-demo run --rm migrate` | 0 | River migration 无新增项；应用数据库升级到 version 25，`dirty=false`。 |
+| `docker compose -p appkernia-news-demo run --rm seed` | 0 | Core Seed 完成：175 permissions、48 menus、8 modules、63 tenant configs、3,663 regions、71 dictionaries。 |
+| `docker compose ... up -d --no-deps --force-recreate api worker admin` | 0 | API/Admin healthy，Worker running；运行容器 Image ID 与本轮新构建镜像一致。 |
+| `docker compose -p appkernia-news-demo config --quiet` | 0 | 补齐 Worker 对象存储配置后的 Compose 配置有效。 |
+| HTTP / 数据库 / 容器验收 | 0 | Admin `/` 与 `/healthz`、Admin auth public-config、API readiness、带 `X-AppID` 的 Mobile public config、部署 OpenAPI 均成功；permission seed 与 privacy 表存在。 |
+
+- 账号删除验证码接口在无 Bearer 会话时返回 HTTP 401 / `APP.SESSION.MISMATCH`，表明部署路由已加载且不会绕过认证；未用真实账号触发验证码邮件或删除演示数据。
+- 本轮没有 commit 或 push。所有既有未提交修改均保留；真登录态 Admin 页面操作、验证码邮件投递及完整账号删除流程不在本次非破坏性本地更新验收内。
+
 ### Mobile “我的收藏”类型 Tab 筛选修复交付
 
 - 2026-08-31 提交预检：从暂存区导出独立快照，执行 `server make check`、`go test -count=1 -v ./internal/modules/content/repository ./internal/modules/content/application ./internal/modules/content/transport/http`（14 项）及 `bash apps/ak-mobile/scripts/check-project.sh`（含 4 项收藏测试），全部退出 0。快照为 46 routes、42 components；本次未重跑三端构建/模拟器，下面的原生构建与截图记录属于 2026-08-30 集成工作树验收。提交只包含收藏筛选边界，不包含头像、通知、账户注销等其他未提交功能，不推送。

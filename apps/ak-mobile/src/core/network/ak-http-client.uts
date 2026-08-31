@@ -15,26 +15,51 @@ type ApiEnvelope<TData> = {
   readonly request_id: string | null
 }
 
+type ApiErrorDetails = {
+  readonly retry_after_seconds: number | null
+  readonly target_hint: string | null
+}
+
+type ApiErrorBody = {
+  readonly code: string
+  readonly message_key: string
+  readonly details: ApiErrorDetails | null
+}
+
+type ApiErrorEnvelope = {
+  readonly error: ApiErrorBody | null
+  readonly request_id: string | null
+}
+
 class UniRequestCancellation implements HttpCancellation {
   private task: RequestTask | null = null
   private cancelled: boolean = false
+  private finished: boolean = false
 
   setTask(task: RequestTask): void {
-    this.task = task
+    if (this.finished) return
     if (this.cancelled) {
       task.abort()
+      return
     }
+    this.task = task
   }
 
   cancel(): void {
+    if (this.cancelled || this.finished) return
     this.cancelled = true
-    if (this.task != null) {
-      this.task.abort()
-    }
+    const activeTask = this.task
+    this.task = null
+    if (activeTask != null) activeTask.abort()
   }
 
   isCancelled(): boolean {
     return this.cancelled
+  }
+
+  finish(): void {
+    this.finished = true
+    this.task = null
   }
 }
 
@@ -84,13 +109,11 @@ export class AkHttpClient implements AkHttpPort {
       header: headers,
       timeout: this.config.requestTimeoutMs,
       success: (result) => {
-        if (cancellation.isCancelled()) {
-          onFailure(new AkError('cancelled', 'request.cancelled', 'errors.request.cancelled', null))
-          return
-        }
+        cancellation.finish()
+        if (cancellation.isCancelled()) return
         const requestId: string | null = this.headerString(result.header as UTSJSONObject, 'x-request-id')
         if (result.statusCode < 200 || result.statusCode >= 300) {
-          onFailure(this.errorFromStatus(result.statusCode, requestId))
+          onFailure(this.errorFromResponse(result.statusCode, result.data as UTSJSONObject | null, requestId))
           return
         }
         const envelope = result.data as ApiEnvelope<TData>
@@ -109,10 +132,8 @@ export class AkHttpClient implements AkHttpPort {
         onSuccess(response as HttpResponse<TData>)
       },
       fail: (failure) => {
-        if (cancellation.isCancelled()) {
-          onFailure(new AkError('cancelled', 'request.cancelled', 'errors.request.cancelled', null))
-          return
-        }
+        cancellation.finish()
+        if (cancellation.isCancelled()) return
         const message: string = failure.errMsg != null ? failure.errMsg.toLowerCase() : ''
         if (message.indexOf('timeout') >= 0) {
           onFailure(new AkError('timeout', 'request.timeout', 'errors.request.timeout', null))
@@ -156,5 +177,15 @@ export class AkHttpClient implements AkHttpPort {
     if (statusCode == 503) return new AkError('maintenance', 'request.maintenance', 'errors.request.maintenance', requestId)
     if (statusCode >= 500) return new AkError('server_error', 'request.server_error', 'errors.request.server_error', requestId)
     return new AkError('unknown', 'request.http_' + statusCode.toString(), 'errors.unknown', requestId)
+  }
+
+  private errorFromResponse(statusCode: number, data: UTSJSONObject | null, headerRequestId: string | null): AkError {
+    const fallback = this.errorFromStatus(statusCode, headerRequestId)
+    const envelope = data as ApiErrorEnvelope
+    if (envelope == null || envelope.error == null || envelope.error.code.length == 0 || envelope.error.message_key.length == 0) return fallback
+    const details = envelope.error.details
+    const retryAfterSeconds = details != null && details.retry_after_seconds != null ? details.retry_after_seconds! : 0
+    const targetHint = details != null && details.target_hint != null ? details.target_hint! : ''
+    return new AkError(fallback.kind, envelope.error.code, envelope.error.message_key, envelope.request_id != null ? envelope.request_id : headerRequestId, retryAfterSeconds, targetHint)
   }
 }

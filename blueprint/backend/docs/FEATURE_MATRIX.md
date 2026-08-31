@@ -249,6 +249,29 @@ iam.device.revoke_self
 - 管理员强制下线必须有权限并写操作审计。
 - 删除设备时撤销或解绑关联会话/Push Token 的策略明确。
 
+### 4.3 当前 App 账号删除
+
+**App API**
+
+```text
+POST /api/v1/me/account-deletion/verification-code
+POST /api/v1/me/account-deletion/confirm
+```
+
+**权限/审计动作码**
+
+```text
+iam.user.delete_self
+```
+
+**验收**
+
+- 邮箱和用户只能来自已验证 Mobile Session 与 `X-AppID`，客户端不能指定删除目标。
+- 6 位邮箱验证码绑定 `app_id + user_id`，哈希存储，10 分钟有效、60 秒冷却、最多 5 次尝试且只能消费一次。
+- 确认接口不可自动重试；成功后当前 App 会话、成员、偏好、Push、通知和业务关联立即失效，无冷静期、查询或撤销接口。
+- 其他 App、Admin、组织、角色、计费或资源所有关系存在时保留共享身份；没有其他关系时物理删除全局身份和凭据。
+- 法律同意与安全/登录/操作审计只保留不可关联个人的事实；独占对象通过事务内可靠队列幂等清除。
+
 ---
 
 ## 5. P1 用户、租户与成员管理

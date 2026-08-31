@@ -25,6 +25,7 @@ const routes: Array<RouteDefinition> = [
   { key: 'profile.change-password', path: 'pages/profile/change-password/index', access: 'authenticated', permission: null, featureFlag: null },
   { key: 'profile.sessions', path: 'pages/profile/sessions/index', access: 'authenticated', permission: null, featureFlag: null },
   { key: 'profile.devices', path: 'pages/profile/devices/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'account.deletion', path: 'pages/profile/account-deletion/index', access: 'authenticated', permission: null, featureFlag: 'account_deletion' },
   { key: 'settings.language', path: 'pages/settings/language/index', access: 'authenticated', permission: null, featureFlag: null },
   { key: 'settings.permissions', path: 'pages/settings/permissions/index', access: 'authenticated', permission: null, featureFlag: null },
   { key: 'settings.notifications', path: 'pages/settings/notifications/index', access: 'authenticated', permission: null, featureFlag: null },

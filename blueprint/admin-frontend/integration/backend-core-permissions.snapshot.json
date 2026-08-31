@@ -66,6 +66,15 @@
       "status": "active"
     },
     {
+      "code": "iam.user.delete_self",
+      "name": "删除自己的 App 账号",
+      "module_code": "iam",
+      "resource_name": "user",
+      "action_name": "delete_self",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
       "code": "iam.user.create",
       "name": "创建用户",
       "module_code": "iam",

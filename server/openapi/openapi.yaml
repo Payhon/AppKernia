@@ -311,6 +311,38 @@ paths:
       parameters: [{$ref: "#/components/parameters/AppID"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppLegalConsentRequest"}}}}
       responses: {"200": {description: Consent was recorded idempotently., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/me/account-deletion/verification-code:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    post:
+      summary: Send a one-time account deletion code to the authenticated user's verified email
+      operationId: requestMobileAccountDeletionCode
+      tags: [mobile-profile]
+      description: The target email and user are always derived from the current Mobile session and X-AppID. The client must not retry this write automatically.
+      responses:
+        "202":
+          description: A single-use six-digit code was queued for delivery.
+          headers: {Retry-After: {schema: {type: integer, minimum: 1}}}
+          content: {application/json: {schema: {$ref: "#/components/schemas/AccountDeletionVerificationCodeResponse"}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {description: Account deletion is disabled for the current App., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "409": {description: The current account has no verified email., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "429": {description: A code was sent during the resend cooldown., headers: {Retry-After: {schema: {type: integer, minimum: 1}}}, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "503": {description: Account deletion verification is temporarily unavailable., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+  /api/v1/me/account-deletion/confirm:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    post:
+      summary: Immediately delete the authenticated user's current App account
+      operationId: confirmMobileAccountDeletion
+      tags: [mobile-profile]
+      description: Atomically consumes the App- and user-bound code and deletes the current App account. This request is not idempotent and must never be retried automatically.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AccountDeletionConfirmRequest"}}}}
+      responses:
+        "200": {description: The current App account and active sessions were deleted immediately., content: {application/json: {schema: {$ref: "#/components/schemas/AccountDeletionResultResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {description: Account deletion is disabled for the current App., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "409": {description: The current account has no verified email., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "422": {description: The acknowledgement or verification code is invalid, expired, or exhausted., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "503": {description: Account deletion failed without changing the account., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
   /api/v1/regions:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
@@ -4445,6 +4477,35 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {type: object, required: [accepted], properties: {accepted: {type: boolean}, verification_required: {type: boolean}, retry_after_seconds: {type: integer, minimum: 1}}}, request_id: {type: string}}
+    AccountDeletionVerificationCode:
+      type: object
+      additionalProperties: false
+      required: [accepted, target_hint, expires_in_seconds, retry_after_seconds]
+      properties:
+        accepted: {type: boolean, const: true}
+        target_hint: {type: string, description: Masked verified email address.}
+        expires_in_seconds: {type: integer, const: 600}
+        retry_after_seconds: {type: integer, minimum: 1}
+    AccountDeletionVerificationCodeResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AccountDeletionVerificationCode"}, request_id: {type: string}}
+    AccountDeletionConfirmRequest:
+      type: object
+      additionalProperties: false
+      required: [verification_code, acknowledged]
+      properties:
+        verification_code: {type: string, pattern: '^[0-9]{6}$'}
+        acknowledged: {type: boolean, const: true}
+    AccountDeletionResult:
+      type: object
+      additionalProperties: false
+      required: [deleted]
+      properties: {deleted: {type: boolean, const: true}}
+    AccountDeletionResultResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AccountDeletionResult"}, request_id: {type: string}}
     AdminApp:
       type: object
       required: [id, tenant_id, appid, appid_pending, app_type, code, name, description, introduction, remark, status, default_locale, registration_enabled, registration_verification_mode, owner_type, managers, members, screenshots, channels, store_listings, is_default, lock_version, created_at, updated_at, startup]

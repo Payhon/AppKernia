@@ -16,17 +16,22 @@ export class AkError {
   readonly code: string
   readonly messageKey: string
   readonly requestId: string | null
+  readonly retryAfterSeconds: number
+  readonly targetHint: string
 
   constructor(
     kind: AkErrorKind,
     code: string,
     messageKey: string,
     requestId: string | null,
+    retryAfterSeconds: number = 0,
+    targetHint: string = '',
   ) {
     this.kind = kind
     this.code = code
     this.messageKey = messageKey
     this.requestId = requestId
+    this.retryAfterSeconds = retryAfterSeconds
+    this.targetHint = targetHint
   }
 }
-

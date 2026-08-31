@@ -21,6 +21,7 @@ import { onboardingStore } from '../../features/onboarding/onboarding-store.uts'
 import { preloadOnboardingSlides } from '../../features/onboarding/onboarding-preloader.uts'
 import { pushRuntime } from '../../features/push/infrastructure/push-runtime.uts'
 import { pushCoordinator } from '../../features/push/application/push-coordinator.uts'
+import { accountDeletionRuntime } from '../../features/account-deletion/infrastructure/account-deletion-runtime.uts'
 
 /**
  * Reads only the packaged, approved manifest configuration. No production URL,
@@ -47,6 +48,7 @@ export function initializeAppRuntime(): boolean {
   if (auth != null) {
     articleRuntime.configure(config, appSessionStore, auth, new RefreshCoordinator(sessionRuntime, auth))
     profileRuntime.configure(config, appSessionStore, sessionRuntime, auth)
+    accountDeletionRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     notificationsRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     preferencesRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     pushRuntime.configure(config, appSessionStore, sessionRuntime, auth)

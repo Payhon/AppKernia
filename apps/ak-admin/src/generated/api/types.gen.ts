@@ -277,6 +277,39 @@ export type AppAcceptedResponse = {
     request_id: string;
 };
 
+export type AccountDeletionVerificationCode = {
+    accepted: true;
+    /**
+     * Masked verified email address.
+     */
+    target_hint: string;
+    expires_in_seconds: 600;
+    retry_after_seconds: number;
+};
+
+export type AccountDeletionVerificationCodeResponse = {
+    code: string;
+    message: string;
+    data: AccountDeletionVerificationCode;
+    request_id: string;
+};
+
+export type AccountDeletionConfirmRequest = {
+    verification_code: string;
+    acknowledged: true;
+};
+
+export type AccountDeletionResult = {
+    deleted: true;
+};
+
+export type AccountDeletionResultResponse = {
+    code: string;
+    message: string;
+    data: AccountDeletionResult;
+    request_id: string;
+};
+
 export type AdminApp = {
     id: string;
     tenant_id: string;
@@ -4675,6 +4708,100 @@ export type AcceptAppLegalDocumentResponses = {
 };
 
 export type AcceptAppLegalDocumentResponse = AcceptAppLegalDocumentResponses[keyof AcceptAppLegalDocumentResponses];
+
+export type RequestMobileAccountDeletionCodeData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/account-deletion/verification-code';
+};
+
+export type RequestMobileAccountDeletionCodeErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Account deletion is disabled for the current App.
+     */
+    403: ErrorResponse;
+    /**
+     * The current account has no verified email.
+     */
+    409: ErrorResponse;
+    /**
+     * A code was sent during the resend cooldown.
+     */
+    429: ErrorResponse;
+    /**
+     * Account deletion verification is temporarily unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type RequestMobileAccountDeletionCodeError = RequestMobileAccountDeletionCodeErrors[keyof RequestMobileAccountDeletionCodeErrors];
+
+export type RequestMobileAccountDeletionCodeResponses = {
+    /**
+     * A single-use six-digit code was queued for delivery.
+     */
+    202: AccountDeletionVerificationCodeResponse;
+};
+
+export type RequestMobileAccountDeletionCodeResponse = RequestMobileAccountDeletionCodeResponses[keyof RequestMobileAccountDeletionCodeResponses];
+
+export type ConfirmMobileAccountDeletionData = {
+    body: AccountDeletionConfirmRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/account-deletion/confirm';
+};
+
+export type ConfirmMobileAccountDeletionErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Account deletion is disabled for the current App.
+     */
+    403: ErrorResponse;
+    /**
+     * The current account has no verified email.
+     */
+    409: ErrorResponse;
+    /**
+     * The acknowledgement or verification code is invalid
+     */
+    422: ErrorResponse;
+    /**
+     * Account deletion failed without changing the account.
+     */
+    503: ErrorResponse;
+};
+
+export type ConfirmMobileAccountDeletionError = ConfirmMobileAccountDeletionErrors[keyof ConfirmMobileAccountDeletionErrors];
+
+export type ConfirmMobileAccountDeletionResponses = {
+    /**
+     * The current App account and active sessions were deleted immediately.
+     */
+    200: AccountDeletionResultResponse;
+};
+
+export type ConfirmMobileAccountDeletionResponse = ConfirmMobileAccountDeletionResponses[keyof ConfirmMobileAccountDeletionResponses];
 
 export type ListAppRegionsData = {
     body?: never;

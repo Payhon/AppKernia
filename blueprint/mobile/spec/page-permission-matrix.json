@@ -256,7 +256,7 @@
     {
       "route_key": "account.deletion",
       "view_permissions": [
-        "iam.user.request_deletion_self"
+        "iam.user.delete_self"
       ],
       "action_permissions": [],
       "feature_flag": "account_deletion"

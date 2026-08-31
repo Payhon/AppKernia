@@ -205,6 +205,77 @@ type resetRequest struct {
 	Code        string `json:"code"`
 	NewPassword string `json:"new_password"`
 }
+type accountDeletionConfirmRequest struct {
+	VerificationCode string `json:"verification_code"`
+	Acknowledged     bool   `json:"acknowledged"`
+}
+
+func (h *Handler) AccountDeletionVerificationCode(r *ghttp.Request) {
+	a, ok := currentApp(r)
+	if !ok {
+		h.fail(r, http.StatusBadRequest, "APP.HEADER.REQUIRED", "errors.validation.failed")
+		return
+	}
+	result, err := h.service.RequestAccountDeletionCode(r.Context(), bearer(r), a)
+	if errors.Is(err, app.ErrAccountDeletionCodeCooldown) {
+		r.Response.Header().Set("Retry-After", fmt.Sprint(result.RetryAfterSeconds))
+		h.failDetails(r, http.StatusTooManyRequests, "IAM.ACCOUNT_DELETION.CODE_COOLDOWN", "errors.iam.account_deletion.code_cooldown", map[string]any{"retry_after_seconds": result.RetryAfterSeconds, "target_hint": result.TargetHint})
+		return
+	}
+	if errors.Is(err, app.ErrAccountDeletionEmailUnverified) {
+		h.fail(r, http.StatusConflict, "IAM.ACCOUNT_DELETION.EMAIL_UNVERIFIED", "errors.iam.account_deletion.email_unverified")
+		return
+	}
+	if errors.Is(err, app.ErrAccountDeletionDisabled) {
+		h.fail(r, http.StatusForbidden, "IAM.ACCOUNT_DELETION.FEATURE_DISABLED", "errors.common.feature_disabled")
+		return
+	}
+	if errors.Is(err, app.ErrMembershipMissing) {
+		h.fail(r, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+		return
+	}
+	if err != nil {
+		h.fail(r, http.StatusServiceUnavailable, "IAM.ACCOUNT_DELETION.UNAVAILABLE", "errors.iam.account_deletion.unavailable")
+		return
+	}
+	r.Response.Header().Set("Cache-Control", "no-store")
+	r.Response.Header().Set("Retry-After", fmt.Sprint(result.RetryAfterSeconds))
+	r.Response.WriteHeader(http.StatusAccepted)
+	r.Response.WriteJsonExit(httpx.Success[app.AccountDeletionCode]{Code: "OK", Message: "OK", Data: result, RequestID: httpx.RequestID(r)})
+}
+
+func (h *Handler) ConfirmAccountDeletion(r *ghttp.Request) {
+	a, ok := currentApp(r)
+	if !ok {
+		h.fail(r, http.StatusBadRequest, "APP.HEADER.REQUIRED", "errors.validation.failed")
+		return
+	}
+	var body accountDeletionConfirmRequest
+	if !decode(r, &body) || !body.Acknowledged {
+		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	result, err := h.service.ConfirmAccountDeletion(r.Context(), bearer(r), a, body.VerificationCode, body.Acknowledged)
+	switch {
+	case errors.Is(err, app.ErrAccountDeletionDisabled):
+		h.fail(r, http.StatusForbidden, "IAM.ACCOUNT_DELETION.FEATURE_DISABLED", "errors.common.feature_disabled")
+	case errors.Is(err, app.ErrAccountDeletionEmailUnverified):
+		h.fail(r, http.StatusConflict, "IAM.ACCOUNT_DELETION.EMAIL_UNVERIFIED", "errors.iam.account_deletion.email_unverified")
+	case errors.Is(err, app.ErrAccountDeletionCodeExpired):
+		h.fail(r, http.StatusUnprocessableEntity, "IAM.ACCOUNT_DELETION.CODE_EXPIRED", "errors.iam.account_deletion.code_expired")
+	case errors.Is(err, app.ErrAccountDeletionCodeExhausted):
+		h.fail(r, http.StatusUnprocessableEntity, "IAM.ACCOUNT_DELETION.CODE_ATTEMPTS_EXHAUSTED", "errors.iam.account_deletion.code_attempts_exhausted")
+	case errors.Is(err, app.ErrAccountDeletionCodeInvalid):
+		h.fail(r, http.StatusUnprocessableEntity, "IAM.ACCOUNT_DELETION.CODE_INVALID", "errors.iam.account_deletion.code_invalid")
+	case errors.Is(err, app.ErrMembershipMissing):
+		h.fail(r, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+	case err != nil:
+		h.fail(r, http.StatusServiceUnavailable, "IAM.ACCOUNT_DELETION.UNAVAILABLE", "errors.iam.account_deletion.unavailable")
+	default:
+		r.Response.Header().Set("Cache-Control", "no-store")
+		r.Response.WriteJsonExit(httpx.Success[app.AccountDeletionResult]{Code: "OK", Message: "OK", Data: result, RequestID: httpx.RequestID(r)})
+	}
+}
 
 func (h *Handler) Register(r *ghttp.Request) {
 	a, ok := currentApp(r)

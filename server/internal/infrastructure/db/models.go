@@ -171,17 +171,18 @@ type AppApplicationTeamMember struct {
 }
 
 type AppLegalConsent struct {
-	ID          uuid.UUID          `json:"id"`
-	AppID       uuid.UUID          `json:"app_id"`
-	TenantID    uuid.UUID          `json:"tenant_id"`
-	UserID      uuid.UUID          `json:"user_id"`
-	PageType    string             `json:"page_type"`
-	RevisionID  uuid.UUID          `json:"revision_id"`
-	ContentHash []byte             `json:"content_hash"`
-	Locale      string             `json:"locale"`
-	AcceptedAt  pgtype.Timestamptz `json:"accepted_at"`
-	IpAddress   *netip.Addr        `json:"ip_address"`
-	UserAgent   *string            `json:"user_agent"`
+	ID           uuid.UUID          `json:"id"`
+	AppID        uuid.UUID          `json:"app_id"`
+	TenantID     uuid.UUID          `json:"tenant_id"`
+	UserID       *uuid.UUID         `json:"user_id"`
+	PageType     string             `json:"page_type"`
+	RevisionID   uuid.UUID          `json:"revision_id"`
+	ContentHash  []byte             `json:"content_hash"`
+	Locale       string             `json:"locale"`
+	AcceptedAt   pgtype.Timestamptz `json:"accepted_at"`
+	IpAddress    *netip.Addr        `json:"ip_address"`
+	UserAgent    *string            `json:"user_agent"`
+	AnonymizedAt pgtype.Timestamptz `json:"anonymized_at"`
 }
 
 type AppUserMembership struct {
@@ -245,6 +246,34 @@ type AuditOperationLog struct {
 	ErrorCode      *string            `json:"error_code"`
 	ErrorMessage   *string            `json:"error_message"`
 	OccurredAt     pgtype.Timestamptz `json:"occurred_at"`
+	AppID          *uuid.UUID         `json:"app_id"`
+}
+
+type AuditPrivacyErasureEvent struct {
+	ID                    uuid.UUID          `json:"id"`
+	TenantID              uuid.UUID          `json:"tenant_id"`
+	AppID                 uuid.UUID          `json:"app_id"`
+	ActionCode            string             `json:"action_code"`
+	Scope                 string             `json:"scope"`
+	Status                string             `json:"status"`
+	GlobalIdentityDeleted bool               `json:"global_identity_deleted"`
+	ErasedCounts          []byte             `json:"erased_counts"`
+	RequestedAt           pgtype.Timestamptz `json:"requested_at"`
+	CompletedAt           pgtype.Timestamptz `json:"completed_at"`
+}
+
+type AuditPrivacyErasureObject struct {
+	ID            uuid.UUID          `json:"id"`
+	EventID       uuid.UUID          `json:"event_id"`
+	TenantID      uuid.UUID          `json:"tenant_id"`
+	Provider      string             `json:"provider"`
+	BucketName    string             `json:"bucket_name"`
+	ObjectKey     string             `json:"object_key"`
+	Status        string             `json:"status"`
+	AttemptCount  int32              `json:"attempt_count"`
+	LastErrorCode *string            `json:"last_error_code"`
+	CompletedAt   pgtype.Timestamptz `json:"completed_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
 }
 
 type AuditSecurityEvent struct {
@@ -966,42 +995,104 @@ type JobsScheduleRun struct {
 	IdempotencyKey *string `json:"idempotency_key"`
 }
 
-type NotifyDelivery struct {
+type JobsTaskAttempt struct {
 	ID                uuid.UUID          `json:"id"`
 	TenantID          uuid.UUID          `json:"tenant_id"`
-	MessageID         *uuid.UUID         `json:"message_id"`
-	UserID            *uuid.UUID         `json:"user_id"`
-	TemplateID        *uuid.UUID         `json:"template_id"`
-	Channel           string             `json:"channel"`
-	TargetCiphertext  []byte             `json:"target_ciphertext"`
-	TargetHash        []byte             `json:"target_hash"`
-	TargetHint        *string            `json:"target_hint"`
-	TargetKeyVersion  int32              `json:"target_key_version"`
-	Provider          *string            `json:"provider"`
-	ProviderMessageID *string            `json:"provider_message_id"`
-	RenderedSubject   *string            `json:"rendered_subject"`
-	RenderedBody      *string            `json:"rendered_body"`
-	Status            string             `json:"status"`
-	AttemptCount      int32              `json:"attempt_count"`
-	MaxAttempts       int32              `json:"max_attempts"`
-	ScheduledAt       pgtype.Timestamptz `json:"scheduled_at"`
-	NextAttemptAt     pgtype.Timestamptz `json:"next_attempt_at"`
-	SentAt            pgtype.Timestamptz `json:"sent_at"`
-	LastError         *string            `json:"last_error"`
-	Metadata          []byte             `json:"metadata"`
-	CreatedAt         pgtype.Timestamptz `json:"created_at"`
-	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
-	DedupeKey         *string            `json:"dedupe_key"`
-	PayloadCiphertext []byte             `json:"payload_ciphertext"`
-	PayloadKeyVersion *int32             `json:"payload_key_version"`
-	Retryable         bool               `json:"retryable"`
-	RetryRisk         string             `json:"retry_risk"`
 	AppID             *uuid.UUID         `json:"app_id"`
-	PushDeviceID      *uuid.UUID         `json:"push_device_id"`
-	AcceptedAt        pgtype.Timestamptz `json:"accepted_at"`
-	OpenedAt          pgtype.Timestamptz `json:"opened_at"`
-	ProviderResult    *string            `json:"provider_result"`
+	TaskRunID         uuid.UUID          `json:"task_run_id"`
+	AttemptNumber     int32              `json:"attempt_number"`
+	Status            string             `json:"status"`
+	ResultClass       *string            `json:"result_class"`
 	ErrorCode         *string            `json:"error_code"`
+	ErrorSummary      *string            `json:"error_summary"`
+	ExternalRequestID *string            `json:"external_request_id"`
+	TraceID           *string            `json:"trace_id"`
+	StartedAt         pgtype.Timestamptz `json:"started_at"`
+	FinishedAt        pgtype.Timestamptz `json:"finished_at"`
+	DurationMs        *int64             `json:"duration_ms"`
+	NextRetryAt       pgtype.Timestamptz `json:"next_retry_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+}
+
+type JobsTaskRun struct {
+	ID               uuid.UUID          `json:"id"`
+	TenantID         uuid.UUID          `json:"tenant_id"`
+	AppID            *uuid.UUID         `json:"app_id"`
+	ModuleCode       string             `json:"module_code"`
+	TaskKind         string             `json:"task_kind"`
+	QueueName        string             `json:"queue_name"`
+	ResourceType     string             `json:"resource_type"`
+	ResourceID       *uuid.UUID         `json:"resource_id"`
+	CorrelationID    *uuid.UUID         `json:"correlation_id"`
+	RiverJobID       *int64             `json:"river_job_id"`
+	Status           string             `json:"status"`
+	ScheduledAt      pgtype.Timestamptz `json:"scheduled_at"`
+	StartedAt        pgtype.Timestamptz `json:"started_at"`
+	FinalizedAt      pgtype.Timestamptz `json:"finalized_at"`
+	NextRetryAt      pgtype.Timestamptz `json:"next_retry_at"`
+	AttemptCount     int32              `json:"attempt_count"`
+	MaxAttempts      int32              `json:"max_attempts"`
+	LastResultClass  *string            `json:"last_result_class"`
+	LastErrorCode    *string            `json:"last_error_code"`
+	LastErrorSummary *string            `json:"last_error_summary"`
+	TraceID          *string            `json:"trace_id"`
+	CreatedAt        pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+type NotifyDelivery struct {
+	ID                  uuid.UUID          `json:"id"`
+	TenantID            uuid.UUID          `json:"tenant_id"`
+	MessageID           *uuid.UUID         `json:"message_id"`
+	UserID              *uuid.UUID         `json:"user_id"`
+	TemplateID          *uuid.UUID         `json:"template_id"`
+	Channel             string             `json:"channel"`
+	TargetCiphertext    []byte             `json:"target_ciphertext"`
+	TargetHash          []byte             `json:"target_hash"`
+	TargetHint          *string            `json:"target_hint"`
+	TargetKeyVersion    int32              `json:"target_key_version"`
+	Provider            *string            `json:"provider"`
+	ProviderMessageID   *string            `json:"provider_message_id"`
+	RenderedSubject     *string            `json:"rendered_subject"`
+	RenderedBody        *string            `json:"rendered_body"`
+	Status              string             `json:"status"`
+	AttemptCount        int32              `json:"attempt_count"`
+	MaxAttempts         int32              `json:"max_attempts"`
+	ScheduledAt         pgtype.Timestamptz `json:"scheduled_at"`
+	NextAttemptAt       pgtype.Timestamptz `json:"next_attempt_at"`
+	SentAt              pgtype.Timestamptz `json:"sent_at"`
+	LastError           *string            `json:"last_error"`
+	Metadata            []byte             `json:"metadata"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+	DedupeKey           *string            `json:"dedupe_key"`
+	PayloadCiphertext   []byte             `json:"payload_ciphertext"`
+	PayloadKeyVersion   *int32             `json:"payload_key_version"`
+	Retryable           bool               `json:"retryable"`
+	RetryRisk           string             `json:"retry_risk"`
+	AppID               *uuid.UUID         `json:"app_id"`
+	PushDeviceID        *uuid.UUID         `json:"push_device_id"`
+	AcceptedAt          pgtype.Timestamptz `json:"accepted_at"`
+	OpenedAt            pgtype.Timestamptz `json:"opened_at"`
+	ProviderResult      *string            `json:"provider_result"`
+	ErrorCode           *string            `json:"error_code"`
+	MessageRunID        *uuid.UUID         `json:"message_run_id"`
+	TaskRunID           *uuid.UUID         `json:"task_run_id"`
+	DeliveryEnvironment string             `json:"delivery_environment"`
+}
+
+type NotifyDeliveryDailyMetric struct {
+	MetricDate      pgtype.Date        `json:"metric_date"`
+	TenantID        uuid.UUID          `json:"tenant_id"`
+	AppID           uuid.UUID          `json:"app_id"`
+	Environment     string             `json:"environment"`
+	Channel         string             `json:"channel"`
+	Provider        string             `json:"provider"`
+	MessageCategory string             `json:"message_category"`
+	Outcome         string             `json:"outcome"`
+	SkipReason      string             `json:"skip_reason"`
+	EventCount      int64              `json:"event_count"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
 type NotifyMessage struct {
@@ -1026,6 +1117,27 @@ type NotifyMessage struct {
 	PushCollapseKey *string            `json:"push_collapse_key"`
 	PushRouteKey    *string            `json:"push_route_key"`
 	PushRouteParams []byte             `json:"push_route_params"`
+}
+
+type NotifyMessageRun struct {
+	ID                uuid.UUID          `json:"id"`
+	TenantID          uuid.UUID          `json:"tenant_id"`
+	AppID             uuid.UUID          `json:"app_id"`
+	MessageID         uuid.UUID          `json:"message_id"`
+	TriggerType       string             `json:"trigger_type"`
+	Status            string             `json:"status"`
+	RecipientCount    int64              `json:"recipient_count"`
+	EvaluatedCount    int64              `json:"evaluated_count"`
+	DeliveryCount     int64              `json:"delivery_count"`
+	AcceptedCount     int64              `json:"accepted_count"`
+	FailedCount       int64              `json:"failed_count"`
+	InvalidTokenCount int64              `json:"invalid_token_count"`
+	OpenedCount       int64              `json:"opened_count"`
+	SkippedCount      int64              `json:"skipped_count"`
+	StartedAt         pgtype.Timestamptz `json:"started_at"`
+	CompletedAt       pgtype.Timestamptz `json:"completed_at"`
+	CreatedAt         pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt         pgtype.Timestamptz `json:"updated_at"`
 }
 
 type NotifyPushDevice struct {
@@ -1090,6 +1202,7 @@ type NotifyRecipient struct {
 	AppID           uuid.UUID          `json:"app_id"`
 	PushSkipReason  *string            `json:"push_skip_reason"`
 	PushEvaluatedAt pgtype.Timestamptz `json:"push_evaluated_at"`
+	PushEnvironment *string            `json:"push_environment"`
 }
 
 type NotifySmsTemplateBinding struct {
@@ -1199,6 +1312,7 @@ type StorageFile struct {
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 	DeletedAt    pgtype.Timestamptz `json:"deleted_at"`
+	AppID        *uuid.UUID         `json:"app_id"`
 }
 
 type StorageFileUsage struct {
@@ -1240,6 +1354,7 @@ type StorageUploadSession struct {
 	CompletedAt      pgtype.Timestamptz `json:"completed_at"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	AppID            *uuid.UUID         `json:"app_id"`
 }
 
 type SysApiClient struct {
@@ -1254,6 +1369,14 @@ type SysApiClient struct {
 	CreatedBy    *uuid.UUID         `json:"created_by"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+type SysApiClientApp struct {
+	TenantID    uuid.UUID          `json:"tenant_id"`
+	ApiClientID uuid.UUID          `json:"api_client_id"`
+	AppID       uuid.UUID          `json:"app_id"`
+	CreatedBy   *uuid.UUID         `json:"created_by"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
 type SysApiClientPermission struct {

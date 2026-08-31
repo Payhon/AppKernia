@@ -48,6 +48,21 @@ if ! rg -Fq 'JSON.parseObject(JSON.stringify(headerSource))' "$project_root/src/
   printf 'mobile HTTP headers must materialize primitive values before crossing the iOS request bridge\n' >&2
   exit 1
 fi
+for cancellation_pattern in \
+  'private finished: boolean = false' \
+  'if (this.cancelled || this.finished) return' \
+  'this.task = null' \
+  'cancellation.finish()' \
+  'if (cancellation.isCancelled()) return'; do
+  if ! rg -Fq "$cancellation_pattern" "$project_root/src/core/network/ak-http-client.uts"; then
+    printf 'mobile HTTP cancellation must not abort a completed native RequestTask: %s\n' "$cancellation_pattern" >&2
+    exit 1
+  fi
+done
+if rg -Uq "if \(cancellation\.isCancelled\(\)\) \{[[:space:]]+onFailure" "$project_root/src/core/network/ak-http-client.uts"; then
+  printf 'cancelled mobile requests must not callback into an unloaded page instance\n' >&2
+  exit 1
+fi
 
 public_config_runtime="$project_root/src/features/app-config/public-config-runtime.uts"
 if rg -n 'response\.data\.(share\.providers|push\.(enabled|providers|build_variants))' "$public_config_runtime"; then
@@ -170,6 +185,55 @@ if [[ "$(rg -c 'name="close"' "$bottom_sheet")" -ne 1 ]]; then
   printf 'bottom sheet header must expose exactly one close action\n' >&2
   exit 1
 fi
+
+account_deletion_page="$project_root/pages/profile/account-deletion/index.uvue"
+account_deletion_repository="$project_root/src/features/account-deletion/infrastructure/http-account-deletion-repository.uts"
+for deletion_pattern in \
+  "accountDeletion.warningTitle" \
+  "accountDeletion.scopeOtherApps" \
+  "input-type=\"number\"" \
+  ":max-length=\"6\"" \
+  "accountDeletion.acknowledgement" \
+  "uni.showModal" \
+  "pushCoordinator.unregisterLocal" \
+  "authRuntime.clearDeletedAccount"; do
+  if ! rg -Fq "$deletion_pattern" "$account_deletion_page"; then
+    printf 'account deletion page is missing a required safety control: %s\n' "$deletion_pattern" >&2
+    exit 1
+  fi
+done
+for deletion_api_pattern in \
+  "/me/account-deletion/verification-code" \
+  "/me/account-deletion/confirm" \
+  "retryOnUnauthorized: false"; do
+  if ! rg -Fq "$deletion_api_pattern" "$account_deletion_repository"; then
+    printf 'account deletion API contract is missing or replay-unsafe: %s\n' "$deletion_api_pattern" >&2
+    exit 1
+  fi
+done
+if rg -n 'email|user_id|userId' "$account_deletion_repository"; then
+  printf 'account deletion requests must not accept an email or target user identifier\n' >&2
+  exit 1
+fi
+if ! rg -Fq 'v-if="!guest" class="profile-actions"' "$project_root/pages/profile/index.uvue" || ! rg -Fq 'v-if="accountDeletionEnabled" class="delete-account-link"' "$project_root/pages/profile/index.uvue"; then
+  printf 'profile account deletion entry must require authentication and the account_deletion feature flag\n' >&2
+  exit 1
+fi
+auth_repository="$project_root/src/features/auth/auth-repository.uts"
+if ! rg -Fq 'feature_flags.toMap().forEach((value, key)' "$auth_repository" || rg -Fq 'entry.value' "$auth_repository"; then
+  printf 'mobile auth feature flags must use the cross-platform Map.forEach(value, key) contract\n' >&2
+  exit 1
+fi
+if ! rg -Fq "authRuntime.refreshContext(()=>{this.accountDeletionEnabled=!this.guest&&authContextStore.hasEnabledFlag('account_deletion')}" "$project_root/pages/profile/index.uvue"; then
+  printf 'profile must refresh the server feature snapshot before deciding account deletion visibility\n' >&2
+  exit 1
+fi
+for profile_deletion_visibility_pattern in 'class="profile-actions"' 'flex: 1;' 'height: auto;' 'padding: 8px 20px 12px' 'flex-shrink: 0'; do
+  if ! rg -Fq "$profile_deletion_visibility_pattern" "$project_root/pages/profile/index.uvue"; then
+    printf 'profile account actions must remain above the native TabBar: %s\n' "$profile_deletion_visibility_pattern" >&2
+    exit 1
+  fi
+done
 
 if rg -n --glob '*.uvue' 'height\s*:\s*(620|640)px' "$project_root/pages"; then
   printf 'mobile pages must not use fixed 620/640px content heights\n' >&2

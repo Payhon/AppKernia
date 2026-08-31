@@ -196,20 +196,14 @@
     },
     {
       "method": "POST",
-      "path": "/api/v1/me/account-deletion",
-      "purpose": "创建账号注销申请，需 Step-up 和冷静期。",
+      "path": "/api/v1/me/account-deletion/verification-code",
+      "purpose": "向当前会话账号的已验证邮箱发送 App 与用户绑定的 6 位删除验证码。",
       "phase": "P2"
     },
     {
-      "method": "GET",
-      "path": "/api/v1/me/account-deletion",
-      "purpose": "读取账号注销申请状态。",
-      "phase": "P2"
-    },
-    {
-      "method": "DELETE",
-      "path": "/api/v1/me/account-deletion",
-      "purpose": "在冷静期内撤销账号注销申请。",
+      "method": "POST",
+      "path": "/api/v1/me/account-deletion/confirm",
+      "purpose": "原子消费验证码并立即删除当前 App 账号；不可自动重试、无冷静期或撤销。",
       "phase": "P2"
     },
     { "method": "GET", "path": "/api/v1/public/content/home", "purpose": "游客可读的置顶、精选、最新去重首页聚合。", "phase": "P1" },

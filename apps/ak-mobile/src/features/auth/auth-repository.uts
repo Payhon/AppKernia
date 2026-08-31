@@ -73,7 +73,7 @@ export class HttpAuthRepository {
     const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/auth/context', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
     return this.http.execute<UTSJSONObject, ContextWire>(request, (response) => {
       const flags: Array<string> = []
-      response.data.feature_flags.toMap().forEach((entry) => { if (entry.value == true) flags.push(entry.key) })
+      response.data.feature_flags.toMap().forEach((value, key) => { if (value == true) flags.push(key) })
       onSuccess({ permissions: response.data.permissions, enabledFlags: flags })
     }, onFailure)
   }

@@ -92,3 +92,14 @@ func TestServiceReceivesOTPNotifierAndFailsClosedWithoutOne(t *testing.T) {
 		t.Fatal("OTP notifier must not default to a fake success adapter")
 	}
 }
+
+func TestAccountDeletionFeatureFailsClosed(t *testing.T) {
+	service := NewService(nil, nil)
+	if _, err := service.RequestAccountDeletionCode(context.Background(), "token", Application{}); !errors.Is(err, ErrAccountDeletionDisabled) {
+		t.Fatalf("disabled account deletion request error=%v", err)
+	}
+	WithAccountDeletionEnabled(true)(service)
+	if !service.accountDeletionEnabled {
+		t.Fatal("account deletion feature option was not retained")
+	}
+}

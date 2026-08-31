@@ -1,0 +1,10 @@
+export type AccountDeletionVerification = {
+  readonly targetHint: string
+  readonly expiresInSeconds: number
+  readonly retryAfterSeconds: number
+}
+
+export type AccountDeletionConfirmation = {
+  readonly verificationCode: string
+  readonly acknowledged: boolean
+}
