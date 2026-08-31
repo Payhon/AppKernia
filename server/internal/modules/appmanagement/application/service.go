@@ -621,6 +621,7 @@ type AdminAppUser struct {
 	UserID       uuid.UUID  `json:"user_id"`
 	Email        string     `json:"email"`
 	DisplayName  string     `json:"display_name"`
+	AvatarURL    *string    `json:"avatar_url"`
 	Status       string     `json:"status"`
 	Source       string     `json:"source"`
 	VerifiedAt   *time.Time `json:"verified_at"`
@@ -1544,7 +1545,7 @@ func (s *Service) AdminUsers(ctx context.Context, token string, appID uuid.UUID,
 	if err = s.pool.QueryRow(ctx, `SELECT count(*) FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id WHERE `+where, appID, p.Tenant.ID, filter.Status, filter.Query).Scan(&total); err != nil {
 		return AdminAppUserPage{}, fmt.Errorf("count app users: %w", err)
 	}
-	rows, err := s.pool.Query(ctx, `SELECT m.user_id,m.user_id,COALESCE(u.email::text,''),u.display_name,m.status,m.source,m.verified_at,m.created_at,(SELECT max(last_seen_at) FROM iam.sessions s WHERE s.app_id=m.app_id AND s.user_id=m.user_id AND s.audience='ak-mobile'),m.lock_version FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id WHERE `+where+` ORDER BY m.created_at DESC,m.user_id LIMIT $5 OFFSET $6`, appID, p.Tenant.ID, filter.Status, filter.Query, filter.PageSize, (filter.Page-1)*filter.PageSize)
+	rows, err := s.pool.Query(ctx, `SELECT m.user_id,m.user_id,COALESCE(u.email::text,''),u.display_name,u.avatar_file_id,m.status,m.source,m.verified_at,m.created_at,(SELECT max(last_seen_at) FROM iam.sessions s WHERE s.app_id=m.app_id AND s.user_id=m.user_id AND s.audience='ak-mobile'),m.lock_version FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id WHERE `+where+` ORDER BY m.created_at DESC,m.user_id LIMIT $5 OFFSET $6`, appID, p.Tenant.ID, filter.Status, filter.Query, filter.PageSize, (filter.Page-1)*filter.PageSize)
 	if err != nil {
 		return AdminAppUserPage{}, err
 	}
@@ -1552,9 +1553,11 @@ func (s *Service) AdminUsers(ctx context.Context, token string, appID uuid.UUID,
 	out := make([]AdminAppUser, 0)
 	for rows.Next() {
 		var x AdminAppUser
-		if err = rows.Scan(&x.ID, &x.UserID, &x.Email, &x.DisplayName, &x.Status, &x.Source, &x.VerifiedAt, &x.CreatedAt, &x.LastSignInAt, &x.LockVersion); err != nil {
+		var avatarFileID *uuid.UUID
+		if err = rows.Scan(&x.ID, &x.UserID, &x.Email, &x.DisplayName, &avatarFileID, &x.Status, &x.Source, &x.VerifiedAt, &x.CreatedAt, &x.LastSignInAt, &x.LockVersion); err != nil {
 			return AdminAppUserPage{}, err
 		}
+		x.AvatarURL = adminAppUserAvatarURL(appID, x.UserID, avatarFileID)
 		out = append(out, x)
 	}
 	if err = rows.Err(); err != nil {
@@ -1578,8 +1581,18 @@ func (s *Service) GetAdminUser(ctx context.Context, token string, appID, userID 
 	return out, err
 }
 func (s *Service) readAdminAppUser(ctx context.Context, appID, userID uuid.UUID) (out AdminAppUser, err error) {
-	err = s.pool.QueryRow(ctx, `SELECT m.user_id,m.user_id,COALESCE(u.email::text,''),u.display_name,m.status,m.source,m.verified_at,m.created_at,(SELECT max(last_seen_at) FROM iam.sessions s WHERE s.app_id=m.app_id AND s.user_id=m.user_id AND s.audience='ak-mobile'),m.lock_version FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id WHERE m.app_id=$1 AND m.user_id=$2`, appID, userID).Scan(&out.ID, &out.UserID, &out.Email, &out.DisplayName, &out.Status, &out.Source, &out.VerifiedAt, &out.CreatedAt, &out.LastSignInAt, &out.LockVersion)
+	var avatarFileID *uuid.UUID
+	err = s.pool.QueryRow(ctx, `SELECT m.user_id,m.user_id,COALESCE(u.email::text,''),u.display_name,u.avatar_file_id,m.status,m.source,m.verified_at,m.created_at,(SELECT max(last_seen_at) FROM iam.sessions s WHERE s.app_id=m.app_id AND s.user_id=m.user_id AND s.audience='ak-mobile'),m.lock_version FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id WHERE m.app_id=$1 AND m.user_id=$2`, appID, userID).Scan(&out.ID, &out.UserID, &out.Email, &out.DisplayName, &avatarFileID, &out.Status, &out.Source, &out.VerifiedAt, &out.CreatedAt, &out.LastSignInAt, &out.LockVersion)
+	out.AvatarURL = adminAppUserAvatarURL(appID, out.UserID, avatarFileID)
 	return out, err
+}
+
+func adminAppUserAvatarURL(appID, userID uuid.UUID, fileID *uuid.UUID) *string {
+	if fileID == nil || *fileID == uuid.Nil {
+		return nil
+	}
+	value := "/apps/" + appID.String() + "/users/" + userID.String() + "/avatar/content?v=" + fileID.String()
+	return &value
 }
 func (s *Service) SetAdminUserStatus(ctx context.Context, token string, appID, userID uuid.UUID, status string, lockVersion int32) (AdminAppUser, error) {
 	permission := "app.user.disable"

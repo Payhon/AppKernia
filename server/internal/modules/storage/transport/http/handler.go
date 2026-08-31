@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
+	"mime/multipart"
 	"net"
 	stdhttp "net/http"
 	"net/netip"
@@ -22,6 +24,7 @@ import (
 )
 
 const adminAudience = "ak-admin"
+const mobileAudience = "ak-mobile"
 
 type Handler struct {
 	auth    *iamapp.AuthService
@@ -40,7 +43,15 @@ func NewHandler(auth *iamapp.AuthService, service *storageapp.Service, catalog *
 }
 
 func (handler *Handler) CreateAvatarUpload(request *ghttp.Request) {
-	principal, ok := handler.principal(request)
+	handler.createAvatarUpload(request, adminAudience, "PUT")
+}
+
+func (handler *Handler) CreateMobileAvatarUpload(request *ghttp.Request) {
+	handler.createAvatarUpload(request, mobileAudience, "POST")
+}
+
+func (handler *Handler) createAvatarUpload(request *ghttp.Request, audience, method string) {
+	principal, ok := handler.principal(request, audience)
 	if !ok {
 		return
 	}
@@ -64,10 +75,11 @@ func (handler *Handler) CreateAvatarUpload(request *ghttp.Request) {
 	default:
 		request.Response.Header().Set("Cache-Control", "no-store")
 		request.Response.WriteHeader(stdhttp.StatusCreated)
+		uploadURL := target.UploadURL
 		request.Response.WriteJsonExit(httpx.Success[map[string]any]{
 			Code: "OK", Message: "OK", RequestID: httpx.RequestID(request),
 			Data: map[string]any{
-				"id": target.ID, "upload_url": target.UploadURL, "method": target.Method,
+				"id": target.ID, "upload_url": uploadURL, "method": method,
 				"expires_at": target.ExpiresAt,
 			},
 		})
@@ -75,22 +87,33 @@ func (handler *Handler) CreateAvatarUpload(request *ghttp.Request) {
 }
 
 func (handler *Handler) UploadAvatarContent(request *ghttp.Request) {
-	principal, ok := handler.principal(request)
+	handler.uploadAvatarContent(request, adminAudience, false)
+}
+
+func (handler *Handler) UploadMobileAvatarContent(request *ghttp.Request) {
+	handler.uploadAvatarContent(request, mobileAudience, true)
+}
+
+func (handler *Handler) uploadAvatarContent(request *ghttp.Request, audience string, multipartUpload bool) {
+	principal, ok := handler.principal(request, audience)
 	if !ok {
 		return
 	}
-	uploadID, err := uuid.Parse(request.Get("id").String())
+	// Read the path parameter directly. Request.Get also parses multipart form data,
+	// which consumes uni.uploadFile's body before readAvatarContent can validate it.
+	uploadID, err := avatarUploadID(request)
 	if err != nil {
 		handler.writeError(request, stdhttp.StatusUnprocessableEntity, "STORAGE.AVATAR.INVALID", "errors.storage.avatar.invalid")
 		return
 	}
-	content, err := io.ReadAll(io.LimitReader(request.Body, domain.MaxAvatarBytes+1))
+	content, err := readAvatarContent(request.Header.Get("Content-Type"), request.Body, multipartUpload)
 	if err != nil || int64(len(content)) > domain.MaxAvatarBytes {
 		handler.writeError(request, stdhttp.StatusUnprocessableEntity, "STORAGE.AVATAR.INVALID", "errors.storage.avatar.invalid")
 		return
 	}
 	fileID, err := handler.service.UploadAvatar(request.Context(), principal, uploadID, content, domain.ClientMetadata{
 		RequestID: httpx.RequestID(request), IPAddress: clientIP(request), UserAgent: request.Header.Get("User-Agent"),
+		HTTPMethod: request.Method, RequestPath: request.URL.Path,
 	})
 	switch {
 	case errors.Is(err, domain.ErrFeatureDisabled):
@@ -111,8 +134,24 @@ func (handler *Handler) UploadAvatarContent(request *ghttp.Request) {
 	}
 }
 
+func avatarUploadID(request *ghttp.Request) (uuid.UUID, error) {
+	value := request.GetRouter("id")
+	if value == nil {
+		return uuid.Nil, domain.ErrUploadInvalid
+	}
+	return uuid.Parse(value.String())
+}
+
 func (handler *Handler) AvatarContent(request *ghttp.Request) {
-	principal, ok := handler.principal(request)
+	handler.avatarContent(request, adminAudience)
+}
+
+func (handler *Handler) MobileAvatarContent(request *ghttp.Request) {
+	handler.avatarContent(request, mobileAudience)
+}
+
+func (handler *Handler) avatarContent(request *ghttp.Request, audience string) {
+	principal, ok := handler.principal(request, audience)
 	if !ok {
 		return
 	}
@@ -142,8 +181,8 @@ func (handler *Handler) AvatarContent(request *ghttp.Request) {
 	}
 }
 
-func (handler *Handler) principal(request *ghttp.Request) (domain.Principal, bool) {
-	authenticated, err := handler.auth.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")), adminAudience)
+func (handler *Handler) principal(request *ghttp.Request, audience string) (domain.Principal, bool) {
+	authenticated, err := handler.auth.Authenticate(request.Context(), bearerToken(request.Header.Get("Authorization")), audience)
 	if err != nil {
 		handler.writeError(request, stdhttp.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
 		return domain.Principal{}, false
@@ -151,6 +190,29 @@ func (handler *Handler) principal(request *ghttp.Request) (domain.Principal, boo
 	return domain.Principal{
 		UserID: authenticated.User.ID, TenantID: authenticated.Tenant.ID, SessionID: authenticated.SessionID,
 	}, true
+}
+
+func readAvatarContent(contentType string, body io.Reader, multipartUpload bool) ([]byte, error) {
+	if !multipartUpload {
+		return io.ReadAll(io.LimitReader(body, domain.MaxAvatarBytes+1))
+	}
+	mediaType, parameters, err := mime.ParseMediaType(contentType)
+	if err != nil || mediaType != "multipart/form-data" || strings.TrimSpace(parameters["boundary"]) == "" {
+		return nil, domain.ErrUploadInvalid
+	}
+	reader := multipart.NewReader(body, parameters["boundary"])
+	part, err := reader.NextPart()
+	if err != nil || part.FormName() != "file" || strings.TrimSpace(part.FileName()) == "" {
+		return nil, domain.ErrUploadInvalid
+	}
+	content, err := io.ReadAll(io.LimitReader(part, domain.MaxAvatarBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if next, nextErr := reader.NextPart(); nextErr != io.EOF || next != nil {
+		return nil, domain.ErrUploadInvalid
+	}
+	return content, nil
 }
 
 func (handler *Handler) writeError(request *ghttp.Request, status int, code, messageKey string) {

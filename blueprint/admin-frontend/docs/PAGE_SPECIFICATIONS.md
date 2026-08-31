@@ -83,9 +83,16 @@
 
 **API**
 
+- `GET /admin-api/v1/apps/{app_id}/users`
+- `POST /admin-api/v1/apps/{app_id}/users`
+- `GET /admin-api/v1/apps/{app_id}/users/{user_id}`
+- `PATCH /admin-api/v1/apps/{app_id}/users/{user_id}`
+- `GET /admin-api/v1/apps/{app_id}/users/{user_id}/avatar/content`
+
 **页面验收**
 
-- `app_id` 必须在 URL 和页面上下文中明确；嵌套用户 API 未发布时页面不伪装为已联调。
+- `app_id` 必须在 URL 和页面上下文中明确；用户列表和编辑抽屉展示当前头像，读取时验证租户、App 成员关系、文件状态与扫描门禁，缺图使用姓名首字符。
+- 头像由移动端用户本人维护；后台不提供替换入口，也不暴露对象存储键。
 
 ## `app.content.articles` — App 文章管理
 

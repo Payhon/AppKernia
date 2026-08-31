@@ -30,9 +30,11 @@ type Principal struct {
 }
 
 type ClientMetadata struct {
-	RequestID string
-	IPAddress *netip.Addr
-	UserAgent string
+	RequestID   string
+	IPAddress   *netip.Addr
+	UserAgent   string
+	HTTPMethod  string
+	RequestPath string
 }
 
 type CreateAvatarUpload struct {

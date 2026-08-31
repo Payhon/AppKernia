@@ -199,6 +199,8 @@ POST /api/v1/auth/mobile/verify
 GET   /api/v1/me
 PATCH /api/v1/me
 POST  /api/v1/me/avatar/upload-session
+POST  /api/v1/me/avatar/upload-sessions/{id}/content
+GET   /api/v1/me/avatar/content
 ```
 
 **功能**
@@ -592,6 +594,8 @@ app.scanner_config.update
 
 ```text
 POST /api/v1/me/avatar/upload-session
+POST /api/v1/me/avatar/upload-sessions/{id}/content
+GET  /api/v1/me/avatar/content
 GET  /admin-api/v1/files/upload-policy
 POST /admin-api/v1/files/upload-sessions
 GET  /admin-api/v1/files/upload-sessions/{id}

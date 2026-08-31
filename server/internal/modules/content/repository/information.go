@@ -731,7 +731,7 @@ func (r *Postgres) ListComments(ctx context.Context, tenantID, appID uuid.UUID, 
 		return content.CommentPage{}, err
 	}
 	args = append(args, f.PageSize, (f.Page-1)*f.PageSize)
-	rows, err := r.pool.Query(ctx, `SELECT c.id,c.article_id,c.author_id,u.display_name,c.parent_id,c.root_id,c.status,c.body,c.moderation_reason,c.created_at,c.updated_at FROM content.comments c JOIN iam.users u ON u.id=c.author_id WHERE `+where+fmt.Sprintf(` ORDER BY c.created_at DESC,c.id DESC LIMIT $%d OFFSET $%d`, len(args)-1, len(args)), args...)
+	rows, err := r.pool.Query(ctx, `SELECT c.id,c.article_id,c.author_id,u.display_name,u.avatar_file_id,c.parent_id,c.root_id,c.status,c.body,c.moderation_reason,c.created_at,c.updated_at FROM content.comments c JOIN iam.users u ON u.id=c.author_id WHERE `+where+fmt.Sprintf(` ORDER BY c.created_at DESC,c.id DESC LIMIT $%d OFFSET $%d`, len(args)-1, len(args)), args...)
 	if err != nil {
 		return content.CommentPage{}, err
 	}
@@ -739,9 +739,11 @@ func (r *Postgres) ListComments(ctx context.Context, tenantID, appID uuid.UUID, 
 	out := content.CommentPage{Items: []content.Comment{}, Page: f.Page, PageSize: f.PageSize, Total: total}
 	for rows.Next() {
 		var x content.Comment
-		if err = rows.Scan(&x.ID, &x.ArticleID, &x.AuthorID, &x.AuthorName, &x.ParentID, &x.RootID, &x.Status, &x.Body, &x.ModerationReason, &x.CreatedAt, &x.UpdatedAt); err != nil {
+		var avatarFileID *uuid.UUID
+		if err = rows.Scan(&x.ID, &x.ArticleID, &x.AuthorID, &x.AuthorName, &avatarFileID, &x.ParentID, &x.RootID, &x.Status, &x.Body, &x.ModerationReason, &x.CreatedAt, &x.UpdatedAt); err != nil {
 			return out, err
 		}
+		x.AuthorAvatarURL = mobileAvatarURL(avatarFileID)
 		out.Items = append(out.Items, x)
 	}
 	return out, rows.Err()
@@ -805,8 +807,18 @@ func (r *Postgres) listCommentsTx(ctx context.Context, q interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }, tenantID, appID, id uuid.UUID) (content.Comment, error) {
 	var x content.Comment
-	err := q.QueryRow(ctx, `SELECT c.id,c.article_id,c.author_id,u.display_name,c.parent_id,c.root_id,c.status,c.body,c.moderation_reason,c.created_at,c.updated_at FROM content.comments c JOIN iam.users u ON u.id=c.author_id WHERE c.tenant_id=$1 AND c.app_id=$2 AND c.id=$3`, tenantID, appID, id).Scan(&x.ID, &x.ArticleID, &x.AuthorID, &x.AuthorName, &x.ParentID, &x.RootID, &x.Status, &x.Body, &x.ModerationReason, &x.CreatedAt, &x.UpdatedAt)
+	var avatarFileID *uuid.UUID
+	err := q.QueryRow(ctx, `SELECT c.id,c.article_id,c.author_id,u.display_name,u.avatar_file_id,c.parent_id,c.root_id,c.status,c.body,c.moderation_reason,c.created_at,c.updated_at FROM content.comments c JOIN iam.users u ON u.id=c.author_id WHERE c.tenant_id=$1 AND c.app_id=$2 AND c.id=$3`, tenantID, appID, id).Scan(&x.ID, &x.ArticleID, &x.AuthorID, &x.AuthorName, &avatarFileID, &x.ParentID, &x.RootID, &x.Status, &x.Body, &x.ModerationReason, &x.CreatedAt, &x.UpdatedAt)
+	x.AuthorAvatarURL = mobileAvatarURL(avatarFileID)
 	return x, mapNotFound(err)
+}
+
+func mobileAvatarURL(fileID *uuid.UUID) *string {
+	if fileID == nil || *fileID == uuid.Nil {
+		return nil
+	}
+	value := "/api/v1/public/content/assets/" + fileID.String()
+	return &value
 }
 func (r *Postgres) DeleteOwnComment(ctx context.Context, p content.Principal, id uuid.UUID) error {
 	var scopeErr error

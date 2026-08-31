@@ -88,8 +88,8 @@ INSERT INTO audit.operation_logs (
 VALUES (
     sqlc.arg('tenant_id'), sqlc.arg('user_id'), sqlc.arg('session_id'),
     sqlc.arg('request_id'), 'storage', 'iam.me.avatar.update', 'iam.user',
-    sqlc.arg('resource_id'), 'PUT',
-    '/admin-api/v1/me/avatar/upload-sessions/{id}/content', 200,
+    sqlc.arg('resource_id'), sqlc.arg('http_method'),
+    sqlc.arg('request_path'), 200,
     sqlc.narg('client_ip'), sqlc.narg('user_agent'),
     jsonb_build_object('avatar_file_id', sqlc.narg('before_file_id')::uuid),
     jsonb_build_object('avatar_file_id', sqlc.arg('after_file_id')::uuid), true

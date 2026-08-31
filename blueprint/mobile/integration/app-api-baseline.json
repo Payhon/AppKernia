@@ -100,6 +100,18 @@
       "auth": "authenticated"
     },
     {
+      "method": "POST",
+      "path": "/api/v1/me/avatar/upload-sessions/{id}/content",
+      "purpose": "上传并绑定已裁剪的头像",
+      "auth": "authenticated"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/avatar/content",
+      "purpose": "读取当前用户头像",
+      "auth": "authenticated"
+    },
+    {
       "method": "GET",
       "path": "/api/v1/me/sessions",
       "purpose": "读取自己的登录会话",

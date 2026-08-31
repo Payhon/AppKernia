@@ -1,6 +1,7 @@
 package http
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -738,6 +739,32 @@ func (h *Handler) AdminUser(r *ghttp.Request) {
 		return
 	}
 	r.Response.WriteJsonExit(httpx.Success[app.AdminAppUser]{Code: "OK", Message: "OK", Data: item, RequestID: httpx.RequestID(r)})
+}
+
+func (h *Handler) AdminUserAvatar(r *ghttp.Request) {
+	appID, appErr := uuid.Parse(r.Get("app_id").String())
+	userID, userErr := uuid.Parse(r.Get("user_id").String())
+	if appErr != nil || userErr != nil {
+		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	avatar, reader, err := h.service.OpenAdminUserAvatar(r.Context(), bearer(r), appID, userID)
+	if h.adminFailure(r, err) {
+		return
+	}
+	defer func() { _ = reader.Close() }()
+	digest := avatar.SHA256
+	if len(digest) == 0 {
+		fallback := sha256.Sum256([]byte(avatar.FileID.String()))
+		digest = fallback[:]
+	}
+	r.Response.Header().Set("Content-Type", avatar.MediaType)
+	r.Response.Header().Set("Content-Length", fmt.Sprintf("%d", avatar.SizeBytes))
+	r.Response.Header().Set("Cache-Control", "private, max-age=300")
+	r.Response.Header().Set("ETag", `"`+hex.EncodeToString(digest)+`"`)
+	r.Response.Header().Set("X-Content-Type-Options", "nosniff")
+	r.Response.Header().Set("Vary", "Authorization")
+	_, _ = io.Copy(r.Response.BufferWriter, reader)
 }
 
 type adminUserRequest struct {

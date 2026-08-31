@@ -467,6 +467,60 @@ paths:
       tags: [mobile-profile]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileUpdateRequest"}}}}
       responses: {"200": {description: Updated profile, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/me/avatar/upload-session:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    post:
+      summary: Create a self-scoped mobile avatar upload session
+      description: Creates a short-lived target after the mobile client has completed its square crop and preview. Tenant, owner, object provider and random object key are server-derived.
+      operationId: createMobileSelfAvatarUploadSession
+      tags: [mobile-profile]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/AdminAvatarUploadRequest"}
+      responses:
+        "201": {description: Short-lived multipart upload session created., content: {application/json: {schema: {$ref: "#/components/schemas/MobileAvatarUploadSessionResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+  /api/v1/me/avatar/upload-sessions/{id}/content:
+    parameters: [{$ref: "#/components/parameters/AppID"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+    post:
+      summary: Upload and attach the cropped mobile avatar
+      description: Accepts one multipart image from uni-app x, validates declared size, decoded MIME, dimensions, ownership and expiry, then atomically attaches it to the current user.
+      operationId: uploadMobileSelfAvatarContent
+      tags: [mobile-profile]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [file]
+              properties: {file: {type: string, format: binary}}
+      responses:
+        "200": {description: Avatar attached to the current user., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAvatarUploadCompleteResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+  /api/v1/me/avatar/content:
+    parameters: [{$ref: "#/components/parameters/AppID"}]
+    get:
+      summary: Read the current mobile user's private avatar
+      operationId: getMobileSelfAvatarContent
+      tags: [mobile-profile]
+      responses:
+        "200":
+          description: Private avatar bytes after owner, tenant, status and scan gate checks.
+          headers: {ETag: {schema: {type: string}}, Cache-Control: {schema: {type: string}}}
+          content:
+            image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
+            image/webp: {schema: {type: string, format: binary}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /api/v1/me/sessions:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
@@ -1380,6 +1434,24 @@ paths:
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserUpdateRequest"}}}}
       responses: {"200": {description: Updated App user, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppUserResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /admin-api/v1/apps/{app_id}/users/{user_id}/avatar/content:
+    get:
+      summary: Read an App user's avatar for App user management
+      description: Requires app.user.read and verifies the selected App, tenant, explicit user membership, current avatar link, ready state and scan gate before returning bytes.
+      operationId: getAdminAppUserAvatarContent
+      tags: [admin-app-users]
+      security: [{adminBearer: []}]
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: user_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses:
+        "200":
+          description: Current App user avatar bytes.
+          headers: {ETag: {schema: {type: string}}, Cache-Control: {schema: {type: string}}}
+          content:
+            image/jpeg: {schema: {type: string, format: binary}}
+            image/png: {schema: {type: string, format: binary}}
+            image/webp: {schema: {type: string, format: binary}}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
   /admin-api/v1/apps/{app_id}/users/{user_id}/enable:
     post:
       summary: Enable an App user membership without changing global IAM identity status
@@ -4741,12 +4813,13 @@ components:
       properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminAppPage"}}, total: {type: integer, minimum: 0}}
     AdminAppUser:
       type: object
-      required: [id, user_id, email, display_name, status, source, created_at, lock_version]
+      required: [id, user_id, email, display_name, avatar_url, status, source, created_at, lock_version]
       properties:
         id: {type: string, format: uuid}
         user_id: {type: string, format: uuid}
         email: {type: string, format: email}
         display_name: {type: string}
+        avatar_url: {type: [string, 'null'], description: Authenticated App-user avatar content URL; null when the user has no avatar.}
         status: {type: string, enum: [pending_verification, active, disabled]}
         source: {type: string, enum: [self_registration, admin_created, legacy]}
         verified_at: {type: [string, 'null'], format: date-time}
@@ -5744,6 +5817,23 @@ components:
         code: {type: string, const: OK}
         message: {type: string}
         data: {$ref: "#/components/schemas/AdminAvatarUploadSession"}
+        request_id: {type: string}
+    MobileAvatarUploadSession:
+      type: object
+      additionalProperties: false
+      required: [id, upload_url, method, expires_at]
+      properties:
+        id: {type: string, format: uuid}
+        upload_url: {type: string}
+        method: {type: string, const: POST}
+        expires_at: {type: string, format: date-time}
+    MobileAvatarUploadSessionResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties:
+        code: {type: string, const: OK}
+        message: {type: string}
+        data: {$ref: "#/components/schemas/MobileAvatarUploadSession"}
         request_id: {type: string}
     AdminAvatarUploadCompleteResponse:
       type: object

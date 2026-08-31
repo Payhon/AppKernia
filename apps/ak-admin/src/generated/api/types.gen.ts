@@ -556,6 +556,10 @@ export type AdminAppUser = {
     user_id: string;
     email: string;
     display_name: string;
+    /**
+     * Authenticated App-user avatar content URL; null when the user has no avatar.
+     */
+    avatar_url: string | null;
     status: 'pending_verification' | 'active' | 'disabled';
     source: 'self_registration' | 'admin_created' | 'legacy';
     verified_at?: string | null;
@@ -1411,6 +1415,20 @@ export type AdminAvatarUploadSessionResponse = {
     code: 'OK';
     message: string;
     data: AdminAvatarUploadSession;
+    request_id: string;
+};
+
+export type MobileAvatarUploadSession = {
+    id: string;
+    upload_url: string;
+    method: 'POST';
+    expires_at: string;
+};
+
+export type MobileAvatarUploadSessionResponse = {
+    code: 'OK';
+    message: string;
+    data: MobileAvatarUploadSession;
     request_id: string;
 };
 
@@ -5309,6 +5327,123 @@ export type UpdateMobileMeResponses = {
 
 export type UpdateMobileMeResponse = UpdateMobileMeResponses[keyof UpdateMobileMeResponses];
 
+export type CreateMobileSelfAvatarUploadSessionData = {
+    body: AdminAvatarUploadRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/avatar/upload-session';
+};
+
+export type CreateMobileSelfAvatarUploadSessionErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateMobileSelfAvatarUploadSessionError = CreateMobileSelfAvatarUploadSessionErrors[keyof CreateMobileSelfAvatarUploadSessionErrors];
+
+export type CreateMobileSelfAvatarUploadSessionResponses = {
+    /**
+     * Short-lived multipart upload session created.
+     */
+    201: MobileAvatarUploadSessionResponse;
+};
+
+export type CreateMobileSelfAvatarUploadSessionResponse = CreateMobileSelfAvatarUploadSessionResponses[keyof CreateMobileSelfAvatarUploadSessionResponses];
+
+export type UploadMobileSelfAvatarContentData = {
+    body: {
+        file: Blob | File;
+    };
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/avatar/upload-sessions/{id}/content';
+};
+
+export type UploadMobileSelfAvatarContentErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UploadMobileSelfAvatarContentError = UploadMobileSelfAvatarContentErrors[keyof UploadMobileSelfAvatarContentErrors];
+
+export type UploadMobileSelfAvatarContentResponses = {
+    /**
+     * Avatar attached to the current user.
+     */
+    200: AdminAvatarUploadCompleteResponse;
+};
+
+export type UploadMobileSelfAvatarContentResponse = UploadMobileSelfAvatarContentResponses[keyof UploadMobileSelfAvatarContentResponses];
+
+export type GetMobileSelfAvatarContentData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/avatar/content';
+};
+
+export type GetMobileSelfAvatarContentErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetMobileSelfAvatarContentError = GetMobileSelfAvatarContentErrors[keyof GetMobileSelfAvatarContentErrors];
+
+export type GetMobileSelfAvatarContentResponses = {
+    /**
+     * Private avatar bytes after owner, tenant, status and scan gate checks.
+     */
+    200: Blob | File;
+};
+
+export type GetMobileSelfAvatarContentResponse = GetMobileSelfAvatarContentResponses[keyof GetMobileSelfAvatarContentResponses];
+
 export type ListMobileSelfSessionsData = {
     body?: never;
     headers: {
@@ -9020,6 +9155,38 @@ export type UpdateAdminAppUserResponses = {
 };
 
 export type UpdateAdminAppUserResponse = UpdateAdminAppUserResponses[keyof UpdateAdminAppUserResponses];
+
+export type GetAdminAppUserAvatarContentData = {
+    body?: never;
+    path: {
+        app_id: string;
+        user_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/users/{user_id}/avatar/content';
+};
+
+export type GetAdminAppUserAvatarContentErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppUserAvatarContentError = GetAdminAppUserAvatarContentErrors[keyof GetAdminAppUserAvatarContentErrors];
+
+export type GetAdminAppUserAvatarContentResponses = {
+    /**
+     * Current App user avatar bytes.
+     */
+    200: Blob | File;
+};
+
+export type GetAdminAppUserAvatarContentResponse = GetAdminAppUserAvatarContentResponses[keyof GetAdminAppUserAvatarContentResponses];
 
 export type EnableAdminAppUserData = {
     body: AdminAppUserActionRequest;

@@ -60,6 +60,13 @@ describe("App management admin API requests", () => {
     expect(jsonBody(adminRequest.mock.calls[7])).toEqual({ new_password: "correct-horse-battery", lock_version: 7 });
   });
 
+  it("loads only a server-issued App user avatar path", async () => {
+    const path = "/apps/123e4567-e89b-42d3-a456-426614174000/users/223e4567-e89b-42d3-a456-426614174000/avatar/content?v=323e4567-e89b-42d3-a456-426614174000";
+    await expect(appAdminApi.memberAvatar(path)).resolves.toBeInstanceOf(Blob);
+    await expect(appAdminApi.memberAvatar("/me/avatar/content?v=file-id")).rejects.toThrow("APP_USER_AVATAR_PATH_INVALID");
+    expect(requestCalls()).toEqual([[path, undefined]]);
+  });
+
   it("keeps markdown and blocks bodies while using page slugs for page actions", async () => {
     const input = { slug: "privacy-policy", page_type: "privacy-policy" as const, publish: false, lock_version: 5, translations: {
       "zh-CN": { title: "隐私", body_format: "blocks" as const, body: [{ type: "paragraph" as const, text: "内容" }] },

@@ -677,6 +677,26 @@
     },
     {
       "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/users"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/users"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/users/{user_id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/apps/{app_id}/users/{user_id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/users/{user_id}/avatar/content"
+    },
+    {
+      "method": "GET",
       "path": "/admin-api/v1/mobile/releases"
     },
     {

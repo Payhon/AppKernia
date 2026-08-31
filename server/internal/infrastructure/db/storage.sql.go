@@ -288,11 +288,11 @@ INSERT INTO audit.operation_logs (
 VALUES (
     $1, $2, $3,
     $4, 'storage', 'iam.me.avatar.update', 'iam.user',
-    $5, 'PUT',
-    '/admin-api/v1/me/avatar/upload-sessions/{id}/content', 200,
-    $6, $7,
-    jsonb_build_object('avatar_file_id', $8::uuid),
-    jsonb_build_object('avatar_file_id', $9::uuid), true
+    $5, $6,
+    $7, 200,
+    $8, $9,
+    jsonb_build_object('avatar_file_id', $10::uuid),
+    jsonb_build_object('avatar_file_id', $11::uuid), true
 )
 `
 
@@ -302,6 +302,8 @@ type InsertSelfAvatarAuditParams struct {
 	SessionID    *uuid.UUID  `json:"session_id"`
 	RequestID    string      `json:"request_id"`
 	ResourceID   *string     `json:"resource_id"`
+	HttpMethod   *string     `json:"http_method"`
+	RequestPath  *string     `json:"request_path"`
 	ClientIp     *netip.Addr `json:"client_ip"`
 	UserAgent    *string     `json:"user_agent"`
 	BeforeFileID *uuid.UUID  `json:"before_file_id"`
@@ -315,6 +317,8 @@ func (q *Queries) InsertSelfAvatarAudit(ctx context.Context, arg InsertSelfAvata
 		arg.SessionID,
 		arg.RequestID,
 		arg.ResourceID,
+		arg.HttpMethod,
+		arg.RequestPath,
 		arg.ClientIp,
 		arg.UserAgent,
 		arg.BeforeFileID,

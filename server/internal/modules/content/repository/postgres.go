@@ -633,7 +633,15 @@ const articleAssetSelect = `SELECT f.id,f.provider,f.bucket_name,f.object_key,f.
 	FROM storage.files f
 	WHERE f.tenant_id=$1 AND f.id=$3 AND f.status='ready' AND f.scan_status IN ('clean','skipped')
 	AND lower(COALESCE(f.media_type,'')) IN ('image/jpeg','image/png','image/webp','video/mp4') AND f.deleted_at IS NULL
-	AND EXISTS(SELECT 1 FROM content.articles a WHERE a.tenant_id=$1 AND a.app_id=$2 AND a.status='published' AND (a.cover_file_id=f.id OR a.video_file_id=f.id OR EXISTS(SELECT 1 FROM content.article_media m WHERE m.article_id=a.id AND m.file_id=f.id)))`
+	AND (
+		EXISTS(SELECT 1 FROM content.articles a WHERE a.tenant_id=$1 AND a.app_id=$2 AND a.status='published' AND (a.cover_file_id=f.id OR a.video_file_id=f.id OR EXISTS(SELECT 1 FROM content.article_media m WHERE m.article_id=a.id AND m.file_id=f.id)))
+		OR EXISTS(
+			SELECT 1 FROM iam.users u
+			JOIN content.comments c ON c.author_id=u.id AND c.tenant_id=$1 AND c.app_id=$2 AND c.status='approved'
+			JOIN content.articles a ON a.id=c.article_id AND a.tenant_id=c.tenant_id AND a.app_id=c.app_id AND a.status='published'
+			WHERE u.avatar_file_id=f.id
+		)
+	)`
 
 func (r *Postgres) OpenArticleAsset(ctx context.Context, tenant, appID, fileID uuid.UUID) (content.ArticleAsset, io.ReadCloser, error) {
 	if r.objects == nil {

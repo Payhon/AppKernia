@@ -14,6 +14,10 @@ export function useAppMembers(appId: string | null, filters: MemberListFilters) 
   const tenantId = useTenantKey();
   return useQuery({ queryKey: [...rootKey(tenantId), appId ?? "none", "members", filters], queryFn: () => appId ? appAdminApi.members(appId, filters) : Promise.reject(new Error("APP_SCOPE_REQUIRED")), enabled: appId !== null, placeholderData: (value) => value });
 }
+export function useAppMemberAvatar(path: string | null) {
+  const tenantId = useTenantKey();
+  return useQuery({ queryKey: [...rootKey(tenantId), "member-avatar", path], queryFn: () => appAdminApi.memberAvatar(path ?? ""), enabled: path !== null, staleTime: 5 * 60_000 });
+}
 export function useAppPages(appId: string | null, filters: PageListFilters) {
   const tenantId = useTenantKey();
   return useQuery({ queryKey: [...rootKey(tenantId), appId ?? "none", "pages", filters], queryFn: () => appId ? appAdminApi.pages(appId, filters) : Promise.reject(new Error("APP_SCOPE_REQUIRED")), enabled: appId !== null, placeholderData: (value) => value });

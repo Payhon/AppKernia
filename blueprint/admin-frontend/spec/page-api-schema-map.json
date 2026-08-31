@@ -790,7 +790,13 @@
         "app.applications",
         "app.user_memberships"
       ],
-      "endpoints": [],
+      "endpoints": [
+        "GET /admin-api/v1/apps/{app_id}/users",
+        "POST /admin-api/v1/apps/{app_id}/users",
+        "GET /admin-api/v1/apps/{app_id}/users/{user_id}",
+        "PATCH /admin-api/v1/apps/{app_id}/users/{user_id}",
+        "GET /admin-api/v1/apps/{app_id}/users/{user_id}/avatar/content"
+      ],
       "backend_status": "existing"
     },
     {

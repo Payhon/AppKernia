@@ -27,6 +27,12 @@ export const appAdminApi = {
   scannerConfig: (id: string) => data<AdminAppScannerConfig>(appPath(id, "/scanner-config")),
   updateScannerConfig: (id: string, input: AdminAppScannerConfigRequest) => data<AdminAppScannerConfig>(appPath(id, "/scanner-config"), json("PUT", input)),
   members: (appId: string, filters: MemberListFilters) => data<Paginated<AppMember>>(appPath(appId, `/users${query(filters)}`)),
+  memberAvatar: async (path: string) => {
+    if (!/^\/apps\/[0-9a-f-]{36}\/users\/[0-9a-f-]{36}\/avatar\/content\?v=[0-9a-f-]{36}$/i.test(path)) throw new Error("APP_USER_AVATAR_PATH_INVALID");
+    const response = await authSession.adminRequest(path as `/${string}`);
+    if (!response.ok) throw await toApiError(response);
+    return response.blob();
+  },
   createMember: (appId: string, input: AppMemberCreateInput) => data<AppMember>(appPath(appId, "/users"), json("POST", input)),
   updateMember: (appId: string, memberId: string, input: AppMemberUpdateInput) => data<AppMember>(appPath(appId, `/users/${encodeURIComponent(memberId)}`), json("PATCH", input)),
   memberAction: (appId: string, memberId: string, action: "enable" | "disable" | "unlock" | "revoke-sessions", lockVersion: number) => data<AppMember>(appPath(appId, `/users/${encodeURIComponent(memberId)}${action === "revoke-sessions" ? "/sessions/revoke" : `/${action}`}`), json("POST", { lock_version: lockVersion })),

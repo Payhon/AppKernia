@@ -162,6 +162,8 @@
   "apps.users.filters.landmark": "App 用户筛选",
   "apps.users.filters.q": "搜索姓名或邮箱",
   "apps.users.filters.status": "成员状态",
+  "apps.users.avatar_alt": "用户 {{name}} 的头像",
+  "apps.users.avatar_self_managed": "头像由用户在移动端自行修改。",
   "apps.users.columns.user": "用户",
   "apps.users.columns.source": "来源",
   "apps.users.columns.status": "状态",

@@ -107,6 +107,8 @@ func (repository *Postgres) CompleteAvatarUpload(ctx context.Context, input doma
 		return domain.AvatarCompletion{}, fmt.Errorf("update self avatar: %w", err)
 	}
 	resourceID := input.UserID.String()
+	httpMethod := strings.TrimSpace(input.HTTPMethod)
+	requestPath := strings.TrimSpace(input.RequestPath)
 	userAgent := strings.TrimSpace(input.UserAgent)
 	var userAgentValue *string
 	if userAgent != "" {
@@ -117,6 +119,7 @@ func (repository *Postgres) CompleteAvatarUpload(ctx context.Context, input doma
 		TenantID: &tenantID, UserID: &userID, SessionID: &sessionID,
 		RequestID: input.RequestID, ResourceID: &resourceID, ClientIp: input.IPAddress,
 		UserAgent: userAgentValue, BeforeFileID: beforeFileID, AfterFileID: fileID,
+		HttpMethod: &httpMethod, RequestPath: &requestPath,
 	}); err != nil {
 		return domain.AvatarCompletion{}, fmt.Errorf("audit self avatar update: %w", err)
 	}

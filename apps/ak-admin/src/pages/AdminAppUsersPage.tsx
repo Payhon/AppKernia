@@ -1,10 +1,10 @@
-import { Alert, Button, Card, Drawer, Form, Grid, Input, Modal, Select, Space, Table, Tag, Typography, type TableColumnsType } from "antd";
+import { Alert, Avatar, Button, Card, Drawer, Form, Grid, Input, Modal, Select, Space, Table, Tag, Typography, type TableColumnsType } from "antd";
 import { Controller, useForm } from "react-hook-form";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AppSelectionRequiredState } from "../components/AppSelectionRequiredState";
 import { useAuthStore } from "../features/auth/store";
-import { useAppMembers, useApplicationMutations } from "../features/apps/hooks";
+import { useAppMemberAvatar, useAppMembers, useApplicationMutations } from "../features/apps/hooks";
 import { appMemberCreateInputSchema, appMemberPasswordResetSchema, appMemberUpdateInputSchema, type AppMember, type AppMemberCreateInput, type AppMemberPasswordResetInput, type AppMemberUpdateInput } from "../features/apps/model";
 import { AppScopeContext, type AppScope } from "../features/apps/scope";
 
@@ -47,7 +47,7 @@ function AppUsersContents({ scope }: { scope: AppScope }) {
     try { await mutations.resetMemberPassword.mutateAsync({ appId: scope.appId, memberId: resetTarget.id, newPassword: parsed.data.new_password, lockVersion: resetTarget.lock_version }); passwordResetForm.reset(); setResetTarget(null); setFeedback({ key: "apps.users.feedback.password_reset", error: false }); } catch { setFeedback({ key: "apps.feedback.save_error", error: true }); }
   });
   const columns: TableColumnsType<AppMember> = [
-    { title: t("apps.users.columns.user"), render: (_, item) => <div><strong>{item.display_name}</strong><div className="ak-content-slug">{item.email}</div></div> },
+    { title: t("apps.users.columns.user"), render: (_, item) => <AppMemberIdentity member={item} /> },
     { title: t("apps.users.columns.source"), dataIndex: "source", responsive: ["md"], render: (value: AppMember["source"]) => t(`apps.users.source.${value}`) },
     { title: t("apps.users.columns.status"), dataIndex: "status", render: (value: AppMember["status"]) => <Tag className={value === "active" ? "ak-status-success" : value === "disabled" ? "ak-status-error" : "ak-status-warning"}>{t(`apps.membership.${value}`)}</Tag> },
     { title: t("apps.users.columns.last_sign_in"), dataIndex: "last_sign_in_at", responsive: ["lg"], render: (value: string | null) => value ? date.format(new Date(value)) : t("apps.values.none") },
@@ -65,9 +65,22 @@ function AppUsersContents({ scope }: { scope: AppScope }) {
   </div>;
 }
 
+function AppMemberIdentity({ member, size = 40 }: { member: AppMember; size?: number }) {
+  const { t } = useTranslation();
+  const avatar = useAppMemberAvatar(member.avatar_url);
+  const [source, setSource] = useState<string | null>(null);
+  useEffect(() => {
+    if (!avatar.data) { setSource(null); return; }
+    const next = URL.createObjectURL(avatar.data); setSource(next);
+    return () => { URL.revokeObjectURL(next); };
+  }, [avatar.data]);
+  return <Space align="center"><Avatar alt={t("apps.users.avatar_alt", { name: member.display_name })} size={size} src={source ?? undefined}>{member.display_name.slice(0, 1).toUpperCase()}</Avatar><div><strong>{member.display_name}</strong><div className="ak-content-slug">{member.email}</div></div></Space>;
+}
+
 function AppUserDrawer({ editor, form, fullScreen, saving, onClose, onSave }: { editor: Editor; form: ReturnType<typeof useForm<AppMemberCreateInput & Partial<AppMemberUpdateInput>>>; fullScreen: boolean; saving: boolean; onClose: () => void; onSave: () => void }) {
   const { t } = useTranslation();
   return <Drawer destroyOnHidden extra={<Button loading={saving} type="primary" onClick={onSave}>{t("common.actions.save")}</Button>} onClose={onClose} open={editor !== null} size={fullScreen ? "100%" : "large"} title={t(editor === "new" ? "apps.users.editor.create" : "apps.users.editor.edit")}>
+    {editor && editor !== "new" ? <Card size="small" style={{ marginBottom: 16 }}><AppMemberIdentity member={editor} size={48} /><Typography.Paragraph style={{ marginBottom: 0, marginTop: 8 }} type="secondary">{t("apps.users.avatar_self_managed")}</Typography.Paragraph></Card> : null}
     <Form layout="vertical"><Form.Item label={t("apps.users.fields.email")}><Controller control={form.control} name="email" render={({ field }) => <Input {...field} aria-label={t("apps.users.fields.email")} autoComplete="email" disabled={editor !== "new"} inputMode="email" />} /></Form.Item><Form.Item label={t("apps.users.fields.display_name")}><Controller control={form.control} name="display_name" render={({ field }) => <Input {...field} aria-label={t("apps.users.fields.display_name")} autoComplete="name" />} /></Form.Item>{editor === "new" ? <><Form.Item label={t("apps.users.fields.locale")}><Controller control={form.control} name="locale" render={({ field }) => <Select {...field} aria-label={t("apps.users.fields.locale")} options={["zh-CN", "en-US"].map((value) => ({ value, label: t(`apps.locale.${value}`) }))} />} /></Form.Item><Form.Item label={t("apps.users.fields.password")} extra={t("apps.users.fields.password_hint")}><Controller control={form.control} name="password" render={({ field }) => <Input.Password {...field} aria-label={t("apps.users.fields.password")} autoComplete="new-password" />} /></Form.Item></> : null}</Form>
   </Drawer>;
 }
