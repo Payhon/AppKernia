@@ -1,0 +1,4 @@
+interface:
+  display_name: "快学AI公众号工作流"
+  short_description: "检索核验资料、生成微信文章并安全推送到快学AI公众号草稿箱"
+  default_prompt: "Use $quicklearn-ai-wechat to research and write a WeChat article, then send it to the 快学AI draft box."
