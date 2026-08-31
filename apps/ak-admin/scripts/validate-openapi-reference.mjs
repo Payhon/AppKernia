@@ -74,7 +74,7 @@ function expectedTag(path) {
   if (path.startsWith('/api/v1/me/notification-preferences') || path.startsWith('/api/v1/me/notifications') || path.startsWith('/api/v1/me/push-devices') || path.startsWith('/api/v1/me/push-deliveries')) return 'mobile-notifications'
   if (path.startsWith('/api/v1/me/sessions') || path.startsWith('/api/v1/me/devices')) return 'mobile-devices-sessions'
   if (path === '/api/v1/me/login-events' || path === '/api/v1/me/security-events') return 'mobile-security'
-  if (path === '/api/v1/me' || path === '/api/v1/me/preferences') return 'mobile-profile'
+  if (path === '/api/v1/me' || path === '/api/v1/me/preferences' || path.startsWith('/api/v1/me/account-deletion/')) return 'mobile-profile'
   if (path.startsWith('/admin-api/v1/apps/') && path.includes('/mobile/releases')) return 'admin-releases'
   if (path.startsWith('/admin-api/v1/mobile/releases')) return 'admin-releases'
   if (path.startsWith('/admin-api/v1/apps/') && path.includes('/content/')) return 'admin-app-content'

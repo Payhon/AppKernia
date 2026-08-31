@@ -55,6 +55,8 @@
   "api_reference.operation.mobileChangePassword": "Change the current mobile user's password and revoke other sessions",
   "api_reference.operation.getMobileMe": "Get the current mobile user profile",
   "api_reference.operation.updateMobileMe": "Update the current mobile user profile",
+  "api_reference.operation.requestMobileAccountDeletionCode": "Send a one-time account deletion code to the authenticated user's verified email",
+  "api_reference.operation.confirmMobileAccountDeletion": "Immediately delete the authenticated user's current App account",
   "api_reference.operation.listMobileSelfSessions": "List the current user's mobile sessions",
   "api_reference.operation.revokeMobileSelfSession": "Revoke one current-user mobile session",
   "api_reference.operation.listMobileSelfDevices": "List the current user's devices",

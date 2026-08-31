@@ -2149,6 +2149,8 @@
   "api_reference.operation.mobileChangePassword": "修改移动端用户密码并撤销其他会话",
   "api_reference.operation.getMobileMe": "获取移动端个人资料",
   "api_reference.operation.updateMobileMe": "更新移动端个人资料",
+  "api_reference.operation.requestMobileAccountDeletionCode": "向当前用户已验证邮箱发送账号注销验证码",
+  "api_reference.operation.confirmMobileAccountDeletion": "立即注销当前用户在本 App 的账号",
   "api_reference.operation.listMobileSelfSessions": "列出移动端当前用户会话",
   "api_reference.operation.revokeMobileSelfSession": "撤销移动端当前用户会话",
   "api_reference.operation.listMobileSelfDevices": "列出移动端当前用户设备",
