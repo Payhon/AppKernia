@@ -22,8 +22,8 @@
     },
     {
       "key": "camera",
-      "core_use": "拍摄头像（可选）",
-      "request_time": "用户主动选择拍照时",
+      "core_use": "扫码，以及拍摄头像（可选）",
+      "request_time": "用户主动点击扫码或选择拍照时",
       "android": "CAMERA",
       "ios": "NSCameraUsageDescription",
       "harmony": "camera permission",

@@ -117,4 +117,4 @@ const registration = scannerCoordinator.registerHandler(loginHandler);
 | 内置 WebView 守卫 | 支持               | 支持               | 支持               |
 | 真机发布验收      | 每次发布前必做     | 每次发布前必做     | 每次发布前必做     |
 
-编译通过不等于真机扫码、权限恢复或 WebView 跳转验收。平台 API 以 [uni.scanCode](https://doc.dcloud.net.cn/uni-app-x/api/scan-code.html)、[web-view](https://doc.dcloud.net.cn/uni-app-x/component/web-view.html) 和[剪贴板 API](https://doc.dcloud.net.cn/uni-app-x/api/clipboard.html)为准。
+iOS 模拟器没有可用相机，点击扫码会安全返回 `scanner_unavailable`，不会进入原生扫码界面。编译通过不等于真机扫码、权限恢复或 WebView 跳转验收；新增扫码能力或更新 HBuilderX 后必须重新制作包含 `uni-scanCode` 的自定义基座，不能复用功能加入前的旧基座。平台 API 以 [uni.scanCode](https://doc.dcloud.net.cn/uni-app-x/api/scan-code.html)、[web-view](https://doc.dcloud.net.cn/uni-app-x/component/web-view.html) 和[剪贴板 API](https://doc.dcloud.net.cn/uni-app-x/api/clipboard.html)为准。

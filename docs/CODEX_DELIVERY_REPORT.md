@@ -2692,10 +2692,18 @@
 | Backend `make check` | 0 | gofmt、go vet、全仓 Go 单元与契约测试通过。 |
 | PostgreSQL 18 migration `26 -> 25 -> 26` 与 scanner integration | 0 | 表和两项权限随 up/down 正确创建、删除并恢复；扫码配置真实 SQL、乐观锁、租户隔离与审计测试 1/1 通过。临时容器已自动删除。 |
 | Admin `npm run check && npm run check:ui-skill` | 0 | lint、strict typecheck、45 个 Vitest 文件/183 项测试、生产构建、Bundle 预算、OpenAPI 字节一致性、Blueprint 与 UI Skill 检查通过。 |
-| Mobile `bash scripts/check-project.sh` | 0 | Scanner 契约 6/6；Notification 5/5、Bookmark 4/4、Upgrade 6/6、Node 4/4；Blueprint、i18n、Catalog/Client/启动快照 current。 |
+| Mobile `bash scripts/check-project.sh` | 0 | Scanner 契约原交付 6/6；本次补充 iOS 模拟器前置降级后定向 Scanner 契约 7/7，Blueprint、i18n、Catalog/Client/启动快照保持 current。 |
 | HBuilderX `build-platform.sh ios` / `android` / `harmony` | 0 / 0 / 0 | 最终 38 页面 iOS UTS、Android class、HarmonyOS UVue/UTS 编译通过；HarmonyOS 为未签名调试 HAP。 |
 | Docs `pnpm check` | 0 | OpenAPI 同步、中英文 84 页面语言配对、147 项 API Reference、lint、typecheck、format 和生产构建通过。 |
 | Admin/Mobile Blueprint 与跨端 i18n | 0 | Admin 48 menus、59 routes、166 permissions、84 tables、222 APIs + 13 deltas、43 page contracts；Mobile 46 routes、43 components、26 tasks；中英文 key/placeholder 一致。 |
 | `git diff --check` | 0 | 当前聚合工作树补丁格式通过。 |
+| iOS crash report / 原生符号核对 | 0 | 两份 21:17 `.ips` 均为主线程 `EXC_BAD_ACCESS`，首个 UTS 源码帧 `startScanByJs`；旧基座缺失 `uni-scanCode`，重建后的 `DCloudUTSExtAPI.framework` 包含 `DCloudUniScanCode`、`scanCodeByJs` 与 ML Kit Barcode 符号。 |
+| `build-custom-base.sh ios-simulator` + 安装 | 0 | HBuilderX 5.24 云打包 38 页面 `Pandora_simulator_debug.app`，安装并启动 `com.appkernia.mobile` 成功。 |
+| `scanner-ios-simulator.yaml` | 0 | iPhone 16 Pro / iOS 18.6，1/1、16 秒：首次隐私确认、点击扫码、安全降级提示和首页存活均通过；修复后无新增 `.ips`。 |
+| `build-custom-base.sh android` / `adb install -r` / HBuilderX launch | 0 / 0 / 0 | APK 含 `ak-scanner`、ML Kit 二维码和一维码模型；vivo V2545A / Android 16 安装成功，38 页面资源同步并启动首页。 |
+| Android 真机二维码与取消 | 0 | 原生相机实际识别二维码并显示“二维码”结果弹层；再次拉起扫描器后点击关闭，应用无错误返回首页。为遵守扫码内容不持久化约束，含原文的临时截图已删除；取消返回截图保留在 `output/device-tests/android-v2545a/after-cancel.png`。 |
+| Harmony 38 页面构建 / 真机安装 | 0 / 语义失败 | 编译和 unsigned HAP 制作成功；`ALN-AL00` / OpenHarmony API 24 安装返回 `code:9568320 / no signature file`。未生成或持久化新的签名凭据。 |
 
-- 静态/编译结果没有被当作真机结果。仍待独立验收：Android、iOS、HarmonyOS 物理设备二维码和一维码，相机首次/拒绝/设置返回，取消分流，白名单 WebView 与越界重定向关闭，复制反馈，读屏、动态字号、高对比度、减少动效，以及 Admin 双语键盘/窄屏浏览器截图。
+- 静态/编译结果没有被当作真机结果。Android 物理设备二维码识别、结果展示和取消分流已通过；仍待独立验收：Android 一维码、iOS/HarmonyOS 物理设备二维码和一维码、相机首次/拒绝/设置返回、白名单 WebView 与越界重定向关闭、复制反馈、读屏、动态字号、高对比度、减少动效，以及 Admin 双语键盘/窄屏浏览器截图。HarmonyOS 真机继续受 `com.appkernia.mobile` 调试签名阻断。
+- 探索失败均保留真实边界：iOS 首次复编译因 HBuilder 缓存目录瞬时 `ENOENT` 退出 1，原命令重跑通过；三次早期 Maestro 分别被遗留文章详情、首次隐私页和未暴露的同意按钮定位阻断，改为清空状态并点击确定坐标后最终通过。Android Maestro 因该双显示 vivo 设备的 `tcp:7001 closed` / gRPC driver 关闭超时退出 130，后续改用 HBuilderX 资源同步和指定显示 ADB 操作取得真机结果，未把自动化驱动失败算作产品失败。
+- Docs `pnpm check` 首轮因非 TTY 依赖目录确认退出 1，`CI=true pnpm check` 重跑退出 0：147 个 API 引用、0 lint/type/format 错误、中英文 84 页面构建与语言配对通过。宿主 Node 26.5.0 高于仓库要求的 Node 24，正式 CI 仍应使用 Node 24。含二维码原文的临时真机截图已删除，仅保留不含扫码内容的取消截图和测试条码目标。

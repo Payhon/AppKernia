@@ -967,5 +967,7 @@
 - Mobile 新增 `uni_modules/ak-scanner` UTS 模块、强类型扫码事件、优先级处理器和 single-flight 协调器；首页消息按钮右侧提供匿名可用入口。可信 HTTPS 地址使用一次性内存 token 进入内置 WebView，并在初始地址和加载事件中重复执行白名单校验；其他结果使用 `ak-bottom-sheet` 展示并由用户主动复制。
 - 三端相机权限适配、Manifest、权限中心、双语文案、Mobile/Admin 设计系统 override 与 UI Skill 证据已同步。首期固定只从相机扫描二维码和一维码，不读取相册，不向网页开放原生桥，也不上传、持久化或记录扫码内容。
 - Backend 临时 PostgreSQL 18 已真实验证 migration `26 -> 25 -> 26`、权限 Seed、租户隔离和扫码配置集成测试；Server、Admin、Mobile、Docs、OpenAPI、三套 Blueprint、跨端 i18n 和补丁格式门禁均通过。
-- HBuilderX 5.24 已完成 38 页面 iOS、Android、HarmonyOS 源码编译，HarmonyOS 生成未签名调试 HAP。二维码/条形码真机扫描、权限拒绝与设置返回、WebView 越界跳转、三端读屏/动态字号/高对比度/减少动效及 Admin 浏览器截图仍需匹配设备和交互环境验收，未标记为通过。
+- iOS 模拟器点击扫码的原生崩溃已修复。两份 `.ips` 均显示 `EXC_BAD_ACCESS` / 空地址跳转，首个 UTS 源码帧为 `startScanByJs`；核查确认旧自定义基座早于扫码功能构建，`DCloudUTSExtAPI.framework` 不含 `uni-scanCode`。iOS 适配器现在于模拟器调用原生扫码 API 前返回 `scanner_unavailable`，并补充基座重建约束；新 38 页面模拟器基座已包含 `DCloudUniScanCode` / ML Kit Barcode 符号。
+- iPhone 16 Pro / iOS 18.6 模拟器 Maestro 回归 1/1、16 秒通过：首次隐私确认后点击“扫一扫”，出现安全降级提示且应用保留在首页；21:17 后没有新增崩溃报告。Android vivo V2545A 真机已安装新基座并同步 38 页面资源，真实二维码识别后以“二维码”结果弹层展示，随后再次拉起相机并取消，正常返回首页且无错误提示。
+- HBuilderX 5.24 已完成 38 页面 iOS、Android、HarmonyOS 源码编译；HarmonyOS 真机 `ALN-AL00` 已连接，但当前 HAP 无签名，`hdc install -r` 明确返回 `code:9568320 / no signature file`。DevEco Signing Configs 仅检查到自动签名入口，未在缺少本轮凭据创建确认的情况下生成或保存证书/Profile。Android 一维码目标已生成，但设备镜头未对准目标，因此条形码解码、权限拒绝与设置返回、WebView 越界跳转、三端读屏/动态字号/高对比度/减少动效及 Admin 浏览器截图仍需验收。
 - 双语 Scanner 与客户端配置开发者文档、导航、权限/安全交叉链接和由服务端事实源同步的公开 OpenAPI 已完成；线上 Pages 发布结果以对应远端提交和 workflow 回读为准。

@@ -1,0 +1,4 @@
+{
+  "frameworks": ["Foundation.framework"],
+  "deploymentTarget": "13.0"
+}

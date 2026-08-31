@@ -26,6 +26,15 @@ class ScannerContractTests(unittest.TestCase):
             self.assertIn("cancelled()", source)
             self.assertNotIn("chooseImage", source)
 
+    def test_ios_simulator_fails_before_calling_native_scanner(self) -> None:
+        source = read("uni_modules/ak-scanner/utssdk/app-ios/index.uts")
+        bridge = read("uni_modules/ak-scanner/utssdk/app-ios/hybrid.swift")
+        guard = source.index("AkScannerIOSBridge.isSimulator()")
+        native_call = source.index("uni.scanCode")
+        self.assertLess(guard, native_call)
+        self.assertIn("failed('scanner_unavailable')", source[guard:native_call])
+        self.assertIn("#if targetEnvironment(simulator)", bridge)
+
     def test_stable_result_event_handler_and_resolution_types_exist(self) -> None:
         interface = read("uni_modules/ak-scanner/utssdk/interface.uts")
         for token in (

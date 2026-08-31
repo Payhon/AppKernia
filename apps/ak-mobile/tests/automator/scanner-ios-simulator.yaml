@@ -1,0 +1,15 @@
+appId: com.appkernia.mobile
+name: iOS 模拟器扫码安全降级
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    point: "58%,89%"
+- extendedWaitUntil:
+    visible: "扫一扫"
+    timeout: 15000
+- tapOn: "扫一扫"
+- extendedWaitUntil:
+    visible: "暂时无法打开扫码，请稍后重试"
+    timeout: 10000
+- assertVisible: "首页"
