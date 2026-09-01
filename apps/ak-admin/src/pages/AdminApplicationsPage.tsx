@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions -- React Hook Form field paths preserve numeric array indices. */
 import { AppPublicWebDrawer } from "../components/AppPublicWebDrawer";
-import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
+import { CloudDownloadOutlined, MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import { useNavigate } from "@tanstack/react-router";
 import { Alert, Button, Card, Divider, Drawer, Dropdown, Form, Grid, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, type TableColumnsType } from "antd";
 import { Controller, useFieldArray, useForm, type FieldPath } from "react-hook-form";
@@ -134,7 +134,7 @@ export function AdminApplicationsPage() {
       clientConfig: () => { setClientConfigApp(item); },
       changeStatus: () => { void changeStatus(item); },
       delete: () => { deleteItems([item.id]); },
-    }, mutations.status.isPending), ...(permissions.has("app.public_web.read") ? [{ key: "public-web", label: t("apps.public_web.title"), onClick: () => { setPublicWebAppId(item.id); } }] : [])] }}
+    }, mutations.status.isPending), ...(permissions.has("app.public_web.read") ? [{ key: "public-web", icon: <CloudDownloadOutlined />, label: t("apps.public_web.title"), onClick: () => { setPublicWebAppId(item.id); } }] : [])] }}
     trigger={["click"]}
   >
     <Button aria-label={t("apps.application.actions.menu_for", { name: item.name })} icon={<MoreOutlined />} size="small">{t("apps.application.actions.menu")}</Button>
