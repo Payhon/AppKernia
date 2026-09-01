@@ -307,6 +307,10 @@ type tokenResponse struct {
 	CSRFToken   string `json:"csrf_token"`
 }
 
+type csrfTokenResponse struct {
+	CSRFToken string `json:"csrf_token"`
+}
+
 type mobileTokenResponse struct {
 	AccessToken           string `json:"access_token"`
 	TokenType             string `json:"token_type"`
@@ -525,6 +529,26 @@ func (handler *Handler) ResetPassword(request *ghttp.Request) {
 			Code: "OK", Message: "OK", Data: map[string]bool{"reset": true}, RequestID: httpx.RequestID(request),
 		})
 	}
+}
+
+// CSRFToken exposes only the double-submit token already bound to the current
+// same-site Admin refresh cookie. It lets a freshly loaded SPA recover its
+// in-memory access token without widening the refresh cookie path or persisting
+// bearer credentials in browser storage.
+func (handler *Handler) CSRFToken(request *ghttp.Request) {
+	refreshCookie := request.Cookie.Get(refreshCookieName)
+	csrfCookie := request.Cookie.Get(csrfCookieName)
+	if refreshCookie == nil || refreshCookie.String() == "" || csrfCookie == nil || csrfCookie.String() == "" {
+		handler.clearSessionCookies(request)
+		handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+		return
+	}
+	request.Response.Header().Set("Cache-Control", "no-store")
+	request.Response.Header().Set("Vary", "Cookie, Accept-Language")
+	request.Response.WriteJsonExit(httpx.Success[csrfTokenResponse]{
+		Code: "OK", Message: "OK", RequestID: httpx.RequestID(request),
+		Data: csrfTokenResponse{CSRFToken: csrfCookie.String()},
+	})
 }
 
 func (handler *Handler) Refresh(request *ghttp.Request) {

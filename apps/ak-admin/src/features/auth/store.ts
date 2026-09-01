@@ -7,13 +7,15 @@ import { AuthSession, MemoryTokenStore } from './session'
 import { readOrCreateAdminDeviceKey } from './device-key'
 
 export type AuthContext = AdminAuthContextResponse['data']
-type AuthStatus = 'anonymous' | 'authenticating' | 'authenticated'
+type AuthStatus = 'bootstrapping' | 'anonymous' | 'authenticating' | 'authenticated'
 
 const tokens = new MemoryTokenStore()
 const configuredApiBaseUrl: unknown = import.meta.env['VITE_AK_API_BASE_URL']
 const apiBaseUrl = typeof configuredApiBaseUrl === 'string'
   ? configuredApiBaseUrl
   : '/admin-api/v1'
+
+let initializePromise: Promise<void> | null = null
 
 export const authSession = new AuthSession({
   baseUrl: apiBaseUrl,
@@ -26,6 +28,7 @@ export const authSession = new AuthSession({
 interface AuthState {
   context: AuthContext | null
   status: AuthStatus
+  initialize: () => Promise<void>
   login: (input: AdminLoginRequest) => Promise<AuthContext>
   logout: () => Promise<void>
   switchTenant: (tenantId: string) => Promise<AuthContext>
@@ -38,9 +41,23 @@ interface AuthState {
   revokeAdminOnlineSession: (sessionId: string) => Promise<AdminOnlineSessionRevokeResponse['data']>
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   context: null,
-  status: 'anonymous',
+  status: 'bootstrapping',
+  initialize: async () => {
+    if (get().status === 'authenticated') return
+    if (!initializePromise) {
+      set({ status: 'bootstrapping' })
+      initializePromise = authSession.restore()
+        .then((context) => { set({ context, status: 'authenticated' }) })
+        .catch(() => {
+          authSession.clearLocalSession()
+          set({ context: null, status: 'anonymous' })
+        })
+        .finally(() => { initializePromise = null })
+    }
+    await initializePromise
+  },
   login: async (input) => {
     set({ status: 'authenticating' })
     try {

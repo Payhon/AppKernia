@@ -12,6 +12,10 @@
       "path": "/admin-api/v1/auth/login/captcha"
     },
     {
+      "method": "GET",
+      "path": "/admin-api/v1/auth/csrf-token"
+    },
+    {
       "method": "POST",
       "path": "/admin-api/v1/auth/token/refresh"
     },

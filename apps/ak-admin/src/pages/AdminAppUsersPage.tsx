@@ -1,4 +1,5 @@
-import { Alert, Avatar, Button, Card, Drawer, Form, Grid, Input, Modal, Select, Space, Table, Tag, Typography, type TableColumnsType } from "antd";
+import { CheckCircleOutlined, EditOutlined, KeyOutlined, LogoutOutlined, MoreOutlined, StopOutlined, UnlockOutlined } from "@ant-design/icons";
+import { Alert, Avatar, Button, Card, Drawer, Dropdown, Form, Grid, Input, Modal, Select, Space, Table, Tag, Typography, type MenuProps, type TableColumnsType } from "antd";
 import { Controller, useForm } from "react-hook-form";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -46,12 +47,23 @@ function AppUsersContents({ scope }: { scope: AppScope }) {
     if (!parsed.success) { setFeedback({ key: "apps.feedback.validation_error", error: true }); return; }
     try { await mutations.resetMemberPassword.mutateAsync({ appId: scope.appId, memberId: resetTarget.id, newPassword: parsed.data.new_password, lockVersion: resetTarget.lock_version }); passwordResetForm.reset(); setResetTarget(null); setFeedback({ key: "apps.users.feedback.password_reset", error: false }); } catch { setFeedback({ key: "apps.feedback.save_error", error: true }); }
   });
+  const actionMenu = (member: AppMember) => {
+    const statusAction = member.status === "active" ? "disable" : "enable";
+    const items: NonNullable<MenuProps["items"]> = [
+      permissions.has("app.user.update") ? { key: "edit", icon: <EditOutlined />, label: t("common.actions.edit"), onClick: () => { open(member); } } : null,
+      permissions.has(`app.user.${statusAction}`) ? { key: statusAction, danger: statusAction === "disable", disabled: mutations.memberAction.isPending, icon: statusAction === "disable" ? <StopOutlined /> : <CheckCircleOutlined />, label: t(`apps.actions.${statusAction}`), onClick: () => { action(member, statusAction); } } : null,
+      permissions.has("app.user.unlock") ? { key: "unlock", disabled: mutations.memberAction.isPending, icon: <UnlockOutlined />, label: t("apps.users.actions.unlock"), onClick: () => { action(member, "unlock"); } } : null,
+      permissions.has("app.user.reset_password") ? { key: "reset-password", disabled: mutations.resetMemberPassword.isPending, icon: <KeyOutlined />, label: t("apps.users.actions.reset-password"), onClick: () => { passwordResetForm.reset(); setResetTarget(member); } } : null,
+      permissions.has("app.user.revoke_session") ? { key: "revoke-sessions", danger: true, disabled: mutations.memberAction.isPending, icon: <LogoutOutlined />, label: t("apps.users.actions.revoke-sessions"), onClick: () => { action(member, "revoke-sessions"); } } : null,
+    ].filter((item): item is NonNullable<typeof item> => item !== null);
+    return items.length > 0 ? <Dropdown destroyOnHidden menu={{ items }} placement="bottomRight" trigger={["click"]}><Button aria-label={`${t("apps.users.columns.actions")}: ${member.display_name}`} icon={<MoreOutlined />} size="small">{t("apps.application.actions.menu")}</Button></Dropdown> : null;
+  };
   const columns: TableColumnsType<AppMember> = [
     { title: t("apps.users.columns.user"), render: (_, item) => <AppMemberIdentity member={item} /> },
     { title: t("apps.users.columns.source"), dataIndex: "source", responsive: ["md"], render: (value: AppMember["source"]) => t(`apps.users.source.${value}`) },
     { title: t("apps.users.columns.status"), dataIndex: "status", render: (value: AppMember["status"]) => <Tag className={value === "active" ? "ak-status-success" : value === "disabled" ? "ak-status-error" : "ak-status-warning"}>{t(`apps.membership.${value}`)}</Tag> },
     { title: t("apps.users.columns.last_sign_in"), dataIndex: "last_sign_in_at", responsive: ["lg"], render: (value: string | null) => value ? date.format(new Date(value)) : t("apps.values.none") },
-    { title: t("apps.users.columns.actions"), width: screens.md ? 360 : 120, render: (_, item) => <Space wrap>{permissions.has("app.user.update") ? <Button size="small" onClick={() => { open(item); }}>{t("common.actions.edit")}</Button> : null}{permissions.has(item.status === "active" ? "app.user.disable" : "app.user.enable") ? <Button size="small" danger={item.status === "active"} onClick={() => { action(item, item.status === "active" ? "disable" : "enable"); }}>{t(item.status === "active" ? "apps.actions.disable" : "apps.actions.enable")}</Button> : null}{permissions.has("app.user.unlock") ? <Button size="small" onClick={() => { action(item, "unlock"); }}>{t("apps.users.actions.unlock")}</Button> : null}{permissions.has("app.user.reset_password") ? <Button size="small" onClick={() => { passwordResetForm.reset(); setResetTarget(item); }}>{t("apps.users.actions.reset-password")}</Button> : null}{permissions.has("app.user.revoke_session") ? <Button danger size="small" onClick={() => { action(item, "revoke-sessions"); }}>{t("apps.users.actions.revoke-sessions")}</Button> : null}</Space> },
+    { title: t("apps.users.columns.actions"), ...(screens.md ? { fixed: "right" as const } : {}), width: 112, render: (_, item) => actionMenu(item) },
   ];
   return <div className="ak-page-container">
     <header className="ak-page-heading"><div><Typography.Title level={1}>{t("apps.users.title")}</Typography.Title><Typography.Paragraph type="secondary">{t("apps.users.description")}</Typography.Paragraph></div>{scope.appId && !scope.disabled && permissions.has("app.user.create") ? <Button type="primary" onClick={() => { open("new"); }}>{t("apps.users.actions.create")}</Button> : null}</header>

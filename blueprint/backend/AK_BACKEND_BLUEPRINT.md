@@ -725,6 +725,7 @@ GET    /regions
 
 ```text
 POST   /auth/login
+GET    /auth/csrf-token              # 冷启动读取双提交 CSRF Token
 POST   /auth/token/refresh
 POST   /auth/logout
 GET    /auth/context                 # 用户、租户、角色、权限、菜单

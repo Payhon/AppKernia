@@ -9,9 +9,18 @@ const ErrorPage = lazy(async () => import('../pages/ErrorPage').then((module) =>
 
 export function RootRedirect() {
   const navigate = useNavigate()
-  const authenticated = useAuthStore((state) => state.status === 'authenticated')
-  useEffect(() => { void navigate({ to: authenticated ? '/dashboard' : '/login', replace: true }) }, [authenticated, navigate])
+  const status = useAuthStore((state) => state.status)
+  useEffect(() => {
+    if (status === 'authenticated') void navigate({ to: '/dashboard', search: { range: '30d' }, replace: true })
+    if (status === 'anonymous') void navigate({ to: '/login', replace: true })
+  }, [navigate, status])
   return null
+}
+
+export function AuthBootstrap({ children }: { children: ReactNode }) {
+  const initialize = useAuthStore((state) => state.initialize)
+  useEffect(() => { void initialize() }, [initialize])
+  return <>{children}</>
 }
 
 export function PageFallback() {
@@ -49,7 +58,7 @@ export function AnonymousPage({ children, featureFlag }: { children: ReactNode; 
   useEffect(() => {
     if (status === 'authenticated') void navigate({ to: '/dashboard', search: { range: '30d' }, replace: true })
   }, [navigate, status])
-  if (status === 'authenticated' || (featureFlag !== undefined && publicConfig.isPending)) return <PageFallback />
+  if (status === 'bootstrapping' || status === 'authenticating' || status === 'authenticated' || (featureFlag !== undefined && publicConfig.isPending)) return <PageFallback />
   if (featureFlag !== undefined && publicConfig.isError) return <LazyPage><ErrorPage status="500" titleKey="routes.errors.server-error.title" /></LazyPage>
   if (featureFlag !== undefined && publicConfig.data?.feature_flags[featureFlag] !== true) return <LazyPage><ErrorPage status="404" titleKey="routes.errors.not-found.title" /></LazyPage>
   return <>{children}</>

@@ -47,3 +47,29 @@ func TestMobileHandlersPinMobileAudience(t *testing.T) {
 		}
 	}
 }
+
+func TestAdminCSRFBootstrapReturnsOnlyDoubleSubmitToken(t *testing.T) {
+	raw, err := os.ReadFile("handler.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	source := string(raw)
+	start := strings.Index(source, "func (handler *Handler) CSRFToken")
+	if start < 0 {
+		t.Fatal("CSRFToken not found")
+	}
+	tail := source[start:]
+	end := strings.Index(tail[1:], "\nfunc ")
+	if end < 0 {
+		t.Fatal("CSRFToken boundary not found")
+	}
+	body := tail[:end+1]
+	for _, required := range []string{`refreshCookieName`, `csrfCookieName`, `Cache-Control`, `no-store`, `csrfTokenResponse`} {
+		if !strings.Contains(body, required) {
+			t.Fatalf("CSRFToken must contain %q: %s", required, body)
+		}
+	}
+	if strings.Contains(body, "AccessToken") || strings.Contains(body, "RefreshToken") {
+		t.Fatalf("CSRFToken must not expose bearer or refresh credentials: %s", body)
+	}
+}

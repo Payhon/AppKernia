@@ -94,6 +94,7 @@
       ],
       "acceptance": [
         "parallel 401 refresh test",
+        "cold reload recovery E2E",
         "logout cache purge test",
         "CSRF test"
       ]

@@ -8,6 +8,8 @@ OpenAPI 3.1 是唯一 DTO/错误码事实源；生成客户端放 `src/generated
 
 Access Token 仅在内存；Refresh Token 使用 Secure + HttpOnly + SameSite Cookie。CSRF 使用受保护 Cookie + Header/Origin 策略。401 进入 single-flight refresh，所有并发请求共享一个 Promise，成功后各重试一次；失败清空会话并跳登录。403 不刷新。
 
+浏览器冷启动时 Auth 状态先进入 `bootstrapping`，通过 `GET /admin-api/v1/auth/csrf-token` 读取同站 Cookie Pair 绑定的双提交 Token，再执行 Refresh Rotation 和 Auth Context Bootstrap。完成前路由守卫不得按匿名状态跳转；Access Token 和 Auth Context 不持久化到浏览器存储。
+
 ## Auth Context
 
 建议 `GET /admin-api/v1/auth/context` 返回：当前用户、活动租户、available_tenants、roles、permissions、menus、feature_flags、menu_revision、permission_revision、server_time。租户切换后签发新上下文并删除旧 tenant scope cache。

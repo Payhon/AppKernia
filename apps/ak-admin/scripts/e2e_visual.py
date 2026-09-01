@@ -233,6 +233,22 @@ def main() -> None:
         page.locator('button[type="submit"]').click()
         page.wait_for_url(lambda url: url.startswith(f"{BASE_URL}/dashboard"))
         page.get_by_role("heading", name="Dashboard").wait_for()
+        authenticated_url = page.url
+        with page.expect_response(
+            lambda response: response.url.endswith("/admin-api/v1/auth/csrf-token")
+        ) as csrf_bootstrap_response:
+            with page.expect_response(
+                lambda response: response.url.endswith("/admin-api/v1/auth/token/refresh")
+            ) as cold_refresh_response:
+                with page.expect_response(
+                    lambda response: response.url.endswith("/admin-api/v1/auth/context")
+                ) as cold_context_response:
+                    page.reload(wait_until="networkidle")
+        assert csrf_bootstrap_response.value.status == 200
+        assert cold_refresh_response.value.status == 200
+        assert cold_context_response.value.status == 200
+        assert page.url == authenticated_url
+        page.get_by_role("heading", name="Dashboard").wait_for()
         if page.locator("html").get_attribute("lang") != "zh-CN":
             choose_locale(page, "Display language", "简体中文")
         page.get_by_role("heading", name="关键指标").wait_for()
@@ -1155,6 +1171,12 @@ def main() -> None:
             "locales": ["zh-CN", "en-US"],
         }
         evidence["authenticated_locale_persisted"] = {"fresh_browser_session": True, "locale": "en-US"}
+        evidence["authenticated_reload_recovery"] = {
+            "same_route": True,
+            "csrf_bootstrap_status": csrf_bootstrap_response.value.status,
+            "refresh_status": cold_refresh_response.value.status,
+            "context_status": cold_context_response.value.status,
+        }
         evidence["reduced_motion"] = {"transition_seconds": transition_seconds}
         expected_auth_errors = [message for message in console_errors if "401 (Unauthorized)" in message]
         expected_validation_errors = [message for message in console_errors if "422 (Unprocessable Entity)" in message]

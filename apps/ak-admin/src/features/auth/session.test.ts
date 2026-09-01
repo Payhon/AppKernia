@@ -17,6 +17,71 @@ function tokenResponse(accessToken: string, csrfToken: string): Response {
 }
 
 describe('AuthSession', () => {
+  it('restores a cold browser session through CSRF bootstrap, refresh rotation, and Auth Context', async () => {
+    const tokens = new MemoryTokenStore()
+    const clearTenantCache = vi.fn()
+    const tenantId = crypto.randomUUID()
+    const calls: string[] = []
+    const fetchMock = vi.fn<typeof fetch>((input, init) => {
+      const url = input instanceof Request ? input.url : input instanceof URL ? input.href : input
+      calls.push(url)
+      if (url.endsWith('/auth/csrf-token')) {
+        expect(init?.credentials).toBe('include')
+        expect(new Headers(init?.headers).get('Authorization')).toBeNull()
+        return Promise.resolve(Response.json({
+          code: 'OK', message: 'OK', request_id: 'csrf-request',
+          data: { csrf_token: 'cold-csrf-value-that-is-long-enough' },
+        }))
+      }
+      if (url.endsWith('/auth/token/refresh')) {
+        expect(init?.method).toBe('POST')
+        expect(init?.credentials).toBe('include')
+        expect(new Headers(init?.headers).get('X-CSRF-Token')).toBe('cold-csrf-value-that-is-long-enough')
+        return Promise.resolve(tokenResponse('cold-access', 'rotated-csrf-value-that-is-long-enough'))
+      }
+      expect(url).toBe('/admin-api/v1/auth/context')
+      expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer cold-access')
+      return Promise.resolve(Response.json({
+        code: 'OK', message: 'OK', request_id: 'context-request',
+        data: {
+          user: { id: crypto.randomUUID(), email: 'admin@example.test', display_name: 'Admin', locale: 'zh-CN', time_zone: 'UTC', avatar_url: null },
+          active_tenant: { id: tenantId, code: 'tenant', name: 'Tenant' },
+          available_tenants: [{ id: tenantId, code: 'tenant', name: 'Tenant', status: 'active' }],
+          roles: [], permissions: [], menus: [], feature_flags: {}, menu_revision: 1, permission_revision: 1,
+          server_time: '2026-09-01T00:00:00Z',
+        },
+      }))
+    })
+    const session = new AuthSession({ baseUrl: '/admin-api/v1', tokens, clearTenantCache, fetch: fetchMock })
+
+    const context = await session.restore()
+
+    expect(context.active_tenant.id).toBe(tenantId)
+    expect(tokens.read()).toEqual({ accessToken: 'cold-access', csrfToken: 'rotated-csrf-value-that-is-long-enough' })
+    expect(calls).toEqual([
+      '/admin-api/v1/auth/csrf-token',
+      '/admin-api/v1/auth/token/refresh',
+      '/admin-api/v1/auth/context',
+    ])
+    expect(clearTenantCache).not.toHaveBeenCalled()
+  })
+
+  it('treats a missing cold-session cookie pair as anonymous without attempting refresh', async () => {
+    const tokens = new MemoryTokenStore()
+    const clearTenantCache = vi.fn()
+    const fetchMock = vi.fn<typeof fetch>(() => Promise.resolve(Response.json({
+      error: { code: 'AUTH.SESSION.UNAUTHORIZED', message_key: 'errors.common.unauthorized', message: 'Unauthorized' },
+      request_id: 'csrf-request',
+    }, { status: 401 })))
+    const session = new AuthSession({ baseUrl: '/admin-api/v1', tokens, clearTenantCache, fetch: fetchMock })
+
+    await expect(session.restore()).rejects.toMatchObject({ status: 401, code: 'AUTH.SESSION.UNAUTHORIZED' })
+
+    expect(fetchMock).toHaveBeenCalledOnce()
+    expect(tokens.read()).toBeNull()
+    expect(clearTenantCache).toHaveBeenCalledOnce()
+  })
+
   it('shares one refresh across parallel 401 responses and retries once', async () => {
     const tokens = new MemoryTokenStore()
     tokens.update({ accessToken: 'expired', csrfToken: 'csrf-old-value-that-is-long-enough' })

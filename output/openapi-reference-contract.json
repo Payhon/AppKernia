@@ -1,14 +1,14 @@
 {
-  "generated_at": "2026-09-01T08:29:36.336Z",
+  "generated_at": "2026-09-01T12:43:48.349Z",
   "passed": true,
   "counts": {
     "interface_surfaces": 3,
     "modules": 33,
-    "path_operations": 387,
+    "path_operations": 388,
     "reusable_path_item_operations": 3,
-    "localized_operation_titles": 390,
-    "operations_with_one_registered_tag": 390,
-    "translation_keys_per_locale": 426
+    "localized_operation_titles": 391,
+    "operations_with_one_registered_tag": 391,
+    "translation_keys_per_locale": 427
   },
   "errors": []
 }

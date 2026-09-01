@@ -2196,6 +2196,28 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+  /admin-api/v1/auth/csrf-token:
+    get:
+      summary: Read the double-submit CSRF token for Admin session recovery
+      description: Returns only the non-secret CSRF token already bound to the same-site Admin refresh cookie so a freshly loaded SPA can rotate the refresh token without persisting bearer credentials.
+      operationId: getAdminCSRFToken
+      tags: [admin-auth-profile]
+      security:
+        - adminRefreshCookie: []
+      parameters:
+        - $ref: "#/components/parameters/AcceptLanguage"
+      responses:
+        "200":
+          description: The current Admin session has a refresh cookie and matching double-submit CSRF token.
+          headers:
+            Cache-Control:
+              schema: {type: string, const: no-store}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminCSRFTokenResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
   /admin-api/v1/auth/logout:
     post:
       summary: Revoke the current Admin session
@@ -6956,6 +6978,20 @@ components:
         code: {type: string, const: OK}
         message: {type: string}
         data: {$ref: "#/components/schemas/AdminTokenData"}
+        request_id: {type: string}
+    AdminCSRFTokenResponse:
+      type: object
+      additionalProperties: false
+      required: [code, message, data, request_id]
+      properties:
+        code: {type: string, const: OK}
+        message: {type: string}
+        data:
+          type: object
+          additionalProperties: false
+          required: [csrf_token]
+          properties:
+            csrf_token: {type: string, minLength: 32}
         request_id: {type: string}
     AdminLogoutResponse:
       type: object

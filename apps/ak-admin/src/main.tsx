@@ -4,6 +4,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import { router } from './app/router'
+import { AuthBootstrap } from './app/route-boundaries'
 import { LocaleProvider } from './shared/i18n'
 import { queryClient } from './shared/query-client'
 import './styles.css'
@@ -14,7 +15,7 @@ if (!root) throw new Error('ROOT_ELEMENT_MISSING')
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <LocaleProvider><RouterProvider router={router} /></LocaleProvider>
+      <LocaleProvider><AuthBootstrap><RouterProvider router={router} /></AuthBootstrap></LocaleProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

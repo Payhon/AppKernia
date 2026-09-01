@@ -1,5 +1,6 @@
 import type {
   AdminAuthContextResponse,
+  AdminCsrfTokenResponse,
   AdminAvatarUploadCompleteResponse,
   AdminAvatarUploadRequest,
   AdminAvatarUploadSessionResponse,
@@ -442,6 +443,11 @@ export class AuthSession {
       });
     }
     return this.#refreshPromise;
+  }
+
+  async restore(): Promise<AuthContextResponse["data"]> {
+    if (!this.#tokens.read()) await this.refreshSingleFlight();
+    return this.bootstrap();
   }
 
   async request(
@@ -1910,13 +1916,13 @@ export class AuthSession {
 
   async #refresh(): Promise<string> {
     const snapshot = this.#tokens.read();
-    if (!snapshot) throw new Error("AUTH_SESSION_MISSING");
+    const csrfToken = snapshot?.csrfToken ?? (await this.#loadCSRFToken());
     const response = await this.#fetch(`${this.#baseUrl}/auth/token/refresh`, {
       method: "POST",
       credentials: "include",
       headers: {
         "Accept-Language": this.#readLocale(),
-        "X-CSRF-Token": snapshot.csrfToken,
+        "X-CSRF-Token": csrfToken,
       },
     });
     if (!response.ok) {
@@ -1927,6 +1933,20 @@ export class AuthSession {
     const body = (await response.json()) as TokenResponse;
     this.#storeTokenResponse(body);
     return body.data.access_token;
+  }
+
+  async #loadCSRFToken(): Promise<string> {
+    const response = await this.#fetch(`${this.#baseUrl}/auth/csrf-token`, {
+      credentials: "include",
+      headers: { "Accept-Language": this.#readLocale() },
+    });
+    if (!response.ok) {
+      this.#tokens.clear();
+      this.#clearTenantCache();
+      throw await toApiError(response);
+    }
+    const body = (await response.json()) as AdminCsrfTokenResponse;
+    return body.data.csrf_token;
   }
 
   #authorizedFetch(input: string | URL, init: RequestInit): Promise<Response> {

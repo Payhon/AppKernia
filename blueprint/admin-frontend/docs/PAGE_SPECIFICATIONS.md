@@ -97,6 +97,7 @@
 
 - `app_id` 必须在 URL 和页面上下文中明确；用户列表和编辑抽屉展示当前头像，读取时验证租户、App 成员关系、文件状态与扫描门禁，缺图使用姓名首字符。
 - 头像由移动端用户本人维护；后台不提供替换入口，也不暴露对象存储键。
+- 行操作统一使用 112px 右侧固定的“操作”下拉菜单；每个权限允许的操作显示语义图标，停用与撤销会话保留危险样式和确认流程。
 
 ## `app.content.articles` — App 文章管理
 
@@ -1121,11 +1122,13 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - `GET /admin-api/v1/auth/public-config`
 - `POST /admin-api/v1/auth/login`
 - `POST /admin-api/v1/auth/login/captcha`
+- `GET /admin-api/v1/auth/csrf-token`
 - `POST /admin-api/v1/auth/token/refresh`
 
 **页面验收**
 
 - 已登录用户访问匿名页时安全跳转 Dashboard，不形成重定向循环。
+- 已登录用户刷新受保护路由时完成 CSRF/Refresh/Context 冷启动恢复并留在原路由。
 - Redirect 只接受同源白名单路径；错误不泄露账号是否存在。
 - 提交、限流、服务错误和离线状态完整；密码、验证码、Token 不写日志或持久化。
 - 键盘、自动填充、密码管理器和 768px 窄屏流程可用。

@@ -6,7 +6,7 @@
 | `AKADM-010` | P0B | 初始化 ui-ux-pro-max 与 Master Design System | AKADM-000 | 必须 | scripts/check_ui_skill.sh；Playwright showcase screenshots；axe 0 critical/serious |
 | `AKADM-015` | P0 | i18n 基础设施与中英文语言包 | AKADM-010 | 必须 | key/placeholder parity；运行时无刷新切换；中英文 E2E |
 | `AKADM-020` | P0C | 生成 OpenAPI Client 与 API 基础层 | AKADM-000 | 非 UI | generated client clean diff；contract test |
-| `AKADM-030` | P0C | 认证、Refresh single-flight 与 Auth Context | AKADM-020 | 非 UI | parallel 401 refresh test；logout cache purge test；CSRF test |
+| `AKADM-030` | P0C | 认证、Refresh single-flight 与 Auth Context | AKADM-020 | 非 UI | parallel 401 refresh test；cold reload recovery E2E；logout cache purge test；CSRF test |
 | `AKADM-040` | P0C | App Shell、静态路由注册表与菜单解析 | AKADM-010, AKADM-015, AKADM-030 | 必须 | unknown key test；direct URL permission test；responsive screenshots |
 | `AKADM-050` | P0C | 登录、注册、找回与重置密码 | AKADM-010, AKADM-015, AKADM-030 | 必须 | auth E2E；account enumeration test；keyboard/password manager check |
 | `AKADM-060` | P0C | 个人中心：基本与安全设置 | AKADM-030, AKADM-040 | 必须 | self-only test；session revoke E2E；responsive screenshots |

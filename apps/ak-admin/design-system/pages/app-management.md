@@ -25,6 +25,7 @@ This page family inherits `../MASTER.md`.
 - At 768 px and below the startup fields, asset pair editors and action row stack to one column. File UUIDs remain secondary technical text and thumbnails never replace accessible labels.
 - App user tables and editor drawers show a 40 px circular avatar before the display name, with a deterministic initial fallback. Avatar loading is authorized through the App-user read boundary; storage object keys and bearer tokens never enter image URLs.
 - Avatar is read-only in App user management: the mobile user owns avatar changes. The Admin surface refreshes after user data changes and does not imply that an administrator can replace a user's identity image.
+- App user row actions use the same compact 112 px right-fixed Dropdown as application rows. Every permitted action has a semantic icon; disable and revoke-session actions retain destructive styling and confirmation.
 - Replace the App-row “Share configuration” destination with one “Client configuration” Modal. Keep the existing action order and show the destination when at least one registered client-config Tab is readable.
 - The client configuration Modal is 760 px on desktop and full-screen at narrow widths. Tabs remain in code-defined order: Sharing, then Scanner; switching Tabs never saves or discards local state.
 - Each client configuration Tab owns its loading, validation and save actions. Never add a global Save button. Confirm before closing when any mounted Tab is dirty.

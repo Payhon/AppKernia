@@ -436,6 +436,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/password/reset", authHandler.ResetPassword)
 		group.POST("/login", authHandler.Login)
 		group.POST("/login/captcha", authHandler.LoginCaptcha)
+		group.GET("/csrf-token", authHandler.CSRFToken)
 		group.POST("/switch-tenant", authHandler.SwitchTenant)
 		group.POST("/token/refresh", authHandler.Refresh)
 		group.POST("/logout", authHandler.Logout)

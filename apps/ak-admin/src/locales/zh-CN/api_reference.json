@@ -163,6 +163,7 @@
   "api_reference.operation.refreshAdminToken": "轮换管理端刷新令牌",
   "api_reference.operation.adminLogout": "退出当前管理端会话",
   "api_reference.operation.getAdminAuthContext": "获取管理端认证上下文",
+  "api_reference.operation.getAdminCSRFToken": "读取管理端会话恢复所需的双提交 CSRF Token",
   "api_reference.operation.switchAdminTenant": "切换当前管理端租户",
   "api_reference.operation.getAdminMe": "获取管理端个人资料",
   "api_reference.operation.updateAdminMe": "更新管理端个人资料",

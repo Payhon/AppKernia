@@ -1484,6 +1484,15 @@ export type AdminTokenResponse = {
     request_id: string;
 };
 
+export type AdminCsrfTokenResponse = {
+    code: 'OK';
+    message: string;
+    data: {
+        csrf_token: string;
+    };
+    request_id: string;
+};
+
 export type AdminLogoutResponse = {
     code: 'OK';
     message: string;
@@ -10469,6 +10478,34 @@ export type RefreshAdminTokenResponses = {
 };
 
 export type RefreshAdminTokenResponse = RefreshAdminTokenResponses[keyof RefreshAdminTokenResponses];
+
+export type GetAdminCsrfTokenData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/auth/csrf-token';
+};
+
+export type GetAdminCsrfTokenErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+};
+
+export type GetAdminCsrfTokenError = GetAdminCsrfTokenErrors[keyof GetAdminCsrfTokenErrors];
+
+export type GetAdminCsrfTokenResponses = {
+    /**
+     * The current Admin session has a refresh cookie and matching double-submit CSRF token.
+     */
+    200: AdminCsrfTokenResponse;
+};
+
+export type GetAdminCsrfTokenResponse = GetAdminCsrfTokenResponses[keyof GetAdminCsrfTokenResponses];
 
 export type AdminLogoutData = {
     body?: never;

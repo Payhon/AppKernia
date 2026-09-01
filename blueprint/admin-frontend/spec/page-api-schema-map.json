@@ -663,6 +663,7 @@
         "GET /admin-api/v1/auth/public-config",
         "POST /admin-api/v1/auth/login",
         "POST /admin-api/v1/auth/login/captcha",
+        "GET /admin-api/v1/auth/csrf-token",
         "POST /admin-api/v1/auth/token/refresh"
       ],
       "backend_status": "existing"

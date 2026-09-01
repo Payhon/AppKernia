@@ -1,7 +1,73 @@
 # AppKernia Codex 交付报告
 
-日期：2026-08-30
-范围：AppKernia 全仓交付记录；本轮消息推送文档已提交、推送并发布到 GitHub Pages。
+日期：2026-09-01
+范围：AppKernia 全仓交付记录；本轮修复 Admin 浏览器刷新后的登录态恢复，并将发行页配置菜单图标等当前工作树改动合并部署到本地开发环境；未提交、未推送、未部署生产。
+
+## App 用户操作菜单
+
+- “App 管理 > 用户管理”的并排行操作已改为与应用管理一致的 Dropdown；触发按钮使用 `MoreOutlined`，编辑、启停、解锁、重置密码和撤销移动端会话分别使用语义图标。原权限、确认、危险色及写操作 pending 约束保持不变。
+- `pnpm exec tsc --noEmit`、目标文件 ESLint、Admin Docker production build、Mobile Blueprint、统一 i18n 与 `git diff --check` 均退出 0；隔离组件视觉检查覆盖中英文与启用/停用分支。
+- 本地 `appkernia-news-demo-admin-1` 已更新且 healthy，`http://localhost:4174/` 返回 200；新镜像为 `sha256:8acff72bf40b…`，回滚标签为 `appkernia-news-demo-admin:before-app-user-actions-20260901`。浏览器登录会话在容器替换后失效，因此不把隔离组件截图表述为真实登录数据验收。
+- 本次未修改 Backend、OpenAPI、数据库、权限码或翻译资源；未 commit、未 push、未部署生产。
+
+## Admin 刷新后登录态恢复
+
+### 已交付
+
+- Backend 新增 `GET /admin-api/v1/auth/csrf-token` 冷启动引导端点。仅当 Refresh/CSRF Cookie 成对存在时返回 CSRF Token；响应 `Cache-Control: no-store`，不暴露 Refresh Token 或 Access Token，不扩大 Refresh Cookie 的可读性和 Path。
+- Admin 会话启动改为 `CSRF bootstrap → refresh → context`，增加 `bootstrapping` 状态与模块级单飞，React StrictMode 并发初始化不会重复刷新。路由边界在恢复结束前不跳登录页，失败后才进入匿名态。
+- OpenAPI、Admin 生成 Client、`zh-CN`/`en-US` API 标题、Backend/Admin 蓝图、页面/API 映射、集成快照和浏览器 E2E 刷新断言同步完成；未涉及数据库迁移、权限码或可视样式变更。
+
+### 实际验证
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| `go test ./internal/modules/iam/transport/http ./internal/bootstrap` | 0 | 新端点路由/安全契约与 Bootstrap 包通过。 |
+| `make check`（server） | 0 | Go fmt、vet 与全包测试通过。 |
+| `pnpm --filter @appkernia/admin exec vitest run src/features/auth/session.test.ts src/features/auth/store.test.ts` | 0 | 2 个文件、29 项认证测试通过；覆盖冷启动请求顺序、Header、Cookie 缺失和 StrictMode 单飞。 |
+| `pnpm --filter @appkernia/admin check` | 0 | OpenAPI/i18n/routes 生成、391 operations/427 双语键、lint、strict typecheck、51 个文件/219 项测试、production build、bundle/OpenAPI docs 与 Admin Blueprint 全部通过。 |
+| Chromium + Admin production build 受控浏览器回归 | 0 | 刷新 `/dashboard?range=30d` 后 URL 保持不变，请求严格为 `csrf-token → token/refresh → context`，Refresh Cookie、CSRF Header 和新 Access Token 均通过断言。 |
+| `make check-blueprints` | 0 | Backend 29 组 up/down migration 静态契约、Admin、Mobile 与统一 i18n 校验全部通过。 |
+| `git diff --check` | 0 | 补丁空白检查通过。 |
+
+### 验收边界
+
+- Chromium 回归使用真实生产前端构建，但 API 为受控响应；它不冒充真实 Backend/数据库验收。`apps/ak-admin/scripts/e2e_visual.py` 已加入真实登录后刷新及三个响应断言，本轮未启动 Compose 服务执行该脚本。
+- 当前 Node 为 26.5.0，高于仓库声明的 `>=24 <25`，Admin 门禁给出版本警告但全部退出 0；发布流水线仍应使用项目约定的 Node 24。
+- 未新增视觉 UI，不需要新的 `ui-ux-pro-max` 产物或截图。既有三个 Mobile/Playwright 输出修改未触碰、未纳入本轮范围。
+
+### 本地开发环境部署
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| Compose/容器/迁移只读盘点 | 0 | 确认目标为 `appkernia-news-demo`，Admin 4174、API 8080、PostgreSQL 55432；迁移 `29|false`，旧 API/Admin/Worker restart count=0。 |
+| 为旧 API/Admin 镜像创建回滚标签 | 0 | 保存为 `before-auth-refresh-20260901`，未停止现有服务。 |
+| `docker compose -p appkernia-news-demo build api admin` | 0 | Go 1.26.5 API 与 Node 24.18.1 Admin 生产镜像构建成功；Admin 9983 modules 构建完成。 |
+| 依次 `up -d --no-deps --force-recreate api/admin` | 0 | 先替换 API 并等待 healthy，再替换 Admin；PostgreSQL/Worker/数据卷保持运行。 |
+| HTTP、镜像与数据库 smoke | 0 | Admin/API health 成功；CSRF 端点由部署前 404 变为匿名 401/no-store、带 Cookie 200；无效 Refresh 在正确 CSRF/Origin 下仍为 401；数据库保持 `29|false`。 |
+
+- 当前 API 镜像 `sha256:2f482dd2fc3f83262f9dd291608d2ef7f41130ec35c91810ac3a45f1e3292f85`、Admin 镜像 `sha256:7200385b242cf818ea289123b82070f01fcee8829660083c57724db919a3ae76`，均 healthy、restart count=0。
+- 本次没有迁移、Seed、密码重置或业务数据写入，未替换 PostgreSQL/Worker。真实用户会话的“登录 → 刷新 → 保持原受保护路由”留给用户从 `http://localhost:4174` 验证。
+
+### 当前工作树合并再次部署
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| 当前工作树与运行 Compose 盘点 | 0 | 新增 `AdminApplicationsPage` 发行页菜单下载图标及设计说明；无新 migration。识别到 Admin 曾由已删除的临时 Compose 单独替换，容器无额外挂载。 |
+| `pnpm --filter @appkernia/admin check` | 0 | 391 operations/427 双语键、lint、strict typecheck、51 文件/219 测试、生产构建、bundle/OpenAPI docs 和 Blueprint 全通过。 |
+| 为 API/Worker/Admin 创建 `before-combined-update-20260901-1749` 标签 | 0 | 保存再次部署前的三个实际运行镜像，未操作数据卷。 |
+| `docker compose -f /Users/payhon/project/AppKernia/compose.yaml -p appkernia-news-demo build api worker admin` | 0 | Go 1.26.5 与 Node 24.18.1 的三个合并镜像构建成功。 |
+| 依次强制替换 API、Worker、Admin | 0 | API/Admin healthy、Worker running，三个 restart count=0；最终 Compose 只引用仓库根配置。 |
+| 镜像、HTTP、生产包、日志与数据库检查 | 0 | 运行 Image ID 与 latest 完全一致；Admin/API health 成功、CSRF 匿名 401；生产包含 `auth/csrf-token` 和发行页图标；最近日志无 error/fatal/panic/failed；迁移保持 `29|false`。 |
+
+- 最终镜像：API `sha256:10f21659d67b2d7a38d410c2b38b590d9c3510628484d2e27fd453233d50c8ab`、Worker `sha256:b425f7cc3b540f0c102bb2fb8df82e86b0e339de6c935c7264ae51c91aa7c349`、Admin `sha256:7c1ab766fa0714f6ef9ab84d2dcc90d333fb8bc9218ed362dfc8834097346e1b`。
+- 本次未运行 migration/seed，未修改密码或业务数据；未 commit、未 push、未部署生产。用户可在 `http://localhost:4174` 同时验证刷新保留登录态与 App 管理操作菜单图标。
+
+### App 用户操作菜单合并部署
+
+- 当前新增改动为 `AdminAppUsersPage` 行操作下拉及对应 Design System/Page Specification；复用原权限和 mutation，没有新增 API、权限、依赖或迁移。
+- `pnpm --filter @appkernia/admin lint`、`typecheck`、`git diff --check` 与三个 Docker production build 均退出 0；生产包确认包含 `revoke-sessions` 操作和 `auth/csrf-token` 恢复请求。
+- API `sha256:dedf82d8afa64f940f0dbb5ce9df641d69225bd9e5f6df458cbc29c14c059bde`、Worker `sha256:eab2591f49d8d53214bd12fa44f0595b263e5ef3a334f0e945bf510cbc2df8be`、Admin `sha256:05a14bc24872f92bab998cc39bf81bc16c68f947a8d83eec4a3f5d3afd322458` 已运行；健康、日志和 `29|false` 数据库状态通过。回滚标签为 `before-app-user-actions-20260901`。
 
 ## Mobile 用户头像、评论头像与 Admin 用户列表交付
 

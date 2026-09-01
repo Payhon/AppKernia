@@ -5,6 +5,7 @@
 ## P0
 
 - `GET /admin-api/v1/auth/public-config`：登录/注册页读取公开品牌、注册开关、验证码/MFA 方式。
+- `GET /admin-api/v1/auth/csrf-token`：已落地；只返回当前同站 Admin Refresh Cookie Pair 绑定的双提交 CSRF Token，用于浏览器冷启动恢复，不返回 Refresh/Access Token。
 - `POST /admin-api/v1/auth/register`：已落地；默认关闭，启用后只加入服务端配置租户并授予 `member`，重复邮箱保持相同 202 响应。
 - `POST /admin-api/v1/auth/password/forgot`：已落地；已知/未知账号统一 202 与 cooldown，短期随机 Token 仅 Hash 入库，投递经 Port/Adapter。
 - `POST /admin-api/v1/auth/password/reset`：已落地；一次性消费 challenge，事务更新密码历史、撤销跨 audience Session/Refresh family 并写脱敏审计。

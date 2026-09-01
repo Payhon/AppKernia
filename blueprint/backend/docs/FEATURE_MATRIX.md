@@ -130,6 +130,7 @@ POST /api/v1/auth/logout-all
 ```text
 POST /admin-api/v1/auth/login
 POST /admin-api/v1/auth/login/captcha
+GET  /admin-api/v1/auth/csrf-token
 POST /admin-api/v1/auth/token/refresh
 POST /admin-api/v1/auth/logout
 GET  /admin-api/v1/auth/context
@@ -145,6 +146,7 @@ GET  /admin-api/v1/auth/context
 - Audience 隔离：`ak-mobile`、`ak-admin`、`ak-api`。
 - 登录风控、失败次数和临时锁定。
 - 登录事件记录。
+- 管理端冷启动先读取同站 Refresh Cookie 绑定的双提交 CSRF Token，再轮换 Refresh Token 并恢复 Auth Context；Access Token 仍只在内存。
 
 **权限**
 
@@ -157,6 +159,7 @@ GET  /admin-api/v1/auth/context
 - 已消费 Token 重用撤销 Session Family，并创建高等级安全事件。
 - Admin Token 不能访问 Mobile-only Token Audience，反之亦然。
 - 密码、Token 和 OTP 不出现在日志。
+- 已登录管理端刷新浏览器后保持原受保护路由；无效或缺失 Cookie Pair 才进入登录页。
 - 已知与未知账号前两次均返回稳定凭据错误，第三次均返回 `IAM.AUTH.CAPTCHA_REQUIRED`；挑战与标识、Audience、来源绑定，错误/过期/已消费挑战不可复用，成功登录清零该范围失败状态。
 
 ### 3.2 密码与验证

@@ -163,6 +163,7 @@
   "api_reference.operation.refreshAdminToken": "Rotate the Admin refresh token and issue a new access token",
   "api_reference.operation.adminLogout": "Revoke the current Admin session",
   "api_reference.operation.getAdminAuthContext": "Read the current Admin identity, tenant and authorization context",
+  "api_reference.operation.getAdminCSRFToken": "Read the double-submit CSRF token for Admin session recovery",
   "api_reference.operation.switchAdminTenant": "Switch the current Admin session to another available tenant",
   "api_reference.operation.getAdminMe": "Read the current Admin user's profile",
   "api_reference.operation.updateAdminMe": "Update the current Admin user's basic profile settings",
