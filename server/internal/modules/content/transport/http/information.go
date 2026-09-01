@@ -2,7 +2,6 @@ package http
 
 import (
 	"fmt"
-	"html"
 	"io"
 	"strconv"
 	"strings"
@@ -115,62 +114,6 @@ func (h *Handler) PublicAsset(r *ghttp.Request) {
 	r.Response.Header().Set("X-Content-Type-Options", "nosniff")
 	r.Response.Header().Set("Vary", "X-AppID")
 	_, _ = io.Copy(r.Response.BufferWriter, reader)
-}
-func (h *Handler) PublicShareAsset(r *ghttp.Request) {
-	appID, appOK := idAt(r, "app_id")
-	fileID, fileOK := idAt(r, "file_id")
-	if !appOK || !fileOK {
-		h.fail(r, content.ErrInvalid)
-		return
-	}
-	asset, reader, err := h.service.OpenPublicAsset(r.Context(), "", appID, fileID)
-	if h.fail(r, err) {
-		return
-	}
-	defer reader.Close()
-	r.Response.Header().Set("Content-Type", asset.MediaType)
-	r.Response.Header().Set("Content-Length", fmt.Sprintf("%d", asset.SizeBytes))
-	r.Response.Header().Set("Cache-Control", "public, max-age=86400")
-	r.Response.Header().Set("X-Content-Type-Options", "nosniff")
-	_, _ = io.Copy(r.Response.BufferWriter, reader)
-}
-func (h *Handler) PublicShare(r *ghttp.Request) {
-	appID, err := uuid.Parse(strings.TrimSpace(r.GetQuery("app_id").String()))
-	if err != nil {
-		h.fail(r, content.ErrInvalid)
-		return
-	}
-	slug := r.GetRouter("slug").String()
-	item, err := h.service.GetPublic(r.Context(), "", appID, locale(r), slug)
-	if h.fail(r, err) {
-		return
-	}
-	proto := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto"))
-	if proto != "https" && proto != "http" {
-		proto = "https"
-	}
-	origin := proto + "://" + r.Host
-	canonical := origin + "/s/" + item.Slug + "?app_id=" + appID.String()
-	image := ""
-	if item.CoverURL != nil {
-		parts := strings.Split(strings.Trim(*item.CoverURL, "/"), "/")
-		if len(parts) > 0 {
-			if fileID, parseErr := uuid.Parse(parts[len(parts)-1]); parseErr == nil {
-				image = origin + "/s/assets/" + appID.String() + "/" + fileID.String()
-			}
-		}
-	}
-	title, summary, imageURL, pageURL := html.EscapeString(item.Title), html.EscapeString(item.Summary), html.EscapeString(image), html.EscapeString(canonical)
-	doc := "<!doctype html><html lang=\"" + html.EscapeString(locale(r)) + "\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>" + title + " - 应核 AppKernia</title><meta name=\"description\" content=\"" + summary + "\"><meta property=\"og:type\" content=\"article\"><meta property=\"og:title\" content=\"" + title + "\"><meta property=\"og:description\" content=\"" + summary + "\"><meta property=\"og:url\" content=\"" + pageURL + "\">"
-	if imageURL != "" {
-		doc += "<meta property=\"og:image\" content=\"" + imageURL + "\">"
-	}
-	doc += "<link rel=\"canonical\" href=\"" + pageURL + "\"></head><body><main><h1>" + title + "</h1><p>" + summary + "</p><p><a href=\"appkernia://content/" + html.EscapeString(item.Slug) + "\">在应核 AppKernia 中打开</a></p></main></body></html>"
-	r.Response.Header().Set("Content-Type", "text/html; charset=utf-8")
-	r.Response.Header().Set("Content-Security-Policy", "default-src 'none'; img-src https: http:; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'")
-	r.Response.Header().Set("X-Content-Type-Options", "nosniff")
-	r.Response.WriteHeader(200)
-	r.Response.WriteExit(doc)
 }
 func (h *Handler) PublicComments(r *ghttp.Request) {
 	appID, ok := headerAppID(r)

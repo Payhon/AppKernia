@@ -13,6 +13,7 @@ export interface ContentMedia { id: string; file_id: string; role: "gallery" | "
 export interface ContentComment { id: string; article_id: string; author_id: string; author_name: string; author_avatar_url: string | null; parent_id: string | null; root_id: string | null; status: "pending" | "approved" | "rejected" | "hidden" | "deleted"; body: string; moderation_reason: string | null; created_at: string; updated_at: string; }
 export interface ContentCommentReport { id: string; comment_id: string; reporter_id: string; reason: "spam" | "abuse" | "illegal" | "privacy" | "other"; details: string; status: "open" | "resolved" | "dismissed"; resolution: string; created_at: string; resolved_at: string | null; }
 export interface ContentArticle {
+  share_url?: string;
   id: string; slug: string; content_type: ContentType; category_id: string; category_ids: string[]; topic_id: string | null; tag_ids: string[]; tags: ContentTag[]; media: ContentMedia[];
   cover_file_id: string | null; cover_url: string | null; reading_minutes: number; allow_comments: boolean; pinned: boolean; featured: boolean; latest: boolean;
   video_source_type: "upload" | "external" | null; video_file_id: string | null; video_external_url: string | null; video_duration_seconds: number | null;

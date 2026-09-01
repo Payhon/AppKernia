@@ -112,7 +112,7 @@ export const appPageTranslationSchema = z.object({
 
 export const appPageInputSchema = z.object({
   slug: z.string().trim().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  page_type: z.enum(["privacy-policy", "terms-of-service", "about-us", "custom"]),
+  page_type: z.enum(["privacy-policy", "terms-of-service", "about-us", "faq", "contact-support", "custom"]),
   publish: z.boolean(),
   translations: z.object({ "zh-CN": appPageTranslationSchema, "en-US": appPageTranslationSchema }),
   lock_version: z.number().int().positive().optional(),
@@ -123,7 +123,7 @@ export type AppPageInput = z.infer<typeof appPageInputSchema>;
 export type AppPageEditorInput = Omit<AppPageInput, "translations"> & { translations: { "zh-CN": Omit<AppPageInput["translations"]["zh-CN"], "body"> & { body: string }; "en-US": Omit<AppPageInput["translations"]["en-US"], "body"> & { body: string } } };
 export const appPageEditorInputSchema = z.object({
   slug: z.string().trim().min(1).max(160).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-  page_type: z.enum(["privacy-policy", "terms-of-service", "about-us", "custom"]),
+  page_type: z.enum(["privacy-policy", "terms-of-service", "about-us", "faq", "contact-support", "custom"]),
   publish: z.boolean(),
   translations: z.object({
     "zh-CN": z.object({ title: z.string().trim().min(1).max(300), body_format: z.enum(["markdown", "blocks"]), body: z.string().trim().min(1).max(100_000) }),
@@ -152,6 +152,13 @@ export function getAppPageTitle(page: ManagedPage, locale: AppPageLocale): strin
   return [page.translations?.[locale]?.title, page.translations?.[alternateLocale]?.title]
     .map((title) => title?.trim())
     .find((title): title is string => Boolean(title));
+}
+/** A page can only transition when the server has a saved draft revision. */
+export function hasPublishableAppPageDraft(page: ManagedPage): boolean {
+  return page.revisions.some((revision) => revision.status === "draft");
+}
+export function shouldShowAppPagePublish(page: ManagedPage): boolean {
+  return page.status === "draft" || hasPublishableAppPageDraft(page);
 }
 export function toAppPageInput(editor: AppPageEditorInput): AppPageInput {
   const parsed = appPageEditorInputSchema.parse(editor);

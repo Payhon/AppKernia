@@ -50,6 +50,7 @@ const implementedComponentKeys = new Set([
   "app.content.articles",
   "app.content.categories",
   "app.content.pages",
+  "app.feedbacks",
 ]);
 
 export interface ResolvedMenuDirectory {
@@ -207,6 +208,7 @@ export function isSafeInternalRedirect(
   | "/app/content/articles"
   | "/app/content/categories"
   | "/app/content/pages"
+  | "/app/feedbacks"
   | "/profile/basic"
   | "/profile/security"
   | "/profile/connections"
@@ -243,6 +245,7 @@ export function isSafeInternalRedirect(
     value === "/app/content/articles" ||
     value === "/app/content/categories" ||
     value === "/app/content/pages" ||
+    value === "/app/feedbacks" ||
     value === "/profile/basic" ||
     value === "/profile/security" ||
     value === "/profile/connections" ||

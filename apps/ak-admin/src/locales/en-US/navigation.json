@@ -168,5 +168,7 @@
   "menu.system.settings.share_configs": "Share configurations",
   "routes.system.settings.share_configs.title": "Share configurations",
   "menu.system.notifications.operations": "Message Operations",
-  "routes.system.notifications.operations.title": "Message Operations"
+  "routes.system.notifications.operations.title": "Message Operations",
+  "menu.app.feedbacks": "Feedback",
+  "routes.app.feedbacks.title": "Feedback"
 }

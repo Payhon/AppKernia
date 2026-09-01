@@ -92,6 +92,7 @@ export class AkHttpClient implements AkHttpPort {
       'Content-Type': 'application/json',
       'X-AppID': this.config.appId,
       Authorization: authorization,
+      'Idempotency-Key': request.headers.get('Idempotency-Key') == null ? '' : request.headers.get('Idempotency-Key')!,
       'X-AK-Device-Key': this.deviceKey,
     }
     // UTS class and Map string values are boxed as `{}` by uni.request on iOS.

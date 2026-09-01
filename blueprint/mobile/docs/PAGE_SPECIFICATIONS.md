@@ -98,3 +98,16 @@ initial → loading → content | empty | error | offline | forbidden
 - 登录、注册、个人中心、消息、语言设置、法律文档和错误页必须在 Android/iOS/Harmony 上做英文长文本和截断检查。
 - 法律 API 请求携带 locale，用户同意记录必须保存 document version、locale 和 content hash。
 - 服务端 error code 在两种语言下保持不变；客户端优先本地翻译，后端 message 仅作回退。
+
+## 帮助与关于、问题反馈
+
+- `help`：沿用登录规则；FAQ / 联系支持打开已发布单页，关于页独立加载正文和版本策略；底部从安装包读取当前版本，断网不隐藏。未发布的 CMS 内容显示“内容暂未配置”，不回填静态客服信息。
+- `feedback.create`：问题描述 1–2000 字，联系方式选填、最多 200 字，最多 3 张 ≤5 MiB 截图（后台更严格策略优先）；相册由用户操作触发。`ak-text-area` 包装原生 textarea，输入区随键盘调整；上传进度、失败重试、移除/取消。仅使用内存草稿，提交失败保持内容，相同请求使用稳定幂等键。
+- `feedback`：当前用户当前 App 的分页列表；返回页面重新加载，空态、离线态、错误重试和下一页失败均可区分。
+- `feedback.detail`：原始内容、截图、处理状态、提交时间及追加式后台回复；截图通过带鉴权的临时下载读取，卸载时取消请求并删除临时文件。
+- 状态 `pending/processing/resolved` 与平台值属于固定协议枚举。所有标签使用 AkI18n，后台文本以已发布语言为准，受限块/Markdown 渲染不执行 HTML、脚本或远程组件。
+- 验收区分模拟器、源码编译、未签名包与真机；设计规范见 `apps/ak-mobile/design-system/pages/help-feedback.md`，实际证据以交付报告为准。
+
+### 资讯公开分享地址
+
+详情响应 `share_url` 由可信 Server origin 生成并带语言参数。分享优先使用该值；对旧 Server 未返回字段时回退原 `/s/{slug}?app_id=` 生成规则。页面协议阅读不产生同意记录；原生同意流程保持不变。H5 下载平台检测不进入 Mobile 或 Server UA 逻辑。

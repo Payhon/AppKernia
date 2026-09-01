@@ -177,7 +177,7 @@ FROM storage.upload_sessions
 WHERE id = $1
   AND tenant_id = $2
   AND user_id = $3
-  AND status = 'initiated'
+  AND purpose <> 'feedback' AND status = 'initiated'
   AND expires_at > now()
 `
 
@@ -231,7 +231,7 @@ VALUES (
     'ready', 'skipped', jsonb_build_object('purpose', 'avatar', 'adapter', $3::varchar)
 )
 ON CONFLICT (tenant_id, sha256, size_bytes)
-    WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL
+    WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL AND metadata->>'purpose' IS DISTINCT FROM 'feedback'
 DO UPDATE SET updated_at = storage.files.updated_at
 RETURNING id, provider, bucket_name, object_key
 `
@@ -354,7 +354,7 @@ FROM storage.upload_sessions
 WHERE id = $1
   AND tenant_id = $2
   AND user_id = $3
-  AND status = 'initiated'
+  AND purpose <> 'feedback' AND status = 'initiated'
   AND expires_at > now()
 FOR UPDATE
 `

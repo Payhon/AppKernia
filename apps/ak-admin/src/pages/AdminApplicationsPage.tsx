@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/restrict-template-expressions -- React Hook Form field paths preserve numeric array indices. */
+import { AppPublicWebDrawer } from "../components/AppPublicWebDrawer";
 import { MoreOutlined, PlusOutlined } from "@ant-design/icons";
 import { useNavigate } from "@tanstack/react-router";
 import { Alert, Button, Card, Divider, Drawer, Dropdown, Form, Grid, Input, InputNumber, Modal, Select, Space, Switch, Table, Tag, Typography, type TableColumnsType } from "antd";
@@ -71,6 +72,7 @@ export function AdminApplicationsPage() {
   const [selected, setSelected] = useState<Key[]>([]);
   const [editor, setEditor] = useState<Editor>(null);
   const [picker, setPicker] = useState<PickerTarget>(null);
+  const [publicWebAppId, setPublicWebAppId] = useState<string | null>(null);
   const [clientConfigApp, setClientConfigApp] = useState<ManagedApplication | null>(null);
   const [feedback, setFeedback] = useState<{ key: string; error: boolean } | null>(null);
   const form = useForm<ApplicationInput>({ defaultValues: defaults(tenantId) });
@@ -117,7 +119,7 @@ export function AdminApplicationsPage() {
     });
   };
   const applicationActions = (item: ManagedApplication) => <Dropdown
-    menu={{ items: createApplicationActionItems(item, permissions, {
+    menu={{ items: [...createApplicationActionItems(item, permissions, {
       edit: t("common.actions.edit"),
       upgradeCenter: t("apps.application.actions.upgrade_center"),
       content: t("apps.application.actions.content"),
@@ -132,7 +134,7 @@ export function AdminApplicationsPage() {
       clientConfig: () => { setClientConfigApp(item); },
       changeStatus: () => { void changeStatus(item); },
       delete: () => { deleteItems([item.id]); },
-    }, mutations.status.isPending) }}
+    }, mutations.status.isPending), ...(permissions.has("app.public_web.read") ? [{ key: "public-web", label: t("apps.public_web.title"), onClick: () => { setPublicWebAppId(item.id); } }] : [])] }}
     trigger={["click"]}
   >
     <Button aria-label={t("apps.application.actions.menu_for", { name: item.name })} icon={<MoreOutlined />} size="small">{t("apps.application.actions.menu")}</Button>
@@ -169,6 +171,7 @@ export function AdminApplicationsPage() {
       </div>}
     </Card>
     <ApplicationDrawer canPublish={permissions.has("app.onboarding.publish")} editor={editor} form={form} fullScreen={!screens.md} picker={picker} setPicker={setPicker} publishing={mutations.publishOnboarding.isPending} saving={mutations.create.isPending || mutations.update.isPending} onClose={() => { setEditor(null); }} onPublish={() => { Modal.confirm({ title: t("apps.startup.publish.title"), content: t("apps.startup.publish.description"), okText: t("apps.startup.actions.publish"), onOk: publishOnboarding }); }} onSave={() => void save()} />
+    {publicWebAppId ? <AppPublicWebDrawer key={publicWebAppId} appId={publicWebAppId} onClose={() => { setPublicWebAppId(null); }} /> : null}
     <AppClientConfigurationModal app={clientConfigApp} permissions={permissions} onClose={() => { setClientConfigApp(null); }} />
   </div>;
 }

@@ -185,6 +185,498 @@ x-tagGroups:
       - admin-operations
 
 paths:
+  /api/v1/me/feedbacks:
+    get:
+      summary: List App-scoped feedback
+      operationId: listMobileFeedbacks
+      tags:
+      - mobile-profile
+      parameters:
+      - &id002
+        $ref: '#/components/parameters/AppID'
+      - &id003
+        $ref: '#/components/parameters/AcceptLanguage'
+      - &id005
+        name: q
+        in: query
+        schema:
+          type: string
+          maxLength: 160
+      - &id006
+        name: status
+        in: query
+        schema:
+          $ref: '#/components/schemas/FeedbackStatus'
+      - &id007
+        name: page
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+      - &id008
+        name: page_size
+        in: query
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - &id009
+        name: created_from
+        in: query
+        schema: &id001
+          type: string
+          format: date-time
+      - &id010
+        name: created_to
+        in: query
+        schema: *id001
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+    post:
+      summary: Submit feedback idempotently
+      operationId: createMobileFeedback
+      tags:
+      - mobile-profile
+      parameters:
+      - *id002
+      - *id003
+      - &id013
+        name: Idempotency-Key
+        in: header
+        required: true
+        schema: &id004
+          type: string
+          format: uuid
+        description: Reuse the UUID for retries of the same unchanged request. A different
+          payload returns 409.
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackInput'
+  /api/v1/me/feedbacks/{id}:
+    get:
+      summary: Read feedback and replies
+      operationId: getMobileFeedback
+      tags:
+      - mobile-profile
+      parameters:
+      - *id002
+      - *id003
+      - name: id
+        in: path
+        required: true
+        schema: *id004
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /api/v1/me/feedbacks/{id}/attachments/{file_id}/content:
+    get:
+      summary: Read a private feedback image
+      operationId: getMobileFeedbackAttachment
+      tags:
+      - mobile-profile
+      parameters:
+      - *id002
+      - *id003
+      - name: id
+        in: path
+        required: true
+        schema: *id004
+      - name: file_id
+        in: path
+        required: true
+        schema: *id004
+      responses:
+        '200':
+          description: Authorized ready image; scan state must be clean. Skipped scans are denied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: private, no-store
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /admin-api/v1/apps/{app_id}/feedbacks:
+    get:
+      summary: List App-scoped feedback
+      operationId: listAdminFeedbacks
+      tags:
+      - admin-app-management
+      parameters:
+      - &id011
+        name: app_id
+        in: path
+        required: true
+        schema: *id004
+      - &id012
+        $ref: '#/components/parameters/AcceptLanguage'
+      - *id005
+      - *id006
+      - *id007
+      - *id008
+      - *id009
+      - *id010
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+      security:
+      - adminBearer: []
+      x-permission: app.feedback.read
+  /admin-api/v1/apps/{app_id}/feedbacks/{id}:
+    get:
+      summary: Read feedback and replies
+      operationId: getAdminFeedback
+      tags:
+      - admin-app-management
+      parameters:
+      - *id011
+      - *id012
+      - name: id
+        in: path
+        required: true
+        schema: *id004
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+      security:
+      - adminBearer: []
+      x-permission: app.feedback.read
+    patch:
+      summary: Update feedback status with optimistic locking
+      operationId: updateAdminFeedback
+      tags:
+      - admin-app-management
+      parameters:
+      - *id011
+      - *id012
+      - name: id
+        in: path
+        required: true
+        schema: *id004
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+      security:
+      - adminBearer: []
+      x-permission: app.feedback.update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackStatusInput'
+  /admin-api/v1/apps/{app_id}/feedbacks/{id}/attachments/{file_id}/content:
+    get:
+      summary: Read a private feedback image
+      operationId: getAdminFeedbackAttachment
+      tags:
+      - admin-app-management
+      parameters:
+      - *id011
+      - *id012
+      - name: id
+        in: path
+        required: true
+        schema: *id004
+      - name: file_id
+        in: path
+        required: true
+        schema: *id004
+      responses:
+        '200':
+          description: Authorized ready image; scan state must be clean. Skipped scans are denied.
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+                const: private, no-store
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+      security:
+      - adminBearer: []
+      x-permission: app.feedback.read
+  /admin-api/v1/apps/{app_id}/feedbacks/{id}/replies:
+    post:
+      summary: Append an immutable staff reply
+      operationId: replyAdminFeedback
+      tags:
+      - admin-app-management
+      parameters:
+      - *id011
+      - *id012
+      - name: id
+        in: path
+        required: true
+        schema: *id004
+      - *id013
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+      security:
+      - adminBearer: []
+      x-permission: app.feedback.reply
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackReplyInput'
+  /api/v1/me/feedback-uploads:
+    post:
+      summary: Create a private feedback image upload session
+      operationId: createMobileFeedbackUpload
+      tags:
+      - mobile-profile
+      parameters:
+      - *id002
+      - *id003
+      responses:
+        '201':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackUploadResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackUploadInput'
+  /api/v1/me/feedback-uploads/{id}:
+    delete:
+      summary: Expire an unattached feedback upload for cleanup
+      operationId: cancelMobileFeedbackUpload
+      tags:
+      - mobile-profile
+      parameters:
+      - *id002
+      - *id003
+      - name: id
+        in: path
+        required: true
+        schema: *id004
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackCancelResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+  /api/v1/me/feedback-uploads/{id}/content:
+    post:
+      summary: Upload and validate a feedback image without changing the avatar
+      operationId: uploadMobileFeedbackImage
+      tags:
+      - mobile-profile
+      parameters:
+      - *id002
+      - *id003
+      - name: id
+        in: path
+        required: true
+        schema: *id004
+      responses:
+        '200':
+          description: Success.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackFileResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+              - file
+              properties:
+                file:
+                  type: string
+                  format: binary
   /s/{slug}:
     get:
       summary: Render the public HTTPS content sharing landing page
@@ -4072,6 +4564,264 @@ paths:
       security: [{adminBearer: []}]
       parameters: [{$ref: "#/components/parameters/AcceptLanguage"}]
       responses: {"200": {description: Safe runtime diagnostic summary., content: {application/json: {schema: {$ref: "#/components/schemas/AdminOpsRuntimeResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}}
+  /h5/apps/{app_id}/articles/{slug}:
+    get:
+      operationId: getPublicWebArticle
+      summary: Read a public article as HTML
+      tags:
+      - public-content
+      security: []
+      parameters:
+      - &h5path001
+        name: app_id
+        in: path
+        required: true
+        schema: &h5path005
+          type: string
+          format: uuid
+      - name: lang
+        in: query
+        schema:
+          $ref: '#/components/schemas/SupportedLocale'
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200': &h5path002
+          description: Server-rendered HTML. Public reads ignore authentication cookies. CSP frame-ancestors permits only the validated AK_ADMIN_ORIGIN; invalid configuration denies embedding.
+          content:
+            text/html:
+              schema:
+                type: string
+        '404': &h5path003
+          description: Content unavailable.
+          content:
+            text/html:
+              schema:
+                type: string
+        '503': &h5path004
+          description: Service unavailable.
+          content:
+            text/html:
+              schema:
+                type: string
+  /h5/apps/{app_id}/pages/{slug}:
+    get:
+      operationId: getPublicWebPage
+      summary: Read a published App page as HTML
+      tags:
+      - public-content
+      security: []
+      parameters:
+      - *h5path001
+      - name: lang
+        in: query
+        schema:
+          $ref: '#/components/schemas/SupportedLocale'
+      - name: slug
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '200': *h5path002
+        '404': *h5path003
+        '503': *h5path004
+  /h5/apps/{app_id}/download:
+    get:
+      operationId: getPublicWebDownload
+      summary: Read the unified App download page
+      tags:
+      - public-content
+      security: []
+      parameters:
+      - *h5path001
+      - name: lang
+        in: query
+        schema:
+          $ref: '#/components/schemas/SupportedLocale'
+      - name: format
+        in: query
+        schema:
+          type: string
+          enum:
+          - qr
+      responses:
+        '200':
+          description: One HTML page for all devices; format=qr returns PNG. No server-side
+            platform detection. HTML permits embedding only by the validated AK_ADMIN_ORIGIN.
+          content:
+            text/html:
+              schema:
+                type: string
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404': *h5path003
+        '503': *h5path004
+  /h5/static/{name}:
+    get:
+      operationId: getPublicWebStatic
+      summary: Read an embedded public web asset
+      tags:
+      - public-content
+      security: []
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+      responses:
+        '404': *h5path003
+        '503': *h5path004
+        '200':
+          description: Authorized embedded or business resource.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /h5/apps/{app_id}/assets/{file_id}:
+    get:
+      operationId: getPublicWebAsset
+      summary: Read an authorized public App image
+      tags:
+      - public-content
+      security: []
+      parameters:
+      - *h5path001
+      - name: file_id
+        in: path
+        required: true
+        schema: *h5path005
+      responses:
+        '404': *h5path003
+        '503': *h5path004
+        '200':
+          description: Authorized embedded or business resource.
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /h5/apps/{app_id}/apk:
+    get:
+      operationId: getPublicWebAPK
+      summary: Issue a short-lived Android package link
+      tags:
+      - public-content
+      security: []
+      parameters:
+      - *h5path001
+      responses:
+        '404': *h5path003
+        '503': *h5path004
+        '302':
+          description: Short-lived signed package URL. Revalidates App, APK switch and
+            current Android publication.
+          headers:
+            Location:
+              schema:
+                type: string
+  /h5/apps/{app_id}/packages/{release_id}/{file_id}:
+    get:
+      operationId: getPublicWebPackage
+      summary: Download the current published Android package
+      tags:
+      - public-content
+      security: []
+      parameters:
+      - *h5path001
+      - name: release_id
+        in: path
+        required: true
+        schema: *h5path005
+      - name: file_id
+        in: path
+        required: true
+        schema: *h5path005
+      - name: expires
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - name: signature
+        in: query
+        required: true
+        schema:
+          type: string
+      responses:
+        '404': *h5path003
+        '503': *h5path004
+        '200':
+          description: Authorized embedded or business resource.
+          content:
+            application/vnd.android.package-archive:
+              schema:
+                type: string
+                format: binary
+  /admin-api/v1/apps/{app_id}/public-web-config:
+    get:
+      operationId: getAdminPublicWebConfig
+      summary: read App public web configuration
+      tags:
+      - admin-app-management
+      security:
+      - adminBearer: []
+      x-permission: app.public_web.read
+      parameters:
+      - *h5path001
+      responses:
+        '200':
+          description: App public presentation configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPublicWebConfigResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+    put:
+      operationId: updateAdminPublicWebConfig
+      summary: update App public web configuration
+      tags:
+      - admin-app-management
+      security:
+      - adminBearer: []
+      x-permission: app.public_web.update
+      parameters:
+      - *h5path001
+      responses:
+        '200':
+          description: App public presentation configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPublicWebConfigResponse'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/ValidationFailed'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminPublicWebConfigRequest'
 components:
   securitySchemes:
     adminBearer:
@@ -4285,6 +5035,305 @@ components:
           "403": {$ref: "#/components/responses/Forbidden"}
           "404": {$ref: "#/components/responses/NotFound"}
   schemas:
+    FeedbackStatus:
+      type: string
+      enum:
+      - pending
+      - processing
+      - resolved
+    FeedbackAttachment:
+      type: object
+      required:
+      - file_id
+      - media_type
+      - size_bytes
+      properties:
+        file_id: &feedbackSchema001
+          type: string
+          format: uuid
+        media_type:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+    FeedbackReply:
+      type: object
+      required:
+      - id
+      - body
+      - created_at
+      properties:
+        id: *feedbackSchema001
+        body:
+          type: string
+        created_at: &feedbackSchema002
+          type: string
+          format: date-time
+    FeedbackEvent:
+      type: object
+      required:
+      - id
+      - from_status
+      - to_status
+      - created_at
+      properties:
+        id: *feedbackSchema001
+        from_status:
+          $ref: '#/components/schemas/FeedbackStatus'
+        to_status:
+          $ref: '#/components/schemas/FeedbackStatus'
+        created_at: *feedbackSchema002
+    Feedback:
+      type: object
+      required:
+      - id
+      - user_id
+      - description
+      - contact
+      - platform
+      - app_version
+      - status
+      - lock_version
+      - created_at
+      - updated_at
+      - attachments
+      - replies
+      - events
+      properties:
+        id: *feedbackSchema001
+        user_id: *feedbackSchema001
+        description:
+          type: string
+        contact:
+          type: string
+        platform:
+          type: string
+          enum:
+          - android
+          - ios
+          - harmony
+          - unknown
+        app_version:
+          type: string
+        status:
+          $ref: '#/components/schemas/FeedbackStatus'
+        lock_version: &feedbackSchema003
+          type: integer
+        created_at: *feedbackSchema002
+        updated_at: *feedbackSchema002
+        attachments:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedbackAttachment'
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedbackReply'
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedbackEvent'
+    FeedbackInput:
+      type: object
+      required:
+      - description
+      - platform
+      - app_version
+      - file_ids
+      properties:
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        contact:
+          type: string
+          maxLength: 200
+        platform:
+          type: string
+          enum:
+          - android
+          - ios
+          - harmony
+          - unknown
+        app_version:
+          type: string
+          maxLength: 64
+        file_ids:
+          type: array
+          items: *feedbackSchema001
+          maxItems: 3
+          uniqueItems: true
+    FeedbackStatusInput:
+      type: object
+      required:
+      - status
+      - lock_version
+      properties:
+        status:
+          $ref: '#/components/schemas/FeedbackStatus'
+        lock_version:
+          type: integer
+          minimum: 1
+    FeedbackReplyInput:
+      type: object
+      required:
+      - body
+      - status
+      - lock_version
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        status:
+          $ref: '#/components/schemas/FeedbackStatus'
+        lock_version:
+          type: integer
+          minimum: 1
+    FeedbackUploadInput:
+      type: object
+      required:
+      - original_name
+      - media_type
+      - size_bytes
+      properties:
+        original_name:
+          type: string
+          maxLength: 240
+          minLength: 1
+        media_type:
+          type: string
+          enum:
+          - image/jpeg
+          - image/png
+          - image/webp
+        size_bytes:
+          type: integer
+          format: int64
+          minimum: 1
+          maximum: 5242880
+    FeedbackUpload:
+      type: object
+      required:
+      - id
+      - upload_url
+      - expires_at
+      - status
+      - file_id
+      properties:
+        id: *feedbackSchema001
+        upload_url:
+          type: string
+        expires_at: *feedbackSchema002
+        status:
+          type: string
+        file_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+    FeedbackResponse:
+      type: object
+      required:
+      - code
+      - message
+      - data
+      - request_id
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Feedback'
+        request_id:
+          type: string
+    FeedbackListResponse:
+      type: object
+      required:
+      - code
+      - message
+      - data
+      - request_id
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          required:
+          - items
+          - total
+          - page
+          - page_size
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/Feedback'
+            total: *feedbackSchema003
+            page: *feedbackSchema003
+            page_size: *feedbackSchema003
+        request_id:
+          type: string
+    FeedbackUploadResponse:
+      type: object
+      required:
+      - code
+      - message
+      - data
+      - request_id
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/FeedbackUpload'
+        request_id:
+          type: string
+    FeedbackFileResponse:
+      type: object
+      required:
+      - code
+      - message
+      - data
+      - request_id
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          required:
+          - file_id
+          properties:
+            file_id: *feedbackSchema001
+        request_id:
+          type: string
+    FeedbackCancelResponse:
+      type: object
+      required:
+      - code
+      - message
+      - data
+      - request_id
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        data:
+          type: object
+          required:
+          - cancelled
+          properties:
+            cancelled:
+              type: boolean
+        request_id:
+          type: string
     SupportedLocale:
       type: string
       enum: [zh-CN, en-US]
@@ -4341,6 +5390,7 @@ components:
           type: object
           required: [app_id, appid, app_type, name, default_locale, registration_enabled, registration_verification_mode, startup, share, push]
           properties:
+            download_page_url: {type: string}
             app_id: {type: string, format: uuid}
             appid: {type: string}
             app_type: {type: string, enum: [uni_app, uni_app_x]}
@@ -4501,17 +5551,54 @@ components:
         request_id: {type: string}
     AppPublicPage:
       type: object
-      required: [slug, document_type, title, body, body_format, version, content_hash, locale, revision_id]
+      required:
+      - slug
+      - document_type
+      - title
+      - body
+      - body_format
+      - version
+      - content_hash
+      - locale
+      - revision_id
       properties:
-        slug: {type: string}
-        document_type: {type: string, enum: [privacy-policy, terms-of-service, about-us, custom]}
-        title: {type: string}
-        body: {oneOf: [{type: string}, {type: array}]}
-        body_format: {type: string, enum: [markdown, blocks]}
-        version: {type: integer, minimum: 1}
-        content_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
-        locale: {$ref: "#/components/schemas/SupportedLocale"}
-        revision_id: {type: string, format: uuid}
+        slug:
+          type: string
+        document_type:
+          type: string
+          enum:
+          - privacy-policy
+          - terms-of-service
+          - about-us
+          - faq
+          - contact-support
+          - custom
+        title:
+          type: string
+        body:
+          oneOf:
+          - type: string
+          - type: array
+        body_format:
+          type: string
+          enum:
+          - markdown
+          - blocks
+        version:
+          type: integer
+          minimum: 1
+        content_hash:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+        locale:
+          $ref: '#/components/schemas/SupportedLocale'
+        revision_id:
+          type: string
+          format: uuid
+        public_url:
+          type: string
+          format: uri
+          description: Trusted server-generated public URL; omitted when unavailable.
     AppPublicPageResponse:
       type: object
       required: [code, message, data, request_id]
@@ -4776,24 +5863,133 @@ components:
       properties: {items: {type: array, items: {$ref: "#/components/schemas/AdminApp"}}, total: {type: integer, minimum: 0}}
     AdminAppPage:
       type: object
-      required: [id, slug, page_type, status, lock_version, updated_at, translations, revisions]
+      required:
+      - id
+      - slug
+      - page_type
+      - status
+      - lock_version
+      - updated_at
+      - translations
+      - revisions
       properties:
-        id: {type: string, format: uuid}
-        slug: {type: string}
-        page_type: {type: string, enum: [privacy-policy, terms-of-service, about-us, custom]}
-        status: {type: string, enum: [draft, published, archived]}
-        lock_version: {type: integer, minimum: 1}
-        current_revision_id: {type: [string, 'null'], format: uuid}
-        updated_at: {type: string, format: date-time}
-        translations: {type: object, required: [zh-CN, en-US], properties: {zh-CN: {type: object, required: [title, body_format, body], properties: {title: {type: string}, body_format: {type: string, enum: [markdown, blocks]}, body: {oneOf: [{type: string}, {type: array}]}}}, en-US: {type: object, required: [title, body_format, body], properties: {title: {type: string}, body_format: {type: string, enum: [markdown, blocks]}, body: {oneOf: [{type: string}, {type: array}]}}}}}
-        revisions: {type: array, items: {type: object, required: [id, version, status, content_hash, created_at], properties: {id: {type: string, format: uuid}, version: {type: integer, minimum: 1}, status: {type: string, enum: [draft, published, archived]}, content_hash: {type: string}, created_at: {type: string, format: date-time}, created_by: {type: [string, 'null'], format: uuid}}}}
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        page_type:
+          type: string
+          enum:
+          - privacy-policy
+          - terms-of-service
+          - about-us
+          - faq
+          - contact-support
+          - custom
+        status:
+          type: string
+          enum:
+          - draft
+          - published
+          - archived
+        lock_version:
+          type: integer
+          minimum: 1
+        current_revision_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        updated_at:
+          type: string
+          format: date-time
+        translations:
+          type: object
+          required:
+          - zh-CN
+          - en-US
+          properties:
+            zh-CN:
+              type: object
+              required:
+              - title
+              - body_format
+              - body
+              properties:
+                title:
+                  type: string
+                body_format:
+                  type: string
+                  enum:
+                  - markdown
+                  - blocks
+                body:
+                  oneOf:
+                  - type: string
+                  - type: array
+            en-US:
+              type: object
+              required:
+              - title
+              - body_format
+              - body
+              properties:
+                title:
+                  type: string
+                body_format:
+                  type: string
+                  enum:
+                  - markdown
+                  - blocks
+                body:
+                  oneOf:
+                  - type: string
+                  - type: array
+        revisions:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - version
+            - status
+            - content_hash
+            - created_at
+            properties:
+              id:
+                type: string
+                format: uuid
+              version:
+                type: integer
+                minimum: 1
+              status:
+                type: string
+                enum:
+                - draft
+                - published
+                - archived
+              content_hash:
+                type: string
+              created_at:
+                type: string
+                format: date-time
+              created_by:
+                type:
+                - string
+                - 'null'
+                format: uuid
+        public_url:
+          type: string
+          format: uri
+          description: Trusted server-generated public URL; omitted when unavailable.
     AdminAppPageRequest:
       type: object
       additionalProperties: false
       required: [slug, page_type, translations, publish]
       properties:
         slug: {type: string, pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'}
-        page_type: {type: string, enum: [privacy-policy, terms-of-service, about-us, custom]}
+        page_type: {type: string, enum: [privacy-policy, terms-of-service, about-us, faq, contact-support, custom]}
         lock_version: {type: integer, minimum: 1}
         publish: {type: boolean}
         translations:
@@ -7396,8 +8592,140 @@ components:
           properties: {lock_version: {type: integer, minimum: 1}}
     AdminContentArticle:
       type: object
-      required: [id, content_type, slug, status, category_ids, tag_ids, tags, media, allow_comments, pinned, featured, latest, sort_order, reading_minutes, lock_version, translations, created_at, updated_at]
-      properties: {id: {type: string, format: uuid}, content_type: {$ref: "#/components/schemas/ContentType"}, category_id: {type: [string, 'null'], format: uuid, deprecated: true}, category_ids: {type: array, maxItems: 10, uniqueItems: true, items: {type: string, format: uuid}}, topic_id: {type: [string, 'null'], format: uuid}, tag_ids: {type: array, maxItems: 10, uniqueItems: true, items: {type: string, format: uuid}}, tags: {type: array, items: {$ref: "#/components/schemas/AdminContentTag"}}, media: {type: array, maxItems: 9, items: {$ref: "#/components/schemas/ContentMedia"}}, slug: {type: string}, status: {type: string, enum: [draft, published, archived]}, allow_comments: {type: boolean}, pinned: {type: boolean}, featured: {type: boolean}, latest: {type: boolean}, sort_order: {type: integer}, cover_file_id: {type: [string, 'null'], format: uuid}, cover_url: {type: [string, 'null'], description: Server-derived safe URL only}, reading_minutes: {type: integer, minimum: 1, maximum: 120}, video_source_type: {type: [string, 'null'], enum: [upload, external, null]}, video_file_id: {type: [string, 'null'], format: uuid}, video_external_url: {type: [string, 'null'], format: uri}, video_duration_seconds: {type: [integer, 'null'], minimum: 0}, lock_version: {type: integer, minimum: 1}, published_at: {type: [string, 'null'], format: date-time}, translations: {$ref: "#/components/schemas/AdminContentTranslations"}, created_at: {type: string, format: date-time}, updated_at: {type: string, format: date-time}}
+      required:
+      - id
+      - content_type
+      - slug
+      - status
+      - category_ids
+      - tag_ids
+      - tags
+      - media
+      - allow_comments
+      - pinned
+      - featured
+      - latest
+      - sort_order
+      - reading_minutes
+      - lock_version
+      - translations
+      - created_at
+      - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        content_type:
+          $ref: '#/components/schemas/ContentType'
+        category_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+          deprecated: true
+        category_ids:
+          type: array
+          maxItems: 10
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+        topic_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        tag_ids:
+          type: array
+          maxItems: 10
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminContentTag'
+        media:
+          type: array
+          maxItems: 9
+          items:
+            $ref: '#/components/schemas/ContentMedia'
+        slug:
+          type: string
+        status:
+          type: string
+          enum:
+          - draft
+          - published
+          - archived
+        allow_comments:
+          type: boolean
+        pinned:
+          type: boolean
+        featured:
+          type: boolean
+        latest:
+          type: boolean
+        sort_order:
+          type: integer
+        cover_file_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        cover_url:
+          type:
+          - string
+          - 'null'
+          description: Server-derived safe URL only
+        reading_minutes:
+          type: integer
+          minimum: 1
+          maximum: 120
+        video_source_type:
+          type:
+          - string
+          - 'null'
+          enum:
+          - upload
+          - external
+          - null
+        video_file_id:
+          type:
+          - string
+          - 'null'
+          format: uuid
+        video_external_url:
+          type:
+          - string
+          - 'null'
+          format: uri
+        video_duration_seconds:
+          type:
+          - integer
+          - 'null'
+          minimum: 0
+        lock_version:
+          type: integer
+          minimum: 1
+        published_at:
+          type:
+          - string
+          - 'null'
+          format: date-time
+        translations:
+          $ref: '#/components/schemas/AdminContentTranslations'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        share_url:
+          type: string
+          format: uri
+          description: Trusted server-generated public URL; omitted when unavailable.
     AdminContentArticleRequest:
       type: object
       required: [content_type, slug, category_ids, tag_ids, media, allow_comments, pinned, featured, latest, sort_order, reading_minutes, translations]
@@ -7484,8 +8812,22 @@ components:
     VideoContentDetail:
       allOf: [{$ref: "#/components/schemas/AppArticle"}, {type: object, required: [content_type, video_source_type, video_url], properties: {content_type: {const: video}, video_source_type: {type: string, enum: [upload, external]}, video_url: {type: string, format: uri}}}]
     ContentDetail:
-      oneOf: [{$ref: "#/components/schemas/ArticleContentDetail"}, {$ref: "#/components/schemas/GalleryContentDetail"}, {$ref: "#/components/schemas/VideoContentDetail"}]
-      discriminator: {propertyName: content_type, mapping: {article: "#/components/schemas/ArticleContentDetail", gallery: "#/components/schemas/GalleryContentDetail", video: "#/components/schemas/VideoContentDetail"}}
+      oneOf:
+      - $ref: '#/components/schemas/ArticleContentDetail'
+      - $ref: '#/components/schemas/GalleryContentDetail'
+      - $ref: '#/components/schemas/VideoContentDetail'
+      discriminator:
+        propertyName: content_type
+        mapping:
+          article: '#/components/schemas/ArticleContentDetail'
+          gallery: '#/components/schemas/GalleryContentDetail'
+          video: '#/components/schemas/VideoContentDetail'
+      allOf:
+      - type: object
+        properties:
+          share_url:
+            type: string
+            format: uri
     ContentDetailResponse:
       type: object
       required: [code, message, data, request_id]
@@ -7881,3 +9223,172 @@ components:
       additionalProperties: false
       required: [lock_version]
       properties: {lock_version: {type: integer, minimum: 1}}
+
+    PublicWebTranslation:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - introduction
+      - promotion_title
+      - promotion_description
+      - promotion_button_label
+      properties:
+        name:
+          type: string
+          maxLength: 160
+        introduction:
+          type: string
+          maxLength: 20000
+        promotion_title:
+          type: string
+          maxLength: 160
+          description: Optional H5 promotion heading; empty uses the localized App name.
+        promotion_description:
+          type: string
+          maxLength: 500
+          description: Optional H5 promotion copy; empty uses built-in localized copy.
+        promotion_button_label:
+          type: string
+          maxLength: 80
+          description: Optional H5 promotion CTA label; empty uses built-in localized copy.
+    PublicWebTranslationRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - name
+      - introduction
+      properties:
+        name:
+          type: string
+          maxLength: 160
+        introduction:
+          type: string
+          maxLength: 20000
+        promotion_title:
+          type: string
+          maxLength: 160
+          description: Optional for compatibility; omitted values use empty localized fallback copy.
+        promotion_description:
+          type: string
+          maxLength: 500
+          description: Optional for compatibility; omitted values use empty localized fallback copy.
+        promotion_button_label:
+          type: string
+          maxLength: 80
+          description: Optional for compatibility; omitted values use empty localized fallback copy.
+    PublicWebStore:
+      type: object
+      additionalProperties: false
+      required:
+      - id
+      - name
+      - enabled
+      - priority
+      - platform
+      - web_url
+      properties:
+        id: &h5schema006
+          type: string
+          format: uuid
+        name:
+          type: string
+        enabled:
+          type: boolean
+        priority:
+          type: integer
+        platform:
+          type: string
+          enum:
+          - ''
+          - android
+          - ios
+          - harmony
+        web_url:
+          type: string
+          maxLength: 2048
+          description: Empty or HTTPS URL; platform required for nonempty URL.
+    AdminPublicWebConfigRequest:
+      type: object
+      additionalProperties: false
+      required:
+      - enabled
+      - apk_enabled
+      - lock_version
+      - translations
+      - stores
+      properties:
+        enabled: &h5schema001
+          type: boolean
+        apk_enabled: &h5schema002
+          type: boolean
+        promotion_enabled: &h5schema007
+          type: boolean
+          description: Controls the download promotion shown on public articles and pages.
+        lock_version: &h5schema003
+          type: integer
+          minimum: 0
+        translations: &h5schema008
+          type: object
+          additionalProperties: false
+          required:
+          - zh-CN
+          - en-US
+          properties:
+            zh-CN:
+              $ref: '#/components/schemas/PublicWebTranslationRequest'
+            en-US:
+              $ref: '#/components/schemas/PublicWebTranslationRequest'
+        stores: &h5schema005
+          type: array
+          maxItems: 100
+          items:
+            $ref: '#/components/schemas/PublicWebStore'
+    AdminPublicWebConfig:
+      type: object
+      required:
+      - enabled
+      - apk_enabled
+      - promotion_enabled
+      - lock_version
+      - translations
+      - stores
+      - app_id
+      - download_page_url
+      properties:
+        enabled: *h5schema001
+        apk_enabled: *h5schema002
+        promotion_enabled: *h5schema007
+        lock_version: *h5schema003
+        translations: &h5schema004
+          type: object
+          additionalProperties: false
+          required:
+          - zh-CN
+          - en-US
+          properties:
+            zh-CN:
+              $ref: '#/components/schemas/PublicWebTranslation'
+            en-US:
+              $ref: '#/components/schemas/PublicWebTranslation'
+        stores: *h5schema005
+        app_id: *h5schema006
+        download_page_url:
+          type: string
+          description: Empty when trusted public origin is not configured.
+    AdminPublicWebConfigResponse:
+      type: object
+      required:
+      - code
+      - message
+      - data
+      - request_id
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/AdminPublicWebConfig'
+        request_id:
+          type: string

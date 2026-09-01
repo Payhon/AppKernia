@@ -1116,3 +1116,11 @@ secret scan
 - [PostgreSQL 18 documentation](https://www.postgresql.org/docs/current/)
 - [sqlc with pgx/v5](https://docs.sqlc.dev/en/latest/guides/using-go-and-pgx.html)
 - [River](https://github.com/riverqueue/river)
+
+## 内置公开 HTML 展示入口（ADR-0030）
+
+除 JSON API 外，Server 同时提供 `/h5/apps/{app_id}/...` 与旧 `/s/` 兼容入口。采用内置 html/template、go:embed、原生 CSS/JS；不引入独立 H5 工程或运行时模板执行。详见 `docs/FEATURE_MATRIX.md` 的内置公开 H5 约定，以及仓库 `docs/adr/0030-built-in-public-web.md`。
+
+AKH5-002：上述公开 HTML（含错误页）的 `frame-ancestors` 仅放行经校验的 `AK_ADMIN_ORIGIN`，无效配置继续禁止嵌入；静态/资源与 OpenAPI 文档策略不变。内置预览脚本通过精确 origin、source 和加载 ID 握手，只处理就绪/关闭及同 App 文档导航；不接受管理员凭据、任意跳转或执行指令。未增加业务 API、权限或数据模型。
+
+AKH5-004：`application_public_web_configs` 的推广开关和双语推广文案由既有 public-web-config 接口、权限、审计与乐观锁管理。关闭后资讯/单页不渲染下载推广；语言切换位于页头，视频布局切换为播放器内浮动图标。迁移保持存量已启用发行资料的推广默认可见，避免升级后无提示消失。

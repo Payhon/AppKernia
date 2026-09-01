@@ -21,6 +21,7 @@ import { Route as OfflineRouteImport } from './routes/offline'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AppApplicationsRouteImport } from './routes/app.applications'
+import { Route as AppFeedbacksRouteImport } from './routes/app.feedbacks'
 import { Route as AppUpgradeCenterRouteImport } from './routes/app.upgrade-center'
 import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as ProfileBasicRouteImport } from './routes/profile.basic'
@@ -138,6 +139,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 const AppApplicationsRoute = AppApplicationsRouteImport.update({
   id: '/app/applications',
   path: '/app/applications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppFeedbacksRoute = AppFeedbacksRouteImport.update({
+  id: '/app/feedbacks',
+  path: '/app/feedbacks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppUpgradeCenterRoute = AppUpgradeCenterRouteImport.update({
@@ -473,6 +479,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/app/applications': typeof AppApplicationsRoute
+  '/app/feedbacks': typeof AppFeedbacksRoute
   '/app/upgrade-center': typeof AppUpgradeCenterRoute
   '/app/users': typeof AppUsersRoute
   '/profile/basic': typeof ProfileBasicRoute
@@ -545,6 +552,7 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/app/applications': typeof AppApplicationsRoute
+  '/app/feedbacks': typeof AppFeedbacksRoute
   '/app/upgrade-center': typeof AppUpgradeCenterRoute
   '/app/users': typeof AppUsersRoute
   '/profile/basic': typeof ProfileBasicRoute
@@ -609,6 +617,7 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
   '/app/applications': typeof AppApplicationsRoute
+  '/app/feedbacks': typeof AppFeedbacksRoute
   '/app/upgrade-center': typeof AppUpgradeCenterRoute
   '/app/users': typeof AppUsersRoute
   '/profile/basic': typeof ProfileBasicRoute
@@ -683,6 +692,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/app/applications'
+    | '/app/feedbacks'
     | '/app/upgrade-center'
     | '/app/users'
     | '/profile/basic'
@@ -755,6 +765,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/app/applications'
+    | '/app/feedbacks'
     | '/app/upgrade-center'
     | '/app/users'
     | '/profile/basic'
@@ -818,6 +829,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/app/applications'
+    | '/app/feedbacks'
     | '/app/upgrade-center'
     | '/app/users'
     | '/profile/basic'
@@ -891,6 +903,7 @@ export interface RootRouteChildren {
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   AppApplicationsRoute: typeof AppApplicationsRoute
+  AppFeedbacksRoute: typeof AppFeedbacksRoute
   AppUpgradeCenterRoute: typeof AppUpgradeCenterRoute
   AppUsersRoute: typeof AppUsersRoute
   ProfileBasicRoute: typeof ProfileBasicRoute
@@ -1016,6 +1029,13 @@ declare module '@tanstack/react-router' {
       path: '/app/applications'
       fullPath: '/app/applications'
       preLoaderRoute: typeof AppApplicationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/feedbacks': {
+      id: '/app/feedbacks'
+      path: '/app/feedbacks'
+      fullPath: '/app/feedbacks'
+      preLoaderRoute: typeof AppFeedbacksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/upgrade-center': {
@@ -1591,6 +1611,7 @@ const rootRouteChildren: RootRouteChildren = {
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   AppApplicationsRoute: AppApplicationsRoute,
+  AppFeedbacksRoute: AppFeedbacksRoute,
   AppUpgradeCenterRoute: AppUpgradeCenterRoute,
   AppUsersRoute: AppUsersRoute,
   ProfileBasicRoute: ProfileBasicRoute,

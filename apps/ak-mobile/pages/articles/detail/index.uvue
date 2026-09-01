@@ -83,7 +83,7 @@ export default {
   data() {
     return {
       state: 'loading', authOpen: false, shareOpen: false, commentsOpen: false, bookmarked: false, mutating: false, allowComments: false,
-      slug: '', coverPath: '', articleId: '', articleTitle: '', articleSummary: '', categoryName: '', publishedAt: '', readingMinutes: 0,
+      slug: '', publicShareUrl: '', coverPath: '', articleId: '', articleTitle: '', articleSummary: '', categoryName: '', publishedAt: '', readingMinutes: 0,
       contentType: 'article', videoUrl: '', videoFailed: false, videoVertical: false, nativeModuleAnchor: false,
       safeBlocks: [] as Array<ArticleBodyBlock>, media: [] as Array<ContentMedia>, tags: [] as Array<ContentTag>, comments: [] as Array<ContentComment>, commentBody: '', commentFeedback: '',
     }
@@ -108,7 +108,7 @@ export default {
       if (repo == null || this.slug.length == 0) { this.state = 'error'; return }
       this.state = 'loading'; this.videoFailed = false; this.videoVertical = false
       repo.detail(this.slug, (result: ArticleDetail) => {
-        this.articleId = result.id; this.articleTitle = result.title; this.articleSummary = result.summary; this.categoryName = result.categoryName
+        this.publicShareUrl = result.shareUrl; this.articleId = result.id; this.articleTitle = result.title; this.articleSummary = result.summary; this.categoryName = result.categoryName
         this.publishedAt = akI18n.formatDateTime(result.publishedAt); this.readingMinutes = result.readingMinutes; this.contentType = result.contentType
         this.allowComments = result.allowComments; this.bookmarked = result.bookmarked; this.coverPath = this.asset(result.coverUrl)
         const blocks = renderer.render(result.bodyFormat, result.body)
@@ -140,7 +140,7 @@ export default {
     block(userId: string) { if (!this.protected()) return; const repo = articleRuntime.getRepository(); if (repo == null) return; repo.blockUser(userId, true, () => { this.comments = this.comments.filter((item: ContentComment) => item.authorId !== userId) }, () => {}) },
     authenticated() { this.authOpen = false; this.reload() },
     share(scene: string) {
-      const payload = { title: this.articleTitle, path: articleRuntime.shareUrl(this.slug), summary: this.articleSummary, imageUrl: this.coverPath.length > 0 ? this.coverPath : null, scene: scene === 'system' ? '' : scene }
+      const payload = { title: this.articleTitle, path: this.publicShareUrl.length > 0 ? this.publicShareUrl : articleRuntime.shareUrl(this.slug), summary: this.articleSummary, imageUrl: this.coverPath.length > 0 ? this.coverPath : null, scene: scene === 'system' ? '' : scene }
       shareAdapter.share(payload, () => { this.shareOpen = false }, () => { uni.showToast({ title: akI18n.t('information.share.unavailable', null), icon: 'none' }) })
     },
     pauseVideo() { if (this.contentType !== 'video') return; const video = uni.createVideoContext('content-video'); if (video != null) video.pause() },

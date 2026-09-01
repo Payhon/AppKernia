@@ -12,13 +12,17 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
+	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/minio/minio-go/v7 v7.0.99
 	github.com/riverqueue/river v0.42.0
 	github.com/riverqueue/river/riverdriver/riverpgxv5 v0.42.0
+	github.com/riverqueue/river/rivertype v0.42.0
 	github.com/robfig/cron/v3 v3.0.1
+	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.3.93
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.3.93
 	github.com/wneessen/go-mail v0.8.1
+	github.com/yuin/goldmark v1.7.13
 	golang.org/x/crypto v0.54.0
 	golang.org/x/image v0.43.0
 	golang.org/x/net v0.56.0
@@ -34,6 +38,7 @@ require (
 	github.com/alibabacloud-go/openapi-util v0.1.1 // indirect
 	github.com/alibabacloud-go/tea-xml v1.1.3 // indirect
 	github.com/aliyun/credentials-go v1.4.5 // indirect
+	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -44,6 +49,7 @@ require (
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grokify/html-strip-tags-go v0.1.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -69,7 +75,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/riverqueue/river/riverdriver v0.42.0 // indirect
 	github.com/riverqueue/river/rivershared v0.42.0 // indirect
-	github.com/riverqueue/river/rivertype v0.42.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/stretchr/testify v1.11.1 // indirect

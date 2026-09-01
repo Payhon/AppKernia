@@ -1,0 +1,61 @@
+// Generated from server/openapi/openapi.yaml. Do not edit.
+export type FeedbackStatusWire = string
+export type FeedbackAttachmentWire = {
+  file_id: string
+  media_type: string
+  size_bytes: number
+}
+export type FeedbackReplyWire = {
+  id: string
+  body: string
+  created_at: string
+}
+export type FeedbackEventWire = {
+  id: string
+  from_status: FeedbackStatusWire
+  to_status: FeedbackStatusWire
+  created_at: string
+}
+export type FeedbackWire = {
+  id: string
+  user_id: string
+  description: string
+  contact: string
+  platform: string
+  app_version: string
+  status: FeedbackStatusWire
+  lock_version: number
+  created_at: string
+  updated_at: string
+  attachments: Array<FeedbackAttachmentWire>
+  replies: Array<FeedbackReplyWire>
+  events: Array<FeedbackEventWire>
+}
+export type FeedbackInputWire = {
+  description: string
+  contact: string
+  platform: string
+  app_version: string
+  file_ids: Array<string>
+}
+export type FeedbackReplyInputWire = {
+  body: string
+  status: FeedbackStatusWire
+  lock_version: number
+}
+export type FeedbackStatusInputWire = {
+  status: FeedbackStatusWire
+  lock_version: number
+}
+export type FeedbackUploadInputWire = {
+  original_name: string
+  media_type: string
+  size_bytes: number
+}
+export type FeedbackUploadWire = {
+  id: string
+  upload_url: string
+  expires_at: string
+  status: string
+  file_id: string | null
+}

@@ -89,3 +89,9 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 - Legal links remain visible on the login screen, are never preselected as consent, and open static allowlisted routes.
 - Privacy consent is a dedicated pre-bootstrap surface: bundled text is readable offline, primary consent has a 44 px target, and no sensitive SDK or device capability may initialize before acceptance.
 - Legal CMS content is rendered as text-only, allowlisted Markdown/blocks; raw HTML, URLs, scripts and remote components are never interpreted by a page.
+
+## Help and feedback
+
+Use [help-feedback](pages/help-feedback.md) for the help entry list, local-version footer, feedback form and reply detail. Keep private drafts and image paths in memory and use the existing light/dark semantic tokens and safe-area root.
+
+- 帮助/反馈实测约束：UVue 文本直接绑定主题颜色；`ak-back-button` 按 `themeState` 选择深浅 SVG，仍使用 20px 图标和 44px 触控区。

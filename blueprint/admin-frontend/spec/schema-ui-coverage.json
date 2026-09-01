@@ -410,7 +410,10 @@
     {
       "table": "sys.share_configs",
       "coverage": "page_backed",
-      "pages": ["system.settings.share-configs", "app.applications"],
+      "pages": [
+        "system.settings.share-configs",
+        "app.applications"
+      ],
       "reason": "租户级可复用 Provider 配置由系统设置维护，密钥仅显示已配置字段名。"
     },
     {
@@ -589,7 +592,10 @@
     {
       "table": "app.application_share_bindings",
       "coverage": "page_backed",
-      "pages": ["app.applications", "system.settings.share-configs"],
+      "pages": [
+        "app.applications",
+        "system.settings.share-configs"
+      ],
       "reason": "应用管理维护每个 Provider 的唯一当前绑定、场景、落地域名及系统分享降级策略。"
     },
     {
@@ -711,6 +717,54 @@
         "system.notifications.operations"
       ],
       "reason": "概览与趋势图读取已脱敏的每日聚合统计。"
+    },
+    {
+      "table": "app.feedbacks",
+      "coverage": "page_backed",
+      "pages": [
+        "app.feedbacks"
+      ],
+      "reason": "App feedback workflow and authorized details."
+    },
+    {
+      "table": "app.feedback_attachments",
+      "coverage": "page_backed",
+      "pages": [
+        "app.feedbacks"
+      ],
+      "reason": "App feedback workflow and authorized details."
+    },
+    {
+      "table": "app.feedback_replies",
+      "coverage": "page_backed",
+      "pages": [
+        "app.feedbacks"
+      ],
+      "reason": "App feedback workflow and authorized details."
+    },
+    {
+      "table": "app.feedback_events",
+      "coverage": "page_backed",
+      "pages": [
+        "app.feedbacks"
+      ],
+      "reason": "App feedback workflow and authorized details."
+    },
+    {
+      "table": "app.application_public_web_configs",
+      "coverage": "page_backed",
+      "pages": [
+        "app.applications"
+      ],
+      "reason": "App 发行页配置及双语公开展示内容。"
+    },
+    {
+      "table": "app.application_public_web_translations",
+      "coverage": "page_backed",
+      "pages": [
+        "app.applications"
+      ],
+      "reason": "App 发行页配置及双语公开展示内容。"
     }
   ]
 }

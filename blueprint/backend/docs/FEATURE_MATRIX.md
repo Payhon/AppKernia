@@ -1006,3 +1006,18 @@ profile.security
 7. 单元、集成、契约、租户越权和关键并发测试。
 8. React/uni-app x 可消费的生成客户端更新。
 9. 文档、回滚说明和真实测试证据。
+
+## App help and feedback
+
+- CMS: published bilingual `faq`, `contact-support`, `about-us` reuse `/api/v1/public/pages/{slug}` and existing admin pages/revisions/publishing. No hardcoded support address is seeded.
+- Mobile: authenticated `/api/v1/me/feedbacks` collection/detail plus dedicated upload/cancel/private-content routes. Identity comes from an `ak-mobile` token and matching App header; body fields cannot select user or tenant.
+- Admin: `/admin-api/v1/apps/{app_id}/feedbacks` collection/detail/status/reply/private-content endpoints. Permissions `app.feedback.read`, `.update`, `.reply` are checked on the server. Replies may choose the resulting processing state; independent status changes require `.update`.
+- Writes: UUID `Idempotency-Key` plus payload hash for submission/reply, row version conflict for status/reply, no automatic unprotected write retries. Failures retain client in-memory drafts.
+- Images: JPEG/PNG/WebP only, up to 5 MiB and any stricter configured image policy, signature/type/dimension/full-decode validation; at most three attachments, purpose/owner/App checks. Only `ready + clean` can attach or preview; `skipped`, `pending`, `infected`, `failed` and quarantined/deleted rows are denied. Feedback requires the ClamD Unix INSTREAM adapter (`AK_FEEDBACK_CLAMD_SOCKET`); unset/unavailable scanners fail closed. Protocol mocks exist only in tests. Live signature-engine acceptance remains an operational gate.
+- Excluded: live chat, user follow-up messages, support assignment and push reminders.
+
+## 内置公开 H5（ADR-0030）
+
+Server 新增 `publicweb` HTML Transport；GoFrame + html/template + go:embed，无 Node 运行依赖。模板固定在 `resource/tpl`，业务读取经过 Application 接口。公众号式资讯/单页阅读；统一 App 下载页，平台识别全部在原生 JS。旧 `/s/{slug}?app_id=` 使用同一模板与新 canonical。公开入口忽略管理端 Cookie/Token，不拓宽读取范围。稳定平台枚举沿用 android/ios/harmony。
+
+新增 app.public_web.read/update 与乐观锁配置；存量默认不公开下载页。同一配置还管理资讯/单页下载推广的显示开关及双语标题、说明、按钮文字，关闭后服务端不输出推广 DOM；空文案使用内置双语回退。公开域名由 AK_PUBLIC_WEB_BASE_URL 指定，生产必须 HTTPS origin，不能信任 Host。APK 资源入口每次重新检查 App、开关、当前发布及文件状态，并复用短期签名。视频布局使用播放器内浮动图标切换，语言图标位于页头。完整契约见 server/openapi/openapi.yaml，运维和验收见 docs/manual/public-web.md。

@@ -1,6 +1,6 @@
 # AppKernia 实施状态
 
-更新时间：2026-08-30（Asia/Shanghai）
+更新时间：2026-09-01（Asia/Shanghai）
 
 ## 2026-08-30 Mobile 用户头像、评论头像与 Admin 用户列表
 
@@ -1102,3 +1102,75 @@
 - 截图保留：`output/playwright/ak-news-ios-bookmarks.png` 与 `output/playwright/ak-news-ios-profile-authenticated.png` 内容相同，实际为基本资料页，且显示未翻译的 `displayName/email/timeZone`；保留原文件不提交。`output/maestro/ak-news-ios-comment-section.junit.xml` 仅改变历史耗时，同样保留不提交。没有新增本轮运行截图，其他被忽略的本地产物不强制加入 Git。
 - 命令日志与原始工作区快照保存在本机 `/tmp/appkernia-split-20260831/`，仅作本轮复核备份，不是长期归档。
 - 拆分后的头像独立暂存快照另行通过 Server `make check`、TypeScript `tsc --noEmit` 与 API Reference 校验（均退出 0）；临时快照的 pnpm 包装命令失败后直接调用现有 TypeScript 工具完成检查。补齐翻译后重新执行 Admin `build`、`validate:bundle`、`validate:openapi-docs`，均退出 0。新增 Skill 的 3 处行尾空白与 4 处末尾空行已按补丁检查要求清理，未改变脚本逻辑。
+
+## 2026-08-31 移动端帮助与关于、问题反馈闭环
+
+- 内容后台化：`faq`、`contact-support` 成为保留单页，沿用双语修订、草稿与发布；`about-us` 正文与版本策略分别请求/重试。本机版本从安装包读取，帮助页断网仍显示。迁移保留旧 slug、当前发布修订和正文，不写虚构客服地址。
+- Mobile：帮助入口改为受限 CMS 内容，新增问题反馈、我的反馈和详情；描述/联系方式、3 张截图、进度/重试/移除/取消、内存草稿、稳定幂等键、本机版本/平台、私有截图和后台回复均已接线。增加原生 `ak-text-area`，所有文案同步 `zh-CN`/`en-US`。
+- Backend：新增反馈/附件/回复/状态历史、上传用途隔离、权限、OpenAPI/client、Worker 清理与账号注销清理。租户/App/用户、附件用途、扫描状态和私有读取均服务端校验；提交/回复幂等，状态/回复采用乐观锁和追加历史；审计不记录正文、联系方式和地址。
+- Admin：应用管理下新增问题反馈，使用全局 App 选择、关键词/状态/日期/分页筛选、私有 Blob 截图、详情、独立状态更新及追加回复。故障保留回复草稿；冲突要求刷新。中英文、系统明暗偏好与 768/1440 页面截图在 UI Skill artifact 中。
+- 联调修复：PostgreSQL 18 会把单页 revision INSERT 的 `$6` 同时推断为 `varchar` 与 `text` 并返回 500；现已显式 cast，并由三种保留单页的草稿→发布→新草稿不影响旧发布→再次发布回归覆盖。
+- 静态与真实隔离验证已通过：27 migrations Up 及 000027 Down/Up、反馈 race 集成 33 个测试、内容草稿/发布/中英文 6 组、真实 HTTP/浏览器提交→回复→解决→用户读取；Backend check/build、Admin 46 文件/188 tests、Mobile 静态检查、Android/iOS/HarmonyOS 41 页面编译。Harmony 产物未签名；iPhone 16 Pro / iOS 18.6 模拟器已验证正式初始化/登录、帮助本机版本、关于正文独立于版本错误、必填校验、文字反馈提交/列表、后台 API 回复后查看已解决及回复；截图与未完成设备矩阵见交付报告。
+- 扫描边界：图片经过类型、尺寸、完整解码和现有状态门禁；skipped/pending/infected/failed 全部阻断。新增 ClamD Unix INSTREAM 适配器，未配置 socket 则拒绝截图，文字反馈可用；真实病毒库与引擎、物理设备、正式签名包仍需验收。
+
+- 帮助与反馈验收补充：全仓 Go 单元 245 passed / 1 skipped，race exit 0；最终全仓集成 304 passed / 1 failed / 1 skipped。失败 IAM 并发用例在复制数据并回退到 schema 26 后连续 3 次复现，不标为通过。原生深色菜单/正文继承与返回图标问题已按实测修正。
+
+
+## 2026-08-31 帮助与反馈：本地部署完成
+
+- 已部署到既有 Docker Compose `appkernia-news-demo`：Admin `localhost:4174`、API `localhost:8080`、Worker。数据库 26 → 27，core seed 同步反馈权限/菜单，原账号密码与数据保留；数据库备份和旧镜像已保存。
+- 构建/维护切换/迁移/种子全部退出 0；3 个健康 HTTP 200，四项蓝图/i18n 校验退出 0；最终 11 项浏览器/API 冒烟通过，3 张 Chromium 截图。
+- ClamAV 未配置，因此截图上传禁用；未部署 Mobile 安装包/生产环境，未把旧 IAM 并发集成失败标为已修复。详情见 [本地部署记录](manual/help-feedback-local-deployment.md) 与交付报告。
+
+## 2026-08-31 — AKH5-001 内置公开 H5
+
+实现完成，自动化与浏览器验收完成；正式商店/微信/安装与原生分享真机验收仍待执行。
+
+- Server：`resource/tpl` + `go:embed` + `html/template`，公众号式文章/已发布单页、统一 JS 平台推荐下载页、旧 `/s/` 兼容。无独立 H5 工程或 Node 运行依赖。
+- 公开数据：可信 origin、双语、类型化 ViewModel、Goldmark/Bluemonday、当前发布/安全文件校验、H5 独立用途签名、CSP、内容哈希静态资源。
+- 数据与管理：000028、sqlc、OpenAPI、权限/审计/乐观锁、Admin 双语发行配置、公开链接/二维码；Mobile 分享优先服务端 share_url、兼容旧 Server。
+- 证据：Go 254 个通过事件（含子用例）、Admin 194 项、原生 JS 10 项；后端 race/隔离集成、Up/Down/Up、oasdiff 无破坏变更、10 组浏览器断言/29 张截图、6 组真实 HTTP 安全与撤回断言；iOS 模拟器目标 UTS 编译成功。
+- 实际命令、限制与风险：`docs/CODEX_DELIVERY_REPORT.md` AKH5-001；部署/回滚：`docs/manual/public-web.md`；截图：`server/artifacts/ui-ux-pro-max/AKH5-001/review.md`。
+- 未执行提交、推送或现有演示环境升级；原有 help-feedback 等用户未提交改动保留。本轮测试使用独立 `ak_h5_verify` 数据库和 loopback 服务。
+
+## 2026-08-31 — AKH5-002 后台手机预览与资讯菜单
+
+- 已实现共享 iPhone 16 外观预览 Modal：393×852 屏幕、灵动岛/侧键/Home Indicator、独立工具栏、刷新原入口、带当前语言的复制与手动回退、响应式缩放及关闭焦点恢复。文章、已保存且启用的发行页、已发布单页均接入；不修改 UA。
+- 资讯文章操作列统一为 112px 图标下拉菜单，按状态/现有权限分组，保留发布校验、删除确认、冲突提示、写入中禁用及刷新；其他内容列表未调整。
+- H5 HTML 仅允许校验后的 AK_ADMIN_ORIGIN 嵌入，预览双方精确验证来源/窗口/加载 ID；同 App 阅读留在 iframe，商店/APK/外链以无 opener 新上下文打开。公开权限不扩大，没有新增 API、数据库、权限或移动端功能。
+- 验证：make check、全后端 race、API 构建均退出 0；Admin 213 项、Go 275 个测试/子用例、JS 14 项；Chromium 双语 11 组断言 / 24 张截图，覆盖桌面/窄屏、错误态、键盘、复制、清理、嵌入边界和 200% CSS/正文放大。
+- 实现无阻断；真实商店/微信/安装、其他浏览器和生产代理需目标环境验收。未提交或推送，保留原工作树修改。详细结果见交付报告 AKH5-002；截图索引 `apps/ak-admin/artifacts/ui-ux-pro-max/AKH5-002/review-checklist.md`。
+
+
+## 2026-09-01 — AKH5-002 更新到本地 Compose
+
+- 已将当前前后端工作树构建并更新到既有 `appkernia-news-demo`：Admin `localhost:4174`、API `localhost:8080`、PostgreSQL 55432；API/Admin/PostgreSQL healthy，Worker running，restart count 均为 0。
+- Compose 补齐 `AK_PUBLIC_WEB_BASE_URL=http://localhost:8080`；`AK_ADMIN_ORIGIN=http://localhost:4174` 生效。数据库 27→28、dirty=false，Seed 182 权限/49 菜单，公开 H5 两项权限均已绑定现有角色；没有创建、重置账号或自动开启发行页。
+- 迁移前备份 690407 bytes、SHA-256 `0da395eb2afaef6057ce5b3e949bea09d339aed4c855fd26dfc4cd2639190a52`，并保留 API/Worker/Admin 旧镜像标签。原 1 App、2 账号、3 资讯、5 单页数量不变。
+- 已发布资讯 H5、内置 CSS/预览 JS 均 HTTP 200；未启用的下载页按预期 404。部署后 Chromium 从 Admin origin 完成 iframe `ready` 握手，page error/失败请求均为 0。临时验收端口 14173/18080 已关闭。
+- 详细记录：`docs/manual/public-web.md`、`output/local-deploy-public-web/evidence.json`。没有生产部署、Mobile 安装、提交或推送。
+
+
+## 2026-09-01 — 本地 H5 预览灰屏诊断
+
+- 根因已由 Admin Nginx Referer 和真实 Chromium 交叉确认：用户实际从 `http://127.0.0.1:4174` 访问，服务端安全配置为 `http://localhost:4174`。公开页面顶层可打开，但 iframe 被 `frame-ancestors` 拒绝，随后 UI 按设计显示握手超时。
+- 保持单一可信 origin，不放宽 CSP。已用忽略且权限 0600 的 `.env` 固定 localhost 配置并恢复 API healthy；正确入口 `http://localhost:4174`。切换 hostname 后可能需要重新登录一次。
+- 当前用户已显式启用 1 条发行配置，下载页 HTTP 200。Chromium 对同一下载页验证 localhost=`ready`/无 CSP error，127=`blocked-or-no-handshake`/CSP error；API restart=0、数据未修改。
+
+## 2026-09-01 — H5 图文/视频资讯与单页发布修复
+
+- 根因已确认：公开 H5 ViewModel 只组装封面和富文本正文，遗漏资讯 `content_type`、媒体数组和视频地址，所以 gallery/video 页面只剩封面；Admin 则把所有 `status=draft` 的预置单页都显示为可发布，但本地 5 个预置页没有 revision，服务端按状态机正确返回 `VALIDATION.FAILED`。
+- H5 gallery 现输出全部已发布媒体、计数、缩略图、键盘可聚焦的 Scroll Snap 主图，并持续展示标题、摘要和正文；video 输出真实视频、原生 controls、宽屏/沉浸切换和正文，关闭自动播放。内部资源继续校验 App/文件状态；外部视频只接受安全 HTTPS URL，并按页面精确生成 CSP `media-src`。
+- Admin 仅在存在已保存 draft revision 时启用发布；空白预置页显示双语“先编辑并保存”提示，不再发送无效请求。已发布页面若存在后续草稿，发布入口仍可用；写操作 pending 时禁止重复触发。
+- 本地 Compose 已重新构建并替换 API、Admin；API/Admin/PostgreSQL healthy，Worker running。数据库未迁移、未写入测试内容，5 个预置单页仍为 draft、revision 数均为 0。
+- `make check` 退出 0：Admin 50 文件/214 项、公开 H5 JS 14 项；Go JSON 统计 277 passed/1 skipped/0 failed。全后端 `make test-race`、局部最终 Admin 8 项/lint/typecheck、Chromium 7 组交互与 iframe 断言、图集/视频 axe WCAG A/AA 均退出 0。
+- 6 张截图和 JSON 索引位于 `output/playwright/public-web-media/`。本轮未执行移动端真机视频播放、商店或 APK 安装验收，未提交或推送。
+
+## 2026-09-01 — AKH5-004 H5 图标控件与可配置下载推广
+
+- 视频宽屏/沉浸切换已改为播放器右上角两个 44px SVG 图标按钮，使用双语 `aria-label`/Tooltip 与 `aria-pressed`；语言切换从页脚移到 H5 页头的地球图标，文章、图文、视频和下载页均完成真实浏览器验证。
+- `000029_public_web_promotion` 为既有发行配置增加推广显示开关及 `zh-CN`/`en-US` 标题、说明、按钮文字。Admin 发行页配置 Drawer 沿用 `app.public_web.read/update`、lock_version 和审计；关闭后资讯/单页不输出页头下载入口或文末推广 DOM，统一下载页保持可访问。空文案使用内置双语回退。
+- OpenAPI、sqlc、Admin/Mobile 生成 Client、四套 i18n、Backend/Admin 蓝图、ADR、部署/回滚和 UI Skill 产物已同步。独立 PostgreSQL 18 完成迁移 Up/Down/Up，真实 appmanagement 集成测试通过。
+- 本地 `appkernia-news-demo` 已更新：数据库 28→29、dirty=false；API/Admin/PostgreSQL healthy，Worker running，restart 均为 0。原 1 App、3 资讯、5 单页保留；发行页/APK/推广三个开关最终均为 true，下载页 HTTP 200。
+- `make check` 退出 0：Admin 50 文件/215 项、H5 JS 14 项；Go JSON 为 279 passed/1 skipped/0 failed。全后端 race、浏览器 14 组验证、375/390/768/1440、深色/200%、可信 iframe、后台开关保存/恢复及 axe WCAG A/AA 均通过。
+- 14 张截图和结构化证据位于 `output/playwright/public-web-controls/`；部署证据位于 `output/local-deploy-public-web-promotion/evidence.json`。未执行移动端真机视频、微信、商店或 APK 安装验收；未提交、未推送、未部署生产。

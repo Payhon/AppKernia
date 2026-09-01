@@ -367,21 +367,49 @@ func validPlatform(value string) bool {
 	return value == "android" || value == "ios" || value == "harmony"
 }
 
+// PublicPackageFile verifies the published business reference and current scan state before an H5 link is issued.
+func (service *Service) PublicPackageFile(ctx context.Context, appID, releaseID, fileID uuid.UUID) (profile.PackageFile, error) {
+	if service.objects == nil || len(service.signingKey) == 0 {
+		return profile.PackageFile{}, profile.ErrReleaseFileInvalid
+	}
+	return service.releases.PublishedPackageFile(ctx, appID, releaseID, fileID)
+}
+
+func publicWebSigningKey(key []byte) []byte {
+	if len(key) == 0 {
+		return nil
+	}
+	mac := hmac.New(sha256.New, key)
+	_, _ = mac.Write([]byte("appkernia-public-web-package-v1"))
+	return mac.Sum(nil)
+}
+func (service *Service) SignedPublicWebPackageURL(release profile.Release) *string {
+	return service.signedPackageURL(release, publicWebSigningKey(service.signingKey))
+}
 func (service *Service) SignedPackageURL(release profile.Release) *string {
-	if release.PackageFileID == nil || len(service.signingKey) == 0 {
+	return service.signedPackageURL(release, service.signingKey)
+}
+func (service *Service) signedPackageURL(release profile.Release, key []byte) *string {
+	if release.PackageFileID == nil || len(key) == 0 {
 		return release.ExternalURL
 	}
 	expires := service.clock().UTC().Add(5 * time.Minute).Unix()
-	signature := signPackageDownload(service.signingKey, release.AppID, release.ID, *release.PackageFileID, expires)
+	signature := signPackageDownload(key, release.AppID, release.ID, *release.PackageFileID, expires)
 	url := fmt.Sprintf("/api/v1/public/app-version/download/%s/%s?expires=%d&signature=%s", release.ID, release.PackageFileID.String(), expires, signature)
 	return &url
 }
 
+func (service *Service) OpenPublicWebPackageDownload(ctx context.Context, appID, releaseID, fileID uuid.UUID, expires int64, signature string) (profile.PackageFile, io.ReadCloser, error) {
+	return service.openPackageDownload(ctx, appID, releaseID, fileID, expires, signature, publicWebSigningKey(service.signingKey))
+}
 func (service *Service) OpenPackageDownload(ctx context.Context, appID, releaseID, fileID uuid.UUID, expires int64, signature string) (profile.PackageFile, io.ReadCloser, error) {
+	return service.openPackageDownload(ctx, appID, releaseID, fileID, expires, signature, service.signingKey)
+}
+func (service *Service) openPackageDownload(ctx context.Context, appID, releaseID, fileID uuid.UUID, expires int64, signature string, key []byte) (profile.PackageFile, io.ReadCloser, error) {
 	if service.objects == nil || len(service.signingKey) == 0 || appID == uuid.Nil || releaseID == uuid.Nil || fileID == uuid.Nil {
 		return profile.PackageFile{}, nil, ErrInvalidRelease
 	}
-	if !validPackageDownloadSignature(service.signingKey, appID, releaseID, fileID, expires, service.clock().UTC().Unix(), signature) {
+	if !validPackageDownloadSignature(key, appID, releaseID, fileID, expires, service.clock().UTC().Unix(), signature) {
 		return profile.PackageFile{}, nil, ErrInvalidRelease
 	}
 	file, err := service.releases.PublishedPackageFile(ctx, appID, releaseID, fileID)

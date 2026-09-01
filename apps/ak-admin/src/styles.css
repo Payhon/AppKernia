@@ -3366,3 +3366,41 @@ a,
     animation-iteration-count: 1 !important;
   }
 }
+
+.ak-public-web-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+/* Embedded public-page preview: scale the device, never the toolbar controls. */
+.ak-public-preview-modal { height: calc(100% - 32px); max-height: 1040px; max-width: calc(100% - 24px); padding-bottom: 0; }
+.ak-public-preview-modal .ant-modal-container { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 20px; overflow: hidden; }
+.ak-public-preview-modal .ant-modal-body { display: flex; flex: 1; flex-direction: column; gap: 12px; min-height: 0; }
+.ak-public-preview-modal .ant-modal-header { flex: none; margin-bottom: 8px; }
+.ak-public-preview-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.ak-public-preview-title { flex: 1; min-width: 120px; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ak-public-preview-toolbar .ant-btn { width: 44px; height: 44px; flex-shrink: 0; }
+.ak-public-preview-modal .ak-public-preview-hint { margin: 0; font-size: 12px; line-height: 1.6; }
+.ak-public-preview-copy { display: flex; flex-direction: column; gap: 4px; }
+.ak-public-preview-stage { display: flex; justify-content: center; align-items: center; min-height: 0; flex: 1; }
+.ak-phone-space { position: relative; flex-shrink: 0; }
+.ak-phone-device { position: absolute; width: 413px; height: 872px; padding: 10px; border-radius: 62px; background: #202124; box-shadow: inset 0 0 0 2px #56585c, inset 0 0 0 5px #080808, 0 12px 30px #00000026; transform-origin: top left; }
+.ak-phone-screen { width: 393px; height: 852px; overflow: hidden; border-radius: 52px; background: #fff; display: flex; flex-direction: column; }
+.ak-phone-status { height: 59px; flex-shrink: 0; position: relative; }
+.ak-phone-island { position: absolute; width: 126px; height: 36px; border-radius: 24px; background: #080808; top: 11px; left: 50%; transform: translateX(-50%); }
+.ak-phone-island::after { content: ""; position: absolute; right: 12px; top: 12px; width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 40% 40%, #29394c, #11141a 70%); }
+.ak-phone-content { position: relative; flex: 1; min-height: 0; }
+.ak-phone-content iframe { display: block; width: 100%; height: 100%; border: 0; background: #fff; }
+.ak-phone-bottom { height: 25px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.ak-phone-bottom span { width: 132px; height: 5px; border-radius: 6px; background: #181818; }
+.ak-phone-side { position: absolute; background: #292a2c; border-radius: 3px; width: 3px; }
+.ak-phone-side-left { left: -2px; top: 142px; height: 32px; box-shadow: 0 64px #292a2c, 0 110px #292a2c; }
+.ak-phone-side-right { right: -2px; top: 216px; height: 68px; }
+.ak-public-preview-loading { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; background: #fff; color: #444; }
+@media (prefers-color-scheme: dark) {
+  .ak-phone-screen, .ak-phone-content iframe, .ak-public-preview-loading { background: #151517; color: #f5f5f7; }
+  .ak-phone-bottom span { background: #e5e5e7; }
+}
+@media (max-width: 575px) {
+  .ak-public-preview-modal .ant-modal-container { padding: 12px; }
+  .ak-public-preview-toolbar { align-items: flex-start; }
+}
+
+/* Popup alignment measures left/top synchronously; reduced motion must not animate coordinates. */
+.ak-article-actions-dropdown { transition-property: opacity, transform; }

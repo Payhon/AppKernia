@@ -56,7 +56,7 @@ test-backend:
 test-admin:
 	pnpm test
 
-check: check-blueprints check-server check-admin check-mobile check-docs
+check: check-blueprints check-server check-public-web check-admin check-mobile check-docs
 
 check-blueprints:
 	python3 blueprint/backend/tools/validate_blueprint.py
@@ -90,3 +90,7 @@ docker-logs:
 
 docker-bootstrap-admin:
 	docker compose --profile tools run --rm bootstrap-admin
+
+.PHONY: check-public-web
+check-public-web:
+	node --test server/tests/download.test.mjs server/tests/preview.test.mjs

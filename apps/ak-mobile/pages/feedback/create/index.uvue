@@ -1,0 +1,37 @@
+<template><ak-theme-root><scroll-view class="page" scroll-y>
+ <view class="nav"><ak-back-button/><text class="title">{{t('feedback.create',null)}}</text><view class="slot"/></view>
+ <ak-card class="card"><ak-text-area v-model="description" :label="t('feedback.description',null)" :placeholder="t('feedback.descriptionHint',null)" :error="descriptionError" :disabled="submitting"/><ak-text-field v-model="contact" :label="t('feedback.contact',null)" :max-length="200" :disabled="submitting"/><text class="hint">{{t('feedback.privacyHint',null)}}</text></ak-card>
+ <ak-card class="card"><text class="label">{{t('feedback.screenshots',null)}}</text><text class="hint">{{t('feedback.imageHint',null)}}</text>
+ <view v-for="shot in screenshots" :key="shot.key" class="shot"><image class="thumbnail" :src="shot.path" mode="aspectFit" :aria-label="t('feedback.screenshot',null)"/><ak-progress v-if="shot.state==='uploading'" :percent="shot.progress" :label="t('feedback.uploading',null)"/><text v-if="shot.state==='failed'" class="error">{{t('feedback.uploadFailed',null)}}</text><view class="actions"><ak-button v-if="shot.state==='failed'" variant="secondary" :label="t('common.retry',null)" :disabled="submitting" @click="retryShot(shot.key)"/><ak-button variant="secondary" :label="t('feedback.remove',null)" :disabled="submitting" @click="removeShot(shot.key)"/></view></view>
+ <ak-button v-if="screenshots.length<3" variant="secondary" :label="t('feedback.addImage',null)" :disabled="submitting||busy" @click="addImage"/></ak-card>
+ <text v-if="errorKey.length>0" class="error">{{t(errorKey,null)}}</text><ak-button :label="t('feedback.submit',null)" :loading="submitting" :loading-text="t('common.loading',null)" :disabled="busy||hasFailed" @click="submit"/><text class="hint footer">{{t('feedback.versionInfo',versionParams)}}</text>
+</scroll-view></ak-theme-root></template>
+<script setup lang="uts">
+import { feedbackRuntime, feedbackRequestKey, feedbackPlatform, installedAppVersion, pickScreenshot, PickedScreenshot, requireFeedbackLogin, discardFeedbackPreview } from '../../../src/features/feedback/feedback-runtime.uts'
+import { FeedbackUploadWire, FeedbackInputWire } from '../../../src/generated/api/mobile-feedback.uts'
+import { HttpCancellation } from '../../../src/core/network/http-port.uts'
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+type Screenshot={key:string;path:string;name:string;mediaType:string;size:number;state:string;progress:number;fileID:string;uploadID:string;target:FeedbackUploadWire|null}
+const t=akI18n.t
+const description=ref('');const contact=ref('');const descriptionError=ref('');const submitting=ref(false);const errorKey=ref('');const screenshots=ref<Array<Screenshot>>([])
+const busy=computed(()=>screenshots.value.some((s:Screenshot):boolean=>s.state=='uploading'))
+const hasFailed=computed(()=>screenshots.value.some((s:Screenshot):boolean=>s.state=='failed'))
+const versionParams=new Map<string,string>([['version',installedAppVersion()],['platform',t('feedback.platform.'+feedbackPlatform(),null)]])
+let request:HttpCancellation|null=null;const tasks=new Map<string,HttpCancellation>();let submitted=false;let active=true;let attemptKey='';let attemptBody=''
+function updateShot(key:string,state:string,progress:number,fileID:string):void{const next:Array<Screenshot>=[];screenshots.value.forEach((s:Screenshot)=>{if(s.key==key){s.state=state;s.progress=progress;s.fileID=fileID};next.push(s)});screenshots.value=next}
+function uploadShot(shot:Screenshot,target:FeedbackUploadWire):void{shot.uploadID=target.id;shot.target=target;const task=feedbackRuntime.upload(target,shot.path,p=>updateShot(shot.key,'uploading',p,''),id=>{if(active)updateShot(shot.key,'ready',100,id)},()=>{if(active)updateShot(shot.key,'failed',0,'')});tasks.set(shot.key,task)}
+function startShot(shot:Screenshot):void{updateShot(shot.key,'uploading',0,'');if(shot.target!=null&&Date.parse(shot.target!.expires_at)<=Date.now()){feedbackRuntime.cancelUpload(shot.target!.id);shot.target=null;shot.uploadID=''};if(shot.target!=null){uploadShot(shot,shot.target!);return};const picked:PickedScreenshot={path:shot.path,name:shot.name,mediaType:shot.mediaType,size:shot.size};const task=feedbackRuntime.createUpload(picked,target=>{if(!active){feedbackRuntime.cancelUpload(target.id);return};if(!screenshots.value.some((s:Screenshot):boolean=>s.key==shot.key)){feedbackRuntime.cancelUpload(target.id);return};uploadShot(shot,target)},_e=>{if(active)updateShot(shot.key,'failed',0,'')});if(task!=null)tasks.set(shot.key,task)}
+function addImage():void{if(busy.value||submitting.value)return;pickScreenshot(value=>{if(!active||screenshots.value.length>=3){discardFeedbackPreview(value.path);return};const shot:Screenshot={key:feedbackRequestKey(),path:value.path,name:value.name,mediaType:value.mediaType,size:value.size,state:'uploading',progress:0,fileID:'',uploadID:'',target:null};screenshots.value.push(shot);startShot(shot)},key=>{if(active)errorKey.value=key})}
+function retryShot(key:string):void{screenshots.value.forEach((s:Screenshot)=>{if(s.key==key)startShot(s)})}
+function removeShot(key:string):void{const task=tasks.get(key);if(task!=null)task.cancel();screenshots.value.forEach((s:Screenshot)=>{if(s.key==key){if(s.uploadID!='')feedbackRuntime.cancelUpload(s.uploadID);discardFeedbackPreview(s.path)}});screenshots.value=screenshots.value.filter((s:Screenshot):boolean=>s.key!=key)}
+function submit():void{
+ if(submitting.value||busy.value||hasFailed.value||!requireFeedbackLogin())return
+ descriptionError.value='';errorKey.value='';if(description.value.trim().length==0){descriptionError.value=t('feedback.descriptionRequired',null);return}
+ const body:FeedbackInputWire={description:description.value.trim(),contact:contact.value.trim(),platform:feedbackPlatform(),app_version:installedAppVersion(),file_ids:screenshots.value.map((s:Screenshot):string=>s.fileID)}
+ const serialized=JSON.stringify(body);if(serialized!=attemptBody){attemptKey=feedbackRequestKey();attemptBody=serialized}
+ submitting.value=true;request=feedbackRuntime.create(body,attemptKey,value=>{submitting.value=false;submitted=true;uni.redirectTo({url:'/pages/feedback/detail/index?id='+value.id})},_e=>{submitting.value=false;errorKey.value='feedback.submitFailed'})
+}
+onShow(()=>{requireFeedbackLogin()})
+onUnload(()=>{active=false;if(request!=null)request!.cancel();tasks.forEach((task:HttpCancellation)=>task.cancel());screenshots.value.forEach((s:Screenshot)=>{if(!submitted&&s.uploadID!='')feedbackRuntime.cancelUpload(s.uploadID);discardFeedbackPreview(s.path)});description.value='';contact.value=''})
+</script>
+<style lang="scss">.page{height:100%;flex:1;background:var(--ak-page);padding:16px 20px 32px}.nav{height:44px;flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:20px}.title{font-size:17px;font-weight:600;color:var(--ak-text)}.slot{width:44px}.card{padding:16px;margin-bottom:16px}.label{font-size:16px;color:var(--ak-text);font-weight:600}.hint{font-size:13px;line-height:20px;color:var(--ak-muted);margin:8px 0}.error{font-size:14px;color:var(--ak-danger);margin-bottom:12px}.shot{margin:12px 0;padding:12px;background:var(--ak-surface-subtle);border-radius:12px}.thumbnail{height:160px;width:100%}.actions{flex-direction:row;margin-top:8px;justify-content:space-between}.footer{text-align:center;padding:16px 0 32px}</style>

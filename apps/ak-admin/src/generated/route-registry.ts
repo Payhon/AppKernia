@@ -688,5 +688,17 @@ export const generatedRouteRegistry = [
     "permissions": [],
     "featureFlag": null,
     "activeMenuCode": null
+  },
+  {
+    "componentKey": "app.feedbacks",
+    "path": "/app/feedbacks",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.app.feedbacks.title",
+    "permissions": [
+      "app.feedback.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "app.feedbacks"
   }
 ] as const

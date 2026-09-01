@@ -616,6 +616,19 @@
       "icon": "MobileOutlined",
       "permission": "mobile.release.read",
       "phase": "P2"
+    },
+    {
+      "code": "app.feedbacks",
+      "i18n_key": "menu.app.feedbacks",
+      "title": "问题反馈",
+      "type": "page",
+      "path": "/app/feedbacks",
+      "sort": 45,
+      "parent": "app",
+      "component_key": "app.feedbacks",
+      "icon": "MessageOutlined",
+      "permission": "app.feedback.read",
+      "phase": "P2"
     }
   ]
 }

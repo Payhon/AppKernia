@@ -1,0 +1,19 @@
+<template><ak-theme-root><scroll-view class="page" scroll-y>
+ <view class="nav"><ak-back-button/><text class="title">{{t('feedback.mine',null)}}</text><view class="slot"/></view><ak-button variant="secondary" :label="t('feedback.create',null)" @click="create"/>
+ <ak-status-view v-if="state!=='content'" :state="state" :title="t(state==='empty'?'feedback.empty':state==='offline'?'state.offline.title':'state.error.title',null)" :loading-label="t('common.loading',null)" :retry-label="t('common.retry',null)" @retry="reload"/>
+ <view v-else><view v-for="item in items" :key="item.id" role="button" :aria-label="item.description" @click="open(item.id)"><ak-card class="item"><text class="body">{{item.description}}</text><text class="status">{{t('feedback.status.'+item.status,null)}}</text><text class="hint">{{akI18n.formatDateTime(item.created_at)}}</text></ak-card></view><text v-if="moreError" class="error">{{t('feedback.failed',null)}}</text><ak-button v-if="items.length<total" variant="secondary" :label="t('feedback.loadMore',null)" :loading="loadingMore" :loading-text="t('common.loading',null)" @click="more"/></view>
+</scroll-view></ak-theme-root></template>
+<script setup lang="uts">
+import { feedbackRuntime,requireFeedbackLogin } from '../../src/features/feedback/feedback-runtime.uts'
+import { FeedbackWire } from '../../src/generated/api/mobile-feedback.uts'
+import { HttpCancellation } from '../../src/core/network/http-port.uts'
+import { akI18n } from '../../src/core/i18n/ak-i18n.uts'
+const t=akI18n.t;const state=ref('loading');const items=ref<Array<FeedbackWire>>([]);const total=ref(0);const loadingMore=ref(false);const moreError=ref(false);let page=1;let task:HttpCancellation|null=null
+function load(next:number):void{if(task!=null)task!.cancel();if(next==1)state.value='loading';else loadingMore.value=true;moreError.value=false;task=feedbackRuntime.list(next,value=>{items.value=next==1?value.items:items.value.concat(value.items);page=next;total.value=value.total;loadingMore.value=false;state.value=items.value.length==0?'empty':'content'},e=>{loadingMore.value=false;if(next==1)state.value=e.kind=='network_unavailable'?'offline':'error';else moreError.value=true})}
+function reload():void{if(requireFeedbackLogin())load(1)}
+function more():void{if(!loadingMore.value)load(page+1)}
+function open(id:string):void{uni.navigateTo({url:'/pages/feedback/detail/index?id='+id})}
+function create():void{uni.navigateTo({url:'/pages/feedback/create/index'})}
+onShow(()=>reload());onUnload(()=>{if(task!=null)task!.cancel();items.value=[]})
+</script>
+<style lang="scss">.page{height:100%;flex:1;padding:16px 20px 32px;background:var(--ak-page)}.nav{height:44px;flex-direction:row;justify-content:space-between;align-items:center;margin-bottom:20px}.title{font-size:17px;font-weight:600;color:var(--ak-text)}.slot{width:44px}.item{padding:16px;margin-top:16px}.body{font-size:16px;line-height:24px;color:var(--ak-text);lines:3;text-overflow:ellipsis}.status{font-size:14px;color:var(--ak-brand);margin-top:12px}.hint{font-size:13px;color:var(--ak-muted);margin-top:8px}.error{color:var(--ak-danger);font-size:14px;margin:12px 0}</style>

@@ -30,7 +30,7 @@
     },
     {
       "wrapper": "AkTextArea",
-      "implementation": "up-textarea",
+      "implementation": "uni textarea",
       "status": "approved",
       "phase": "P0",
       "notes": "统一长度限制和错误提示",

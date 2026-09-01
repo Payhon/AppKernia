@@ -27,7 +27,9 @@
     },
     {
       "component_key": "system.settings.share-configs",
-      "view": ["sys.share_config.read"],
+      "view": [
+        "sys.share_config.read"
+      ],
       "actions": {
         "create": "sys.share_config.create",
         "update": "sys.share_config.update",
@@ -576,7 +578,9 @@
         "updateScannerConfig": "app.scanner_config.update",
         "publishOnboarding": "app.onboarding.publish",
         "disable": "app.application.disable",
-        "delete": "app.application.delete"
+        "delete": "app.application.delete",
+        "readPublicWeb": "app.public_web.read",
+        "updatePublicWeb": "app.public_web.update"
       },
       "permission_status": {
         "app.application.read": "existing",
@@ -586,7 +590,9 @@
         "app.scanner_config.update": "existing",
         "app.onboarding.publish": "existing",
         "app.application.disable": "existing",
-        "app.application.delete": "existing"
+        "app.application.delete": "existing",
+        "app.public_web.read": "existing",
+        "app.public_web.update": "existing"
       }
     },
     {
@@ -669,6 +675,21 @@
         "app.content.update": "existing",
         "app.content.publish": "existing",
         "app.content.delete": "existing"
+      }
+    },
+    {
+      "component_key": "app.feedbacks",
+      "view": [
+        "app.feedback.read"
+      ],
+      "actions": {
+        "update": "app.feedback.update",
+        "reply": "app.feedback.reply"
+      },
+      "permission_status": {
+        "app.feedback.read": "existing",
+        "app.feedback.update": "existing",
+        "app.feedback.reply": "existing"
       }
     }
   ]

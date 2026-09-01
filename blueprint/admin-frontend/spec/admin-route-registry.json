@@ -459,7 +459,9 @@
       "auth": "required",
       "phase": "P2",
       "kind": "page",
-      "permissions": ["content.article.read"],
+      "permissions": [
+        "content.article.read"
+      ],
       "title_key": "routes.system.content.articles.title",
       "menu_code": "system.content.articles",
       "active_menu_code": "system.content.articles"
@@ -472,7 +474,9 @@
       "auth": "required",
       "phase": "P2",
       "kind": "page",
-      "permissions": ["content.category.read"],
+      "permissions": [
+        "content.category.read"
+      ],
       "title_key": "routes.system.content.categories.title",
       "menu_code": "system.content.categories",
       "active_menu_code": "system.content.categories"
@@ -485,7 +489,9 @@
       "auth": "required",
       "phase": "P2",
       "kind": "page",
-      "permissions": ["mobile.release.read"],
+      "permissions": [
+        "mobile.release.read"
+      ],
       "title_key": "routes.system.mobile.releases.title",
       "menu_code": "system.mobile.releases",
       "active_menu_code": "system.mobile.releases",
@@ -499,7 +505,9 @@
       "auth": "required",
       "phase": "P2",
       "kind": "page",
-      "permissions": ["app.application.read"],
+      "permissions": [
+        "app.application.read"
+      ],
       "title_key": "routes.app.applications.title",
       "menu_code": "app.applications",
       "active_menu_code": "app.applications",
@@ -513,7 +521,9 @@
       "auth": "required",
       "phase": "P2",
       "kind": "page",
-      "permissions": ["mobile.release.read"],
+      "permissions": [
+        "mobile.release.read"
+      ],
       "title_key": "routes.app.upgrade_center.title",
       "menu_code": "app.upgrade-center",
       "active_menu_code": "app.upgrade-center",
@@ -527,7 +537,9 @@
       "auth": "required",
       "phase": "P2",
       "kind": "page",
-      "permissions": ["app.user.read"],
+      "permissions": [
+        "app.user.read"
+      ],
       "title_key": "routes.app.users.title",
       "menu_code": "app.users",
       "active_menu_code": "app.users",
@@ -541,7 +553,9 @@
       "auth": "required",
       "phase": "P2",
       "kind": "page",
-      "permissions": ["app.content.read"],
+      "permissions": [
+        "app.content.read"
+      ],
       "title_key": "routes.app.content.articles.title",
       "menu_code": "app.content.articles",
       "active_menu_code": "app.content.articles",
@@ -555,7 +569,9 @@
       "auth": "required",
       "phase": "P2",
       "kind": "page",
-      "permissions": ["app.content.read"],
+      "permissions": [
+        "app.content.read"
+      ],
       "title_key": "routes.app.content.pages.title",
       "menu_code": "app.content.pages",
       "active_menu_code": "app.content.pages",
@@ -569,7 +585,9 @@
       "auth": "required",
       "phase": "P2",
       "kind": "hidden-detail",
-      "permissions": ["app.content.read"],
+      "permissions": [
+        "app.content.read"
+      ],
       "title_key": "routes.app.content.articles.title",
       "active_menu_code": "app.content.articles",
       "backend_status": "delta_required"
@@ -866,6 +884,22 @@
       "kind": "error",
       "permissions": [],
       "title_key": "routes.errors.offline.title"
+    },
+    {
+      "component_key": "app.feedbacks",
+      "path": "/app/feedbacks",
+      "file": "src/routes/app.feedbacks.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "app.feedback.read"
+      ],
+      "title_key": "routes.app.feedbacks.title",
+      "menu_code": "app.feedbacks",
+      "active_menu_code": "app.feedbacks",
+      "backend_status": "existing"
     }
   ]
 }

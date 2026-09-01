@@ -16,7 +16,7 @@ FROM storage.upload_sessions
 WHERE id = sqlc.arg('id')
   AND tenant_id = sqlc.arg('tenant_id')
   AND user_id = sqlc.arg('user_id')
-  AND status = 'initiated'
+  AND purpose <> 'feedback' AND status = 'initiated'
   AND expires_at > now();
 
 -- name: LockSelfAvatarUploadSession :one
@@ -25,7 +25,7 @@ FROM storage.upload_sessions
 WHERE id = sqlc.arg('id')
   AND tenant_id = sqlc.arg('tenant_id')
   AND user_id = sqlc.arg('user_id')
-  AND status = 'initiated'
+  AND purpose <> 'feedback' AND status = 'initiated'
   AND expires_at > now()
 FOR UPDATE;
 
@@ -48,7 +48,7 @@ VALUES (
     'ready', 'skipped', jsonb_build_object('purpose', 'avatar', 'adapter', sqlc.arg('provider')::varchar)
 )
 ON CONFLICT (tenant_id, sha256, size_bytes)
-    WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL
+    WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL AND metadata->>'purpose' IS DISTINCT FROM 'feedback'
 DO UPDATE SET updated_at = storage.files.updated_at
 RETURNING id, provider, bucket_name, object_key;
 

@@ -489,7 +489,7 @@ func transitionAllowed(from, to string) bool {
 	return (from == "draft" && (to == "published" || to == "archived")) || (from == "published" && (to == "draft" || to == "archived"))
 }
 
-const publicArticleSelect = `SELECT a.id,a.category_id,a.slug,a.content_type,a.allow_comments,a.pinned,a.featured,a.is_latest,a.sort_order,cover.id,a.reading_minutes,a.published_at,t.title,t.summary,t.body_format,t.body,c.id,c.parent_id,c.slug,c.sort_order,ct.name,ct.description,CASE WHEN $1::uuid IS NULL THEN NULL ELSE EXISTS(SELECT 1 FROM content.article_bookmarks b WHERE b.tenant_id=a.tenant_id AND b.app_id=a.app_id AND b.article_id=a.id AND b.user_id=$1) END,a.topic_id,a.video_source_type,a.video_external_url,a.video_duration_seconds,a.video_file_id FROM content.articles a JOIN LATERAL(SELECT * FROM content.article_translations WHERE article_id=a.id AND locale IN ($2,'zh-CN') ORDER BY (locale=$2) DESC LIMIT 1)t ON true LEFT JOIN storage.files cover ON cover.tenant_id=a.tenant_id AND cover.id=a.cover_file_id AND cover.status='ready' AND cover.scan_status IN ('clean','skipped') AND lower(COALESCE(cover.media_type,'')) IN ('image/jpeg','image/png','image/webp') AND cover.deleted_at IS NULL LEFT JOIN content.categories c ON c.id=a.category_id AND c.tenant_id=a.tenant_id AND c.app_id=a.app_id AND c.status='active' LEFT JOIN LATERAL(SELECT * FROM content.category_translations WHERE category_id=c.id AND locale IN ($2,'zh-CN') ORDER BY (locale=$2) DESC LIMIT 1)ct ON true`
+const publicArticleSelect = `SELECT a.id,a.category_id,a.slug,a.content_type,a.allow_comments,a.pinned,a.featured,a.is_latest,a.sort_order,cover.id,a.reading_minutes,a.published_at,t.title,t.summary,t.body_format,t.body,c.id,c.parent_id,c.slug,c.sort_order,ct.name,ct.description,CASE WHEN $1::uuid IS NULL THEN NULL ELSE EXISTS(SELECT 1 FROM content.article_bookmarks b WHERE b.tenant_id=a.tenant_id AND b.app_id=a.app_id AND b.article_id=a.id AND b.user_id=$1) END,a.topic_id,a.video_source_type,a.video_external_url,a.video_duration_seconds,a.video_file_id FROM content.articles a JOIN LATERAL(SELECT * FROM content.article_translations WHERE article_id=a.id AND locale IN ($2,'zh-CN') ORDER BY (locale=$2) DESC LIMIT 1)t ON true LEFT JOIN storage.files cover ON cover.tenant_id=a.tenant_id AND cover.id=a.cover_file_id AND COALESCE(cover.metadata->>'purpose','')<>'feedback' AND cover.status='ready' AND cover.scan_status IN ('clean','skipped') AND lower(COALESCE(cover.media_type,'')) IN ('image/jpeg','image/png','image/webp') AND cover.deleted_at IS NULL LEFT JOIN content.categories c ON c.id=a.category_id AND c.tenant_id=a.tenant_id AND c.app_id=a.app_id AND c.status='active' LEFT JOIN LATERAL(SELECT * FROM content.category_translations WHERE category_id=c.id AND locale IN ($2,'zh-CN') ORDER BY (locale=$2) DESC LIMIT 1)ct ON true`
 
 const transitionArticleStatusSQL = `UPDATE content.articles SET status=$1::varchar,published_at=CASE WHEN $1::varchar='published' THEN COALESCE(published_at,now()) WHEN $1::varchar='draft' THEN NULL ELSE published_at END,updated_by=$2,lock_version=lock_version+1 WHERE tenant_id=$3 AND app_id=$4 AND id=$5 AND lock_version=$6`
 
@@ -631,7 +631,7 @@ func (r *Postgres) GetPublished(ctx context.Context, tenant, appID uuid.UUID, us
 
 const articleAssetSelect = `SELECT f.id,f.provider,f.bucket_name,f.object_key,f.media_type,f.size_bytes,f.sha256
 	FROM storage.files f
-	WHERE f.tenant_id=$1 AND f.id=$3 AND f.status='ready' AND f.scan_status IN ('clean','skipped')
+	WHERE f.tenant_id=$1 AND f.id=$3 AND COALESCE(f.metadata->>'purpose','')<>'feedback' AND f.status='ready' AND f.scan_status IN ('clean','skipped')
 	AND lower(COALESCE(f.media_type,'')) IN ('image/jpeg','image/png','image/webp','video/mp4') AND f.deleted_at IS NULL
 	AND (
 		EXISTS(SELECT 1 FROM content.articles a WHERE a.tenant_id=$1 AND a.app_id=$2 AND a.status='published' AND (a.cover_file_id=f.id OR a.video_file_id=f.id OR EXISTS(SELECT 1 FROM content.article_media m WHERE m.article_id=a.id AND m.file_id=f.id)))
@@ -755,7 +755,7 @@ func validReferences(ctx context.Context, tx pgx.Tx, tenant, appID uuid.UUID, ca
 	}
 	if cover != nil {
 		var ok bool
-		if e := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM storage.files WHERE tenant_id=$1 AND id=$2 AND status='ready' AND scan_status IN ('clean','skipped') AND lower(COALESCE(media_type,'')) IN ('image/jpeg','image/png','image/webp') AND deleted_at IS NULL)`, tenant, *cover).Scan(&ok); e != nil {
+		if e := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM storage.files WHERE tenant_id=$1 AND id=$2 AND COALESCE(metadata->>'purpose','')<>'feedback' AND status='ready' AND scan_status IN ('clean','skipped') AND lower(COALESCE(media_type,'')) IN ('image/jpeg','image/png','image/webp') AND deleted_at IS NULL)`, tenant, *cover).Scan(&ok); e != nil {
 			return e
 		}
 		if !ok {

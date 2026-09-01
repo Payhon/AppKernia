@@ -52,6 +52,8 @@
 
 ## Delivery checks
 
+- Public H5 previews follow `pages/public-web.md`: shared AkModal, an independently sized toolbar and a proportionally scaled phone shell. Only published public content is embedded; preview does not emulate a device browser or inherit administrative data access.
+
 - Push channel administration additionally follows `pages/push-channels.md` for write-only credentials, provider lifecycle labels, registered-device testing and acceptance terminology.
 
 - The information content workbench additionally follows `pages/content-management.md` for its five-tab taxonomy, editor, moderation and report workflow.
@@ -60,3 +62,7 @@
 - Keep screenshots and the UI Skill decision trail under `artifacts/ui-ux-pro-max/`.
 - For navigation utility changes, additionally verify 1440 px expanded/collapsed, 375 px Drawer, both locales, current-System selected state, no-System permission state, keyboard focus return, reduced motion, and absence of horizontal overflow.
 - For OpenAPI reference changes, additionally verify both locales at 1440 × 900 and 375 × 812, module and operation search, title consistency between navigation/search/body, stable anchors, canonical download byte identity, and isolation from the Admin entry graph.
+
+## Help and feedback
+
+Use [feedback](pages/feedback.md) for the App-scoped feedback list and private detail drawer. This page follows the existing fixed light Admin tokens under either OS color-scheme preference; adding a global dark-theme switch is outside this change.

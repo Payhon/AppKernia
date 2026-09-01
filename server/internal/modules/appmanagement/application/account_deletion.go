@@ -209,6 +209,8 @@ func (s *Service) eraseCurrentAppAccount(ctx context.Context, tx pgx.Tx, app App
 		query string
 		args  []any
 	}{
+		{"feedback_usages", `DELETE FROM storage.file_usages WHERE module_code='app' AND entity_type='app.feedback' AND entity_id IN (SELECT id FROM app.feedbacks WHERE app_id=$1 AND user_id=$2)`, []any{app.ID, userID}},
+		{"feedbacks", `DELETE FROM app.feedbacks WHERE app_id=$1 AND user_id=$2`, []any{app.ID, userID}},
 		{"notification_recipients", `DELETE FROM notify.recipients WHERE app_id=$1 AND user_id=$2`, []any{app.ID, userID}},
 		{"push_devices", `DELETE FROM notify.push_devices WHERE app_id=$1 AND user_id=$2`, []any{app.ID, userID}},
 		{"comment_reports", `DELETE FROM content.comment_reports WHERE app_id=$1 AND reporter_id=$2`, []any{app.ID, userID}},

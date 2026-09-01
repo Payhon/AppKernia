@@ -1,0 +1,99 @@
+import { AkConfig } from '../../core/config/config.uts'
+import { AkError } from '../../core/errors/ak-error.uts'
+import { AkHttpClient } from '../../core/network/ak-http-client.uts'
+import { AkHttpPort, HttpRequest, HttpCancellation } from '../../core/network/http-port.uts'
+import { RefreshingHttpPort } from '../../core/network/refreshing-http-port.uts'
+import { RefreshCoordinator } from '../../core/network/refresh-coordinator.uts'
+import { SessionStore, appSessionStore } from '../../core/stores/session-store.uts'
+import { SessionRuntime } from '../../core/stores/session-runtime.uts'
+import { MobileAuthService } from '../auth/mobile-auth-service.uts'
+import { akI18n } from '../../core/i18n/ak-i18n.uts'
+import { FeedbackWire, FeedbackInputWire, FeedbackUploadWire, FeedbackUploadInputWire } from '../../generated/api/mobile-feedback.uts'
+export type FeedbackPage = { readonly items: Array<FeedbackWire>; readonly total:number; readonly page:number; readonly page_size:number }
+export type PickedScreenshot = {path:string;name:string;mediaType:string;size:number}
+type FileWire={readonly file_id:string}
+type FileEnvelope={readonly data:FileWire}
+
+class MediaCancellation implements HttpCancellation {
+  upload:UploadTask|null=null
+  download:DownloadTask|null=null
+  cancelled:boolean=false
+  finished:boolean=false
+  cancel():void{if(this.cancelled||this.finished)return;this.cancelled=true;if(this.upload!=null)this.upload!.abort();if(this.download!=null)this.download!.abort()}
+}
+export function feedbackRequestKey():string{
+ const hex='0123456789abcdef';let result=''
+ for(let i=0;i<36;i++){if(i==8||i==13||i==18||i==23){result+='-'}else if(i==14){result+='4'}else if(i==19){result+=hex.charAt(8+Math.floor(Math.random()*4))}else{result+=hex.charAt(Math.floor(Math.random()*16))}}
+ return result
+}
+export function installedAppVersion():string{return uni.getSystemInfoSync().appVersion}
+export function feedbackPlatform():string{
+ // #ifdef APP-ANDROID
+ return 'android'
+ // #endif
+ // #ifdef APP-IOS
+ return 'ios'
+ // #endif
+ // #ifdef APP-HARMONY
+ return 'harmony'
+ // #endif
+ return 'unknown'
+}
+export function requireFeedbackLogin():boolean{if(appSessionStore.getAccessToken()!=null)return true;uni.redirectTo({url:'/pages/auth/login/index'});return false}
+export function pickScreenshot(ok:(value:PickedScreenshot)=>void,fail:(key:string)=>void):void{
+ const options={count:1,sourceType:['album'],sizeType:['compressed'],success:result=>{
+  if(result.tempFiles.length==0)return
+  const file=result.tempFiles[0];const path=result.tempFilePaths[0]
+  if(file.size<=0||file.size>5242880){fail('feedback.imageInvalid');return}
+  uni.getImageInfo({src:path,success:info=>{const type=info.type==null?'':info.type!.toLowerCase();const mime=type=='png'?'image/png':type=='webp'?'image/webp':type=='jpg'||type=='jpeg'?'image/jpeg':'';if(mime==''){fail('feedback.imageInvalid');return};ok({path:path,name:'feedback.'+(type=='jpeg'?'jpg':type),mediaType:mime,size:file.size})},fail:()=>fail('feedback.imageInvalid')})
+ },fail:error=>{if(error.errCode!=1101001)fail(error.errCode==1101005?'feedback.permissionDenied':'feedback.imageInvalid')}} as ChooseImageOptions
+ // #ifdef APP-ANDROID
+ options.albumMode='system'
+ // #endif
+ uni.chooseImage(options)
+}
+export function discardFeedbackPreview(path:string):void{if(path.length>0)uni.getFileSystemManager().unlink({filePath:path,fail:()=>{}})}
+export class FeedbackRuntime {
+ private http:AkHttpPort|null=null
+ private config:AkConfig|null=null
+ private session:SessionStore|null=null
+ private refresh:RefreshCoordinator|null=null
+ configure(config:AkConfig,session:SessionStore,sessions:SessionRuntime,auth:MobileAuthService):void{const refresh=new RefreshCoordinator(sessions,auth);this.http=new RefreshingHttpPort(new AkHttpClient(config,session),refresh);this.config=config;this.session=session;this.refresh=refresh}
+ private request<T,R>(method:'GET' | 'PATCH' | 'POST' | 'PUT' | 'DELETE',path:string,body:T,query:Map<string,string>,key:string,ok:(value:R)=>void,fail:(error:AkError)=>void):HttpCancellation|null{
+  const http=this.http;if(http==null){fail(new AkError('unknown','feedback.unavailable','feedback.failed',null));return null}
+  const headers=new Map<string,string>();if(key!='')headers.set('Idempotency-Key',key)
+  const request:HttpRequest<T>={method:method,path:path,body:body,query:query,headers:headers,retryOnUnauthorized:method=='GET'||key!='',locale:akI18n.getLocale()}
+  return http.execute<T,R>(request,response=>ok(response.data),fail)
+ }
+ list(page:number,ok:(value:FeedbackPage)=>void,fail:(error:AkError)=>void):HttpCancellation|null{return this.request<UTSJSONObject,FeedbackPage>('GET','/me/feedbacks',{} as UTSJSONObject,new Map<string,string>([['page',page.toString()],['page_size','20']]),'',ok,fail)}
+ get(id:string,ok:(value:FeedbackWire)=>void,fail:(error:AkError)=>void):HttpCancellation|null{return this.request<UTSJSONObject,FeedbackWire>('GET','/me/feedbacks/'+encodeURIComponent(id),{} as UTSJSONObject,new Map<string,string>(),'',ok,fail)}
+ create(value:FeedbackInputWire,key:string,ok:(value:FeedbackWire)=>void,fail:(error:AkError)=>void):HttpCancellation|null{return this.request<FeedbackInputWire,FeedbackWire>('POST','/me/feedbacks',value,new Map<string,string>(),key,ok,fail)}
+ createUpload(value:PickedScreenshot,ok:(value:FeedbackUploadWire)=>void,fail:(error:AkError)=>void):HttpCancellation|null{const body:FeedbackUploadInputWire={original_name:value.name,media_type:value.mediaType,size_bytes:value.size};return this.request<FeedbackUploadInputWire,FeedbackUploadWire>('POST','/me/feedback-uploads',body,new Map<string,string>(),'',ok,fail)}
+ cancelUpload(id:string):void{this.request<UTSJSONObject,UTSJSONObject>('DELETE','/me/feedback-uploads/'+encodeURIComponent(id),{} as UTSJSONObject,new Map<string,string>(),'',_value=>{},_error=>{})}
+ upload(target:FeedbackUploadWire,path:string,progress:(value:number)=>void,ok:(fileID:string)=>void,fail:()=>void):HttpCancellation{
+  const state=new MediaCancellation();this.sendUpload(target,path,false,state,progress,ok,fail);return state
+ }
+ private sendUpload(target:FeedbackUploadWire,path:string,replayed:boolean,state:MediaCancellation,progress:(value:number)=>void,ok:(id:string)=>void,fail:()=>void):void{
+  const config=this.config;const session=this.session;if(config==null||session==null||session.getAccessToken()==null){fail();return}
+  if(!/^\/me\/feedback-uploads\/[0-9a-f-]{36}\/content$/.test(target.upload_url)){fail();return}
+  const token=session.getAccessToken()!
+  state.upload=uni.uploadFile({url:config.apiBaseUrl+target.upload_url,filePath:path,name:'file',header:{Authorization:'Bearer '+token,'X-AppID':config.appId,'Accept-Language':akI18n.getLocale()},success:response=>{
+   state.upload=null;if(state.cancelled)return
+   if(response.statusCode==401&&!replayed&&this.refresh!=null){this.refresh!.refresh(()=>{if(!state.cancelled)this.sendUpload(target,path,true,state,progress,ok,fail)},_e=>{if(!state.cancelled)fail()});return}
+   state.finished=true
+   if(response.statusCode==200){const body=JSON.parse<FileEnvelope>(response.data);if(body!=null){ok(body.data.file_id);return}}
+   fail()
+  },fail:()=>{state.upload=null;if(!state.cancelled){state.finished=true;fail()}}})
+  state.upload!.onProgressUpdate(event=>{if(!state.cancelled)progress(event.progress)})
+ }
+ download(feedbackID:string,fileID:string,ok:(path:string)=>void,fail:()=>void):HttpCancellation{const state=new MediaCancellation();this.loadImage(feedbackID,fileID,false,state,ok,fail);return state}
+ private loadImage(feedbackID:string,fileID:string,replayed:boolean,state:MediaCancellation,ok:(path:string)=>void,fail:()=>void):void{
+  const config=this.config;const session=this.session;if(config==null||session==null||session.getAccessToken()==null){fail();return};const token=session.getAccessToken()!
+  const path='/me/feedbacks/'+encodeURIComponent(feedbackID)+'/attachments/'+encodeURIComponent(fileID)+'/content'
+  state.download=uni.downloadFile({url:config.apiBaseUrl+path,header:{Authorization:'Bearer '+token,'X-AppID':config.appId,'Accept-Language':akI18n.getLocale()},success:result=>{state.download=null;if(state.cancelled){if(result.statusCode==200)discardFeedbackPreview(result.tempFilePath);return}
+   if(result.statusCode==401&&!replayed&&this.refresh!=null){this.refresh!.refresh(()=>{if(!state.cancelled)this.loadImage(feedbackID,fileID,true,state,ok,fail)},_e=>{if(!state.cancelled)fail()});return}
+   state.finished=true;if(result.statusCode==200){ok(result.tempFilePath)}else{discardFeedbackPreview(result.tempFilePath);fail()}
+  },fail:()=>{state.download=null;if(!state.cancelled){state.finished=true;fail()}}})
+ }
+}
+export const feedbackRuntime=new FeedbackRuntime()

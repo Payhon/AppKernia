@@ -12,6 +12,7 @@ import (
 
 	content "github.com/appkernia/appkernia/server/internal/modules/content/domain"
 	iam "github.com/appkernia/appkernia/server/internal/modules/iam/domain"
+	"github.com/appkernia/appkernia/server/internal/shared/publicurl"
 	"github.com/google/uuid"
 )
 
@@ -24,12 +25,20 @@ type Authenticator interface {
 	Authenticate(context.Context, string, string) (iam.AuthenticatedContext, error)
 }
 type Service struct {
-	auth Authenticator
-	repo content.Repository
+	publicWebBaseURL string
+	auth             Authenticator
+	repo             content.Repository
 }
 
-func NewService(auth Authenticator, repo content.Repository) *Service {
-	return &Service{auth: auth, repo: repo}
+type Option func(*Service)
+
+func WithPublicWebBaseURL(base string) Option { return func(s *Service) { s.publicWebBaseURL = base } }
+func NewService(auth Authenticator, repo content.Repository, options ...Option) *Service {
+	s := &Service{auth: auth, repo: repo}
+	for _, option := range options {
+		option(s)
+	}
+	return s
 }
 func (s *Service) authorize(ctx context.Context, token, permission string) (iam.AuthenticatedContext, error) {
 	a, e := s.auth.Authenticate(ctx, token, adminAudience)
@@ -408,6 +417,9 @@ func (s *Service) ListArticles(c context.Context, t string, appID uuid.UUID, f c
 	result, err := s.repo.ListArticles(c, a.Tenant.ID, appID, f)
 	for index := range result.Items {
 		normalizeArticleBodies(&result.Items[index])
+		if appID != uuid.Nil && result.Items[index].Status == "published" {
+			result.Items[index].ShareURL = publicurl.Link(s.publicWebBaseURL, appID, "/articles/"+url.PathEscape(result.Items[index].Slug), "")
+		}
 	}
 	return result, err
 }
@@ -421,6 +433,9 @@ func (s *Service) GetArticle(c context.Context, t string, appID, id uuid.UUID) (
 	}
 	result, err := s.repo.GetArticle(c, a.Tenant.ID, appID, id)
 	normalizeArticleBodies(&result)
+	if appID != uuid.Nil && result.Status == "published" {
+		result.ShareURL = publicurl.Link(s.publicWebBaseURL, appID, "/articles/"+url.PathEscape(result.Slug), "")
+	}
 	return result, err
 }
 func (s *Service) CreateArticle(c context.Context, t string, appID uuid.UUID, p content.Principal, x content.Article) (content.Article, error) {

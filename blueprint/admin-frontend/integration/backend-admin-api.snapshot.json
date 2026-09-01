@@ -759,38 +759,165 @@
       "method": "POST",
       "path": "/admin-api/v1/apps/{app_id}/mobile/releases/{id}/unpublish"
     },
-    {"method": "GET", "path": "/admin-api/v1/share-configs"},
-    {"method": "POST", "path": "/admin-api/v1/share-configs"},
-    {"method": "GET", "path": "/admin-api/v1/share-configs/{id}"},
-    {"method": "PATCH", "path": "/admin-api/v1/share-configs/{id}"},
-    {"method": "DELETE", "path": "/admin-api/v1/share-configs/{id}"},
-    {"method": "POST", "path": "/admin-api/v1/share-configs/{id}/activate"},
-    {"method": "POST", "path": "/admin-api/v1/share-configs/{id}/disable"},
-    {"method": "POST", "path": "/admin-api/v1/share-configs/{id}/rotate-secret"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/share-bindings"},
-    {"method": "PUT", "path": "/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}"},
-    {"method": "DELETE", "path": "/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}"},
-    {"method": "POST", "path": "/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/scanner-config"},
-    {"method": "PUT", "path": "/admin-api/v1/apps/{app_id}/scanner-config"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/push-provider-catalog"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/push-provider-configs"},
-    {"method": "PUT", "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{provider}"},
-    {"method": "POST", "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/rotate-secret"},
-    {"method": "POST", "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/preflight"},
-    {"method": "POST", "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/activate"},
-    {"method": "POST", "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/disable"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/push-devices"},
-    {"method": "POST", "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/test"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/push-delivery-summary"},
-    {"method": "PUT", "path": "/admin-api/v1/api-clients/{id}/apps"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/notification-operations/summary"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/notification-operations/trends"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/notification-runs"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/notification-runs/{run_id}"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/notification-tasks"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/notification-tasks/{task_id}"},
-    {"method": "GET", "path": "/admin-api/v1/apps/{app_id}/notification-failures"},
-    {"method": "POST", "path": "/admin-api/v1/apps/{app_id}/notification-retries"}
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/share-configs"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/share-configs"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/share-configs/{id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/share-configs/{id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/share-configs/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/share-configs/{id}/activate"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/share-configs/{id}/disable"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/share-configs/{id}/rotate-secret"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/share-bindings"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/scanner-config"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/apps/{app_id}/scanner-config"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/push-provider-catalog"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/push-provider-configs"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{provider}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/rotate-secret"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/preflight"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/activate"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/disable"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/push-devices"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/push-provider-configs/{id}/test"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/push-delivery-summary"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/api-clients/{id}/apps"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/notification-operations/summary"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/notification-operations/trends"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/notification-runs"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/notification-runs/{run_id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/notification-tasks"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/notification-tasks/{task_id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/notification-failures"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/notification-retries"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/feedbacks"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/feedbacks/{id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/apps/{app_id}/feedbacks/{id}"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/feedbacks/{id}/attachments/{file_id}/content"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/apps/{app_id}/feedbacks/{id}/replies"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/public-web-config"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/apps/{app_id}/public-web-config"
+    }
   ]
 }

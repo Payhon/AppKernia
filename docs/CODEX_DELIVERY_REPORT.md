@@ -3012,3 +3012,249 @@
 - 截图保留：`output/playwright/ak-news-ios-bookmarks.png` 与 `output/playwright/ak-news-ios-profile-authenticated.png` 内容相同，实际为基本资料页，且显示未翻译的 `displayName/email/timeZone`；保留原文件不提交。`output/maestro/ak-news-ios-comment-section.junit.xml` 仅改变历史耗时，同样保留不提交。没有新增本轮运行截图，其他被忽略的本地产物不强制加入 Git。
 - 命令日志与原始工作区快照保存在本机 `/tmp/appkernia-split-20260831/`，仅作本轮复核备份，不是长期归档。
 - 拆分后的头像独立暂存快照另行通过 Server `make check`、TypeScript `tsc --noEmit` 与 API Reference 校验（均退出 0）；临时快照的 pnpm 包装命令失败后直接调用现有 TypeScript 工具完成检查。补齐翻译后重新执行 Admin `build`、`validate:bundle`、`validate:openapi-docs`，均退出 0。新增 Skill 的 3 处行尾空白与 4 处末尾空行已按补丁检查要求清理，未改变脚本逻辑。
+
+## 2026-08-31 帮助与关于、问题反馈
+
+交付范围包括保留 CMS 页 `faq`/`contact-support`、独立 `about-us` 内容和版本状态、Mobile 本机版本页脚及问题反馈闭环、Admin 反馈工作台、反馈数据/私有截图/回复/处理历史、权限、清理、OpenAPI/client/i18n/蓝图同步。实时聊天、用户多轮追问、客服分配和推送未加入。
+
+| 命令 / 阶段 | Exit | 结果 |
+|---|---:|---|
+| `python3 blueprint/backend/tools/validate_blueprint.py` | 0 | 27 Up/Down migrations、116 tables、173 indexes、69 triggers，0 errors/warnings。 |
+| 真实 PostgreSQL 18 隔离库：27 Up → 000027 Down → 000027 Up | 0 | Schema 与 rollback/reapply 成功；Down 的反馈业务数据删除风险已写入运维手册。 |
+| `go test -tags=integration -race ./internal/modules/feedback/...` | 0 | 33 个测试：CMS 三保留页、上传/完整解码、幂等并发、scope、扫描/私有存储、membership、回复锁、私有读取、清理、脱敏审计。 |
+| `make -C server check build` | 0 | gofmt、go vet、46 个含测试包和 74 个无测试包、API/Worker/CLI 构建通过。 |
+| `go test -race -json ./...` | 0 | 最终全仓单元 245 passed / 1 skipped，race 通过；数据库集成另列。 |
+| `go test -p=4 -tags=integration -race ./... -count=1 -json` | 1 | 最终全仓集成 304 passed / 1 failed / 1 skipped；失败为既有 IAM 并发创建账号用例，详见下方复核。 |
+| 隔离 HTTP 内容联调 | 0 | 两个测试 App × FAQ/联系支持/关于；草稿 404、发布 200、`Content-Language` 与中英文标题正确。 |
+| `pnpm --dir apps/ak-admin check` | 0 | OpenAPI reference、strict lint/typecheck、46 Vitest files/188 tests、9,976 modules build/bundle/docs/蓝图通过。 |
+| `scripts/e2e_feedback.mjs`（隔离 API/DB） | 0 | 截图上传+幂等提交，未授权附件 401；后台故障时草稿保留，回复/解决后 Mobile 读到 1 条回复和私有图片；中英文、系统偏好、1440/768 无页面横向溢出。故障是明确注入，不冒充后端故障。 |
+| `bash apps/ak-mobile/scripts/check-project.sh` | 0 | 50 routes、64 API delta、43 components，生成客户端、i18n/隐私/启动/升级及静态约束通过。 |
+| `build-platform.sh android` | 0 | HBuilderX 5.24，41 页面 Android class 编译成功。首轮发现 textarea event type / readonly DTO Kotlin proxy 问题，修复后复跑通过。 |
+| `build-platform.sh ios` | 0 | HBuilderX 5.24，41 页面 iOS/UTS 编译成功；iPhone 16 Pro / iOS 18.6 自定义基座安装启动。 |
+| `build-platform.sh harmony` | 0 | HBuilderX 5.24，41 页面编译及 HAP 制作成功；没有证书，产物未签名。 |
+| 蓝图 Backend/Admin/Mobile + i18n 四项校验 | 0 | 116 tables、49 menus、60 routes、169 permissions、88 schema UI classifications、50 mobile routes，双语 key/占位符一致。 |
+
+iOS 模拟器原生验收：正式 bootstrap 初始化与测试账号登录；帮助页五个入口及本机 v0.2.0；关于正文在版本接口失败时保持可见；空描述校验；键盘输入并点击表单外部收起；文字提交自动进入详情；我的反馈列表；后台 API 追加回复/解决后原生详情显示结果。Maestro 探索中的 hideKeyboard 不适用该 textarea，实际点击外部收起成功。此前直接业务页启动跳过认证初始化，改为正式启动页后验证通过。
+
+Admin 截图与 Skill 证据：`apps/ak-admin/artifacts/ui-ux-pro-max/help-feedback/`（5 张：zh/en、系统 light/dark、768）。Mobile 20 张真实模拟器截图、SHA256 索引及证据位于 `apps/ak-mobile/artifacts/ui-ux-pro-max/help-feedback/screenshots.md` 和 `evidence.json`。补充验证了原生相册选取、上传、图片反馈提交与详情授权下载；关闭隔离 API 后内容显示离线，返回帮助页本机版本仍显示。深色菜单/正文文本和返回图标已修复并复拍。
+
+已知门禁：Admin 使用项目既定固定浅色 token；系统 dark 偏好已验证可用，但这不是原生 Admin 暗色主题。本轮未执行 Android/iOS/HarmonyOS 物理设备、正式签名包、VoiceOver/TalkBack、最大动态字体、相册拒绝/恢复矩阵及生产杀毒服务验收，因此这些不写为 passed。本变更未部署、未 commit、未 push；既有三个 output 文件修改保留未动。
+
+全仓集成首次运行发现隔离库仅加载应用迁移，缺少 River 官方表；已对隔离库追加 7 项 River 官方迁移。补齐后并行及包串行全仓均为 295 passed / 1 failed / 1 skipped，旧 `TestConcurrentIdentityCreationEnforcesUniqueEmail` 出现 PostgreSQL `40001` 序列化竞争失败。复制隔离库数据、执行 000027 Down 回到 schema 26 后，该未修改的 IAM 用例连续 3 次同样失败（exit 1）；空 schema 26 连续 30 次通过，确认与已有数据下的 IAM Serializable 竞争有关，不能把全仓集成标为通过。反馈专用 race 集成保持全部通过。
+
+测试环境隔离：使用独立 `ak_feedback_test_20260831` 数据库、API 8082 与 Vite 4175；既有 API 8080/Admin 4174 和原有数据库未更改。测试后已恢复 Mobile manifest 原始地址，停止自建 API/Vite、删除隔离数据库/凭据/对象目录，关闭本轮启动的模拟器；没有提交临时凭据或测试账户。
+
+最终安全收紧：反馈不再沿用普通存储的 skipped 策略，只接受 `ready + clean`；新增受限 ClamD Unix INSTREAM 适配器。`AK_FEEDBACK_CLAMD_SOCKET` 未配置/扫描失败时拒绝截图上传，纯文字反馈正常。没有运行时假扫描开关；测试通过注入 Scanner 或 Unix 协议假服务完成。之前截图闭环记录证明原生 UI/上传/私有读取链路，不代表真实 ClamAV 病毒库验收；最终扫描门禁通过专用测试另行复核。
+
+扫描收紧后的专用复核：`make -C server check build` exit 0，`go test -race -json ./...` 245 passed / 1 skipped，反馈含扫描协议专项 33 项 exit 0，Admin 再次 check exit 0（46 files / 188 tests），Mobile 静态及四项蓝图/i18n exit 0。复建集成库首轮遗漏 core seed，导致 5 个已有测试缺权限/模板/模块记录失败；补齐 core seed 后最终全仓为 304 passed / 1 failed / 1 skipped（exit 1），仅剩已在 schema 26 复现的 IAM Serializable 并发失败。
+
+
+## 2026-08-31 本地管理端前后端部署
+
+- 已在既有 `appkernia-news-demo` 栈部署当前工作区 API、Worker、Admin；入口 `http://localhost:4174`，API `http://localhost:8080`。原端口、环境、数据库和对象存储卷均保留，管理员密码未修改。无 Git commit/push，无生产环境部署。
+- 先构建新镜像并保留旧镜像 tag，再停旧 API/Worker，执行 PostgreSQL 自定义格式备份，迁移到 `27 / dirty=false`、运行 core seed 后启动新服务。API/Admin healthy，Worker running；备份及精确 Image ID 见 [本地部署记录](manual/help-feedback-local-deployment.md)。
+- 实际命令：`docker compose -p appkernia-news-demo build api worker migrate seed admin`、`stop api worker`、`run --rm --no-deps migrate`、`run --rm --no-deps seed`、`up -d --no-deps --force-recreate api worker admin` 均退出 0；`pg_dump` 和 `pg_restore --list` 退出 0。未执行数据库恢复演练。
+- 3 个健康 HTTP 检查均 200；账号密码、既有页面、App 和文件指纹校验通过。`make check-blueprints`（Backend/Admin/Mobile/i18n）与 `git diff --check` 均退出 0。
+- `/Users/payhon/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node /tmp/ak-local-deploy-check.mjs` 最终退出 0，11 项浏览器/API 冒烟通过：正式容器页面、原账号登录、授权反馈查询/匿名拒绝、CMS 保留页、草稿不公开、全局 App 选择、反馈筛选、中英文、CMS 可见记录、无未捕获 JS 错误。未向本地业务库写入测试反馈、回复或发布内容。
+- 截图 3 张：`output/playwright/local-deploy-help-feedback/feedback-zh-CN.png`、`feedback-en-US.png`、`cms-help-pages.png`；索引 `output/playwright/local-deploy-help-feedback/evidence.json`，SHA256 索引 `output/local-deploy-help-feedback/screenshots.json`。Chromium 1440×1000 viewport；不是 Mobile/真机验收。
+- 早期冒烟脚本的应用选择、折叠菜单、异步等待断言曾失败；保留失败日志，最终结果在 `output/local-deploy-help-feedback/browser-result.log`。完整页面重新加载会回到登录页，是未改动认证模块的现有行为；正常菜单跳转通过。
+- 未完成与风险：ClamAV socket 未配置，截图上传继续安全拒绝，文字反馈/后台处理不受影响；真实扫描引擎未验证。本次未重跑此前全仓单元/集成和三平台构建，上一节既有 IAM 并发集成失败仍未修复。部署仅覆盖本地管理端和后端，不包含 Mobile 安装包、生产环境或正式签名。
+
+## 2026-08-31 — AKH5-001 内置 H5 页面
+
+### 交付范围
+
+已交付 Server 内置的公众号式资讯详情、统一下载发行页及已发布 App 单页。后台增加独立发行配置抽屉（双语资料、市场平台/HTTPS 地址、公开/APK 开关、查看/复制/二维码）；资讯与单页提供公开链接；Mobile 分享优先采用服务端返回的本地化 H5 地址。
+
+新增 `publicweb` 组装模块与共享 richtext/publicurl；模板/CSS/JS 随二进制嵌入。无运行时前端构建、模板上传、自定义脚本。首期无 HTML 片段交互，按批准方案不加载 htmx。协议阅读不产生同意记录。Android APK 的 H5 签名与原 Mobile 接口隔离，资源请求重复校验开关、当前发布、归属、文件与签名。
+
+已同步 ADR-0030、Backend 主蓝图与数据/功能说明、Admin/Mobile 页面契约、000028/sqlc、OpenAPI、权限种子/快照、双语 Catalog 和生成 Client。未更改既有 Scheme 或推断旧记录平台；存量发行页默认关闭。初始工作树包含 help-feedback 等修改，保留其内容，未提交或推送。
+
+### 实际验证
+
+以下命令均实际执行。数据库命令的 `AK_DATABASE_URL` / `AK_TEST_DATABASE_URL` 指向新建隔离数据库 `ak_h5_verify`；不是当前演示或生产数据库。
+
+| 命令/操作 | 退出码 | 结果与范围 |
+|---|---:|---|
+| `PATH=/Users/payhon/.nvm/versions/node/v24.18.1/bin:$PATH make check` | 0 | Backend/Admin/Mobile/i18n 蓝图、Go fmt/vet/test、Admin 生成/兼容引用/lint/类型/194 项测试/构建/预算、Mobile 静态、文档构建与语言一致性 |
+| `make -C server test-race` | 0 | 后端全模块 race 检测，无 race 报告 |
+| `GOTOOLCHAIN=go1.26.5 go test -json ./...`（server） | 0 | 254 个通过的测试事件（包括命名子用例），0 fail |
+| `GOFLAGS=-p=1 make -C server test-integration` | 0 | Seed、权限、租户、存储、内容、App、任务等真实 PostgreSQL 测试；含配置并发/回滚/审计/权限与单页图片发布撤回 |
+| `AK_ENV=development GOTOOLCHAIN=go1.26.5 go run ./cmd/ak-cli migrate up`，`migrate down 1`，再次 `migrate up`（server） | 0 / 0 / 0 | 独立库完整 Up 至 28，再 28→27→28，dirty=false |
+| `make -C server sqlc-generate`；Admin `pnpm generate`；Mobile `python3 scripts/generate-mobile-client.py` | 0 | 生成代码与契约同步 |
+| `GOTOOLCHAIN=go1.26.5 go run github.com/oasdiff/oasdiff@v1.30.0 breaking /tmp/ak-h5-baseline/server/openapi/openapi.yaml openapi/openapi.yaml --format json`（server） | 0 | `[]`，与开工时含用户未提交修改的 OpenAPI 基线比较，没有破坏变更 |
+| `node --test server/tests/download.test.mjs` | 0 | 10 项平台识别用例，包括 iPad 桌面模式、明确 HarmonyOS、含 Android 标记但系统不明的 Huawei UA |
+| `make -C server build-api` | 0 | macOS arm64 Server 二进制；从 `/tmp` 启动并提供 HTML/图片/CSS/JS/二维码/APK 测试资源。另以 `PATH=/usr/bin:/bin`（确认 Node/Go 均不在 PATH）启动 18082 临时实例，三类页面与内置静态资源均 HTTP 200，验证后已停止该实例 |
+| `node apps/ak-admin/scripts/e2e_public_web.mjs`（设置私密 fixture、Playwright 模块、loopback URL） | 0 | Chromium 10 组断言、29 张截图：双语浅深色、390/1440 宽、200% 放大、无 JS、全部平台链接、键盘、axe WCAG2A/AA、实际后台读取/保存；409 为明确注入的测试响应 |
+| `python3 server/tests/verify_public_web_http.py`（私密 fixture） | 0 | 6 组真实 HTTP 检查：签名/过期/篡改/跨 App/旧接口重放、文件感染状态、APK 开关、发布撤回、停用 App、无同意写入、可信 origin、Mobile share_url |
+| `apps/ak-mobile/scripts/build-platform.sh ios` | 0 | HBuilderX iOS **模拟器目标、compile-only**：项目编译成功。不是安装或真机分享验证 |
+| `git diff --check` | 0 | 无新增空白错误 |
+
+质量门禁早期定位并修正了编译 import、Admin 类型/lint、权限文档/接口索引漂移、YAML anchor 命名冲突及审计 SQL 参数类型。隔离库首次集成运行缺少 core menus 种子，补齐后验证；共享库多 package 并行执行的既有账号删除用例出现一次 PostgreSQL 序列化冲突，使用 `GOFLAGS=-p=1` 串行复测通过，没有通过关闭事务隔离绕过检查。
+
+浏览器测试素材为无品牌渐变 PNG，APK 为测试 ZIP 载荷，不可安装。最初夹具桶名/存储开关错误及测试响应 envelope 已修正。后台截图按可见视口及抽屉底部保存，避免把下拉菜单门户的屏外区域当成页面截图。后续完整浏览器命令成功退出，未把失败尝试标为通过。
+
+### 截图、设计与文档
+
+- 设计：`server/design-system/MASTER.md`、`server/design-system/pages/`；Admin `design-system/pages/public-web.md`。
+- Skill request/output/decisions/review：`server/artifacts/ui-ux-pro-max/AKH5-001/`、`apps/ak-admin/artifacts/ui-ux-pro-max/AKH5-001/`。
+- 截图索引：`server/artifacts/ui-ux-pro-max/AKH5-001/review.md`；图片及浏览器/HTTP JSON 证据：`output/playwright/public-web/`。
+- 部署、旧域名代理、存储要求、缓存、多副本更新和回滚：`docs/manual/public-web.md`。
+
+### 未完成项、外部验收与风险
+
+- **真机 gate 未完成**：本轮没有对正式 App 商店目标、微信实机、可安装正式 APK、HarmonyOS/Android/iOS 原生分享执行验收；需实际发行资料、安装包及目标设备。UA 模拟、Chromium、UTS 编译和测试 ZIP 均不能替代这些结果。
+- Android/HarmonyOS 原生构建本轮未执行；Mobile 全项目静态检查与 iOS UTS 编译已执行。Linux/Windows Server 二进制未在本轮运行，独立部署验证平台为 macOS arm64。
+- 上线需配置可信 `AK_PUBLIC_WEB_BASE_URL`、启用文件存储，补齐旧市场网页配置并逐 App 开启发行页。未配置 origin 不会依 Host 猜地址。
+- 双语截图/axe 规则检查不等于所有人工无障碍或所有浏览器兼容认证。系统平台识别属于推荐，不能作为安全判断。
+- 多副本滚动发布应保证旧哈希静态资源在切流窗口可访问；已下载到终端的内容无法因撤回远程删除。详细措施见运维文档。
+
+## 2026-08-31 — AKH5-002 后台 H5 手机预览与资讯操作菜单
+
+### 变更与边界
+
+- 共享 `PublicPagePreviewModal` 复用 AkModal，CSS 绘制 iPhone 16 外观；393×852 逻辑屏幕、顶部和底部留白、等比例设备缩放、不随设备缩小的刷新/复制/关闭工具栏。真实 iframe 仅在打开时创建，关闭/切 App/离页销毁，重新加载和复制始终针对初始入口与当前后台语言。
+- 已发布文章、已保存且启用的发行配置、已发布单页接入。文章操作列 112px、桌面右固定，公开访问/编辑发布/危险删除分组且每项有图标；App 与通用内容沿用不同既有权限。发布校验、版本冲突和删除确认未移除，写入期间禁止重复动作。分类/专题/标签/评论未调整。
+- H5 HTML（含错误页）仅放行校验后的 AK_ADMIN_ORIGIN；默认拒绝嵌入，生产 HTTPS、开发 loopback HTTP。其余 CSP、资源和 OpenAPI 文档策略不变。内置内容哈希脚本与父窗口校验精确 origin/source/loadId，加载事件本身不代表成功，10 秒未握手提示重试或独立打开。
+- 同 App 文档/锚点留在 iframe；用户点击商店、APK 或外链才新开并隔离 opener。没有 UA 模拟、管理员 Token 传递、srcdoc、顶层导航或摄像头/麦克风/定位权限。公开数据限制不变，无新增数据库、业务 API、权限及 Mobile 功能；OpenAPI 只补充响应安全说明，未变更 Schema。
+- 同步 Admin Master、公开页面/资讯 override、真实 ui-ux-pro-max request/output/decisions/checklist、Backend/Admin 蓝图、ADR-0030、部署与回滚说明。保留开工前 H5、反馈等全部修改，未自动提交或推送。
+
+### 实际命令与结果
+
+| 命令/操作 | 退出码 | 验证范围 |
+|---|---:|---|
+| `PATH=/Users/payhon/.nvm/versions/node/v24.18.1/bin:$PATH make check` | 0 | Backend/Admin/Mobile 与 i18n 蓝图（包括根规则要求的两个 Python 校验）、Go fmt/vet/test、Admin 生成/兼容/lint/类型/50 文件 213 测试/构建/预算、Mobile 静态、84 页文档构建和语言 parity |
+| `make -C server test-race` | 0 | 后端全模块 race，无竞争报告 |
+| `GOTOOLCHAIN=go1.26.5 go test -json ./...`（server） | 0 | 275 个通过的测试及命名子用例，0 fail；其中 publicweb HTTP 包 27 个 |
+| `node --test server/tests/download.test.mjs server/tests/preview.test.mjs`（make check 内） | 0 | 平台识别 10 项、预览导航/握手/错误页/独立访问 4 项 |
+| `make -C server build-api` | 0 | macOS arm64 Go 1.26.5；从 /tmp 且 PATH=/usr/bin:/bin 启动独立 18084 实例，HTML 与内置哈希预览 JS 均 HTTP 200，CSP 精确匹配管理 origin，验证后停止 |
+| `python3 server/tests/seed_public_web_e2e.py` | 0 | 在 ak_h5_verify 隔离库幂等复用夹具，补齐同租户 App 切换资源；凭据文件权限 0600，不输出凭据 |
+| `node apps/ak-admin/scripts/e2e_public_web_preview.mjs`（私密 fixture、Playwright 模块与 loopback URL） | 0 | Chromium headless 11 组断言、24 张截图；三入口双语/1440 与 375 宽、6 次 axe WCAG2A/AA 对话框扫描、长文/安全留白/焦点、复制/刷新/销毁、双语错误/超时、外链与 CSP |
+| `git diff --check` | 0 | 补丁空白校验 |
+
+新增 Admin 回归 19 项（URL/消息 10、菜单矩阵 5、Modal 4）。浏览器实测发现并修复响应式 Table 重挂载造成预览销毁、Modal 长英文尺寸溢出、Portal 挂载前测量，以及减少动态效果样式让 left/top 参与过渡导致菜单定位屏外的问题。最终测试严格检查菜单完整可见并使用真实指针删除确认和键盘公开查看，没有强制点击屏外菜单。
+
+浏览器使用隔离 API :18080 / Admin :14173 / PostgreSQL；原 :8080/:4174 演示服务未改动。实际登录后使用 SPA 路由导航，未把登录态跨整页重载恢复列为本次验收。剪贴板成功使用浏览器实际 clipboard API；拒绝/无握手场景显式注入，错误 HTML 来自真实服务端 404。商店和 APK 新窗口目标用受控响应，APK 链接为测试插入，没有假称实际安装。
+
+### 截图、日志、未完成项和风险
+
+- 截图与 Skill 索引：`apps/ak-admin/artifacts/ui-ux-pro-max/AKH5-002/review-checklist.md`；原图和 11 组断言清单：`output/playwright/public-web-preview/`。
+- 命令/退出码、make check/race/build/browser 日志、独立二进制 HTTP 证据：`output/public-web-preview-validation/`。
+- 无未完成代码项，无实现阻断；本次不涉及迁移，不重复执行数据库 Down。既有发布/租户/文件授权代码不放宽，原 AKH5-001 数据验收记录继续保留。
+- 真机商店、微信浏览器、可安装 APK 未验证，不能由受控新窗口测试替代。200% 使用 CSS zoom 和正文放大；不是所有浏览器原生缩放验收。Safari/Firefox、Linux/Windows 二进制、人工读屏均未在本次验证。
+- 上线前必须将 AK_ADMIN_ORIGIN 配置为实际后台 origin；代理不得为 H5 附加冲突的 X-Frame-Options/CSP，后台 CSP frame-src 须允许公开站点。建议分 origin 部署；同源 sandbox 不是独立安全边界。
+- 未发布到生产。新 Admin 配旧 Server 将显示超时并保留独立打开；回滚应同时回退预览入口、预览脚本与 HTML 嵌入策略，既有 H5 数据无需回退。
+
+
+## 2026-09-01 — AKH5-002 本地环境更新
+
+### 目标与保护措施
+
+目标为已有 Compose 项目 `appkernia-news-demo`，不是新建数据库或生产发布。先核对实际容器、端口、镜像、卷和迁移版本，再保留旧镜像及容器配置。构建期间旧服务保持在线；新镜像成功后才停止 API/Worker、执行数据库备份和迁移。没有读取、修改或重置管理员密码。
+
+Compose 原本未向 API 注入 `AK_PUBLIC_WEB_BASE_URL`，即使上线新代码也无法生成公开绝对地址。本轮在 `compose.yaml` 增加本地默认 `http://localhost:8080`，与 `.env.example`、实际 API 端口一致；`AK_ADMIN_ORIGIN` 继续为精确的 `http://localhost:4174`。
+
+### 实际命令与结果
+
+| 命令/阶段 | Exit | 结果 |
+|---|---:|---|
+| `docker ps`、`docker compose ls/ps`、容器标签/卷/端口/镜像检查 | 0 | 确认唯一目标为 `appkernia-news-demo`；Admin 4174、API 8080、PostgreSQL 55432，迁移前 27/false |
+| `docker compose -p appkernia-news-demo config` | 0 | Compose 有效，渲染后的 API 环境包含 `AK_PUBLIC_WEB_BASE_URL=http://localhost:8080` |
+| 为 API/Worker/Admin 创建 `before-public-web-20260901-062117` 标签并保存容器 inspect | 0 | 旧镜像分别为 `5b7066c002af`、`91ccf145c091`、`2babec23ef7b`；敏感快照仅存 `.secrets` 0700 目录 |
+| `docker compose -p appkernia-news-demo build api worker migrate seed admin` | 0 | 当前工作树完成 Go 1.26.5 Linux API/CLI/Worker 和 Node 24.18.1 Admin 生产构建 |
+| 首次宿主 `pg_restore --list` | 127 | 宿主未安装 pg_restore；发生在迁移前，备份已生成，数据库仍为 27。随后改用 PostgreSQL 容器内同版本工具，不隐藏该中断 |
+| 容器内 `pg_restore --list` 校验备份 | 0 | custom dump 690407 bytes、0600、1014 行 TOC，SHA-256 `0da395eb2afaef6057ce5b3e949bea09d339aed4c855fd26dfc4cd2639190a52` |
+| `docker compose ... run --rm --no-deps migrate` | 0 | 应用迁移 28、dirty=false，River 新迁移 0 |
+| `docker compose ... run --rm --no-deps seed` | 0 | 182 权限、49 菜单、8 模块；development_admin=false，未创建或重置管理员 |
+| `docker compose ... up -d --no-deps --force-recreate api worker admin` | 0 | 当前镜像启动；API/Admin/PostgreSQL healthy、Worker running，三者 restart count=0 |
+| HTTP/SQL/静态资产 smoke | 0 | Ready、Admin health、同源 public-config 为 200；2 项 H5 权限及角色绑定存在；已发布资讯/CSS/预览 JS 200；发行页未启用所以下载页受控 404 |
+| Chromium 本地部署 smoke | 0 | `localhost:4174` 登录页加载，从该可信 origin 嵌入已发布 H5 并收到 `ready`；page error 0、failed request 0 |
+| 清理临时 18080/14173 验收进程 | 0 | 仅终止上一轮明确创建的 `/tmp/ak-h5-preview-api` 和 Vite 临时进程，两端口已关闭 |
+| Blueprint 四项校验、`git diff --check` | 0 | 部署配置/文档格式与 Backend/Admin/Mobile/i18n 契约继续通过 |
+
+### 最终状态、回滚与限制
+
+- 当前镜像：API `sha256:ac61608431d9...`、Worker `sha256:aa3a788bfc57...`、Admin `sha256:a8d4d9398984...`；运行容器与这些 Image ID 完全一致。
+- 迁移前后均为原 1 App、2 账号；部署后有 3 资讯、5 单页。发行配置 0 条，符合“存量不自动公开”。现有数据和对象存储卷未替换。
+- 数据库和容器配置备份：`.secrets/local-deploy-20260901-062117/`。当前无发行配置；后续产生配置后，回滚 28 前必须另做备份。旧镜像标签可用于配套回退。
+- 证据日志及 JSON：`output/local-deploy-public-web/`。构建存在既有大 chunk 提示但成功退出；此前全仓 bundle budget 已通过，本次没有把提示称作失败。
+- 本次未使用管理员凭据做登录态业务操作；真实登录后的菜单与预览完整流程已有隔离 E2E 证据，本地部署只验证实际静态包标记、H5 HTTP 和可信 iframe 握手。发行页需登录后台配置并显式开启后才返回 200。
+- 未部署生产、未重新打包 Mobile、未验证真实商店/微信/APK 安装；未提交或推送。
+
+## 2026-09-01 — AKH5-004 H5 图标控件、可配置推广与本地更新
+
+### 变更与行为
+
+- 视频资讯的宽屏/沉浸文本按钮改为播放器右上角浮动的显示器/手机 SVG 图标；两个按钮均为 44px 目标，提供双语 Tooltip、可访问名称和 `aria-pressed` 状态。原生播放器继续不自动播放。
+- H5 语言切换从页脚移到页头，以地球 SVG 图标呈现。文章、图文、视频、已发布单页和下载页共享 Header；页脚只保留 App 名称。
+- 既有 `public-web-config` 增加 `promotion_enabled`，双语配置增加推广标题、说明和按钮文字。空文案由模板使用 App 名称及内置翻译回退；开关关闭后，资讯/单页不输出 `.header-download` 或 `.article-app`，下载页地址和内容不受影响。
+- 后台 App 发行页配置 Drawer 增加显示开关和三个本地化字段，继续使用 `app.public_web.read/update`、RHF/Zod、lock_version、审计和原保存错误反馈。没有新增权限码或 API 路径。
+- 数据库迁移为 `000029_public_web_promotion`；存量配置的推广默认 true，避免升级后已有推广静默消失。OpenAPI、sqlc、Admin Client、Mobile Client、i18n、蓝图、ADR、运维和 UI Skill 产物同步更新。
+
+### 实际命令与结果
+
+| 命令/操作 | 退出码 | 结果 |
+|---|---:|---|
+| `make sqlc-generate`（server） | 0 | 新配置/翻译列生成 pgx/sqlc 查询与模型 |
+| `pnpm --filter @appkernia/admin generate`、`python3 apps/ak-mobile/scripts/generate-mobile-client.py` | 0 | OpenAPI 生成 Client 同步；Mobile 报告 current |
+| `go test ./internal/modules/appmanagement/application ./internal/modules/publicweb/application ./internal/modules/publicweb/transport/http` | 0 | 配置传播、关闭推广 DOM、图标模板和正文媒体目标测试通过 |
+| 独立库迁移 Up→Down→Up | 0 | PostgreSQL 18，29/false→28/false→29/false；promotion_enabled 默认 true、NOT NULL |
+| `go test -tags=integration ./internal/modules/appmanagement/application` | 0 | 真实数据库配置写入、双语推广字段、乐观锁和公开读取通过 |
+| `PATH=/Users/payhon/.nvm/versions/node/v24.18.1/bin:$PATH make check` | 0 | 四套 Blueprint/i18n、Go fmt/vet/test、H5 JS 14 项、Admin 生成/契约/lint/type/50 文件 215 项/生产构建/预算、Mobile 静态、84 页文档构建 |
+| `GOTOOLCHAIN=go1.26.5 make -C server test-race` | 0 | 后端全模块 race，无竞争报告 |
+| `GOTOOLCHAIN=go1.26.5 go test -json ./...` | 0 | 279 passed、1 skipped、0 failed，50 个有测试通过事件的包 |
+| Playwright Chromium 本地脚本 | 0 | 14 组：视频图标位置/两模式、顶部语言、推广显示、后台关闭/恢复、375/390/768/1440、深色、200%、可信 iframe、键盘及双语 |
+| axe-core WCAG 2 A/AA | 0 | 视频/图文/下载 375px 深色及 Admin en-US 768px Drawer violation 均为 0 |
+| `git diff --check` | 0 | 最终补丁空白校验 |
+
+完整 Admin 测试出现 happy-dom 对 pseudo-element/getContext 的既有 “Not implemented” 提示，但 50 文件/215 项全部通过，生产构建和 bundle budget 同时通过；未把该提示记为失败。
+
+### 本地部署与回滚
+
+- 目标为既有 Compose 项目 `appkernia-news-demo`。迁移前数据库为 28/false，1 App、1 条发行配置、3 资讯、5 单页。先为 API/Worker/Admin 打 `before-h5-promotion-20260901-121500` 回滚标签，并生成 PostgreSQL custom dump。
+- 备份位于忽略且权限受限的 `.secrets/local-deploy-public-web-promotion-20260901-121500/`；dump 700380 bytes，SHA-256 `3a88e21fa65a13f55d6efcd4acd551b4ad3497eb711ac1ac0034ca8fa1a8156e`，已使用 PostgreSQL 18 `pg_restore -l` 校验。
+- 当前数据库 29/false；最终兼容性修复重建后 API `ba24446c47cb…`、Worker `951dfc0cacb6…`、Admin `5286f31259ff…`。运行容器与 latest 镜像一致；API/Admin/PostgreSQL healthy、Worker running。Ready、Admin health、图文、视频和下载页均 HTTP 200。
+- 浏览器实际将推广关闭并保存，再确认 H5 DOM 消失；随后重新开启并确认 DOM 恢复。最终 `enabled=true`、`apk_enabled=true`、`promotion_enabled=true`、lock_version=3。该可逆验收留下两条正常审计记录，但未改变推广文案或其他业务资料。
+- Down 29 会删除推广开关和三项双语字段。回滚前需停止新 Admin 写请求、使用上述备份或新备份保留数据，并配套切回旧 API/Worker/Admin；不得只回滚 Schema。
+
+### 截图与限制
+
+- 截图和 JSON：`output/playwright/public-web-controls/`。主要文件为 `video-icons-zh-CN-390.png`、`video-en-US-dark-375.png`、`gallery-top-language-en-US-390.png`、`download-top-language-zh-CN-1440.png`、`article-top-language-200-percent.png`、`video-controls-admin-origin-iframe.png`、`admin-promotion-toggle-and-fields-zh-CN.png`、`admin-promotion-en-US-768.png`。
+- Skill 索引：`server/artifacts/ui-ux-pro-max/AKH5-004/review.md`、`apps/ak-admin/artifacts/ui-ux-pro-max/AKH5-004/review-checklist.md`。部署结构化证据：`output/local-deploy-public-web-promotion/evidence.json`。
+- 未执行 iOS/Android/HarmonyOS 真机视频播放、微信内置浏览器、真实商店跳转或 APK 安装；Chromium 与 UA/iframe 检查不能替代这些 gate。未提交、未推送、未部署生产。
+
+
+## 2026-09-01 — 本地 H5 手机预览灰屏诊断
+
+截图中的灰色损坏页不是 H5 404。Admin 访问日志显示实际 Referer 为 `http://127.0.0.1:4174/...`，而 API 环境和 H5 响应为 `AK_ADMIN_ORIGIN=http://localhost:4174`、`frame-ancestors http://localhost:4174`。浏览器把两个 hostname 视为不同 origin；顶层“查看公开页面”不检查 frame ancestor，所以能正常打开。
+
+处理过程中曾尝试仅将 Compose origin 改为 127；API 立即以 `password reset notifier requires a secure admin origin` 退出，发生在启动阶段且未写数据。该配置耦合说明不能用 127 替换认证模块的规范 origin。已立即恢复 localhost，API 回到 healthy/restart=0，并以 0600 的忽略 `.env` 固定规范值。没有放宽 CSP、增加通配符或信任请求 Host。
+
+实际复验针对当前已启用且 HTTP 200 的下载页：Playwright Chromium 从 localhost Admin 父页面收到预览 `ready`、无 CSP error；从 127 父页面未握手并捕获 frame-ancestors CSP error。结果位于 `output/local-deploy-public-web/origin-diagnosis.json`。解决方式是统一使用 `http://localhost:4174`；由于 Cookie/localStorage 按 origin 隔离，从 127 切换后可能需要重新登录一次。数据库当前 1 条发行配置已启用，这是用户在部署后显式保存的状态，本轮诊断未修改业务数据。
+
+## 2026-09-01 — AKH5-003 图文/视频资讯与单页发布修复
+
+### 原因与变更
+
+- H5 只从资讯响应取了封面和正文，没有把 `content_type`、`media`、内部/外部视频地址传进模板；图文和视频数据虽然存在，页面仍只能渲染封面。现按 Mobile 已有展示信息补齐类型化 ViewModel：图文采用主图滑动、计数和缩略图；视频提供原生播放器及宽屏/沉浸切换；三种资讯均保留摘要和正文。
+- 外部视频地址只接受有效 HTTPS hostname，拒绝凭据、opaque URL、危险主机字符和非法端口；页面 CSP 只增加当前视频的精确 origin。公开图片、内部视频仍走原有 App 归属及安全文件接口。
+- 本地数据库 5 个预置单页均是 `draft`、`current_revision_id=NULL`、revision 数 0。发布接口需要最新 draft revision，所以 422 `VALIDATION.FAILED` 是服务端正确拒绝无内容发布；此前 Admin 没检查 revision。现在空白页发布按钮禁用并显示双语保存指引，存在草稿才允许提交；已发布页面的后续草稿也能继续发布。
+
+### 实际验证与本地更新
+
+| 命令/操作 | 退出码 | 结果 |
+|---|---:|---|
+| `PATH=/Users/payhon/.nvm/versions/node/v24.18.1/bin:$PATH make check` | 0 | 四套 Blueprint/i18n、Go fmt/vet/test、公开 H5 JS 14 项、Admin 生成/引用/lint/type/50 文件 214 项/生产构建、Mobile 静态与 84 页文档构建 |
+| `make test-race`（server） | 0 | 后端全模块 race，无竞争报告 |
+| `GOTOOLCHAIN=go1.26.5 go test -json ./...`（server） | 0 | 277 passed、1 skipped、0 failed（含命名子用例） |
+| `npm test -- --run src/features/apps/model.test.ts`、`npm run lint`、`npm run typecheck` | 0 | 最终 Admin 发布显示边界 1 文件/8 项及静态检查通过 |
+| `docker compose -p appkernia-news-demo build api/admin`、对应 `up -d --no-deps --force-recreate` | 0 | 最终 API 镜像 `sha256:37d3e62a…`、Admin 镜像 `sha256:6000e3b8…`；两者 healthy，PostgreSQL healthy、Worker running |
+| Chromium 最终脚本 | 0 | 图集 3 媒体/切换/摘要、视频真实地址/两模式、可信 Admin iframe ready、深色模式、实际本地管理员登录、5 个空白页发布禁用及 Tooltip，共 7 组；page error 0 |
+| axe-core WCAG 2 A/AA | 0 | 图集与视频 violation 均为 0；图集滚动区已补键盘焦点 |
+| `git diff --check` | 0 | 补丁空白检查（最终文档更新后复验） |
+
+截图：`output/playwright/public-web-media/gallery-zh-CN-390.png`、`gallery-zh-CN-dark-390.png`、`video-en-US-immersive-390.png`、`video-en-US-widescreen-390.png`、`gallery-admin-iframe-390.png`、`page-publish-disabled-zh-CN.png`；结构化索引为同目录 `evidence.json`。
+
+### 边界
+
+本轮没有数据库、OpenAPI、权限或 Mobile 代码变更，没有写入或发布本地单页测试数据。Chromium 使用 390px 视口和实际外部测试视频，但不等同于 iOS/Android/HarmonyOS 真机播放、网络异常、微信浏览器、商店跳转或 APK 安装验收。工作树包含既有未提交改动，全部保留；未 commit、未 push、未部署生产。

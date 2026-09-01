@@ -7,6 +7,10 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	feedbackapp "github.com/appkernia/appkernia/server/internal/modules/feedback/application"
+	feedbackrepo "github.com/appkernia/appkernia/server/internal/modules/feedback/repository"
+	feedbackscanner "github.com/appkernia/appkernia/server/internal/modules/feedback/scanner"
+	feedbackhttp "github.com/appkernia/appkernia/server/internal/modules/feedback/transport/http"
 	"time"
 
 	accessadminapp "github.com/appkernia/appkernia/server/internal/modules/accessadmin/application"
@@ -55,6 +59,8 @@ import (
 	orghttp "github.com/appkernia/appkernia/server/internal/modules/org/transport/http"
 	platformapp "github.com/appkernia/appkernia/server/internal/modules/platform/application"
 	platformhttp "github.com/appkernia/appkernia/server/internal/modules/platform/transport/http"
+	publicwebapp "github.com/appkernia/appkernia/server/internal/modules/publicweb/application"
+	publicwebhttp "github.com/appkernia/appkernia/server/internal/modules/publicweb/transport/http"
 	pushapp "github.com/appkernia/appkernia/server/internal/modules/push/application"
 	pushdomain "github.com/appkernia/appkernia/server/internal/modules/push/domain"
 	pushprovider "github.com/appkernia/appkernia/server/internal/modules/push/provider"
@@ -214,6 +220,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	pushHandler := pushhttp.NewHandler(pushService, catalog)
 	appManagementService := appmanagementapp.NewService(pool, authService,
 		appmanagementapp.WithOTPNotifier(appOTPNotifier),
+		appmanagementapp.WithPublicWebBaseURL(cfg.PublicWebBaseURL),
 		appmanagementapp.WithAccountDeletionEnabled(accountDeletionEnabled),
 		appmanagementapp.WithObjectErasureQueue(appmanagementrepo.NewObjectErasureQueue(trackedQueue)),
 		appmanagementapp.WithObjectStore(objectStore),
@@ -285,7 +292,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	notificationAdminService := notificationadminapp.NewService(authService, notificationAdminRepository, notificationadminapp.WithDictionaryResolver(settingsRepository), notificationadminapp.WithTargetSealer(settingsSealer))
 	notificationAdminHandler := notificationadminhttp.NewHandler(notificationAdminService, catalog)
 	contentRepository := contentrepo.NewPostgres(pool, objectStore)
-	contentService := contentapp.NewService(authService, contentRepository)
+	contentService := contentapp.NewService(authService, contentRepository, contentapp.WithPublicWebBaseURL(cfg.PublicWebBaseURL))
 	contentHandler := contenthttp.NewHandler(contentService, catalog)
 	jobAdminRepository := jobadminrepo.NewPostgres(pool, riverInsertClient)
 	jobAdminService := jobadminapp.NewService(authService, jobAdminRepository)
@@ -311,15 +318,24 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	opsAdminRepository := opsadminrepo.NewPostgres(pool, opsadminrepo.Config{ObjectStorageConfigured: cfg.AvatarUploadEnabled || cfg.FileStorageEnabled})
 	opsAdminService := opsadminapp.NewService(authService, opsAdminRepository)
 	opsAdminHandler := opsadminhttp.NewHandler(opsAdminService, catalog)
+	var screenshotScanner feedbackapp.Scanner
+	if cfg.FeedbackClamdSocket != "" {
+		screenshotScanner = feedbackscanner.Clamd{Socket: cfg.FeedbackClamdSocket}
+	}
+	feedbackService := feedbackapp.NewService(authService, feedbackrepo.NewPostgres(pool), objectStore, screenshotScanner)
+	feedbackHandler := feedbackhttp.NewHandler(feedbackService, catalog)
 	health := platformapp.NewHealthService(pool, 2*time.Second)
 	handler := platformhttp.NewHandler(health, catalog, featureFlags, settingsRepository, pool)
 
+	publicWebHandler, err := publicwebhttp.NewHandler(publicwebapp.NewService(appManagementService, contentService, mobileProfileService, cfg.PublicWebBaseURL), catalog, cfg.AdminOrigin, cfg.Environment == "development" || cfg.Environment == "test")
+	if err != nil {
+		return nil, err
+	}
 	server := g.Server("ak-api")
 	server.SetAddr(cfg.HTTPAddr)
 	server.Use(httpx.RequestContext)
 	server.Group("/", func(group *ghttp.RouterGroup) {
-		group.GET("/s/{slug}", contentHandler.PublicShare)
-		group.GET("/s/assets/{app_id}/{file_id}", contentHandler.PublicShareAsset)
+		publicWebHandler.Register(group)
 	})
 	server.Group("/internal/v1", func(group *ghttp.RouterGroup) {
 		group.GET("/health/live", handler.Live)
@@ -367,6 +383,15 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/me/account-deletion/confirm", appManagementHandler.ConfirmAccountDeletion)
 		group.GET("/me", authHandler.MobileMe)
 		group.PATCH("/me", authHandler.MobileUpdateMe)
+
+		group.GET("/me/feedbacks", feedbackHandler.Collection)
+		group.POST("/me/feedbacks", feedbackHandler.Collection)
+		group.GET("/me/feedbacks/{id}", feedbackHandler.Detail)
+		group.GET("/me/feedbacks/{id}/attachments/{file_id}/content", feedbackHandler.File)
+		group.POST("/me/feedback-uploads", feedbackHandler.CreateUpload)
+		group.POST("/me/feedback-uploads/{id}/content", feedbackHandler.Upload)
+		group.DELETE("/me/feedback-uploads/{id}", feedbackHandler.CancelUpload)
+
 		group.POST("/me/avatar/upload-session", storageHandler.CreateMobileAvatarUpload)
 		group.POST("/me/avatar/upload-sessions/{id}/content", storageHandler.UploadMobileAvatarContent)
 		group.GET("/me/avatar/content", storageHandler.MobileAvatarContent)
@@ -444,6 +469,13 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/apps/{app_id}", appManagementHandler.AdminApp)
 		group.PATCH("/apps/{app_id}", appManagementHandler.AdminApp)
 		group.DELETE("/apps/{app_id}", appManagementHandler.AdminApp)
+
+		group.GET("/apps/{app_id}/feedbacks", feedbackHandler.Collection)
+		group.GET("/apps/{app_id}/feedbacks/{id}", feedbackHandler.Detail)
+		group.PATCH("/apps/{app_id}/feedbacks/{id}", feedbackHandler.Detail)
+		group.POST("/apps/{app_id}/feedbacks/{id}/replies", feedbackHandler.Reply)
+		group.GET("/apps/{app_id}/feedbacks/{id}/attachments/{file_id}/content", feedbackHandler.File)
+
 		group.GET("/apps/{app_id}/scanner-config", appManagementHandler.AdminScannerConfig)
 		group.PUT("/apps/{app_id}/scanner-config", appManagementHandler.AdminScannerConfig)
 		group.POST("/apps/batch-delete", appManagementHandler.AdminBatchDeleteApps)
@@ -517,6 +549,8 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/apps/{app_id}/content/comments/{id}/moderate", contentHandler.ModerateComment)
 		group.GET("/apps/{app_id}/content/comment-reports", contentHandler.CommentReports)
 		group.POST("/apps/{app_id}/content/comment-reports/{id}/resolve", contentHandler.ResolveCommentReport)
+		group.GET("/apps/{app_id}/public-web-config", appManagementHandler.AdminPublicWebConfig)
+		group.PUT("/apps/{app_id}/public-web-config", appManagementHandler.AdminPublicWebConfig)
 		group.GET("/apps/{app_id}/content/pages", appManagementHandler.AdminPages)
 		group.POST("/apps/{app_id}/content/pages", appManagementHandler.AdminPages)
 		group.PATCH("/apps/{app_id}/content/pages/{slug}", appManagementHandler.AdminPage)

@@ -86,6 +86,12 @@
     "jobs.task_runs",
     "jobs.task_attempts",
     "notify.message_runs",
-    "notify.delivery_daily_metrics"
+    "notify.delivery_daily_metrics",
+    "app.feedbacks",
+    "app.feedback_attachments",
+    "app.feedback_replies",
+    "app.feedback_events",
+    "app.application_public_web_configs",
+    "app.application_public_web_translations"
   ]
 }

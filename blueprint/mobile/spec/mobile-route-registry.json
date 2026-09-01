@@ -234,7 +234,9 @@
       "apis": [],
       "feature_flag": null,
       "tab_key": null,
-      "params": {"token": "one-time opaque in-memory token"},
+      "params": {
+        "token": "one-time opaque in-memory token"
+      },
       "ui_skill_required": true
     },
     {
@@ -246,7 +248,11 @@
       "title_key": "information.browse.title",
       "phase": "P1",
       "required_permissions": [],
-      "apis": ["GET /api/v1/public/content/items", "GET /api/v1/public/content/search", "GET /api/v1/public/content/categories"],
+      "apis": [
+        "GET /api/v1/public/content/items",
+        "GET /api/v1/public/content/search",
+        "GET /api/v1/public/content/categories"
+      ],
       "feature_flag": null,
       "tab_key": "browse",
       "params": {},
@@ -261,7 +267,10 @@
       "title_key": "information.search",
       "phase": "P1",
       "required_permissions": [],
-      "apis": ["GET /api/v1/public/content/search", "GET /api/v1/public/content/topics"],
+      "apis": [
+        "GET /api/v1/public/content/search",
+        "GET /api/v1/public/content/topics"
+      ],
       "feature_flag": null,
       "tab_key": null,
       "params": {},
@@ -276,7 +285,9 @@
       "title_key": "information.topics.title",
       "phase": "P1",
       "required_permissions": [],
-      "apis": ["GET /api/v1/public/content/topics"],
+      "apis": [
+        "GET /api/v1/public/content/topics"
+      ],
       "feature_flag": null,
       "tab_key": "topics",
       "params": {},
@@ -291,10 +302,15 @@
       "title_key": "information.topics.title",
       "phase": "P1",
       "required_permissions": [],
-      "apis": ["GET /api/v1/public/content/topics", "GET /api/v1/public/content/items"],
+      "apis": [
+        "GET /api/v1/public/content/topics",
+        "GET /api/v1/public/content/items"
+      ],
       "feature_flag": null,
       "tab_key": null,
-      "params": {"slug": "slug"},
+      "params": {
+        "slug": "slug"
+      },
       "ui_skill_required": true
     },
     {
@@ -306,7 +322,10 @@
       "title_key": "profile.bookmarks",
       "phase": "P1",
       "required_permissions": [],
-      "apis": ["GET /api/v1/me/content-bookmarks", "DELETE /api/v1/me/content-bookmarks/{article_id}"],
+      "apis": [
+        "GET /api/v1/me/content-bookmarks",
+        "DELETE /api/v1/me/content-bookmarks/{article_id}"
+      ],
       "feature_flag": null,
       "tab_key": null,
       "params": {},
@@ -797,7 +816,10 @@
       "title_key": "routes.articles.list.title",
       "phase": "P1",
       "required_permissions": [],
-      "apis": ["GET /api/v1/public/content/categories", "GET /api/v1/public/content/items"],
+      "apis": [
+        "GET /api/v1/public/content/categories",
+        "GET /api/v1/public/content/items"
+      ],
       "feature_flag": null,
       "tab_key": null,
       "params": {},
@@ -811,11 +833,20 @@
       "kind": "page",
       "title_key": "routes.articles.detail.title",
       "phase": "P1",
-      "required_permissions": ["content.article.bookmark_self"],
-      "apis": ["GET /api/v1/public/content/items/{slug}", "GET /api/v1/public/content/items/{id}/comments", "PUT /api/v1/me/content-bookmarks/{article_id}", "DELETE /api/v1/me/content-bookmarks/{article_id}"],
+      "required_permissions": [
+        "content.article.bookmark_self"
+      ],
+      "apis": [
+        "GET /api/v1/public/content/items/{slug}",
+        "GET /api/v1/public/content/items/{id}/comments",
+        "PUT /api/v1/me/content-bookmarks/{article_id}",
+        "DELETE /api/v1/me/content-bookmarks/{article_id}"
+      ],
       "feature_flag": null,
       "tab_key": null,
-      "params": {"slug": "slug"},
+      "params": {
+        "slug": "slug"
+      },
       "ui_skill_required": true
     },
     {
@@ -842,10 +873,84 @@
       "title_key": "routes.legal.page.title",
       "phase": "P1",
       "required_permissions": [],
-      "apis": ["GET /api/v1/public/pages/{slug}"],
+      "apis": [
+        "GET /api/v1/public/pages/{slug}"
+      ],
       "feature_flag": null,
       "tab_key": null,
-      "params": {"slug": "slug"},
+      "params": {
+        "slug": "slug"
+      },
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "help",
+      "path": "pages/help/index",
+      "file": "apps/ak-mobile/pages/help/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.help.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": [],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "feedback",
+      "path": "pages/feedback/index",
+      "file": "apps/ak-mobile/pages/feedback/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.feedback.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": [
+        "GET /api/v1/me/feedbacks"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "feedback.create",
+      "path": "pages/feedback/create/index",
+      "file": "apps/ak-mobile/pages/feedback/create/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.feedback.create.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": [
+        "POST /api/v1/me/feedbacks",
+        "POST /api/v1/me/feedback-uploads",
+        "DELETE /api/v1/me/feedback-uploads/{id}",
+        "POST /api/v1/me/feedback-uploads/{id}/content"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
+      "ui_skill_required": true
+    },
+    {
+      "route_key": "feedback.detail",
+      "path": "pages/feedback/detail/index",
+      "file": "apps/ak-mobile/pages/feedback/detail/index.uvue",
+      "access": "authenticated",
+      "kind": "page",
+      "title_key": "routes.feedback.detail.title",
+      "phase": "P1",
+      "required_permissions": [],
+      "apis": [
+        "GET /api/v1/me/feedbacks/{id}",
+        "GET /api/v1/me/feedbacks/{id}/attachments/{file_id}/content"
+      ],
+      "feature_flag": null,
+      "tab_key": null,
+      "params": {},
       "ui_skill_required": true
     }
   ]

@@ -14,7 +14,7 @@ RETURNING id, original_name, media_type, expected_size, part_size, status, provi
 SELECT id, original_name, media_type, expected_size, part_size, status, provider, bucket_name, object_key, expires_at
 FROM storage.upload_sessions
 WHERE id = sqlc.arg('id') AND tenant_id = sqlc.arg('tenant_id')
-  AND status IN ('initiated', 'uploading') AND expires_at > now();
+  AND purpose <> 'feedback' AND status IN ('initiated', 'uploading') AND expires_at > now();
 
 -- name: ListAdminFileUploadParts :many
 SELECT part_number, size_bytes, etag, checksum_sha256
@@ -27,26 +27,26 @@ INSERT INTO storage.upload_parts (upload_session_id, part_number, etag, size_byt
 SELECT id, sqlc.arg('part_number'), sqlc.arg('etag'), sqlc.arg('size_bytes'), sqlc.arg('checksum_sha256')
 FROM storage.upload_sessions
 WHERE id = sqlc.arg('upload_session_id') AND tenant_id = sqlc.arg('tenant_id')
-  AND status IN ('initiated', 'uploading') AND expires_at > now()
+  AND purpose <> 'feedback' AND status IN ('initiated', 'uploading') AND expires_at > now()
 ON CONFLICT (upload_session_id, part_number) DO UPDATE
 SET etag = EXCLUDED.etag, size_bytes = EXCLUDED.size_bytes,
     checksum_sha256 = EXCLUDED.checksum_sha256, uploaded_at = now();
 
 -- name: MarkAdminUploadUploading :exec
 UPDATE storage.upload_sessions SET status = 'uploading', updated_at = now()
-WHERE id = sqlc.arg('id') AND tenant_id = sqlc.arg('tenant_id') AND status = 'initiated';
+WHERE id = sqlc.arg('id') AND tenant_id = sqlc.arg('tenant_id') AND purpose <> 'feedback' AND status = 'initiated';
 
 -- name: LockAdminFileUploadSession :one
 SELECT id, user_id, original_name, media_type, expected_size, part_size, status, provider, bucket_name, object_key, expires_at
 FROM storage.upload_sessions
 WHERE id = sqlc.arg('id') AND tenant_id = sqlc.arg('tenant_id')
-  AND status IN ('initiated', 'uploading') AND expires_at > now()
+  AND purpose <> 'feedback' AND status IN ('initiated', 'uploading') AND expires_at > now()
 FOR UPDATE;
 
 -- name: AbortAdminFileUploadSession :execrows
 UPDATE storage.upload_sessions SET status = 'aborted', updated_at = now()
 WHERE id = sqlc.arg('id') AND tenant_id = sqlc.arg('tenant_id')
-  AND status IN ('initiated', 'uploading');
+  AND purpose <> 'feedback' AND status IN ('initiated', 'uploading');
 
 -- name: InsertReadyAdminFile :one
 INSERT INTO storage.files (
@@ -60,7 +60,7 @@ VALUES (
     'ready', sqlc.arg('scan_status'), jsonb_build_object('adapter', sqlc.arg('provider')::varchar)
 )
 ON CONFLICT (tenant_id, sha256, size_bytes)
-    WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL
+    WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL AND metadata->>'purpose' IS DISTINCT FROM 'feedback'
 DO UPDATE SET updated_at = storage.files.updated_at
 RETURNING id, owner_user_id, original_name, media_type, extension, size_bytes, status,
           scan_status, provider, bucket_name, created_at, updated_at, object_key, sha256;
@@ -69,14 +69,14 @@ RETURNING id, owner_user_id, original_name, media_type, extension, size_bytes, s
 UPDATE storage.upload_sessions
 SET file_id = sqlc.arg('file_id'), status = 'completed', completed_at = now(), updated_at = now()
 WHERE id = sqlc.arg('id') AND tenant_id = sqlc.arg('tenant_id')
-  AND status IN ('initiated', 'uploading');
+  AND purpose <> 'feedback' AND status IN ('initiated', 'uploading');
 
 -- name: ListAdminFiles :many
 SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size_bytes, f.provider,
        f.status, f.scan_status, f.created_at, f.updated_at,
        (SELECT count(*) FROM storage.file_usages u WHERE u.tenant_id = f.tenant_id AND u.file_id = f.id) AS usage_count
 FROM storage.files f
-WHERE f.tenant_id = sqlc.arg('tenant_id') AND f.deleted_at IS NULL
+WHERE f.tenant_id = sqlc.arg('tenant_id') AND f.metadata->>'purpose' IS DISTINCT FROM 'feedback' AND f.deleted_at IS NULL
   AND (sqlc.arg('query')::text = '' OR f.original_name ILIKE '%' || sqlc.arg('query') || '%')
   AND (sqlc.arg('status')::text = '' OR f.status = sqlc.arg('status'))
   AND (sqlc.arg('scan_status')::text = '' OR f.scan_status = sqlc.arg('scan_status'))
@@ -90,7 +90,7 @@ LIMIT sqlc.arg('page_size') OFFSET sqlc.arg('page_offset');
 -- name: CountAdminFiles :one
 SELECT count(*)
 FROM storage.files f
-WHERE f.tenant_id = sqlc.arg('tenant_id') AND f.deleted_at IS NULL
+WHERE f.tenant_id = sqlc.arg('tenant_id') AND f.metadata->>'purpose' IS DISTINCT FROM 'feedback' AND f.deleted_at IS NULL
   AND (sqlc.arg('query')::text = '' OR f.original_name ILIKE '%' || sqlc.arg('query') || '%')
   AND (sqlc.arg('status')::text = '' OR f.status = sqlc.arg('status'))
   AND (sqlc.arg('scan_status')::text = '' OR f.scan_status = sqlc.arg('scan_status'))
@@ -104,7 +104,7 @@ SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size
        f.status, f.scan_status, f.created_at, f.updated_at, f.object_key, f.sha256,
        (SELECT count(*) FROM storage.file_usages u WHERE u.tenant_id = f.tenant_id AND u.file_id = f.id) AS usage_count
 FROM storage.files f
-WHERE f.id = sqlc.arg('id') AND f.tenant_id = sqlc.arg('tenant_id') AND f.deleted_at IS NULL;
+WHERE f.id = sqlc.arg('id') AND f.tenant_id = sqlc.arg('tenant_id') AND f.metadata->>'purpose' IS DISTINCT FROM 'feedback' AND f.deleted_at IS NULL;
 
 -- name: ListAdminFileUsages :many
 SELECT id, module_code, entity_type, entity_id, field_name, created_at
@@ -117,7 +117,7 @@ SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size
        f.status, f.scan_status, f.created_at, f.updated_at, f.object_key, f.sha256,
        (SELECT count(*) FROM storage.file_usages u WHERE u.tenant_id = f.tenant_id AND u.file_id = f.id) AS usage_count
 FROM storage.files f
-WHERE f.id = sqlc.arg('id') AND f.tenant_id = sqlc.arg('tenant_id') AND f.deleted_at IS NULL
+WHERE f.id = sqlc.arg('id') AND f.tenant_id = sqlc.arg('tenant_id') AND f.metadata->>'purpose' IS DISTINCT FROM 'feedback' AND f.deleted_at IS NULL
 FOR UPDATE;
 
 -- name: SoftDeleteAdminFile :execrows

@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/appkernia/appkernia/server/internal/shared/publicurl"
 	"os"
 	"strconv"
 	"strings"
@@ -21,6 +22,7 @@ const (
 type Config struct {
 	Environment                 string
 	HTTPAddr                    string
+	PublicWebBaseURL            string
 	DatabaseURL                 string
 	AdminOrigin                 string
 	JWTKeyID                    string
@@ -45,6 +47,7 @@ type Config struct {
 	ConfigMasterKeyVersion      int32
 	ObjectStorageAdapter        string
 	LocalObjectStorageDir       string
+	FeedbackClamdSocket         string
 	ShutdownTimeout             time.Duration
 }
 
@@ -52,6 +55,7 @@ func Load() (Config, error) {
 	cfg := Config{
 		Environment:                 os.Getenv("AK_ENV"),
 		HTTPAddr:                    os.Getenv("AK_HTTP_ADDR"),
+		PublicWebBaseURL:            strings.TrimRight(strings.TrimSpace(os.Getenv("AK_PUBLIC_WEB_BASE_URL")), "/"),
 		DatabaseURL:                 os.Getenv("AK_DATABASE_URL"),
 		AdminOrigin:                 os.Getenv("AK_ADMIN_ORIGIN"),
 		JWTKeyID:                    os.Getenv("AK_JWT_KEY_ID"),
@@ -64,6 +68,7 @@ func Load() (Config, error) {
 		PushAdapter:                 strings.ToLower(strings.TrimSpace(os.Getenv("AK_PUSH_ADAPTER"))),
 		OAuthAdapter:                strings.ToLower(strings.TrimSpace(os.Getenv("AK_OAUTH_ADAPTER"))),
 		LocalObjectStorageDir:       strings.TrimSpace(os.Getenv("AK_LOCAL_OBJECT_STORAGE_DIR")),
+		FeedbackClamdSocket:         strings.TrimSpace(os.Getenv("AK_FEEDBACK_CLAMD_SOCKET")),
 		ConfigMasterKeyBase64:       strings.TrimSpace(os.Getenv("AK_CONFIG_MASTER_KEY_BASE64")),
 	}
 	var err error
@@ -109,6 +114,13 @@ func Load() (Config, error) {
 	if cfg.Environment == "" {
 		cfg.Environment = "development"
 	}
+	if cfg.PublicWebBaseURL == "" && cfg.Environment == "development" {
+		cfg.PublicWebBaseURL = "http://localhost:8080"
+	}
+	if err := publicurl.Validate(cfg.PublicWebBaseURL, cfg.Environment == "development" || cfg.Environment == "test"); err != nil {
+		return Config{}, err
+	}
+
 	if cfg.HTTPAddr == "" {
 		cfg.HTTPAddr = defaultHTTPAddr
 	}

@@ -1398,37 +1398,148 @@
       "status": "active"
     },
     {
-      "code": "notify.push_provider.read", "name": "查看推送渠道", "module_code": "notify", "resource_name": "push_provider", "action_name": "read", "permission_kind": "api", "status": "active"
+      "code": "notify.push_provider.read",
+      "name": "查看推送渠道",
+      "module_code": "notify",
+      "resource_name": "push_provider",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "notify.push_provider.manage", "name": "管理推送渠道", "module_code": "notify", "resource_name": "push_provider", "action_name": "manage", "permission_kind": "api", "status": "active"
+      "code": "notify.push_provider.manage",
+      "name": "管理推送渠道",
+      "module_code": "notify",
+      "resource_name": "push_provider",
+      "action_name": "manage",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "notify.push_provider.rotate_secret", "name": "轮换推送凭据", "module_code": "notify", "resource_name": "push_provider", "action_name": "rotate_secret", "permission_kind": "api", "status": "active"
+      "code": "notify.push_provider.rotate_secret",
+      "name": "轮换推送凭据",
+      "module_code": "notify",
+      "resource_name": "push_provider",
+      "action_name": "rotate_secret",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "notify.push.preflight", "name": "预检推送渠道", "module_code": "notify", "resource_name": "push", "action_name": "preflight", "permission_kind": "api", "status": "active"
+      "code": "notify.push.preflight",
+      "name": "预检推送渠道",
+      "module_code": "notify",
+      "resource_name": "push",
+      "action_name": "preflight",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "notify.push.test", "name": "测试推送渠道", "module_code": "notify", "resource_name": "push", "action_name": "test", "permission_kind": "api", "status": "active"
+      "code": "notify.push.test",
+      "name": "测试推送渠道",
+      "module_code": "notify",
+      "resource_name": "push",
+      "action_name": "test",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "notify.operations.publish", "name": "发布资讯运营推送", "module_code": "notify", "resource_name": "operations", "action_name": "publish", "permission_kind": "api", "status": "active"
+      "code": "notify.operations.publish",
+      "name": "发布资讯运营推送",
+      "module_code": "notify",
+      "resource_name": "operations",
+      "action_name": "publish",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "notify.observability.read", "name": "查看消息运营监控", "module_code": "notify", "resource_name": "observability", "action_name": "read", "permission_kind": "api", "status": "active"
+      "code": "notify.observability.read",
+      "name": "查看消息运营监控",
+      "module_code": "notify",
+      "resource_name": "observability",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "notify.task.retry", "name": "重试通知任务", "module_code": "notify", "resource_name": "task", "action_name": "retry", "permission_kind": "api", "status": "active"
+      "code": "notify.task.retry",
+      "name": "重试通知任务",
+      "module_code": "notify",
+      "resource_name": "task",
+      "action_name": "retry",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "notify.message.submit", "name": "提交应用消息", "module_code": "notify", "resource_name": "message", "action_name": "submit", "permission_kind": "api", "status": "active"
+      "code": "notify.message.submit",
+      "name": "提交应用消息",
+      "module_code": "notify",
+      "resource_name": "message",
+      "action_name": "submit",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "notify.message.status.read", "name": "查询应用消息状态", "module_code": "notify", "resource_name": "message_status", "action_name": "read", "permission_kind": "api", "status": "active"
+      "code": "notify.message.status.read",
+      "name": "查询应用消息状态",
+      "module_code": "notify",
+      "resource_name": "message_status",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
     },
     {
-      "code": "notify.message.broadcast", "name": "广播应用消息", "module_code": "notify", "resource_name": "message", "action_name": "broadcast", "permission_kind": "api", "status": "active"
+      "code": "notify.message.broadcast",
+      "name": "广播应用消息",
+      "module_code": "notify",
+      "resource_name": "message",
+      "action_name": "broadcast",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.feedback.read",
+      "name": "查看问题反馈",
+      "module_code": "app",
+      "resource_name": "feedback",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.feedback.update",
+      "name": "处理问题反馈",
+      "module_code": "app",
+      "resource_name": "feedback",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.feedback.reply",
+      "name": "回复问题反馈",
+      "module_code": "app",
+      "resource_name": "feedback",
+      "action_name": "reply",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.public_web.read",
+      "name": "查看发行页配置",
+      "module_code": "app",
+      "resource_name": "public_web",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.public_web.update",
+      "name": "更新发行页配置",
+      "module_code": "app",
+      "resource_name": "public_web",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
     }
   ]
 }

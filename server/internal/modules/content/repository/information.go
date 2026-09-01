@@ -92,7 +92,7 @@ func validInformationReferences(ctx context.Context, tx pgx.Tx, tenantID, appID 
 func validStoredFile(ctx context.Context, tx pgx.Tx, tenantID, fileID uuid.UUID, video bool) bool {
 	var mediaType string
 	var size int64
-	err := tx.QueryRow(ctx, `SELECT lower(COALESCE(media_type,'')),size_bytes FROM storage.files WHERE tenant_id=$1 AND id=$2 AND status='ready' AND scan_status IN ('clean','skipped') AND deleted_at IS NULL`, tenantID, fileID).Scan(&mediaType, &size)
+	err := tx.QueryRow(ctx, `SELECT lower(COALESCE(media_type,'')),size_bytes FROM storage.files WHERE tenant_id=$1 AND id=$2 AND COALESCE(metadata->>'purpose','')<>'feedback' AND status='ready' AND scan_status IN ('clean','skipped') AND deleted_at IS NULL`, tenantID, fileID).Scan(&mediaType, &size)
 	if err != nil {
 		return false
 	}
@@ -256,7 +256,7 @@ func (r *Postgres) hydratePublicArticle(ctx context.Context, tenantID, appID uui
 		x.Tags = append(x.Tags, tag)
 	}
 	rows.Close()
-	rows, err = r.pool.Query(ctx, `SELECT m.id,m.role,m.sort_order,m.file_id,mt.alt_text FROM content.article_media m JOIN content.article_media_translations mt ON mt.media_id=m.id AND mt.locale=$4 JOIN storage.files f ON f.tenant_id=m.tenant_id AND f.id=m.file_id AND f.status='ready' AND f.scan_status IN ('clean','skipped') AND f.deleted_at IS NULL WHERE m.tenant_id=$1 AND m.app_id=$2 AND m.article_id=$3 ORDER BY m.role,m.sort_order,m.id`, tenantID, appID, x.ID, locale)
+	rows, err = r.pool.Query(ctx, `SELECT m.id,m.role,m.sort_order,m.file_id,mt.alt_text FROM content.article_media m JOIN content.article_media_translations mt ON mt.media_id=m.id AND mt.locale=$4 JOIN storage.files f ON f.tenant_id=m.tenant_id AND f.id=m.file_id AND COALESCE(f.metadata->>'purpose','')<>'feedback' AND f.status='ready' AND f.scan_status IN ('clean','skipped') AND f.deleted_at IS NULL WHERE m.tenant_id=$1 AND m.app_id=$2 AND m.article_id=$3 ORDER BY m.role,m.sort_order,m.id`, tenantID, appID, x.ID, locale)
 	if err != nil {
 		return err
 	}

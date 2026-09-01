@@ -1,3 +1,4 @@
+import { feedbackRuntime } from '../../features/feedback/feedback-runtime.uts'
 import appManifest from '../../../manifest.json'
 import { AkConfig, AkEnvironment } from '../config/config.uts'
 import { appSessionStore } from '../stores/session-store.uts'
@@ -48,6 +49,7 @@ export function initializeAppRuntime(): boolean {
   if (auth != null) {
     articleRuntime.configure(config, appSessionStore, auth, new RefreshCoordinator(sessionRuntime, auth))
     profileRuntime.configure(config, appSessionStore, sessionRuntime, auth)
+    feedbackRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     accountDeletionRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     notificationsRuntime.configure(config, appSessionStore, sessionRuntime, auth)
     preferencesRuntime.configure(config, appSessionStore, sessionRuntime, auth)

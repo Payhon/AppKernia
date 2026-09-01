@@ -50,4 +50,5 @@ jobs:
           python-version: "3.13"
       - run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends ripgrep
       - run: python3 blueprint/mobile/scripts/validate_blueprint_specs.py
+      - run: python3 -m pip install -r apps/ak-mobile/scripts/requirements.txt
       - run: apps/ak-mobile/scripts/check-project.sh

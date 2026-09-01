@@ -97,11 +97,46 @@
       "endpoints": [],
       "phase": "P1"
     },
-    { "route_key": "content.browse", "endpoints": ["GET /api/v1/public/content/items", "GET /api/v1/public/content/search", "GET /api/v1/public/content/categories"], "phase": "P1" },
-    { "route_key": "content.browse-search", "endpoints": ["GET /api/v1/public/content/search", "GET /api/v1/public/content/topics"], "phase": "P1" },
-    { "route_key": "content.topics", "endpoints": ["GET /api/v1/public/content/topics"], "phase": "P1" },
-    { "route_key": "content.topic-detail", "endpoints": ["GET /api/v1/public/content/topics", "GET /api/v1/public/content/items"], "phase": "P1" },
-    { "route_key": "content.bookmarks", "endpoints": ["GET /api/v1/me/content-bookmarks", "DELETE /api/v1/me/content-bookmarks/{article_id}"], "phase": "P1" },
+    {
+      "route_key": "content.browse",
+      "endpoints": [
+        "GET /api/v1/public/content/items",
+        "GET /api/v1/public/content/search",
+        "GET /api/v1/public/content/categories"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "content.browse-search",
+      "endpoints": [
+        "GET /api/v1/public/content/search",
+        "GET /api/v1/public/content/topics"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "content.topics",
+      "endpoints": [
+        "GET /api/v1/public/content/topics"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "content.topic-detail",
+      "endpoints": [
+        "GET /api/v1/public/content/topics",
+        "GET /api/v1/public/content/items"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "content.bookmarks",
+      "endpoints": [
+        "GET /api/v1/me/content-bookmarks",
+        "DELETE /api/v1/me/content-bookmarks/{article_id}"
+      ],
+      "phase": "P1"
+    },
     {
       "route_key": "notifications.list",
       "endpoints": [
@@ -280,7 +315,9 @@
     },
     {
       "route_key": "legal.page",
-      "endpoints": ["GET /api/v1/public/pages/{slug}"],
+      "endpoints": [
+        "GET /api/v1/public/pages/{slug}"
+      ],
       "phase": "P1"
     },
     {
@@ -303,18 +340,56 @@
     },
     {
       "route_key": "articles.list",
-      "endpoints": ["GET /api/v1/public/content/categories", "GET /api/v1/public/content/items"],
+      "endpoints": [
+        "GET /api/v1/public/content/categories",
+        "GET /api/v1/public/content/items"
+      ],
       "phase": "P1"
     },
     {
       "route_key": "articles.detail",
-      "endpoints": ["GET /api/v1/public/content/items/{slug}", "GET /api/v1/public/content/items/{id}/comments", "PUT /api/v1/me/content-bookmarks/{article_id}", "DELETE /api/v1/me/content-bookmarks/{article_id}"],
+      "endpoints": [
+        "GET /api/v1/public/content/items/{slug}",
+        "GET /api/v1/public/content/items/{id}/comments",
+        "PUT /api/v1/me/content-bookmarks/{article_id}",
+        "DELETE /api/v1/me/content-bookmarks/{article_id}"
+      ],
       "phase": "P1"
     },
     {
       "route_key": "dev.components",
       "endpoints": [],
       "phase": "P0"
+    },
+    {
+      "route_key": "help",
+      "endpoints": [],
+      "phase": "P1"
+    },
+    {
+      "route_key": "feedback",
+      "endpoints": [
+        "GET /api/v1/me/feedbacks"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "feedback.create",
+      "endpoints": [
+        "POST /api/v1/me/feedbacks",
+        "POST /api/v1/me/feedback-uploads",
+        "DELETE /api/v1/me/feedback-uploads/{id}",
+        "POST /api/v1/me/feedback-uploads/{id}/content"
+      ],
+      "phase": "P1"
+    },
+    {
+      "route_key": "feedback.detail",
+      "endpoints": [
+        "GET /api/v1/me/feedbacks/{id}",
+        "GET /api/v1/me/feedbacks/{id}/attachments/{file_id}/content"
+      ],
+      "phase": "P1"
     }
   ]
 }

@@ -206,28 +206,185 @@
       "purpose": "原子消费验证码并立即删除当前 App 账号；不可自动重试、无冷静期或撤销。",
       "phase": "P2"
     },
-    { "method": "GET", "path": "/api/v1/public/content/home", "purpose": "游客可读的置顶、精选、最新去重首页聚合。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/public/content/items", "purpose": "游客可读的三类型资讯筛选与稳定游标分页。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/public/content/search", "purpose": "按当前语言搜索资讯、标签、分类和专题。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/public/content/items/{slug}", "purpose": "读取文章、图文或视频联合详情。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/public/content/categories", "purpose": "读取两级资讯分类。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/public/content/topics", "purpose": "读取专题列表。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/public/content/topics/{slug}", "purpose": "读取专题详情。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/public/content/items/{id}/comments", "purpose": "公开读取已通过评论。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/public/content/assets/{file_id}", "purpose": "读取已发布资讯引用的安全媒体。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/me/content-bookmarks", "purpose": "查询自己的资讯收藏。", "phase": "P1" },
-    { "method": "PUT", "path": "/api/v1/me/content-bookmarks/{article_id}", "purpose": "收藏资讯。", "phase": "P1" },
-    { "method": "DELETE", "path": "/api/v1/me/content-bookmarks/{article_id}", "purpose": "取消收藏资讯。", "phase": "P1" },
-    { "method": "POST", "path": "/api/v1/content/items/{id}/comments", "purpose": "提交待审核评论。", "phase": "P1" },
-    { "method": "DELETE", "path": "/api/v1/me/comments/{id}", "purpose": "删除自己的评论。", "phase": "P1" },
-    { "method": "POST", "path": "/api/v1/comments/{id}/reports", "purpose": "举报评论。", "phase": "P1" },
-    { "method": "PUT", "path": "/api/v1/me/blocked-users/{user_id}", "purpose": "屏蔽评论用户。", "phase": "P1" },
-    { "method": "DELETE", "path": "/api/v1/me/blocked-users/{user_id}", "purpose": "解除屏蔽评论用户。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/article-categories", "purpose": "兼容周期内读取旧文章分类。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/article-assets/{file_id}", "purpose": "使用移动会话读取当前租户已发布文章引用的安全图片封面。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/articles", "purpose": "按本地化投影游标检索文章。", "phase": "P1" },
-    { "method": "GET", "path": "/api/v1/articles/{slug}", "purpose": "读取一篇已发布文章。", "phase": "P1" },
-    { "method": "PUT", "path": "/api/v1/me/article-bookmarks/{article_id}", "purpose": "收藏自己的文章。", "phase": "P1" },
-    { "method": "DELETE", "path": "/api/v1/me/article-bookmarks/{article_id}", "purpose": "取消收藏自己的文章。", "phase": "P1" }
+    {
+      "method": "GET",
+      "path": "/api/v1/public/content/home",
+      "purpose": "游客可读的置顶、精选、最新去重首页聚合。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/content/items",
+      "purpose": "游客可读的三类型资讯筛选与稳定游标分页。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/content/search",
+      "purpose": "按当前语言搜索资讯、标签、分类和专题。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/content/items/{slug}",
+      "purpose": "读取文章、图文或视频联合详情。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/content/categories",
+      "purpose": "读取两级资讯分类。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/content/topics",
+      "purpose": "读取专题列表。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/content/topics/{slug}",
+      "purpose": "读取专题详情。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/content/items/{id}/comments",
+      "purpose": "公开读取已通过评论。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/public/content/assets/{file_id}",
+      "purpose": "读取已发布资讯引用的安全媒体。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/content-bookmarks",
+      "purpose": "查询自己的资讯收藏。",
+      "phase": "P1"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/me/content-bookmarks/{article_id}",
+      "purpose": "收藏资讯。",
+      "phase": "P1"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/content-bookmarks/{article_id}",
+      "purpose": "取消收藏资讯。",
+      "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/content/items/{id}/comments",
+      "purpose": "提交待审核评论。",
+      "phase": "P1"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/comments/{id}",
+      "purpose": "删除自己的评论。",
+      "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/comments/{id}/reports",
+      "purpose": "举报评论。",
+      "phase": "P1"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/me/blocked-users/{user_id}",
+      "purpose": "屏蔽评论用户。",
+      "phase": "P1"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/blocked-users/{user_id}",
+      "purpose": "解除屏蔽评论用户。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/article-categories",
+      "purpose": "兼容周期内读取旧文章分类。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/article-assets/{file_id}",
+      "purpose": "使用移动会话读取当前租户已发布文章引用的安全图片封面。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/articles",
+      "purpose": "按本地化投影游标检索文章。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/articles/{slug}",
+      "purpose": "读取一篇已发布文章。",
+      "phase": "P1"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/me/article-bookmarks/{article_id}",
+      "purpose": "收藏自己的文章。",
+      "phase": "P1"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/article-bookmarks/{article_id}",
+      "purpose": "取消收藏自己的文章。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/feedbacks",
+      "purpose": "App-scoped private feedback workflow.",
+      "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/feedbacks",
+      "purpose": "App-scoped private feedback workflow.",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/feedbacks/{id}",
+      "purpose": "App-scoped private feedback workflow.",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/feedbacks/{id}/attachments/{file_id}/content",
+      "purpose": "App-scoped private feedback workflow.",
+      "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/feedback-uploads",
+      "purpose": "App-scoped private feedback workflow.",
+      "phase": "P1"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/feedback-uploads/{id}",
+      "purpose": "App-scoped private feedback workflow.",
+      "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/feedback-uploads/{id}/content",
+      "purpose": "App-scoped private feedback workflow.",
+      "phase": "P1"
+    }
   ]
 }

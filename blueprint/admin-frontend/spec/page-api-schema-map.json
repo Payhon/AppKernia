@@ -48,7 +48,11 @@
       "component_key": "system.settings.share-configs",
       "title": "分享配置",
       "phase": "P2",
-      "schema": ["sys.share_configs", "app.application_share_bindings", "app.applications"],
+      "schema": [
+        "sys.share_configs",
+        "app.application_share_bindings",
+        "app.applications"
+      ],
       "endpoints": [
         "GET /admin-api/v1/share-configs",
         "POST /admin-api/v1/share-configs",
@@ -718,7 +722,9 @@
         "app.applications",
         "storage.file_usages",
         "storage.files",
-        "sys.share_configs"
+        "sys.share_configs",
+        "app.application_public_web_configs",
+        "app.application_public_web_translations"
       ],
       "endpoints": [
         "GET /admin-api/v1/apps",
@@ -728,13 +734,15 @@
         "PATCH /admin-api/v1/apps/{app_id}",
         "DELETE /admin-api/v1/apps/{app_id}",
         "POST /admin-api/v1/apps/{app_id}/enable",
-    "POST /admin-api/v1/apps/{app_id}/disable",
-    "GET /admin-api/v1/apps/{app_id}/share-bindings",
-    "PUT /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
-    "DELETE /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
-    "POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight"
-    ,"GET /admin-api/v1/apps/{app_id}/scanner-config"
-    ,"PUT /admin-api/v1/apps/{app_id}/scanner-config"
+        "POST /admin-api/v1/apps/{app_id}/disable",
+        "GET /admin-api/v1/apps/{app_id}/share-bindings",
+        "PUT /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
+        "DELETE /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
+        "POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight",
+        "GET /admin-api/v1/apps/{app_id}/scanner-config",
+        "PUT /admin-api/v1/apps/{app_id}/scanner-config",
+        "GET /admin-api/v1/apps/{app_id}/public-web-config",
+        "PUT /admin-api/v1/apps/{app_id}/public-web-config"
       ],
       "backend_status": "existing"
     },
@@ -809,6 +817,25 @@
         "content.categories"
       ],
       "endpoints": [],
+      "backend_status": "existing"
+    },
+    {
+      "component_key": "app.feedbacks",
+      "title": "问题反馈",
+      "phase": "P2",
+      "schema": [
+        "app.feedbacks",
+        "app.feedback_attachments",
+        "app.feedback_replies",
+        "app.feedback_events"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/apps/{app_id}/feedbacks",
+        "GET /admin-api/v1/apps/{app_id}/feedbacks/{id}",
+        "PATCH /admin-api/v1/apps/{app_id}/feedbacks/{id}",
+        "GET /admin-api/v1/apps/{app_id}/feedbacks/{id}/attachments/{file_id}/content",
+        "POST /admin-api/v1/apps/{app_id}/feedbacks/{id}/replies"
+      ],
       "backend_status": "existing"
     }
   ]

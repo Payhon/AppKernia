@@ -61,7 +61,7 @@ const modules = new Map([
 ])
 
 function expectedTag(path) {
-  if (path.startsWith('/s/')) return 'public-content'
+  if (path.startsWith('/s/') || path.startsWith('/h5/')) return 'public-content'
   if (path.startsWith('/internal/v1/health/')) return 'platform-health'
   if (path.startsWith('/api/v1/public/dictionaries/')) return 'public-dictionary'
   if (path === '/api/v1/articles' || path === '/api/v1/article-categories' || path.startsWith('/api/v1/articles/') || path.startsWith('/api/v1/article-assets/')) return 'public-content'
@@ -74,6 +74,7 @@ function expectedTag(path) {
   if (path.startsWith('/api/v1/me/notification-preferences') || path.startsWith('/api/v1/me/notifications') || path.startsWith('/api/v1/me/push-devices') || path.startsWith('/api/v1/me/push-deliveries')) return 'mobile-notifications'
   if (path.startsWith('/api/v1/me/sessions') || path.startsWith('/api/v1/me/devices')) return 'mobile-devices-sessions'
   if (path === '/api/v1/me/login-events' || path === '/api/v1/me/security-events') return 'mobile-security'
+  if (path.startsWith('/api/v1/me/feedback')) return 'mobile-profile'
   if (path === '/api/v1/me' || path === '/api/v1/me/preferences' || path.startsWith('/api/v1/me/avatar/') || path.startsWith('/api/v1/me/account-deletion/')) return 'mobile-profile'
   if (path.startsWith('/admin-api/v1/apps/') && path.includes('/mobile/releases')) return 'admin-releases'
   if (path.startsWith('/admin-api/v1/mobile/releases')) return 'admin-releases'

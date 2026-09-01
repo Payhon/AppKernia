@@ -48,6 +48,7 @@ type Category struct {
 	UpdatedAt    time.Time                      `json:"updated_at"`
 }
 type Article struct {
+	ShareURL             string                 `json:"share_url,omitempty"`
 	ID                   uuid.UUID              `json:"id"`
 	CategoryID           *uuid.UUID             `json:"category_id"`
 	CategoryIDs          []uuid.UUID            `json:"category_ids"`
@@ -86,6 +87,7 @@ type PublicCategory struct {
 	ImageURL    *string    `json:"image_url"`
 }
 type PublicArticle struct {
+	ShareURL             string           `json:"share_url,omitempty"`
 	ID                   uuid.UUID        `json:"id"`
 	CategoryID           *uuid.UUID       `json:"-"`
 	Slug                 string           `json:"slug"`

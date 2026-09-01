@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { appMemberCreateInputSchema, appMemberPasswordResetSchema, appPageInputSchema, applicationInputSchema, getAppPageTitle, toAppPageEditorInput, toAppPageInput, type ManagedPage } from "./model";
+import { appMemberCreateInputSchema, appMemberPasswordResetSchema, appPageInputSchema, applicationInputSchema, getAppPageTitle, hasPublishableAppPageDraft, shouldShowAppPagePublish, toAppPageEditorInput, toAppPageInput, type ManagedPage } from "./model";
 
 describe("App management schemas", () => {
   it("requires a bounded application configuration", () => {
@@ -40,6 +40,8 @@ describe("App management schemas", () => {
 
     expect(getAppPageTitle(seededDraft, "zh-CN")).toBeUndefined();
     expect(getAppPageTitle(seededDraft, "en-US")).toBeUndefined();
+    expect(hasPublishableAppPageDraft(seededDraft)).toBe(false);
+    expect(shouldShowAppPagePublish(seededDraft)).toBe(true);
     expect(toAppPageEditorInput(seededDraft)).toMatchObject({
       slug: "privacy-policy",
       page_type: "privacy-policy",
@@ -49,6 +51,15 @@ describe("App management schemas", () => {
         "en-US": { title: "", body_format: "markdown", body: "" },
       },
     });
+  });
+
+  it("only enables page publication when a draft revision exists", () => {
+    const draft = { id: "revision", version: 1, status: "draft" as const, content_hash: "hash", created_at: "2026-08-08T00:00:00Z", created_by: null };
+    const page = { status: "published", revisions: [draft] } as unknown as ManagedPage;
+    expect(hasPublishableAppPageDraft(page)).toBe(true);
+    expect(shouldShowAppPagePublish(page)).toBe(true);
+    expect(hasPublishableAppPageDraft({ ...page, revisions: [{ ...draft, status: "published" }] })).toBe(false);
+    expect(shouldShowAppPagePublish({ ...page, revisions: [{ ...draft, status: "published" }] })).toBe(false);
   });
   it("uses the alternate supported locale when a page title is untranslated", () => {
     const translatedPage = { id: "page-id", slug: "about-us", page_type: "about-us", status: "draft", lock_version: 1, updated_at: "2026-08-08T00:00:00Z", translations: { "zh-CN": { title: "关于我们", body_format: "markdown", body: "内容" } }, revisions: [] } as unknown as ManagedPage;

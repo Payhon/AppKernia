@@ -263,7 +263,7 @@ ready → deleted
 quarantined → ready        仅人工/重新扫描确认
 ```
 
-业务实体只能引用 `status='ready'` 且 `scan_status IN ('clean','skipped')` 的文件。
+通用业务实体只能引用 `status='ready'` 且 `scan_status IN ('clean','skipped')` 的文件。反馈附件更严格，仅接受 `scan_status='clean'`，禁止 skipped。
 
 ### 5.4 消息状态
 
@@ -356,3 +356,15 @@ Agent 在首次实现时必须在真实 PostgreSQL 18 容器中提供证据：
 - 审计、任务、Outbox 和安全事件保存稳定 code/template key 与参数；不把某一种语言的成品文案作为唯一事实。
 - 新业务若有可编辑的多语言内容，应建立显式 `<entity>_translations(entity_id, locale, ...)` 表及 `(entity_id, locale)` 唯一约束；禁止无 Schema 的任意 JSONB 翻译对象。
 - 所有 locale 相关查询必须测试目标语言、`zh-CN` 回退和租户边界。
+
+## Help and feedback (migration 000027)
+
+- `content.pages` adds reserved `faq` and `contact-support` page types. Existing matching slugs are promoted without replacing revisions; missing identities are backfilled for existing Apps and created by the application trigger for new Apps. Drafts stay private. The `about-us` contract is unchanged.
+- `app.feedbacks` stores tenant/App/user ownership, description, optional contact, installed version/platform, request hash/idempotency key, lock version and timestamps. `pending`, `processing`, `resolved` are fixed protocol states, not dictionary options.
+- `app.feedback_attachments` links at most three ordered storage images; `app.feedback_replies` and `app.feedback_events` append reply/processing history. Replies are not edited in place. Composite foreign keys and all repository queries retain tenant and App scope.
+- `storage.upload_sessions.purpose=feedback` and file metadata `purpose=feedback` isolate feedback from avatar completion, ordinary file APIs and public content assets. Private images are excluded from cross-owner storage deduplication. Source names/URLs, descriptions and contact values are not audit payloads.
+- The minute-based Worker reaps expired unattached uploads in bounded locked batches. Attached images remain referenced through `storage.file_usages`. App account erasure removes feedback/usages and reuses existing object-erasure jobs. Rollback removes feedback records and permissions, preserves CMS page content as `custom`, and preserves screenshot hashes as metadata before restoring general deduplication.
+
+## 000028：公开 H5 配置
+
+`app.application_public_web_configs`：tenant_id/app_id 主键，enabled/apk_enabled 默认 false，promotion_enabled 默认 true，lock_version 乐观锁；App 外键与 updated_at 触发器。`app.application_public_web_translations`：按 App/规范 locale 保存公开名称、介绍及下载推广标题、说明和按钮文字；推广文案为空时 H5 使用内置双语回退。`app.application_store_listings` 新增 nullable platform 稳定枚举与 web_url，保留 Scheme/启用/优先级；禁止依名称自动推断。公开读取检查 active App 和 published 内容；配置写入锁定 App 行、版本比较、子表与审计同一事务。

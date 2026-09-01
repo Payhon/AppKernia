@@ -150,5 +150,7 @@
   "content.article.preview.cover": "文章封面预览",
   "content.article.fields.video_external_url": "视频外链",
   "content.article.preview.title": "内容预览",
-  "content.article.preview.loading": "编辑器加载中..."
+  "content.article.preview.loading": "编辑器加载中...",
+  "content.article.actions.menu": "更多",
+  "content.article.actions.menu_for": "{name} 的操作"
 }

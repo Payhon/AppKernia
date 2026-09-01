@@ -80,11 +80,36 @@
       "action_permissions": [],
       "feature_flag": null
     },
-    { "route_key": "content.browse", "view_permissions": [], "action_permissions": [], "feature_flag": null },
-    { "route_key": "content.browse-search", "view_permissions": [], "action_permissions": [], "feature_flag": null },
-    { "route_key": "content.topics", "view_permissions": [], "action_permissions": [], "feature_flag": null },
-    { "route_key": "content.topic-detail", "view_permissions": [], "action_permissions": [], "feature_flag": null },
-    { "route_key": "content.bookmarks", "view_permissions": [], "action_permissions": [], "feature_flag": null },
+    {
+      "route_key": "content.browse",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "content.browse-search",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "content.topics",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "content.topic-detail",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "content.bookmarks",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
     {
       "route_key": "notifications.list",
       "view_permissions": [
@@ -282,7 +307,9 @@
     {
       "route_key": "articles.detail",
       "view_permissions": [],
-      "action_permissions": ["content.article.bookmark_self"],
+      "action_permissions": [
+        "content.article.bookmark_self"
+      ],
       "feature_flag": null
     },
     {
@@ -293,6 +320,30 @@
     },
     {
       "route_key": "legal.page",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "help",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "feedback",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "feedback.create",
+      "view_permissions": [],
+      "action_permissions": [],
+      "feature_flag": null
+    },
+    {
+      "route_key": "feedback.detail",
       "view_permissions": [],
       "action_permissions": [],
       "feature_flag": null

@@ -39,3 +39,7 @@ Android/iOS 运行入口固定使用 custom playground；HarmonyOS 直接生成�
 静态项目门禁：
 
     ./scripts/check-project.sh
+
+### Feedback client generation
+
+The feedback DTO generator reads the canonical OpenAPI schemas. Install its pinned parser with `python3 -m pip install -r scripts/requirements.txt`, then run `python3 scripts/generate-mobile-client.py --write`. `check-project.sh` verifies the generated client is current.

@@ -152,3 +152,19 @@ func TestPackageDownloadSignatureBindsIdentifiersAndExpiry(t *testing.T) {
 		t.Fatal("tampered or expired package signature accepted")
 	}
 }
+
+func TestPublicWebPackageSignatureCannotBypassWebGateThroughMobileRoute(t *testing.T) {
+	key := []byte("test-only-package-key")
+	app, release, file := uuid.New(), uuid.New(), uuid.New()
+	now := int64(1000)
+	sig := signPackageDownload(publicWebSigningKey(key), app, release, file, now+300)
+	if validPackageDownloadSignature(key, app, release, file, now+300, now, sig) {
+		t.Fatal("H5 signature accepted by legacy mobile endpoint")
+	}
+	if !validPackageDownloadSignature(publicWebSigningKey(key), app, release, file, now+300, now, sig) {
+		t.Fatal("H5 signature rejected")
+	}
+	if validPackageDownloadSignature(publicWebSigningKey(key), app, release, file, now+300, now+301, sig) {
+		t.Fatal("expired H5 signature accepted")
+	}
+}

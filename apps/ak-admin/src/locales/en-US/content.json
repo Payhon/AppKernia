@@ -150,5 +150,7 @@
   "content.article.preview.cover": "Article cover preview",
   "content.article.fields.video_external_url": "Video URL",
   "content.article.preview.title": "Content preview",
-  "content.article.preview.loading": "Loading editor..."
+  "content.article.preview.loading": "Loading editor...",
+  "content.article.actions.menu": "More",
+  "content.article.actions.menu_for": "Actions for {name}"
 }

@@ -167,12 +167,40 @@ export type AccountDeletionResultWire = {
 """
 
 
+
+def render_feedback() -> str:
+    import yaml
+    schemas = yaml.safe_load(OPENAPI.read_text(encoding="utf-8"))["components"]["schemas"]
+    names = ["FeedbackStatus", "FeedbackAttachment", "FeedbackReply", "FeedbackEvent", "Feedback", "FeedbackInput", "FeedbackReplyInput", "FeedbackStatusInput", "FeedbackUploadInput", "FeedbackUpload"]
+    def type_name(schema):
+        if "$ref" in schema:
+            return schema["$ref"].split("/")[-1] + "Wire"
+        kind = schema.get("type")
+        if isinstance(kind, list):
+            return " | ".join("null" if k == "null" else type_name({**schema, "type": k}) for k in kind)
+        if kind == "array":
+            return "Array<" + type_name(schema["items"]) + ">"
+        return {"string": "string", "integer": "number", "boolean": "boolean"}[kind]
+    lines = ["// Generated from server/openapi/openapi.yaml. Do not edit."]
+    for name in names:
+        schema = schemas[name]
+        if schema["type"] != "object":
+            lines.append("export type " + name + "Wire = " + type_name(schema))
+            continue
+        lines.append("export type " + name + "Wire = {")
+        for key, prop in schema["properties"].items():
+            # Kotlin reactive proxies need mutable DTO properties, even when callers only read them.
+            lines.append("  " + key + ": " + type_name(prop))
+        lines.append("}")
+    return "\n".join(lines) + "\n"
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", action="store_true")
     args = parser.parse_args()
     outputs = {
         VERSION_OUTPUT: render_version(),
+        ROOT / "src/generated/api/mobile-feedback.uts": render_feedback(),
         PUBLIC_CONFIG_OUTPUT: render_public_config(),
         ACCOUNT_DELETION_OUTPUT: render_account_deletion(),
     }

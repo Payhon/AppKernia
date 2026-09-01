@@ -15,7 +15,7 @@
 |---|---|
 | 阶段 | P2 |
 | View Permission | `app.application.read` |
-| Schema | `app.applications`, `app.application_team_members`, `app.application_assets`, `app.application_channels`, `app.application_share_bindings`, `app.application_scanner_configs`, `app.application_store_listings`, `storage.files`, `storage.file_usages`, `sys.share_configs` |
+| Schema | `app.applications`, `app.application_team_members`, `app.application_assets`, `app.application_channels`, `app.application_share_bindings`, `app.application_scanner_configs`, `app.application_store_listings`, `app.application_public_web_configs`, `app.application_public_web_translations`, `storage.files`, `storage.file_usages`, `sys.share_configs` |
 | 后端状态 | `existing` |
 
 **API**
@@ -34,8 +34,12 @@
 - `POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight`
 - `GET /admin-api/v1/apps/{app_id}/scanner-config`
 - `PUT /admin-api/v1/apps/{app_id}/scanner-config`
+- `GET /admin-api/v1/apps/{app_id}/public-web-config`
+- `PUT /admin-api/v1/apps/{app_id}/public-web-config`
 
 **页面验收**
+
+- 发行页配置抽屉独立读写权限；双语名称/介绍、公开开关、APK 开关、下载推广显示开关及双语推广标题/说明/按钮文字、市场平台/HTTPS 地址；版本冲突保留表单，不自动重放。推广开关同时控制资讯/单页顶部下载入口和文末推广，发行页地址本身不受影响。旧 Scheme/优先级不在该抽屉修改。仅已发布内容提供公开链接/复制/二维码。
 
 - 每租户可管理多个应用；manifest AppID 设置后不可修改，App 类型创建后不可修改。
 - 图标、截图、渠道、团队和应用市场均保存关系数据；团队资料不改变 RBAC。
@@ -1282,3 +1286,26 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - Redirect 只接受同源白名单路径；错误不泄露账号是否存在。
 - 提交、限流、服务错误和离线状态完整；密码、验证码、Token 不写日志或持久化。
 - 键盘、自动填充、密码管理器和 768px 窄屏流程可用。
+
+## `app.feedbacks` — App 问题反馈
+
+View: `app.feedback.read`; actions: `app.feedback.update`, `app.feedback.reply`.
+
+**API**
+
+- `GET /admin-api/v1/apps/{app_id}/feedbacks`
+- `GET /admin-api/v1/apps/{app_id}/feedbacks/{id}`
+- `PATCH /admin-api/v1/apps/{app_id}/feedbacks/{id}`
+- `GET /admin-api/v1/apps/{app_id}/feedbacks/{id}/attachments/{file_id}/content`
+- `POST /admin-api/v1/apps/{app_id}/feedbacks/{id}/replies`
+
+**页面验收**
+
+- 当前 App 和租户隔离；URL 筛选、分页、私有截图、追加回复、并发冲突、双语及权限分支。
+# AKH5-002：公开 H5 手机预览与资讯操作
+
+资讯文章列表以“更多”下拉聚合手机预览、查看、复制、编辑、发布/下架、删除，每项使用语义图标与双语标签。操作列 112px，桌面固定右侧；权限沿用 app.content.* / content.article.*，不增加动作权限。分类、专题、标签、评论表格不变。
+
+资讯、App 下载和已发布单页共用 AkModal 手机预览。393×852 逻辑屏幕及灵动岛仅模拟外观/尺寸；原生 iframe 加载已发布公开 HTML，不传管理员身份。工具栏支持刷新、复制和关闭，外链另开页面；脚本使用来源/source/loadId 校验的就绪协议及 10 秒超时回退。切换 App 或关闭页面销毁 iframe。预览只进行文档导航，Admin JSON API 边界仍为 /admin-api/v1。
+
+AKH5-004：发行页配置复用既有 `app.public_web.read/update` 权限、审计和 lock_version，增加推广显示开关与完整中英文推广文案。未新增权限码或 API 路径；保存关闭开关后，公开资讯和单页不再输出推广 DOM。

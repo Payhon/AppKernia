@@ -16,7 +16,7 @@ import (
 const abortAdminFileUploadSession = `-- name: AbortAdminFileUploadSession :execrows
 UPDATE storage.upload_sessions SET status = 'aborted', updated_at = now()
 WHERE id = $1 AND tenant_id = $2
-  AND status IN ('initiated', 'uploading')
+  AND purpose <> 'feedback' AND status IN ('initiated', 'uploading')
 `
 
 type AbortAdminFileUploadSessionParams struct {
@@ -36,7 +36,7 @@ const completeAdminFileUploadSession = `-- name: CompleteAdminFileUploadSession 
 UPDATE storage.upload_sessions
 SET file_id = $1, status = 'completed', completed_at = now(), updated_at = now()
 WHERE id = $2 AND tenant_id = $3
-  AND status IN ('initiated', 'uploading')
+  AND purpose <> 'feedback' AND status IN ('initiated', 'uploading')
 `
 
 type CompleteAdminFileUploadSessionParams struct {
@@ -56,7 +56,7 @@ func (q *Queries) CompleteAdminFileUploadSession(ctx context.Context, arg Comple
 const countAdminFiles = `-- name: CountAdminFiles :one
 SELECT count(*)
 FROM storage.files f
-WHERE f.tenant_id = $1 AND f.deleted_at IS NULL
+WHERE f.tenant_id = $1 AND f.metadata->>'purpose' IS DISTINCT FROM 'feedback' AND f.deleted_at IS NULL
   AND ($2::text = '' OR f.original_name ILIKE '%' || $2 || '%')
   AND ($3::text = '' OR f.status = $3)
   AND ($4::text = '' OR f.scan_status = $4)
@@ -166,7 +166,7 @@ SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size
        f.status, f.scan_status, f.created_at, f.updated_at, f.object_key, f.sha256,
        (SELECT count(*) FROM storage.file_usages u WHERE u.tenant_id = f.tenant_id AND u.file_id = f.id) AS usage_count
 FROM storage.files f
-WHERE f.id = $1 AND f.tenant_id = $2 AND f.deleted_at IS NULL
+WHERE f.id = $1 AND f.tenant_id = $2 AND f.metadata->>'purpose' IS DISTINCT FROM 'feedback' AND f.deleted_at IS NULL
 `
 
 type GetAdminFileParams struct {
@@ -219,7 +219,7 @@ const getAdminFileUploadSession = `-- name: GetAdminFileUploadSession :one
 SELECT id, original_name, media_type, expected_size, part_size, status, provider, bucket_name, object_key, expires_at
 FROM storage.upload_sessions
 WHERE id = $1 AND tenant_id = $2
-  AND status IN ('initiated', 'uploading') AND expires_at > now()
+  AND purpose <> 'feedback' AND status IN ('initiated', 'uploading') AND expires_at > now()
 `
 
 type GetAdminFileUploadSessionParams struct {
@@ -319,7 +319,7 @@ VALUES (
     'ready', $11, jsonb_build_object('adapter', $3::varchar)
 )
 ON CONFLICT (tenant_id, sha256, size_bytes)
-    WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL
+    WHERE sha256 IS NOT NULL AND status = 'ready' AND deleted_at IS NULL AND metadata->>'purpose' IS DISTINCT FROM 'feedback'
 DO UPDATE SET updated_at = storage.files.updated_at
 RETURNING id, owner_user_id, original_name, media_type, extension, size_bytes, status,
           scan_status, provider, bucket_name, created_at, updated_at, object_key, sha256
@@ -482,7 +482,7 @@ SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size
        f.status, f.scan_status, f.created_at, f.updated_at,
        (SELECT count(*) FROM storage.file_usages u WHERE u.tenant_id = f.tenant_id AND u.file_id = f.id) AS usage_count
 FROM storage.files f
-WHERE f.tenant_id = $1 AND f.deleted_at IS NULL
+WHERE f.tenant_id = $1 AND f.metadata->>'purpose' IS DISTINCT FROM 'feedback' AND f.deleted_at IS NULL
   AND ($2::text = '' OR f.original_name ILIKE '%' || $2 || '%')
   AND ($3::text = '' OR f.status = $3)
   AND ($4::text = '' OR f.scan_status = $4)
@@ -571,7 +571,7 @@ SELECT f.id, f.owner_user_id, f.original_name, f.media_type, f.extension, f.size
        f.status, f.scan_status, f.created_at, f.updated_at, f.object_key, f.sha256,
        (SELECT count(*) FROM storage.file_usages u WHERE u.tenant_id = f.tenant_id AND u.file_id = f.id) AS usage_count
 FROM storage.files f
-WHERE f.id = $1 AND f.tenant_id = $2 AND f.deleted_at IS NULL
+WHERE f.id = $1 AND f.tenant_id = $2 AND f.metadata->>'purpose' IS DISTINCT FROM 'feedback' AND f.deleted_at IS NULL
 FOR UPDATE
 `
 
@@ -625,7 +625,7 @@ const lockAdminFileUploadSession = `-- name: LockAdminFileUploadSession :one
 SELECT id, user_id, original_name, media_type, expected_size, part_size, status, provider, bucket_name, object_key, expires_at
 FROM storage.upload_sessions
 WHERE id = $1 AND tenant_id = $2
-  AND status IN ('initiated', 'uploading') AND expires_at > now()
+  AND purpose <> 'feedback' AND status IN ('initiated', 'uploading') AND expires_at > now()
 FOR UPDATE
 `
 
@@ -669,7 +669,7 @@ func (q *Queries) LockAdminFileUploadSession(ctx context.Context, arg LockAdminF
 
 const markAdminUploadUploading = `-- name: MarkAdminUploadUploading :exec
 UPDATE storage.upload_sessions SET status = 'uploading', updated_at = now()
-WHERE id = $1 AND tenant_id = $2 AND status = 'initiated'
+WHERE id = $1 AND tenant_id = $2 AND purpose <> 'feedback' AND status = 'initiated'
 `
 
 type MarkAdminUploadUploadingParams struct {
@@ -705,7 +705,7 @@ INSERT INTO storage.upload_parts (upload_session_id, part_number, etag, size_byt
 SELECT id, $1, $2, $3, $4
 FROM storage.upload_sessions
 WHERE id = $5 AND tenant_id = $6
-  AND status IN ('initiated', 'uploading') AND expires_at > now()
+  AND purpose <> 'feedback' AND status IN ('initiated', 'uploading') AND expires_at > now()
 ON CONFLICT (upload_session_id, part_number) DO UPDATE
 SET etag = EXCLUDED.etag, size_bytes = EXCLUDED.size_bytes,
     checksum_sha256 = EXCLUDED.checksum_sha256, uploaded_at = now()

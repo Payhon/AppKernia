@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	iamapp "github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	iam "github.com/appkernia/appkernia/server/internal/modules/iam/domain"
 	storagedomain "github.com/appkernia/appkernia/server/internal/modules/storage/domain"
+	"github.com/appkernia/appkernia/server/internal/shared/publicurl"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -94,6 +96,7 @@ type ApplicationStoreListing struct {
 }
 
 type PublicPage struct {
+	PublicURL    string          `json:"public_url,omitempty"`
 	Slug         string          `json:"slug"`
 	DocumentType string          `json:"document_type"`
 	Title        string          `json:"title"`
@@ -106,6 +109,7 @@ type PublicPage struct {
 }
 
 type Service struct {
+	publicWebBaseURL       string
 	pool                   *pgxpool.Pool
 	auth                   Authenticator
 	otp                    OTPNotifier
@@ -223,7 +227,7 @@ func (s *Service) PublicPage(ctx context.Context, appID uuid.UUID, slug, locale 
 SELECT p.slug, p.page_type, t.title, t.body, t.body_format, r.revision_number,
        r.content_hash, t.locale, r.id
 FROM content.pages p
-JOIN content.page_revisions r ON r.id = p.current_revision_id AND r.app_id = p.app_id
+JOIN content.page_revisions r ON r.id = p.current_revision_id AND r.app_id = p.app_id AND r.status = 'published'
 JOIN content.page_revision_translations t ON t.revision_id = r.id
 WHERE p.app_id = $1 AND p.slug = $2 AND p.status = 'published'
   AND t.locale = COALESCE((
@@ -239,6 +243,7 @@ WHERE p.app_id = $1 AND p.slug = $2 AND p.status = 'published'
 	if err != nil {
 		return PublicPage{}, fmt.Errorf("get app page: %w", err)
 	}
+	out.PublicURL = publicurl.Link(s.publicWebBaseURL, appID, "/pages/"+url.PathEscape(out.Slug), out.Locale)
 	out.ContentHash = hex.EncodeToString(hash)
 	return out, nil
 }
@@ -587,6 +592,7 @@ type PageTranslation struct {
 	Body       json.RawMessage `json:"body"`
 }
 type AdminPage struct {
+	PublicURL         string                              `json:"public_url,omitempty"`
 	ID                uuid.UUID                           `json:"id"`
 	Slug              string                              `json:"slug"`
 	PageType          string                              `json:"page_type"`
@@ -1300,6 +1306,9 @@ func (s *Service) AdminPages(ctx context.Context, token string, appID uuid.UUID,
 		if err = rows.Scan(&x.ID, &x.Slug, &x.PageType, &x.Status, &x.LockVersion, &x.CurrentRevisionID, &x.UpdatedAt); err != nil {
 			return AdminPagePage{}, err
 		}
+		if x.Status == "published" {
+			x.PublicURL = publicurl.Link(s.publicWebBaseURL, appID, "/pages/"+url.PathEscape(x.Slug), "")
+		}
 		if err = s.hydrateAdminPage(ctx, appID, &x); err != nil {
 			return AdminPagePage{}, err
 		}
@@ -1352,7 +1361,7 @@ func (s *Service) SaveAdminPage(ctx context.Context, token string, appID uuid.UU
 		status = "published"
 	}
 	var revisionID uuid.UUID
-	err = tx.QueryRow(ctx, `INSERT INTO content.page_revisions (page_id,app_id,tenant_id,revision_number,content_hash,status,published_at,created_by) VALUES ($1,$2,$3,$4,$5,$6,CASE WHEN $6='published' THEN now() ELSE NULL END,$7) RETURNING id`, page.ID, appID, p.Tenant.ID, version, digest, status, p.User.ID).Scan(&revisionID)
+	err = tx.QueryRow(ctx, `INSERT INTO content.page_revisions (page_id,app_id,tenant_id,revision_number,content_hash,status,published_at,created_by) VALUES ($1,$2,$3,$4,$5,$6::varchar,CASE WHEN $6::varchar='published' THEN now() ELSE NULL END,$7) RETURNING id`, page.ID, appID, p.Tenant.ID, version, digest, status, p.User.ID).Scan(&revisionID)
 	if err != nil {
 		return AdminPage{}, err
 	}
@@ -1516,7 +1525,7 @@ func (s *Service) requireAdminApp(ctx context.Context, appID, tenantID uuid.UUID
 	return nil
 }
 func validPageInput(input PageInput) error {
-	if len(input.Slug) < 1 || len(input.Slug) > 120 || !slugPattern.MatchString(input.Slug) || (input.PageType != "custom" && input.PageType != "privacy-policy" && input.PageType != "terms-of-service" && input.PageType != "about-us") || len(input.Translations) != 2 {
+	if len(input.Slug) < 1 || len(input.Slug) > 120 || !slugPattern.MatchString(input.Slug) || (input.PageType != "custom" && input.PageType != "privacy-policy" && input.PageType != "terms-of-service" && input.PageType != "about-us" && input.PageType != "faq" && input.PageType != "contact-support") || len(input.Translations) != 2 {
 		return ErrInvalidInput
 	}
 	for _, locale := range []string{"zh-CN", "en-US"} {

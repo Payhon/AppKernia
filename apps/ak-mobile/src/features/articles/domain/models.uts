@@ -20,6 +20,7 @@ export type ArticleSummary = {
 }
 
 export type ArticleDetail = {
+  shareUrl: string
   id: string
   slug: string
   featured: boolean

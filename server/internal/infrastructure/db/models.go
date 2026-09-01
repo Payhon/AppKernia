@@ -112,6 +112,27 @@ type AppApplicationOnboardingRevisionSlide struct {
 	CreatedAt  pgtype.Timestamptz `json:"created_at"`
 }
 
+type AppApplicationPublicWebConfig struct {
+	TenantID         uuid.UUID          `json:"tenant_id"`
+	AppID            uuid.UUID          `json:"app_id"`
+	Enabled          bool               `json:"enabled"`
+	ApkEnabled       bool               `json:"apk_enabled"`
+	LockVersion      int32              `json:"lock_version"`
+	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+	PromotionEnabled bool               `json:"promotion_enabled"`
+}
+
+type AppApplicationPublicWebTranslation struct {
+	TenantID             uuid.UUID `json:"tenant_id"`
+	AppID                uuid.UUID `json:"app_id"`
+	Locale               string    `json:"locale"`
+	Name                 string    `json:"name"`
+	Introduction         string    `json:"introduction"`
+	PromotionTitle       string    `json:"promotion_title"`
+	PromotionDescription string    `json:"promotion_description"`
+	PromotionButtonLabel string    `json:"promotion_button_label"`
+}
+
 type AppApplicationScannerConfig struct {
 	TenantID            uuid.UUID          `json:"tenant_id"`
 	AppID               uuid.UUID          `json:"app_id"`
@@ -172,6 +193,8 @@ type AppApplicationStoreListing struct {
 	Priority  int32              `json:"priority"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+	Platform  *string            `json:"platform"`
+	WebUrl    string             `json:"web_url"`
 }
 
 type AppApplicationTeamMember struct {
@@ -180,6 +203,54 @@ type AppApplicationTeamMember struct {
 	UserID    uuid.UUID          `json:"user_id"`
 	Role      string             `json:"role"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type AppFeedback struct {
+	ID             uuid.UUID          `json:"id"`
+	TenantID       uuid.UUID          `json:"tenant_id"`
+	AppID          uuid.UUID          `json:"app_id"`
+	UserID         uuid.UUID          `json:"user_id"`
+	Description    string             `json:"description"`
+	Contact        string             `json:"contact"`
+	Platform       string             `json:"platform"`
+	AppVersion     string             `json:"app_version"`
+	Status         string             `json:"status"`
+	IdempotencyKey uuid.UUID          `json:"idempotency_key"`
+	RequestHash    []byte             `json:"request_hash"`
+	LockVersion    int32              `json:"lock_version"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt      pgtype.Timestamptz `json:"updated_at"`
+}
+
+type AppFeedbackAttachment struct {
+	TenantID   uuid.UUID `json:"tenant_id"`
+	AppID      uuid.UUID `json:"app_id"`
+	FeedbackID uuid.UUID `json:"feedback_id"`
+	FileID     uuid.UUID `json:"file_id"`
+	Position   int32     `json:"position"`
+}
+
+type AppFeedbackEvent struct {
+	ID         uuid.UUID          `json:"id"`
+	TenantID   uuid.UUID          `json:"tenant_id"`
+	AppID      uuid.UUID          `json:"app_id"`
+	FeedbackID uuid.UUID          `json:"feedback_id"`
+	ActorID    *uuid.UUID         `json:"actor_id"`
+	FromStatus string             `json:"from_status"`
+	ToStatus   string             `json:"to_status"`
+	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+}
+
+type AppFeedbackReply struct {
+	ID             uuid.UUID          `json:"id"`
+	TenantID       uuid.UUID          `json:"tenant_id"`
+	AppID          uuid.UUID          `json:"app_id"`
+	FeedbackID     uuid.UUID          `json:"feedback_id"`
+	AuthorID       *uuid.UUID         `json:"author_id"`
+	Body           string             `json:"body"`
+	IdempotencyKey uuid.UUID          `json:"idempotency_key"`
+	RequestHash    []byte             `json:"request_hash"`
+	CreatedAt      pgtype.Timestamptz `json:"created_at"`
 }
 
 type AppLegalConsent struct {
@@ -1367,6 +1438,7 @@ type StorageUploadSession struct {
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
 	AppID            *uuid.UUID         `json:"app_id"`
+	Purpose          string             `json:"purpose"`
 }
 
 type SysApiClient struct {

@@ -34,6 +34,9 @@ const routes: Array<RouteDefinition> = [
   { key: 'about', path: 'pages/about/index', access: 'public', permission: null, featureFlag: null },
   { key: 'articles.list', path: 'pages/articles/list/index', access: 'public', permission: null, featureFlag: null },
   { key: 'articles.detail', path: 'pages/articles/detail/index', access: 'public', permission: null, featureFlag: null },
+  { key: 'feedback', path: 'pages/feedback/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'feedback.create', path: 'pages/feedback/create/index', access: 'authenticated', permission: null, featureFlag: null },
+  { key: 'feedback.detail', path: 'pages/feedback/detail/index', access: 'authenticated', permission: null, featureFlag: null },
 ]
 
 export const akNavigator = new AkNavigator(routes, new AkRouteGuard())

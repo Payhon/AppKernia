@@ -2,7 +2,9 @@ package application
 
 import (
 	"context"
+	"github.com/appkernia/appkernia/server/internal/shared/publicurl"
 	"io"
+	"net/url"
 	"strings"
 
 	content "github.com/appkernia/appkernia/server/internal/modules/content/domain"
@@ -72,7 +74,11 @@ func (s *Service) GetPublic(ctx context.Context, token string, appID uuid.UUID, 
 	if !slugPattern.MatchString(slug) {
 		return content.PublicArticle{}, content.ErrInvalid
 	}
-	return s.repo.GetPublished(ctx, tenantID, appID, userID, locale, slug)
+	out, err := s.repo.GetPublished(ctx, tenantID, appID, userID, locale, slug)
+	if err == nil {
+		out.ShareURL = publicurl.Link(s.publicWebBaseURL, appID, "/articles/"+url.PathEscape(slug), locale)
+	}
+	return out, err
 }
 
 func (s *Service) PublicCategories(ctx context.Context, token string, appID uuid.UUID, locale string) (content.PublicCategoryPage, error) {

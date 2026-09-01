@@ -4,6 +4,120 @@ export type ClientOptions = {
     baseUrl: `${string}://${string}` | (string & {});
 };
 
+export type FeedbackStatus = 'pending' | 'processing' | 'resolved';
+
+export type FeedbackAttachment = {
+    file_id: string;
+    media_type: string;
+    size_bytes: number;
+};
+
+export type FeedbackReply = {
+    id: string;
+    body: string;
+    created_at: string;
+};
+
+export type FeedbackEvent = {
+    id: string;
+    from_status: FeedbackStatus;
+    to_status: FeedbackStatus;
+    created_at: string;
+};
+
+export type Feedback = {
+    id: string;
+    user_id: string;
+    description: string;
+    contact: string;
+    platform: 'android' | 'ios' | 'harmony' | 'unknown';
+    app_version: string;
+    status: FeedbackStatus;
+    lock_version: number;
+    created_at: string;
+    updated_at: string;
+    attachments: Array<FeedbackAttachment>;
+    replies: Array<FeedbackReply>;
+    events: Array<FeedbackEvent>;
+};
+
+export type FeedbackInput = {
+    description: string;
+    contact?: string;
+    platform: 'android' | 'ios' | 'harmony' | 'unknown';
+    app_version: string;
+    file_ids: Array<string>;
+};
+
+export type FeedbackStatusInput = {
+    status: FeedbackStatus;
+    lock_version: number;
+};
+
+export type FeedbackReplyInput = {
+    body: string;
+    status: FeedbackStatus;
+    lock_version: number;
+};
+
+export type FeedbackUploadInput = {
+    original_name: string;
+    media_type: 'image/jpeg' | 'image/png' | 'image/webp';
+    size_bytes: number;
+};
+
+export type FeedbackUpload = {
+    id: string;
+    upload_url: string;
+    expires_at: string;
+    status: string;
+    file_id: string | null;
+};
+
+export type FeedbackResponse = {
+    code: string;
+    message: string;
+    data: Feedback;
+    request_id: string;
+};
+
+export type FeedbackListResponse = {
+    code: string;
+    message: string;
+    data: {
+        items: Array<Feedback>;
+        total: number;
+        page: number;
+        page_size: number;
+    };
+    request_id: string;
+};
+
+export type FeedbackUploadResponse = {
+    code: string;
+    message: string;
+    data: FeedbackUpload;
+    request_id: string;
+};
+
+export type FeedbackFileResponse = {
+    code: string;
+    message: string;
+    data: {
+        file_id: string;
+    };
+    request_id: string;
+};
+
+export type FeedbackCancelResponse = {
+    code: string;
+    message: string;
+    data: {
+        cancelled: boolean;
+    };
+    request_id: string;
+};
+
 export type SupportedLocale = 'zh-CN' | 'en-US';
 
 /**
@@ -42,6 +156,7 @@ export type AppPublicConfigResponse = {
     code: 'OK';
     message: string;
     data: {
+        download_page_url?: string;
         app_id: string;
         appid: string;
         app_type: 'uni_app' | 'uni_app_x';
@@ -222,7 +337,7 @@ export type PublicConfigResponse = {
 
 export type AppPublicPage = {
     slug: string;
-    document_type: 'privacy-policy' | 'terms-of-service' | 'about-us' | 'custom';
+    document_type: 'privacy-policy' | 'terms-of-service' | 'about-us' | 'faq' | 'contact-support' | 'custom';
     title: string;
     body: string | Array<unknown>;
     body_format: 'markdown' | 'blocks';
@@ -230,6 +345,10 @@ export type AppPublicPage = {
     content_hash: string;
     locale: SupportedLocale;
     revision_id: string;
+    /**
+     * Trusted server-generated public URL; omitted when unavailable.
+     */
+    public_url?: string;
 };
 
 export type AppPublicPageResponse = {
@@ -488,7 +607,7 @@ export type AdminAppListPage = {
 export type AdminAppPage = {
     id: string;
     slug: string;
-    page_type: 'privacy-policy' | 'terms-of-service' | 'about-us' | 'custom';
+    page_type: 'privacy-policy' | 'terms-of-service' | 'about-us' | 'faq' | 'contact-support' | 'custom';
     status: 'draft' | 'published' | 'archived';
     lock_version: number;
     current_revision_id?: string | null;
@@ -513,11 +632,15 @@ export type AdminAppPage = {
         created_at: string;
         created_by?: string | null;
     }>;
+    /**
+     * Trusted server-generated public URL; omitted when unavailable.
+     */
+    public_url?: string;
 };
 
 export type AdminAppPageRequest = {
     slug: string;
-    page_type: 'privacy-policy' | 'terms-of-service' | 'about-us' | 'custom';
+    page_type: 'privacy-policy' | 'terms-of-service' | 'about-us' | 'faq' | 'contact-support' | 'custom';
     lock_version?: number;
     publish: boolean;
     translations: {
@@ -3348,6 +3471,10 @@ export type AdminContentArticle = {
     translations: AdminContentTranslations;
     created_at: string;
     updated_at: string;
+    /**
+     * Trusted server-generated public URL; omitted when unavailable.
+     */
+    share_url?: string;
 };
 
 export type AdminContentArticleRequest = {
@@ -3563,13 +3690,9 @@ export type VideoContentDetail = Omit<AppArticle, 'content_type'> & {
     video_url: string;
 };
 
-export type ContentDetail = ({
-    content_type: 'article';
-} & ArticleContentDetail) | ({
-    content_type: 'gallery';
-} & GalleryContentDetail) | ({
-    content_type: 'video';
-} & VideoContentDetail);
+export type ContentDetail = {
+    share_url?: string;
+};
 
 export type ContentDetailResponse = {
     code: string;
@@ -4244,6 +4367,94 @@ export type LockVersionRequest = {
     lock_version: number;
 };
 
+export type PublicWebTranslation = {
+    name: string;
+    introduction: string;
+    /**
+     * Optional H5 promotion heading; empty uses the localized App name.
+     */
+    promotion_title: string;
+    /**
+     * Optional H5 promotion copy; empty uses built-in localized copy.
+     */
+    promotion_description: string;
+    /**
+     * Optional H5 promotion CTA label; empty uses built-in localized copy.
+     */
+    promotion_button_label: string;
+};
+
+export type PublicWebTranslationRequest = {
+    name: string;
+    introduction: string;
+    /**
+     * Optional for compatibility; omitted values use empty localized fallback copy.
+     */
+    promotion_title?: string;
+    /**
+     * Optional for compatibility; omitted values use empty localized fallback copy.
+     */
+    promotion_description?: string;
+    /**
+     * Optional for compatibility; omitted values use empty localized fallback copy.
+     */
+    promotion_button_label?: string;
+};
+
+export type PublicWebStore = {
+    id: string;
+    name: string;
+    enabled: boolean;
+    priority: number;
+    platform: '' | 'android' | 'ios' | 'harmony';
+    /**
+     * Empty or HTTPS URL; platform required for nonempty URL.
+     */
+    web_url: string;
+};
+
+export type AdminPublicWebConfigRequest = {
+    enabled: boolean;
+    apk_enabled: boolean;
+    /**
+     * Controls the download promotion shown on public articles and pages.
+     */
+    promotion_enabled?: boolean;
+    lock_version: number;
+    translations: {
+        'zh-CN': PublicWebTranslationRequest;
+        'en-US': PublicWebTranslationRequest;
+    };
+    stores: Array<PublicWebStore>;
+};
+
+export type AdminPublicWebConfig = {
+    enabled: boolean;
+    apk_enabled: boolean;
+    /**
+     * Controls the download promotion shown on public articles and pages.
+     */
+    promotion_enabled: boolean;
+    lock_version: number;
+    translations: {
+        'zh-CN': PublicWebTranslation;
+        'en-US': PublicWebTranslation;
+    };
+    stores: Array<PublicWebStore>;
+    app_id: string;
+    /**
+     * Empty when trusted public origin is not configured.
+     */
+    download_page_url: string;
+};
+
+export type AdminPublicWebConfigResponse = {
+    code: string;
+    message: string;
+    data: AdminPublicWebConfig;
+    request_id: string;
+};
+
 export type AdminPushProviderConfigWritable = {
     id: string;
     app_id: string;
@@ -4477,6 +4688,618 @@ export type UserResourceId = string;
 export type OrgUserResourceId = string;
 
 export type UserSessionResourceId = string;
+
+export type ListMobileFeedbacksData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: {
+        q?: string;
+        status?: FeedbackStatus;
+        page?: number;
+        page_size?: number;
+        created_from?: string;
+        created_to?: string;
+    };
+    url: '/api/v1/me/feedbacks';
+};
+
+export type ListMobileFeedbacksErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListMobileFeedbacksError = ListMobileFeedbacksErrors[keyof ListMobileFeedbacksErrors];
+
+export type ListMobileFeedbacksResponses = {
+    /**
+     * Success.
+     */
+    200: FeedbackListResponse;
+};
+
+export type ListMobileFeedbacksResponse = ListMobileFeedbacksResponses[keyof ListMobileFeedbacksResponses];
+
+export type CreateMobileFeedbackData = {
+    body: FeedbackInput;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+        /**
+         * Reuse the UUID for retries of the same unchanged request. A different payload returns 409.
+         */
+        'Idempotency-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/feedbacks';
+};
+
+export type CreateMobileFeedbackErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateMobileFeedbackError = CreateMobileFeedbackErrors[keyof CreateMobileFeedbackErrors];
+
+export type CreateMobileFeedbackResponses = {
+    /**
+     * Success.
+     */
+    201: FeedbackResponse;
+};
+
+export type CreateMobileFeedbackResponse = CreateMobileFeedbackResponses[keyof CreateMobileFeedbackResponses];
+
+export type GetMobileFeedbackData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/feedbacks/{id}';
+};
+
+export type GetMobileFeedbackErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type GetMobileFeedbackError = GetMobileFeedbackErrors[keyof GetMobileFeedbackErrors];
+
+export type GetMobileFeedbackResponses = {
+    /**
+     * Success.
+     */
+    200: FeedbackResponse;
+};
+
+export type GetMobileFeedbackResponse = GetMobileFeedbackResponses[keyof GetMobileFeedbackResponses];
+
+export type GetMobileFeedbackAttachmentData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path: {
+        id: string;
+        file_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/feedbacks/{id}/attachments/{file_id}/content';
+};
+
+export type GetMobileFeedbackAttachmentErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type GetMobileFeedbackAttachmentError = GetMobileFeedbackAttachmentErrors[keyof GetMobileFeedbackAttachmentErrors];
+
+export type GetMobileFeedbackAttachmentResponses = {
+    /**
+     * Authorized ready image; scan state must be clean. Skipped scans are denied.
+     */
+    200: Blob | File;
+};
+
+export type GetMobileFeedbackAttachmentResponse = GetMobileFeedbackAttachmentResponses[keyof GetMobileFeedbackAttachmentResponses];
+
+export type ListAdminFeedbacksData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path: {
+        app_id: string;
+    };
+    query?: {
+        q?: string;
+        status?: FeedbackStatus;
+        page?: number;
+        page_size?: number;
+        created_from?: string;
+        created_to?: string;
+    };
+    url: '/admin-api/v1/apps/{app_id}/feedbacks';
+};
+
+export type ListAdminFeedbacksErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListAdminFeedbacksError = ListAdminFeedbacksErrors[keyof ListAdminFeedbacksErrors];
+
+export type ListAdminFeedbacksResponses = {
+    /**
+     * Success.
+     */
+    200: FeedbackListResponse;
+};
+
+export type ListAdminFeedbacksResponse = ListAdminFeedbacksResponses[keyof ListAdminFeedbacksResponses];
+
+export type GetAdminFeedbackData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/feedbacks/{id}';
+};
+
+export type GetAdminFeedbackErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type GetAdminFeedbackError = GetAdminFeedbackErrors[keyof GetAdminFeedbackErrors];
+
+export type GetAdminFeedbackResponses = {
+    /**
+     * Success.
+     */
+    200: FeedbackResponse;
+};
+
+export type GetAdminFeedbackResponse = GetAdminFeedbackResponses[keyof GetAdminFeedbackResponses];
+
+export type UpdateAdminFeedbackData = {
+    body: FeedbackStatusInput;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/feedbacks/{id}';
+};
+
+export type UpdateAdminFeedbackErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateAdminFeedbackError = UpdateAdminFeedbackErrors[keyof UpdateAdminFeedbackErrors];
+
+export type UpdateAdminFeedbackResponses = {
+    /**
+     * Success.
+     */
+    200: FeedbackResponse;
+};
+
+export type UpdateAdminFeedbackResponse = UpdateAdminFeedbackResponses[keyof UpdateAdminFeedbackResponses];
+
+export type GetAdminFeedbackAttachmentData = {
+    body?: never;
+    headers?: {
+        'Accept-Language'?: string;
+    };
+    path: {
+        app_id: string;
+        id: string;
+        file_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/feedbacks/{id}/attachments/{file_id}/content';
+};
+
+export type GetAdminFeedbackAttachmentErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type GetAdminFeedbackAttachmentError = GetAdminFeedbackAttachmentErrors[keyof GetAdminFeedbackAttachmentErrors];
+
+export type GetAdminFeedbackAttachmentResponses = {
+    /**
+     * Authorized ready image; scan state must be clean. Skipped scans are denied.
+     */
+    200: Blob | File;
+};
+
+export type GetAdminFeedbackAttachmentResponse = GetAdminFeedbackAttachmentResponses[keyof GetAdminFeedbackAttachmentResponses];
+
+export type ReplyAdminFeedbackData = {
+    body: FeedbackReplyInput;
+    headers: {
+        'Accept-Language'?: string;
+        /**
+         * Reuse the UUID for retries of the same unchanged request. A different payload returns 409.
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        app_id: string;
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/feedbacks/{id}/replies';
+};
+
+export type ReplyAdminFeedbackErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ReplyAdminFeedbackError = ReplyAdminFeedbackErrors[keyof ReplyAdminFeedbackErrors];
+
+export type ReplyAdminFeedbackResponses = {
+    /**
+     * Success.
+     */
+    201: FeedbackResponse;
+};
+
+export type ReplyAdminFeedbackResponse = ReplyAdminFeedbackResponses[keyof ReplyAdminFeedbackResponses];
+
+export type CreateMobileFeedbackUploadData = {
+    body: FeedbackUploadInput;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/feedback-uploads';
+};
+
+export type CreateMobileFeedbackUploadErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type CreateMobileFeedbackUploadError = CreateMobileFeedbackUploadErrors[keyof CreateMobileFeedbackUploadErrors];
+
+export type CreateMobileFeedbackUploadResponses = {
+    /**
+     * Success.
+     */
+    201: FeedbackUploadResponse;
+};
+
+export type CreateMobileFeedbackUploadResponse = CreateMobileFeedbackUploadResponses[keyof CreateMobileFeedbackUploadResponses];
+
+export type CancelMobileFeedbackUploadData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/feedback-uploads/{id}';
+};
+
+export type CancelMobileFeedbackUploadErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CancelMobileFeedbackUploadError = CancelMobileFeedbackUploadErrors[keyof CancelMobileFeedbackUploadErrors];
+
+export type CancelMobileFeedbackUploadResponses = {
+    /**
+     * Success.
+     */
+    200: FeedbackCancelResponse;
+};
+
+export type CancelMobileFeedbackUploadResponse = CancelMobileFeedbackUploadResponses[keyof CancelMobileFeedbackUploadResponses];
+
+export type UploadMobileFeedbackImageData = {
+    body: {
+        file: Blob | File;
+    };
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        'Accept-Language'?: string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/feedback-uploads/{id}/content';
+};
+
+export type UploadMobileFeedbackImageErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type UploadMobileFeedbackImageError = UploadMobileFeedbackImageErrors[keyof UploadMobileFeedbackImageErrors];
+
+export type UploadMobileFeedbackImageResponses = {
+    /**
+     * Success.
+     */
+    200: FeedbackFileResponse;
+};
+
+export type UploadMobileFeedbackImageResponse = UploadMobileFeedbackImageResponses[keyof UploadMobileFeedbackImageResponses];
 
 export type GetPublicContentSharePageData = {
     body?: never;
@@ -17052,3 +17875,304 @@ export type GetAdminOpsRuntimeSummaryResponses = {
 };
 
 export type GetAdminOpsRuntimeSummaryResponse = GetAdminOpsRuntimeSummaryResponses[keyof GetAdminOpsRuntimeSummaryResponses];
+
+export type GetPublicWebArticleData = {
+    body?: never;
+    path: {
+        app_id: string;
+        slug: string;
+    };
+    query?: {
+        lang?: SupportedLocale;
+    };
+    url: '/h5/apps/{app_id}/articles/{slug}';
+};
+
+export type GetPublicWebArticleErrors = {
+    /**
+     * Content unavailable.
+     */
+    404: string;
+    /**
+     * Service unavailable.
+     */
+    503: string;
+};
+
+export type GetPublicWebArticleError = GetPublicWebArticleErrors[keyof GetPublicWebArticleErrors];
+
+export type GetPublicWebArticleResponses = {
+    /**
+     * Server-rendered HTML. Public reads ignore authentication cookies. CSP frame-ancestors permits only the validated AK_ADMIN_ORIGIN; invalid configuration denies embedding.
+     */
+    200: string;
+};
+
+export type GetPublicWebArticleResponse = GetPublicWebArticleResponses[keyof GetPublicWebArticleResponses];
+
+export type GetPublicWebPageData = {
+    body?: never;
+    path: {
+        app_id: string;
+        slug: string;
+    };
+    query?: {
+        lang?: SupportedLocale;
+    };
+    url: '/h5/apps/{app_id}/pages/{slug}';
+};
+
+export type GetPublicWebPageErrors = {
+    /**
+     * Content unavailable.
+     */
+    404: string;
+    /**
+     * Service unavailable.
+     */
+    503: string;
+};
+
+export type GetPublicWebPageError = GetPublicWebPageErrors[keyof GetPublicWebPageErrors];
+
+export type GetPublicWebPageResponses = {
+    /**
+     * Server-rendered HTML. Public reads ignore authentication cookies. CSP frame-ancestors permits only the validated AK_ADMIN_ORIGIN; invalid configuration denies embedding.
+     */
+    200: string;
+};
+
+export type GetPublicWebPageResponse = GetPublicWebPageResponses[keyof GetPublicWebPageResponses];
+
+export type GetPublicWebDownloadData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: {
+        lang?: SupportedLocale;
+        format?: 'qr';
+    };
+    url: '/h5/apps/{app_id}/download';
+};
+
+export type GetPublicWebDownloadErrors = {
+    /**
+     * Content unavailable.
+     */
+    404: string;
+    /**
+     * Service unavailable.
+     */
+    503: string;
+};
+
+export type GetPublicWebDownloadError = GetPublicWebDownloadErrors[keyof GetPublicWebDownloadErrors];
+
+export type GetPublicWebDownloadResponses = {
+    /**
+     * One HTML page for all devices; format=qr returns PNG. No server-side platform detection. HTML permits embedding only by the validated AK_ADMIN_ORIGIN.
+     */
+    200: string;
+};
+
+export type GetPublicWebDownloadResponse = GetPublicWebDownloadResponses[keyof GetPublicWebDownloadResponses];
+
+export type GetPublicWebStaticData = {
+    body?: never;
+    path: {
+        name: string;
+    };
+    query?: never;
+    url: '/h5/static/{name}';
+};
+
+export type GetPublicWebStaticErrors = {
+    /**
+     * Content unavailable.
+     */
+    404: string;
+    /**
+     * Service unavailable.
+     */
+    503: string;
+};
+
+export type GetPublicWebStaticError = GetPublicWebStaticErrors[keyof GetPublicWebStaticErrors];
+
+export type GetPublicWebStaticResponses = {
+    /**
+     * Authorized embedded or business resource.
+     */
+    200: Blob | File;
+};
+
+export type GetPublicWebStaticResponse = GetPublicWebStaticResponses[keyof GetPublicWebStaticResponses];
+
+export type GetPublicWebAssetData = {
+    body?: never;
+    path: {
+        app_id: string;
+        file_id: string;
+    };
+    query?: never;
+    url: '/h5/apps/{app_id}/assets/{file_id}';
+};
+
+export type GetPublicWebAssetErrors = {
+    /**
+     * Content unavailable.
+     */
+    404: string;
+    /**
+     * Service unavailable.
+     */
+    503: string;
+};
+
+export type GetPublicWebAssetError = GetPublicWebAssetErrors[keyof GetPublicWebAssetErrors];
+
+export type GetPublicWebAssetResponses = {
+    /**
+     * Authorized embedded or business resource.
+     */
+    200: Blob | File;
+};
+
+export type GetPublicWebAssetResponse = GetPublicWebAssetResponses[keyof GetPublicWebAssetResponses];
+
+export type GetPublicWebApkData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/h5/apps/{app_id}/apk';
+};
+
+export type GetPublicWebApkErrors = {
+    /**
+     * Content unavailable.
+     */
+    404: string;
+    /**
+     * Service unavailable.
+     */
+    503: string;
+};
+
+export type GetPublicWebApkError = GetPublicWebApkErrors[keyof GetPublicWebApkErrors];
+
+export type GetPublicWebPackageData = {
+    body?: never;
+    path: {
+        app_id: string;
+        release_id: string;
+        file_id: string;
+    };
+    query: {
+        expires: number;
+        signature: string;
+    };
+    url: '/h5/apps/{app_id}/packages/{release_id}/{file_id}';
+};
+
+export type GetPublicWebPackageErrors = {
+    /**
+     * Content unavailable.
+     */
+    404: string;
+    /**
+     * Service unavailable.
+     */
+    503: string;
+};
+
+export type GetPublicWebPackageError = GetPublicWebPackageErrors[keyof GetPublicWebPackageErrors];
+
+export type GetPublicWebPackageResponses = {
+    /**
+     * Authorized embedded or business resource.
+     */
+    200: Blob | File;
+};
+
+export type GetPublicWebPackageResponse = GetPublicWebPackageResponses[keyof GetPublicWebPackageResponses];
+
+export type GetAdminPublicWebConfigData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/public-web-config';
+};
+
+export type GetAdminPublicWebConfigErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type GetAdminPublicWebConfigError = GetAdminPublicWebConfigErrors[keyof GetAdminPublicWebConfigErrors];
+
+export type GetAdminPublicWebConfigResponses = {
+    /**
+     * App public presentation configuration.
+     */
+    200: AdminPublicWebConfigResponse;
+};
+
+export type GetAdminPublicWebConfigResponse = GetAdminPublicWebConfigResponses[keyof GetAdminPublicWebConfigResponses];
+
+export type UpdateAdminPublicWebConfigData = {
+    body: AdminPublicWebConfigRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/public-web-config';
+};
+
+export type UpdateAdminPublicWebConfigErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateAdminPublicWebConfigError = UpdateAdminPublicWebConfigErrors[keyof UpdateAdminPublicWebConfigErrors];
+
+export type UpdateAdminPublicWebConfigResponses = {
+    /**
+     * App public presentation configuration.
+     */
+    200: AdminPublicWebConfigResponse;
+};
+
+export type UpdateAdminPublicWebConfigResponse = UpdateAdminPublicWebConfigResponses[keyof UpdateAdminPublicWebConfigResponses];

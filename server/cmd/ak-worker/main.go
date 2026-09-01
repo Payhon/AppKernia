@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	feedbackworker "github.com/appkernia/appkernia/server/internal/modules/feedback/worker"
 	"os"
 	"os/signal"
 	"syscall"
@@ -105,7 +106,10 @@ func run() error {
 	go scheduler.Run(ctx)
 	maintenance := notificationworker.NewOperationsMaintenance(pool, cfg.Environment, time.Hour)
 	go maintenance.Run(ctx)
+	feedbackCleanupDone := make(chan struct{})
+	go func() { defer close(feedbackCleanupDone); feedbackworker.NewCleanup(pool, objectStore).Run(ctx) }()
 	<-ctx.Done()
+	<-feedbackCleanupDone
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
 	defer cancel()
 	if err = client.Stop(shutdownCtx); err != nil && !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded) {
