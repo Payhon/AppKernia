@@ -1,0 +1,10 @@
+/** Installation-scoped values survive session sign-out but never use plain storage. */
+export interface SecureInstallationStoragePort {
+  readDeviceKey(onSuccess: (value: string | null) => void, onFailure: () => void): void
+  writeDeviceKey(value: string, onSuccess: () => void, onFailure: () => void): void
+}
+
+export class UnavailableSecureInstallationStorage implements SecureInstallationStoragePort {
+  readDeviceKey(_onSuccess: (value: string | null) => void, onFailure: () => void): void { onFailure() }
+  writeDeviceKey(_value: string, _onSuccess: () => void, onFailure: () => void): void { onFailure() }
+}

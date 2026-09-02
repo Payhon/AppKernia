@@ -1,0 +1,7 @@
+<!-- Merge into the main Activity only after ak-cli has exported a concrete HTTPS host/path. -->
+<intent-filter android:autoVerify="true">
+  <action android:name="android.intent.action.VIEW" />
+  <category android:name="android.intent.category.DEFAULT" />
+  <category android:name="android.intent.category.BROWSABLE" />
+  <data android:scheme="https" android:host="${AK_OAUTH_RETURN_HOST}" android:path="${AK_OAUTH_RETURN_PATH}" />
+</intent-filter>

@@ -1,0 +1,21 @@
+import {
+  availability as vaultAvailability,
+  get as vaultGet,
+  set as vaultSet,
+} from '@/uni_modules/ak-secure-storage'
+import { SecureInstallationStoragePort } from './secure-installation-storage-port.uts'
+
+const INSTALLATION_DEVICE_KEY = 'installation.device-key'
+
+/** Keeps the anonymous OAuth device binding stable across process restarts. */
+export class AkSecureInstallationStorage implements SecureInstallationStoragePort {
+  readDeviceKey(onSuccess: (value: string | null) => void, onFailure: () => void): void {
+    if (!vaultAvailability().available) { onFailure(); return }
+    vaultGet(INSTALLATION_DEVICE_KEY, onSuccess, (_: string) => onFailure())
+  }
+
+  writeDeviceKey(value: string, onSuccess: () => void, onFailure: () => void): void {
+    if (!vaultAvailability().available || value.length == 0) { onFailure(); return }
+    vaultSet(INSTALLATION_DEVICE_KEY, value.toString(), onSuccess, (_: string) => onFailure())
+  }
+}

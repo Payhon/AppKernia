@@ -73,6 +73,44 @@ func (repository *Postgres) FindCredentialByEmail(ctx context.Context, email str
 	}, PasswordHash: row.PasswordHash}, nil
 }
 
+// FindCredentialByAppIdentifier scopes native password login to the App-owned
+// email binding instead of the legacy global iam.users.email column.
+func (repository *Postgres) FindCredentialByAppIdentifier(ctx context.Context, appID uuid.UUID, identifierType, value string) (domain.Credential, error) {
+	normalized := strings.ToLower(strings.TrimSpace(value))
+	var credential domain.Credential
+	err := repository.pool.QueryRow(ctx, `SELECT u.id,coalesce(u.email::text,''),u.display_name,u.locale,u.status,c.password_hash
+FROM app.user_login_identifiers i
+JOIN app.user_memberships m ON m.app_id=i.app_id AND m.user_id=i.user_id AND m.tenant_id=i.tenant_id AND m.status='active'
+JOIN iam.users u ON u.id=i.user_id AND u.deleted_at IS NULL
+JOIN iam.user_credentials c ON c.user_id=u.id
+WHERE i.app_id=$1 AND i.identifier_type=$2 AND i.normalized_value=$3
+  AND i.status='active' AND i.verified_at IS NOT NULL`, appID, identifierType, normalized).
+		Scan(&credential.User.ID, &credential.User.Email, &credential.User.DisplayName, &credential.User.Locale, &credential.User.Status, &credential.PasswordHash)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domain.Credential{}, domain.ErrIdentityNotFound
+	}
+	if err != nil {
+		return domain.Credential{}, fmt.Errorf("find app credential: %w", err)
+	}
+	return credential, nil
+}
+
+func (repository *Postgres) AppProfileIdentifiers(ctx context.Context, appID, userID uuid.UUID) (string, string, error) {
+	var email, mobile string
+	rows, err := db.New(repository.pool).ListAppProfileIdentifiers(ctx, db.ListAppProfileIdentifiersParams{AppID: appID, UserID: userID})
+	if err != nil {
+		return "", "", fmt.Errorf("load app profile identifiers: %w", err)
+	}
+	for _, row := range rows {
+		if row.IdentifierType == "email" {
+			email = row.NormalizedValue
+		} else {
+			mobile = row.NormalizedValue
+		}
+	}
+	return email, mobile, nil
+}
+
 func (repository *Postgres) ListUserTenants(ctx context.Context, userID uuid.UUID) ([]domain.Tenant, error) {
 	rows, err := db.New(repository.pool).ListUserTenants(ctx, userID)
 	if err != nil {

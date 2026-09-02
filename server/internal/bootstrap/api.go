@@ -11,6 +11,7 @@ import (
 	feedbackrepo "github.com/appkernia/appkernia/server/internal/modules/feedback/repository"
 	feedbackscanner "github.com/appkernia/appkernia/server/internal/modules/feedback/scanner"
 	feedbackhttp "github.com/appkernia/appkernia/server/internal/modules/feedback/transport/http"
+	"net/http"
 	"time"
 
 	accessadminapp "github.com/appkernia/appkernia/server/internal/modules/accessadmin/application"
@@ -44,6 +45,11 @@ import (
 	jobadminapp "github.com/appkernia/appkernia/server/internal/modules/jobadmin/application"
 	jobadminrepo "github.com/appkernia/appkernia/server/internal/modules/jobadmin/repository"
 	jobadminhttp "github.com/appkernia/appkernia/server/internal/modules/jobadmin/transport/http"
+	loginproviderapp "github.com/appkernia/appkernia/server/internal/modules/loginprovider/application"
+	loginproviderdomain "github.com/appkernia/appkernia/server/internal/modules/loginprovider/domain"
+	loginproviderprovider "github.com/appkernia/appkernia/server/internal/modules/loginprovider/provider"
+	loginproviderrepo "github.com/appkernia/appkernia/server/internal/modules/loginprovider/repository"
+	loginproviderhttp "github.com/appkernia/appkernia/server/internal/modules/loginprovider/transport/http"
 	mobileprofileapp "github.com/appkernia/appkernia/server/internal/modules/mobileprofile/application"
 	mobileprofilerepo "github.com/appkernia/appkernia/server/internal/modules/mobileprofile/repository"
 	mobileprofilehttp "github.com/appkernia/appkernia/server/internal/modules/mobileprofile/transport/http"
@@ -186,6 +192,16 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		pool.Close()
 		return nil, fmt.Errorf("create app OTP notifier: %w", err)
 	}
+	loginProviderRepository := loginproviderrepo.NewPostgres(pool, appOTPNotifier)
+	stepUpDeriver := hmac.New(sha256.New, loginProtectionKey)
+	_, _ = stepUpDeriver.Write([]byte("appkernia:mobile-login-provider-step-up:v1"))
+	loginProviderAdapter := loginproviderprovider.NewHTTPAdapter(
+		&http.Client{Timeout: 15 * time.Second},
+		loginproviderdomain.GitHubBrowserCallbackURI(cfg.PublicWebBaseURL),
+	)
+	loginProviderService := loginproviderapp.NewService(authService, loginProviderRepository, settingsSealer,
+		loginProviderAdapter, cfg.PublicWebBaseURL, stepUpDeriver.Sum(nil))
+	loginProviderHandler := loginproviderhttp.NewHandler(loginProviderService, catalog)
 	mobileProfileRepository := mobileprofilerepo.NewPostgres(pool)
 	storageRepository := storagerepo.NewPostgres(pool)
 	var objectStore storagedomain.ObjectStore
@@ -222,6 +238,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		appmanagementapp.WithOTPNotifier(appOTPNotifier),
 		appmanagementapp.WithPublicWebBaseURL(cfg.PublicWebBaseURL),
 		appmanagementapp.WithAccountDeletionEnabled(accountDeletionEnabled),
+		appmanagementapp.WithAccountDeletionStepUp(loginProviderService.ConsumeAccountDeletionStepUp),
 		appmanagementapp.WithObjectErasureQueue(appmanagementrepo.NewObjectErasureQueue(trackedQueue)),
 		appmanagementapp.WithObjectStore(objectStore),
 		appmanagementapp.WithShareRuntime(func(ctx context.Context, appID uuid.UUID) ([]appmanagementapp.ShareRuntimeProvider, error) {
@@ -344,6 +361,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	})
 	server.Group("/api/v1", func(group *ghttp.RouterGroup) {
 		group.POST("/auth/client-token", apiClientAdminHandler.Token)
+		group.GET("/auth/oauth/{provider}/browser-callback", loginProviderHandler.GitHubBrowserCallback)
 		group.POST("/apps/{app_id}/notifications", notificationAPIHandler.Submit)
 		group.GET("/apps/{app_id}/notifications/{message_id}", notificationAPIHandler.Status)
 		group.POST("/apps/{app_id}/notifications/{message_id}/cancel", notificationAPIHandler.Cancel)
@@ -374,6 +392,14 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/auth/password/forgot", appManagementHandler.ForgotPassword)
 		group.POST("/auth/password/reset", appManagementHandler.ResetPassword)
 		group.POST("/auth/login/password", authHandler.MobileLogin)
+		group.GET("/auth/oauth/providers", loginProviderHandler.Providers)
+		group.POST("/auth/oauth/{provider}/authorize", loginProviderHandler.Authorize)
+		group.POST("/auth/oauth/{provider}/callback", loginProviderHandler.Callback)
+		group.POST("/auth/email/send-code", loginProviderHandler.SendEmailCode)
+		group.POST("/auth/mobile/send-code", loginProviderHandler.SendMobileCode)
+		group.POST("/auth/login/otp", loginProviderHandler.OTPLogin)
+		group.POST("/auth/step-up/verification-code", loginProviderHandler.StepUpCode)
+		group.POST("/auth/step-up", loginProviderHandler.StepUp)
 		group.POST("/auth/token/refresh", authHandler.MobileRefresh)
 		group.POST("/auth/logout", authHandler.MobileLogout)
 		group.GET("/auth/context", authHandler.MobileContext)
@@ -383,6 +409,12 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.POST("/me/account-deletion/confirm", appManagementHandler.ConfirmAccountDeletion)
 		group.GET("/me", authHandler.MobileMe)
 		group.PATCH("/me", authHandler.MobileUpdateMe)
+		group.GET("/me/login-methods", loginProviderHandler.LoginMethods)
+		group.GET("/me/oauth-accounts", loginProviderHandler.OAuthAccounts)
+		group.DELETE("/me/oauth-accounts/{account_id}", loginProviderHandler.DeleteOAuthAccount)
+		group.POST("/me/login-identifiers/{type}/challenge", loginProviderHandler.IdentifierChallenge)
+		group.PUT("/me/login-identifiers/{type}", loginProviderHandler.Identifier)
+		group.DELETE("/me/login-identifiers/{type}", loginProviderHandler.Identifier)
 
 		group.GET("/me/feedbacks", feedbackHandler.Collection)
 		group.POST("/me/feedbacks", feedbackHandler.Collection)
@@ -443,6 +475,18 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/context", authHandler.Context)
 	})
 	server.Group("/admin-api/v1", func(group *ghttp.RouterGroup) {
+		group.GET("/login-provider-catalog", loginProviderHandler.Catalog)
+		group.GET("/login-provider-configs", loginProviderHandler.Configs)
+		group.POST("/login-provider-configs", loginProviderHandler.Configs)
+		group.GET("/login-provider-configs/{id}", loginProviderHandler.Config)
+		group.PATCH("/login-provider-configs/{id}", loginProviderHandler.Config)
+		group.DELETE("/login-provider-configs/{id}", loginProviderHandler.Config)
+		group.POST("/login-provider-configs/{id}/rotate-secret", loginProviderHandler.RotateSecret)
+		group.POST("/login-provider-configs/{id}/preflight", loginProviderHandler.Preflight)
+		group.POST("/login-provider-configs/{id}/activate", loginProviderHandler.Activate)
+		group.POST("/login-provider-configs/{id}/disable", loginProviderHandler.Disable)
+		group.GET("/apps/{app_id}/login-provider-bindings", loginProviderHandler.Bindings)
+		group.PUT("/apps/{app_id}/login-provider-bindings", loginProviderHandler.Bindings)
 		group.GET("/share-configs", shareConfigHandler.Configs)
 		group.POST("/share-configs", shareConfigHandler.CreateConfig)
 		group.GET("/share-configs/{id}", shareConfigHandler.Config)

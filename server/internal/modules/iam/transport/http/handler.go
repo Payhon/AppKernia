@@ -107,7 +107,7 @@ func (handler *Handler) MobileContext(request *ghttp.Request) {
 	request.Response.Header().Set("Cache-Control", "no-store")
 	request.Response.Header().Set("Vary", "Authorization, Accept-Language")
 	request.Response.WriteJsonExit(httpx.Success[map[string]any]{Code: "OK", Message: "OK", RequestID: httpx.RequestID(request), Data: map[string]any{
-		"user":          map[string]any{"id": contextValue.User.ID, "email": contextValue.User.Email, "display_name": contextValue.User.DisplayName, "locale": contextValue.User.Locale, "time_zone": contextValue.TimeZone, "avatar_url": avatarURLForUser(contextValue.User)},
+		"user":          map[string]any{"id": contextValue.User.ID, "email": contextValue.User.Email, "mobile": contextValue.User.Mobile, "display_name": contextValue.User.DisplayName, "locale": contextValue.User.Locale, "time_zone": contextValue.TimeZone, "avatar_url": avatarURLForUser(contextValue.User)},
 		"active_tenant": map[string]any{"id": contextValue.Tenant.ID, "code": contextValue.Tenant.Code, "name": contextValue.Tenant.Name},
 		"roles":         contextValue.Roles, "permissions": contextValue.Permissions, "feature_flags": handler.featureFlags, "server_time": time.Now().UTC(),
 	}})
@@ -324,6 +324,7 @@ type mobileTokenResponse struct {
 type selfProfileResponse struct {
 	ID          string  `json:"id"`
 	Email       string  `json:"email"`
+	Mobile      string  `json:"mobile"`
 	DisplayName string  `json:"display_name"`
 	Locale      string  `json:"locale"`
 	TimeZone    string  `json:"time_zone"`
@@ -867,7 +868,7 @@ func (handler *Handler) writeSelfProfile(request *ghttp.Request, user domain.Use
 	request.Response.WriteJsonExit(httpx.Success[selfProfileResponse]{
 		Code: "OK", Message: message, RequestID: httpx.RequestID(request),
 		Data: selfProfileResponse{
-			ID: user.ID.String(), Email: user.Email, DisplayName: user.DisplayName,
+			ID: user.ID.String(), Email: user.Email, Mobile: user.Mobile, DisplayName: user.DisplayName,
 			Locale: user.Locale, TimeZone: user.TimeZone, AvatarURL: avatarURL,
 		},
 	})

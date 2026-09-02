@@ -4,12 +4,17 @@ import { PersistedSessionCredential } from '../../core/stores/secure-session-sto
 import { MobileAuthService } from './mobile-auth-service.uts'
 import { HttpAuthRepository } from './auth-repository.uts'
 import { authContextStore } from '../../core/stores/auth-context-store.uts'
+import { oauthCoordinator } from './oauth-coordinator.uts'
+import { HttpOAuthRepository } from './oauth-repository.uts'
+import { AkSecureInstallationStorage } from '../../core/stores/ak-secure-installation-storage.uts'
+import { SecureInstallationStoragePort } from '../../core/stores/secure-installation-storage-port.uts'
 
 export class AuthRuntime {
   private service: MobileAuthService | null = null
   private client: AkHttpClient | null = null
   private sessions: SessionRuntime | null = null
   private deviceKey: string = ''
+  private readonly installationStorage: SecureInstallationStoragePort = new AkSecureInstallationStorage()
 
   private randomHex(length: number): string {
     const alphabet: string = '0123456789abcdef'
@@ -40,21 +45,42 @@ export class AuthRuntime {
     if (activeService != null) activeService.setDeviceKey(value)
   }
 
-  private resetDeviceKey(): void { this.applyDeviceKey(this.createDeviceKey()) }
-
-  configure(client: AkHttpClient, sessions: SessionRuntime): void {
+  configure(client: AkHttpClient, sessions: SessionRuntime, onReady: () => void, onFailure: () => void): void {
     this.client = client
     this.sessions = sessions
     this.service = new MobileAuthService(new HttpAuthRepository(client, client.getAppId()), sessions)
-    this.resetDeviceKey()
+    this.installationStorage.readDeviceKey(value => {
+      if (value != null && this.isDeviceKey(value!)) { this.finishConfigure(value!, onReady); return }
+      this.migrateSessionDeviceKeyOrCreate(onReady, onFailure)
+    }, onFailure)
+  }
+
+  private finishConfigure(value: string, onReady: () => void): void {
+    this.applyDeviceKey(value)
+    oauthCoordinator.configure(new HttpOAuthRepository(this.client!, this.client!.getAppId()), this.service!, this.client!.getAppId())
+    onReady()
+  }
+
+  private persistNewDeviceKey(onReady: () => void, onFailure: () => void): void {
+    const value = this.createDeviceKey()
+    this.installationStorage.writeDeviceKey(value, () => this.finishConfigure(value, onReady), onFailure)
+  }
+
+  /** One-time upgrade path for releases that stored the installation key only inside the session tuple. */
+  private migrateSessionDeviceKeyOrCreate(onReady: () => void, onFailure: () => void): void {
+    const activeSessions = this.sessions
+    if (activeSessions == null) { onFailure(); return }
+    activeSessions.readCredential(credential => {
+      if (credential == null || !this.isDeviceKey(credential.deviceKey)) { this.persistNewDeviceKey(onReady, onFailure); return }
+      this.installationStorage.writeDeviceKey(credential.deviceKey, () => this.finishConfigure(credential.deviceKey, onReady), onFailure)
+    })
   }
 
   getService(): MobileAuthService | null { return this.service }
   getDeviceKey(): string { return this.deviceKey }
   restore(credential: PersistedSessionCredential, onSuccess: () => void, onFailure: () => void): void {
-    if (this.service == null || !this.isDeviceKey(credential.deviceKey)) { authContextStore.clear(); this.resetDeviceKey(); onFailure(); return }
-    this.applyDeviceKey(credential.deviceKey)
-    this.service.refresh(credential.refreshToken, onSuccess, () => { authContextStore.clear(); this.resetDeviceKey(); onFailure() })
+    if (this.service == null || !this.isDeviceKey(credential.deviceKey) || credential.deviceKey != this.deviceKey) { authContextStore.clear(); onFailure(); return }
+    this.service.refresh(credential.refreshToken, onSuccess, () => { authContextStore.clear(); onFailure() })
   }
   refreshContext(onSuccess: () => void, onFailure: () => void): void {
     if (this.service == null) { onFailure(); return }
@@ -67,10 +93,13 @@ export class AuthRuntime {
   }
   clearDeletedAccount(onComplete: () => void): void {
     authContextStore.clear()
-    this.resetDeviceKey()
     const activeSessions = this.sessions
     if (activeSessions == null) { onComplete(); return }
-    activeSessions.signOut(onComplete)
+    const replacement = this.createDeviceKey()
+    this.installationStorage.writeDeviceKey(replacement, () => {
+      this.applyDeviceKey(replacement)
+      activeSessions.signOut(onComplete)
+    }, () => activeSessions.signOut(onComplete))
   }
 }
 

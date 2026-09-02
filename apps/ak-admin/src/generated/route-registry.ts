@@ -49,6 +49,18 @@ export const generatedRouteRegistry = [
     "activeMenuCode": "system.settings.share-configs"
   },
   {
+    "componentKey": "system.settings.login-providers",
+    "path": "/system/settings/login-providers",
+    "auth": "required",
+    "layout": "app",
+    "titleKey": "routes.system.settings.login_providers.title",
+    "permissions": [
+      "sys.login_provider_config.read"
+    ],
+    "featureFlag": null,
+    "activeMenuCode": "system.settings.login-providers"
+  },
+  {
     "componentKey": "system.settings.regions",
     "path": "/system/settings/regions",
     "auth": "required",

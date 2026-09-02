@@ -80,6 +80,22 @@
       "active_menu_code": "system.settings.share-configs"
     },
     {
+      "component_key": "system.settings.login-providers",
+      "path": "/system/settings/login-providers",
+      "file": "src/routes/system.settings.login-providers.tsx",
+      "layout": "app",
+      "auth": "required",
+      "phase": "P2",
+      "kind": "page",
+      "permissions": [
+        "sys.login_provider_config.read"
+      ],
+      "title_key": "routes.system.settings.login_providers.title",
+      "menu_code": "system.settings.login-providers",
+      "active_menu_code": "system.settings.login-providers",
+      "backend_status": "delta_required"
+    },
+    {
       "component_key": "system.settings.regions",
       "path": "/system/settings/regions",
       "file": "src/routes/_app/system/settings/regions.tsx",

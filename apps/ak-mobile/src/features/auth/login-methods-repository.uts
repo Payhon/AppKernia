@@ -1,0 +1,102 @@
+import { AkError } from '../../core/errors/ak-error.uts'
+import { akI18n } from '../../core/i18n/ak-i18n.uts'
+import { AkHttpPort, HttpCancellation, HttpRequest } from '../../core/network/http-port.uts'
+import {
+  MobileIdentifierBindWire as IdentifierBindWire,
+  MobileIdentifierChallengeRequestWire as IdentifierCodeWire,
+  MobileIdentifierChangeWire as IdentifierChangeWire,
+  MobileIdentifierMutationWire as UpdatedIdentifierWire,
+  MobileLoginIdentifierWire as LoginIdentifierWire,
+  MobileLoginMethodsWire as LoginMethodsWire,
+  MobileOAuthAccountWire as LoginOAuthAccountWire,
+  MobileOTPChallengeWire as ChallengeWire,
+  MobileStepUpCodeWire as StepUpCodeWire,
+  MobileStepUpOTPWire as StepUpOTPWire,
+  MobileStepUpPasswordWire as StepUpPasswordWire,
+  MobileStepUpProofWire as StepUpProofWire,
+  MobileStepUpTokenWire as StepUpTokenWire,
+  MobileUnboundWire as UnboundWire,
+} from '../../generated/api/mobile-identity.uts'
+import { OTPChallenge } from './auth-repository.uts'
+import { LoginIdentifier, LoginMethods, OAuthAccount, StepUpProof } from './oauth-models.uts'
+
+export class HttpLoginMethodsRepository {
+  private readonly http: AkHttpPort
+  constructor(http: AkHttpPort) { this.http = http }
+
+  load(onSuccess: (methods: LoginMethods) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const request: HttpRequest<UTSJSONObject> = { method: 'GET', path: '/me/login-methods', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: {} as UTSJSONObject, locale: akI18n.getLocale() }
+    return this.http.execute<UTSJSONObject, LoginMethodsWire>(request, response => onSuccess(this.methods(response.data)), onFailure)
+  }
+
+  sendIdentifierCode(identifierType: 'email' | 'mobile', value: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: IdentifierCodeWire = { identifier: value }
+    const request: HttpRequest<IdentifierCodeWire> = { method: 'POST', path: '/me/login-identifiers/' + identifierType + '/challenge', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<IdentifierCodeWire, ChallengeWire>(request, response => this.challenge(response.data, onSuccess, onFailure), onFailure)
+  }
+
+  updateIdentifier(identifierType: 'email' | 'mobile', value: string, challengeId: string, verificationCode: string, stepUpToken: string, onSuccess: (identifier: LoginIdentifier) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    if (stepUpToken.length > 0) {
+      const body: IdentifierChangeWire = { identifier: value, challenge_id: challengeId, verification_code: verificationCode, step_up_token: stepUpToken }
+      return this.executeIdentifierUpdate<IdentifierChangeWire>(identifierType, body, onSuccess, onFailure)
+    }
+    const body: IdentifierBindWire = { identifier: value, challenge_id: challengeId, verification_code: verificationCode }
+    return this.executeIdentifierUpdate<IdentifierBindWire>(identifierType, body, onSuccess, onFailure)
+  }
+
+  deleteIdentifier(identifierType: 'email' | 'mobile', stepUpToken: string, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: StepUpTokenWire = { step_up_token: stepUpToken }
+    const request: HttpRequest<StepUpTokenWire> = { method: 'DELETE', path: '/me/login-identifiers/' + identifierType, query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<StepUpTokenWire, UnboundWire>(request, response => { if (response.data.unbound) onSuccess(); else onFailure(this.invalidResponse()) }, onFailure)
+  }
+
+  sendStepUpCode(identifierId: string, purpose: string, resource: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: StepUpCodeWire = { identifier_id: identifierId, purpose: purpose, resource: resource }
+    const request: HttpRequest<StepUpCodeWire> = { method: 'POST', path: '/auth/step-up/verification-code', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<StepUpCodeWire, ChallengeWire>(request, response => this.challenge(response.data, onSuccess, onFailure), onFailure)
+  }
+
+  stepUpPassword(purpose: string, resource: string, password: string, onSuccess: (proof: StepUpProof) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: StepUpPasswordWire = { method: 'password', purpose: purpose, resource: resource, password: password }
+    const request: HttpRequest<StepUpPasswordWire> = { method: 'POST', path: '/auth/step-up', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<StepUpPasswordWire, StepUpProofWire>(request, response => this.proof(response.data, onSuccess, onFailure), onFailure)
+  }
+
+  stepUpOTP(method: 'email_otp' | 'mobile_otp', purpose: string, resource: string, identifierId: string, challengeId: string, verificationCode: string, onSuccess: (proof: StepUpProof) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: StepUpOTPWire = { method: method, purpose: purpose, resource: resource, identifier_id: identifierId, challenge_id: challengeId, verification_code: verificationCode }
+    const request: HttpRequest<StepUpOTPWire> = { method: 'POST', path: '/auth/step-up', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<StepUpOTPWire, StepUpProofWire>(request, response => this.proof(response.data, onSuccess, onFailure), onFailure)
+  }
+
+  private methods(wire: LoginMethodsWire): LoginMethods {
+    const identifiers: Array<LoginIdentifier> = []
+    wire.identifiers.forEach((item: LoginIdentifierWire) => { if (item.identifier_type == 'email' || item.identifier_type == 'mobile') identifiers.push(this.identifier(item)) })
+    const accounts: Array<OAuthAccount> = []
+    wire.oauth_accounts.forEach((item: LoginOAuthAccountWire) => {
+      if (item.provider_code.length == 0) return
+      accounts.push(new OAuthAccount(item.id, item.provider_code, item.display_name_key, item.provider_username_hint == null ? '' : item.provider_username_hint!, item.status, item.login_enabled, item.login_capable, item.can_bind, item.can_change, item.bound_at, item.last_authenticated_at == null ? '' : item.last_authenticated_at!, item.can_unbind, item.block_reason == null ? '' : item.block_reason!))
+    })
+    return new LoginMethods(wire.password.present, wire.password.login_capable, wire.password.can_bind, wire.password.can_change, wire.password.can_unbind, wire.password.block_reason == null ? '' : wire.password.block_reason!, identifiers, accounts, wire.remaining_login_methods)
+  }
+
+  private executeIdentifierUpdate<T>(identifierType: 'email' | 'mobile', body: T, onSuccess: (identifier: LoginIdentifier) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const request: HttpRequest<T> = { method: 'PUT', path: '/me/login-identifiers/' + identifierType, query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<T, UpdatedIdentifierWire>(request, response => onSuccess(this.identifier(response.data.identifier)), onFailure)
+  }
+
+  private identifier(wire: LoginIdentifierWire): LoginIdentifier {
+    return new LoginIdentifier(wire.id, wire.identifier_type as 'email' | 'mobile', wire.display_hint, wire.verified, wire.status, wire.login_capable, wire.can_bind, wire.can_change, wire.can_unbind, wire.block_reason == null ? '' : wire.block_reason!)
+  }
+
+  private challenge(wire: ChallengeWire, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): void {
+    if (!wire.accepted || wire.challenge_id.length == 0 || wire.expires_at.length == 0) { onFailure(this.invalidResponse()); return }
+    onSuccess({ challengeId: wire.challenge_id, retryAfterSeconds: wire.retry_after_seconds > 0 ? wire.retry_after_seconds : 60, expiresAt: wire.expires_at })
+  }
+
+  private proof(wire: StepUpProofWire, onSuccess: (proof: StepUpProof) => void, onFailure: (error: AkError) => void): void {
+    if (wire.step_up_token.length == 0 || wire.expires_at.length == 0) { onFailure(this.invalidResponse()); return }
+    onSuccess(new StepUpProof(wire.step_up_token, wire.expires_at))
+  }
+
+  private invalidResponse(): AkError { return new AkError('unknown', 'response.invalid_login_method', 'errors.unknown', null) }
+}

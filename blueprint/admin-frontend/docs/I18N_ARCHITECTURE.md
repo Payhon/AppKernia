@@ -12,8 +12,8 @@ apps/ak-admin/src/
 │   ├── load-namespace.ts
 │   └── types.ts
 └── locales/
-    ├── zh-CN/{common,auth,navigation,validation,errors,profile,settings,system,notifications}.json
-    └── en-US/{common,auth,navigation,validation,errors,profile,settings,system,notifications}.json
+    ├── zh-CN/{common,auth,navigation,validation,errors,profile,settings,system,notifications,login_providers,...}.json
+    └── en-US/{common,auth,navigation,validation,errors,profile,settings,system,notifications,login_providers,...}.json
 ```
 
 公共首屏 namespace 随主包加载，feature namespace 按路由懒加载。加载完成后原子切换 locale，避免半中半英。
@@ -34,6 +34,8 @@ apps/ak-admin/src/
 ## 3. 文案规则
 
 JSX 中只允许产品名、技术 code 和测试 ID 等非翻译内容。字段、按钮、表头、确认文案、Toast、图表、错误和 aria-label 全部使用 key。Menu Seed 的 `i18n_key`、Route Registry 的 `title_key` 必须被两套资源覆盖。
+
+第三方登录的 Provider 名称、平台/构建变体、字段说明、申请步骤、外链标签、失败关闭提示和 409 文案统一归入 `login_providers` namespace；Provider code、Bundle ID、Client ID 等协议标识可保留原文，但不得通过字符串拼接生成面向用户的句子。
 
 日期、数字、百分比、货币和列表格式通过统一 formatter。API 只提供 UTC/原始数值。不要通过字符串拼接生成句子。
 

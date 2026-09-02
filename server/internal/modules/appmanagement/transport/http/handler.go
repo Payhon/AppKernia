@@ -214,6 +214,7 @@ type resetRequest struct {
 }
 type accountDeletionConfirmRequest struct {
 	VerificationCode string `json:"verification_code"`
+	StepUpToken      string `json:"step_up_token"`
 	Acknowledged     bool   `json:"acknowledged"`
 }
 
@@ -262,7 +263,7 @@ func (h *Handler) ConfirmAccountDeletion(r *ghttp.Request) {
 		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
 	}
-	result, err := h.service.ConfirmAccountDeletion(r.Context(), bearer(r), a, body.VerificationCode, body.Acknowledged)
+	result, err := h.service.ConfirmAccountDeletion(r.Context(), bearer(r), a, body.VerificationCode, body.StepUpToken, body.Acknowledged)
 	switch {
 	case errors.Is(err, app.ErrAccountDeletionDisabled):
 		h.fail(r, http.StatusForbidden, "IAM.ACCOUNT_DELETION.FEATURE_DISABLED", "errors.common.feature_disabled")
@@ -274,6 +275,8 @@ func (h *Handler) ConfirmAccountDeletion(r *ghttp.Request) {
 		h.fail(r, http.StatusUnprocessableEntity, "IAM.ACCOUNT_DELETION.CODE_ATTEMPTS_EXHAUSTED", "errors.iam.account_deletion.code_attempts_exhausted")
 	case errors.Is(err, app.ErrAccountDeletionCodeInvalid):
 		h.fail(r, http.StatusUnprocessableEntity, "IAM.ACCOUNT_DELETION.CODE_INVALID", "errors.iam.account_deletion.code_invalid")
+	case errors.Is(err, app.ErrAccountDeletionStepUpRequired):
+		h.fail(r, http.StatusPreconditionRequired, "IAM.STEP_UP.REQUIRED", "errors.iam.step_up.required")
 	case errors.Is(err, app.ErrMembershipMissing):
 		h.fail(r, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
 	case err != nil:

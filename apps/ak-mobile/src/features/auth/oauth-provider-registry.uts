@@ -1,0 +1,107 @@
+import { OAuthBuildConfig, OAuthBuildVariant, OAuthPlatform, OAuthProviderCode, OAuthProviderDescriptor } from './oauth-models.uts'
+import { oauthBundledSnapshotJSON } from '../../generated/oauth-bundled-snapshot.uts'
+
+type BundledBuildConfigWire = { readonly app_id: string | null; readonly client_id: string | null; readonly callback_uri: string | null; readonly app_return_uri: string | null; readonly server_client_id: string | null; readonly android_package_name: string | null; readonly android_app_signature: string | null; readonly android_certificate_sha256: Array<string> | null; readonly ios_bundle_id: string | null; readonly ios_universal_link: string | null; readonly harmony_bundle_name: string | null }
+type BundledProviderWire = { readonly provider_code: string; readonly external_client_id: string; readonly build_config_hash: string; readonly config_schema_version: number; readonly enabled: boolean; readonly platforms: Array<string>; readonly build_variants: Array<string>; readonly build_config: BundledBuildConfigWire }
+type BundledSnapshotWire = { readonly schema_version: number; readonly app_id: string; readonly build_variants: Array<string>; readonly providers: Array<BundledProviderWire> }
+
+export class OAuthBundledProvider {
+  readonly providerCode: OAuthProviderCode
+  readonly buildConfigHash: string
+  readonly configSchemaVersion: number
+  readonly platforms: Array<string>
+  readonly buildVariants: Array<string>
+  readonly buildConfig: OAuthBuildConfig
+  readonly appReturnURI: string
+  constructor(providerCode: OAuthProviderCode, buildConfigHash: string, configSchemaVersion: number, platforms: Array<string>, buildVariants: Array<string>, buildConfig: OAuthBuildConfig) { this.providerCode = providerCode; this.buildConfigHash = buildConfigHash; this.configSchemaVersion = configSchemaVersion; this.platforms = platforms; this.buildVariants = buildVariants; this.buildConfig = buildConfig; this.appReturnURI = buildConfig.appReturnURI }
+}
+
+export class OAuthBundledSnapshot {
+  readonly valid: boolean
+  readonly buildVariants: Array<string>
+  readonly providers: Array<OAuthBundledProvider>
+  constructor(valid: boolean, buildVariants: Array<string>, providers: Array<OAuthBundledProvider>) { this.valid = valid; this.buildVariants = buildVariants; this.providers = providers }
+}
+
+export class OAuthRuntimeTarget {
+  readonly platform: OAuthPlatform
+  readonly buildVariant: OAuthBuildVariant
+  constructor(platform: OAuthPlatform, buildVariant: OAuthBuildVariant) { this.platform = platform; this.buildVariant = buildVariant }
+}
+
+export class OAuthProviderRegistry {
+  private readonly compiledProviders: Array<OAuthProviderCode>
+  private readonly target: OAuthRuntimeTarget
+  private readonly snapshot: OAuthBundledSnapshot
+
+  constructor(target: OAuthRuntimeTarget, compiledProviders: Array<OAuthProviderCode>, snapshot: OAuthBundledSnapshot) {
+    this.target = target
+    this.compiledProviders = compiledProviders
+    this.snapshot = snapshot
+  }
+
+  available(items: Array<OAuthProviderDescriptor>, mode: 'login' | 'bind'): Array<OAuthProviderDescriptor> {
+    const result: Array<OAuthProviderDescriptor> = []
+    items.forEach((item: OAuthProviderDescriptor) => {
+      if (this.compiledProviders.indexOf(item.providerCode) < 0) return
+      if (!this.snapshot.valid || this.snapshot.buildVariants.indexOf(this.target.buildVariant) < 0) return
+      const bundled = this.bundled(item.providerCode)
+      if (bundled == null || bundled.platforms.indexOf(this.target.platform) < 0 || bundled.buildVariants.indexOf(this.target.buildVariant) < 0 || bundled.buildConfigHash != item.buildConfigHash || bundled.configSchemaVersion != item.configSchemaVersion) return
+      if (item.supportedPlatforms.indexOf(this.target.platform) < 0) return
+      if (item.buildVariants.indexOf(this.target.buildVariant) < 0) return
+      if (mode == 'login' && !item.loginEnabled || mode == 'bind' && !item.bindingEnabled) return
+      result.push(item)
+    })
+    result.sort((left: OAuthProviderDescriptor, right: OAuthProviderDescriptor): number => left.sortOrder - right.sortOrder)
+    return result
+  }
+
+  currentTarget(): OAuthRuntimeTarget { return this.target }
+  bundled(providerCode: OAuthProviderCode): OAuthBundledProvider | null {
+    for (let index = 0; index < this.snapshot.providers.length; index++) if (this.snapshot.providers[index].providerCode == providerCode) return this.snapshot.providers[index]
+    return null
+  }
+  bundledForTarget(providerCode: OAuthProviderCode): OAuthBundledProvider | null {
+    if (!this.snapshot.valid || this.snapshot.buildVariants.indexOf(this.target.buildVariant) < 0 || this.compiledProviders.indexOf(providerCode) < 0) return null
+    const value = this.bundled(providerCode)
+    if (value == null || value.platforms.indexOf(this.target.platform) < 0 || value.buildVariants.indexOf(this.target.buildVariant) < 0) return null
+    return value
+  }
+  githubReturnURIs(): Array<string> {
+    const value = this.bundled('github')
+    return value != null && value.appReturnURI.startsWith('https://') ? [value.appReturnURI] : []
+  }
+}
+
+export function isOAuthProviderCode(value: string): boolean {
+  return value == 'wechat' || value == 'github' || value == 'apple' || value == 'google'
+}
+
+export function loadOAuthBundledSnapshot(expectedAppId: string): OAuthBundledSnapshot {
+  const value: UTSJSONObject | null = JSON.parseObject(oauthBundledSnapshotJSON)
+  if (value == null) return new OAuthBundledSnapshot(false, [], [])
+  const wire = value as BundledSnapshotWire
+  if (wire.schema_version != 1 || wire.app_id.toLowerCase() != expectedAppId.toLowerCase()) return new OAuthBundledSnapshot(false, [], [])
+  const providers: Array<OAuthBundledProvider> = []
+  const seen = new Set<string>()
+  wire.providers.forEach((item: BundledProviderWire) => {
+    if (!isOAuthProviderCode(item.provider_code) || seen.has(item.provider_code) || !/^[0-9a-f]{64}$/.test(item.build_config_hash) || item.config_schema_version <= 0 || item.external_client_id.length == 0) return
+    seen.add(item.provider_code)
+    const config = item.build_config
+    const buildConfig = new OAuthBuildConfig(
+      config.app_id == null ? '' : config.app_id!,
+      item.external_client_id,
+      config.callback_uri == null ? '' : config.callback_uri!,
+      config.app_return_uri == null ? '' : config.app_return_uri!,
+      config.server_client_id == null ? '' : config.server_client_id!,
+      config.android_package_name == null ? '' : config.android_package_name!,
+      config.android_app_signature == null ? '' : config.android_app_signature!,
+      config.android_certificate_sha256 == null ? [] : config.android_certificate_sha256!,
+      config.ios_bundle_id == null ? '' : config.ios_bundle_id!,
+      config.ios_universal_link == null ? '' : config.ios_universal_link!,
+      config.harmony_bundle_name == null ? '' : config.harmony_bundle_name!,
+    )
+    providers.push(new OAuthBundledProvider(item.provider_code as OAuthProviderCode, item.build_config_hash, item.config_schema_version, item.platforms, item.build_variants, buildConfig))
+  })
+  return new OAuthBundledSnapshot(true, wire.build_variants, providers)
+}

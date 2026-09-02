@@ -1,0 +1,62 @@
+import { AuthorizeOAuth, ConsumeOAuthReturn, GetOAuthCapability, OAuthNativeAuthorizationRequest, OAuthNativeAuthorizationResult, OAuthNativeFailure, OAuthNativeFailureCode, OAuthNativeSuccess, OAuthNativeCapability, OAuthNativeProvider, OnOAuthReturn, OAuthReturnListener } from '../interface.uts'
+
+let returnListener: OAuthReturnListener | null = null
+let pendingReturnURL: string = ''
+
+function nativeFailure(value: string): OAuthNativeFailureCode {
+  if (value == 'authorization_denied') return 'authorization_denied'
+  if (value == 'configuration_missing') return 'configuration_missing'
+  if (value == 'native_sdk_unavailable') return 'native_sdk_unavailable'
+  return 'native_failure'
+}
+
+function dispatchReturnURL(value: string): void {
+  if (value.length == 0) return
+  const listener = returnListener
+  if (listener == null) pendingReturnURL = value
+  else listener(value)
+}
+
+export const getOAuthCapability: GetOAuthCapability = function (): OAuthNativeCapability {
+  const variant = AkOAuthAndroidBridge.buildVariant()
+  const providers: Array<OAuthNativeProvider> = ['wechat', 'github']
+  if (variant == 'android_google') providers.push('google')
+  return new OAuthNativeCapability('android', variant == 'android_google' ? 'android_google' : 'android_china', providers)
+}
+
+export const authorizeOAuth: AuthorizeOAuth = function (request: OAuthNativeAuthorizationRequest, success: OAuthNativeSuccess, failure: OAuthNativeFailure): void {
+  if (request.provider == 'wechat') {
+    uni.login({
+      provider: 'weixin',
+      onlyAuthorize: true,
+      success: result => {
+        if (result.code.length == 0) { failure('native_failure'); return }
+        success(new OAuthNativeAuthorizationResult('authorization_code', result.code, '', ''))
+      },
+      fail: result => {
+        const message = result.errMsg.toLowerCase()
+        if (message.indexOf('cancel') >= 0 || message.indexOf('deny') >= 0 || message.indexOf('refuse') >= 0) failure('authorization_denied')
+        else failure('native_failure')
+      },
+    })
+    return
+  }
+  if (request.provider == 'google') {
+    AkOAuthAndroidBridge.authorizeGoogle(request.serverClientId, request.nonce, (idToken: string) => success(new OAuthNativeAuthorizationResult('id_token', '', idToken, '')), (code: string) => failure(nativeFailure(code)))
+    return
+  }
+  if (request.provider == 'github') {
+    if (request.authorizationURL.length == 0) { failure('configuration_missing'); return }
+    if (AkOAuthAndroidBridge.openBrowser(request.authorizationURL)) success(new OAuthNativeAuthorizationResult('browser_started', '', '', ''))
+    else failure('browser_unavailable')
+    return
+  }
+  failure('unsupported_provider')
+}
+
+export const onOAuthReturn: OnOAuthReturn = function (listener: OAuthReturnListener | null): void {
+  returnListener = listener
+  if (listener != null && pendingReturnURL.length > 0) { const value = pendingReturnURL; pendingReturnURL = ''; listener(value) }
+}
+
+export const consumeOAuthReturn: ConsumeOAuthReturn = function (): void { dispatchReturnURL(AkOAuthAndroidBridge.takeReturnURL()) }

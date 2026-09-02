@@ -175,6 +175,7 @@ WHERE id = $1
   AND tenant_id = $3
   AND audience = $4
   AND access_token_version = $5
+	AND app_id IS NOT DISTINCT FROM sqlc.narg('app_id')
   AND status = 'active'
   AND revoked_at IS NULL
   AND absolute_expires_at > now();

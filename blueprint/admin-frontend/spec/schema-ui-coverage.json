@@ -765,6 +765,44 @@
         "app.applications"
       ],
       "reason": "App 发行页配置及双语公开展示内容。"
+    },
+    {
+      "table": "sys.login_provider_configs",
+      "coverage": "page_backed",
+      "pages": [
+        "system.settings.login-providers",
+        "app.applications"
+      ],
+      "reason": "第三方登录配置页直接管理租户配置，应用管理页仅选择同租户可用配置；Secret 不返回浏览器。"
+    },
+    {
+      "table": "app.application_login_provider_bindings",
+      "coverage": "page_backed",
+      "pages": [
+        "system.settings.login-providers",
+        "app.applications"
+      ],
+      "reason": "配置页展示 App 绑定数，应用管理页通过原子 Bulk PUT 维护四个 Provider 绑定。"
+    },
+    {
+      "table": "iam.app_oauth_accounts",
+      "coverage": "backend_only",
+      "pages": [],
+      "reason": "App 级外部身份只由 Mobile 本人登录与绑定流程维护；Admin 不提供 Subject、Union ID 或资料快照的 CRUD。"
+    },
+    {
+      "table": "iam.oauth_authorization_flows",
+      "coverage": "backend_only",
+      "pages": [],
+      "reason": "State、Nonce、PKCE 与一次性票据的短期服务端安全状态，由过期清理机制维护，不开放人工查看或编辑。"
+    },
+    {
+      "table": "app.user_login_identifiers",
+      "coverage": "page_backed",
+      "pages": [
+        "app.users"
+      ],
+      "reason": "App 用户列表、创建与编辑接口从 App 级标识事实源读写邮箱和手机号，跨 App 不共享归属。"
     }
   ]
 }

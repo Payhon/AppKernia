@@ -14,6 +14,7 @@ import enCommon from '../../locales/en-US/common.json'
 import enContent from '../../locales/en-US/content.json'
 import enErrors from '../../locales/en-US/errors.json'
 import enMobileReleases from '../../locales/en-US/mobile_releases.json'
+import enLoginProviders from '../../locales/en-US/login_providers.json'
 import enNavigation from '../../locales/en-US/navigation.json'
 import enNotifications from '../../locales/en-US/notifications.json'
 import enOpenApi from '../../locales/en-US/openapi.json'
@@ -29,6 +30,7 @@ import zhCommon from '../../locales/zh-CN/common.json'
 import zhContent from '../../locales/zh-CN/content.json'
 import zhErrors from '../../locales/zh-CN/errors.json'
 import zhMobileReleases from '../../locales/zh-CN/mobile_releases.json'
+import zhLoginProviders from '../../locales/zh-CN/login_providers.json'
 import zhNavigation from '../../locales/zh-CN/navigation.json'
 import zhNotifications from '../../locales/zh-CN/notifications.json'
 import zhOpenApi from '../../locales/zh-CN/openapi.json'
@@ -44,8 +46,8 @@ export const supportedLocales = ['zh-CN', 'en-US'] as const
 export type AdminLocale = (typeof supportedLocales)[number]
 
 const localeStorageKey = 'ak.admin.locale'
-const enCatalog = { ...enApps, ...enAuth, ...enCommon, ...enContent, ...enErrors, ...enMobileReleases, ...enNavigation, ...enNotifications, ...enOpenApi, ...enProfile, ...enPushChannels, ...enShareConfigs, ...enSettings, ...enSystem, ...enValidation }
-const zhCatalog = { ...zhApps, ...zhAuth, ...zhCommon, ...zhContent, ...zhErrors, ...zhMobileReleases, ...zhNavigation, ...zhNotifications, ...zhOpenApi, ...zhProfile, ...zhPushChannels, ...zhShareConfigs, ...zhSettings, ...zhSystem, ...zhValidation }
+const enCatalog = { ...enApps, ...enAuth, ...enCommon, ...enContent, ...enErrors, ...enLoginProviders, ...enMobileReleases, ...enNavigation, ...enNotifications, ...enOpenApi, ...enProfile, ...enPushChannels, ...enShareConfigs, ...enSettings, ...enSystem, ...enValidation }
+const zhCatalog = { ...zhApps, ...zhAuth, ...zhCommon, ...zhContent, ...zhErrors, ...zhLoginProviders, ...zhMobileReleases, ...zhNavigation, ...zhNotifications, ...zhOpenApi, ...zhProfile, ...zhPushChannels, ...zhShareConfigs, ...zhSettings, ...zhSystem, ...zhValidation }
 
 function readStoredLocale(): string | null {
   try {

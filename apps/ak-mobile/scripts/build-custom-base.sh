@@ -26,6 +26,10 @@ generate_assets() {
   python3 "$project_root/scripts/verify-custom-base.py"
 }
 
+sync_oauth_snapshot() {
+  python3 "$project_root/scripts/generate-oauth-snapshot-uts.py" --write
+}
+
 open_project() {
   "$cli" project open --path "$project_root" >/dev/null
 }
@@ -48,7 +52,9 @@ run_logged() {
 
 pack_android() {
   mkdir -p "$log_dir"
+  sync_oauth_snapshot
   python3 "$project_root/scripts/configure-push-variant.py"
+  python3 "$project_root/scripts/configure-oauth-variant.py"
   run_logged "$log_dir/android.log" "$cli" pack \
     --project "$project_root" \
     --platform android \
@@ -61,6 +67,7 @@ pack_android() {
 
 pack_ios_simulator() {
   mkdir -p "$log_dir"
+  sync_oauth_snapshot
   run_logged "$log_dir/ios-simulator.log" "$cli" pack \
     --project "$project_root" \
     --platform ios \
@@ -74,6 +81,7 @@ pack_ios_simulator() {
 
 generate_harmony_project() {
   local native_root="$project_root/unpackage/dist/dev/app-harmony"
+  sync_oauth_snapshot
   set +e
   env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY \
     -u http_proxy -u https_proxy -u all_proxy \

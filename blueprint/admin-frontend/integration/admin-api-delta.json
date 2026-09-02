@@ -53,6 +53,54 @@
     {
       "method": "POST",
       "path": "/admin-api/v1/apps/{app_id}/content/pages"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/login-provider-catalog"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/login-provider-configs"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/login-provider-configs"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/login-provider-configs/{id}"
+    },
+    {
+      "method": "PATCH",
+      "path": "/admin-api/v1/login-provider-configs/{id}"
+    },
+    {
+      "method": "DELETE",
+      "path": "/admin-api/v1/login-provider-configs/{id}"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/login-provider-configs/{id}/rotate-secret"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/login-provider-configs/{id}/preflight"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/login-provider-configs/{id}/activate"
+    },
+    {
+      "method": "POST",
+      "path": "/admin-api/v1/login-provider-configs/{id}/disable"
+    },
+    {
+      "method": "GET",
+      "path": "/admin-api/v1/apps/{app_id}/login-provider-bindings"
+    },
+    {
+      "method": "PUT",
+      "path": "/admin-api/v1/apps/{app_id}/login-provider-bindings"
     }
   ]
 }

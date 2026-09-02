@@ -21,13 +21,18 @@ var (
 	ErrAccountDeletionCodeExhausted   = errors.New("account deletion verification attempts are exhausted")
 	ErrAccountDeletionUnavailable     = errors.New("account deletion is unavailable")
 	ErrAccountDeletionDisabled        = errors.New("account deletion is disabled")
+	ErrAccountDeletionStepUpRequired  = errors.New("account deletion step-up is required")
 )
 
 type AccountDeletionCode struct {
-	Accepted          bool   `json:"accepted"`
-	TargetHint        string `json:"target_hint"`
-	ExpiresInSeconds  int    `json:"expires_in_seconds"`
-	RetryAfterSeconds int    `json:"retry_after_seconds"`
+	Accepted             bool       `json:"accepted"`
+	TargetHint           string     `json:"target_hint"`
+	ExpiresInSeconds     int        `json:"expires_in_seconds"`
+	RetryAfterSeconds    int        `json:"retry_after_seconds"`
+	VerificationRequired bool       `json:"verification_required"`
+	ReauthRequired       bool       `json:"reauth_required"`
+	ReauthProvider       string     `json:"reauth_provider,omitempty"`
+	ReauthAccountID      *uuid.UUID `json:"reauth_account_id,omitempty"`
 }
 
 type AccountDeletionResult struct {
@@ -54,22 +59,45 @@ func (s *Service) RequestAccountDeletionCode(ctx context.Context, token string, 
 		return AccountDeletionCode{}, fmt.Errorf("begin account deletion verification: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	var email string
-	var verified bool
-	err = tx.QueryRow(ctx, `SELECT COALESCE(u.email,''),u.email_verified_at IS NOT NULL
-		FROM iam.users u JOIN app.user_memberships m ON m.user_id=u.id
+	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1::text || ':' || $2::text,0))`, app.ID, principal.User.ID); err != nil {
+		return AccountDeletionCode{}, fmt.Errorf("lock account deletion requirement scope: %w", err)
+	}
+	var membershipUserID uuid.UUID
+	err = tx.QueryRow(ctx, `SELECT m.user_id FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id
 		WHERE m.app_id=$1 AND m.tenant_id=$2 AND m.user_id=$3 AND m.status='active' AND u.deleted_at IS NULL
-		FOR UPDATE OF u,m`, app.ID, app.TenantID, principal.User.ID).Scan(&email, &verified)
+		FOR UPDATE OF u,m`, app.ID, app.TenantID, principal.User.ID).Scan(&membershipUserID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return AccountDeletionCode{}, ErrMembershipMissing
 	}
 	if err != nil {
 		return AccountDeletionCode{}, fmt.Errorf("load account deletion identity: %w", err)
 	}
-	if !verified || strings.TrimSpace(email) == "" {
-		return AccountDeletionCode{}, ErrAccountDeletionEmailUnverified
+	var email, hint string
+	var verified bool
+	err = tx.QueryRow(ctx, `SELECT normalized_value::text,display_hint,verified_at IS NOT NULL
+		FROM app.user_login_identifiers WHERE app_id=$1 AND user_id=$2 AND identifier_type='email' AND status='active'
+		FOR UPDATE`, app.ID, principal.User.ID).Scan(&email, &hint, &verified)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return AccountDeletionCode{}, fmt.Errorf("load account deletion email identifier: %w", err)
 	}
-	result := AccountDeletionCode{Accepted: true, TargetHint: maskedEmail(email), ExpiresInSeconds: int(emailOTPLifetime.Seconds()), RetryAfterSeconds: int(emailOTPCooldown.Seconds())}
+	result := AccountDeletionCode{Accepted: true, TargetHint: hint, VerificationRequired: verified && strings.TrimSpace(email) != ""}
+	var appleAccountID uuid.UUID
+	err = tx.QueryRow(ctx, `SELECT id FROM iam.app_oauth_accounts
+		WHERE app_id=$1 AND user_id=$2 AND provider_code='apple' AND status='active' ORDER BY id LIMIT 1`, app.ID, principal.User.ID).Scan(&appleAccountID)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return AccountDeletionCode{}, fmt.Errorf("load Apple account deletion binding: %w", err)
+	}
+	if appleAccountID != uuid.Nil {
+		result.ReauthRequired, result.ReauthProvider, result.ReauthAccountID = true, "apple", &appleAccountID
+	}
+	if !result.VerificationRequired {
+		if err = tx.Commit(ctx); err != nil {
+			return AccountDeletionCode{}, fmt.Errorf("commit account deletion requirements: %w", err)
+		}
+		return result, nil
+	}
+	result.ExpiresInSeconds = int(emailOTPLifetime.Seconds())
+	result.RetryAfterSeconds = int(emailOTPCooldown.Seconds())
 	var latest time.Time
 	err = tx.QueryRow(ctx, `SELECT created_at FROM iam.verification_challenges
 		WHERE user_id=$1 AND challenge_type='account_delete' AND metadata->>'app_id'=$2
@@ -94,77 +122,110 @@ func (s *Service) RequestAccountDeletionCode(ctx context.Context, token string, 
 	return result, nil
 }
 
-func (s *Service) ConfirmAccountDeletion(ctx context.Context, token string, app Application, verificationCode string, acknowledged bool) (AccountDeletionResult, error) {
+func (s *Service) ConfirmAccountDeletion(ctx context.Context, token string, app Application, verificationCode, stepUpToken string, acknowledged bool) (AccountDeletionResult, error) {
 	if !s.accountDeletionEnabled {
 		return AccountDeletionResult{}, ErrAccountDeletionDisabled
 	}
-	if !acknowledged || !validOTP(verificationCode) {
+	if !acknowledged {
 		return AccountDeletionResult{}, ErrAccountDeletionCodeInvalid
 	}
 	principal, err := s.AuthenticateMobileMembership(ctx, token, app)
 	if err != nil {
 		return AccountDeletionResult{}, ErrMembershipMissing
 	}
+	var verifiedAppleAccountID uuid.UUID
+	if s.accountDeletionStepUp != nil {
+		verifiedAppleAccountID, err = s.accountDeletionStepUp(ctx, token, app.ID, stepUpToken)
+		if err != nil {
+			return AccountDeletionResult{}, ErrAccountDeletionStepUpRequired
+		}
+	} else {
+		var appleBound bool
+		if err = s.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM iam.app_oauth_accounts
+WHERE app_id=$1 AND user_id=$2 AND provider_code='apple' AND status='active')`, app.ID, principal.User.ID).Scan(&appleBound); err != nil || appleBound {
+			return AccountDeletionResult{}, ErrAccountDeletionUnavailable
+		}
+	}
 	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		return AccountDeletionResult{}, fmt.Errorf("begin account deletion: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	var email string
-	var verified bool
-	err = tx.QueryRow(ctx, `SELECT COALESCE(u.email,''),u.email_verified_at IS NOT NULL
-		FROM iam.users u JOIN app.user_memberships m ON m.user_id=u.id
+	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended($1::text || ':' || $2::text,0))`, app.ID, principal.User.ID); err != nil {
+		return AccountDeletionResult{}, fmt.Errorf("lock account deletion identity scope: %w", err)
+	}
+	var membershipUserID uuid.UUID
+	err = tx.QueryRow(ctx, `SELECT m.user_id FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id
 		WHERE m.app_id=$1 AND m.tenant_id=$2 AND m.user_id=$3 AND m.status='active' AND u.deleted_at IS NULL
-		FOR UPDATE OF u,m`, app.ID, app.TenantID, principal.User.ID).Scan(&email, &verified)
+		FOR UPDATE OF u,m`, app.ID, app.TenantID, principal.User.ID).Scan(&membershipUserID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return AccountDeletionResult{}, ErrMembershipMissing
 	}
 	if err != nil {
 		return AccountDeletionResult{}, fmt.Errorf("lock account deletion identity: %w", err)
 	}
-	if !verified || strings.TrimSpace(email) == "" {
-		return AccountDeletionResult{}, ErrAccountDeletionEmailUnverified
+	var currentAppleAccountID uuid.UUID
+	err = tx.QueryRow(ctx, `SELECT id FROM iam.app_oauth_accounts
+WHERE app_id=$1 AND user_id=$2 AND provider_code='apple' AND status='active'
+ORDER BY id LIMIT 1 FOR UPDATE`, app.ID, principal.User.ID).Scan(&currentAppleAccountID)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return AccountDeletionResult{}, fmt.Errorf("lock Apple account deletion binding: %w", err)
+	}
+	if currentAppleAccountID != uuid.Nil && currentAppleAccountID != verifiedAppleAccountID {
+		return AccountDeletionResult{}, ErrAccountDeletionUnavailable
+	}
+	var email string
+	var verified bool
+	err = tx.QueryRow(ctx, `SELECT normalized_value::text,verified_at IS NOT NULL FROM app.user_login_identifiers
+		WHERE app_id=$1 AND user_id=$2 AND identifier_type='email' AND status='active' FOR UPDATE`, app.ID, principal.User.ID).Scan(&email, &verified)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return AccountDeletionResult{}, fmt.Errorf("lock account deletion email identifier: %w", err)
+	}
+	if verified && strings.TrimSpace(email) != "" && !validOTP(verificationCode) {
+		return AccountDeletionResult{}, ErrAccountDeletionCodeInvalid
 	}
 	var challengeID uuid.UUID
 	var secret []byte
 	var attempts, maxAttempts int
 	var expiresAt time.Time
-	err = tx.QueryRow(ctx, `SELECT id,secret_hash,attempts,max_attempts,expires_at
+	if verified && strings.TrimSpace(email) != "" {
+		err = tx.QueryRow(ctx, `SELECT id,secret_hash,attempts,max_attempts,expires_at
 		FROM iam.verification_challenges
 		WHERE user_id=$1 AND challenge_type='account_delete' AND target_hash=$2 AND metadata->>'app_id'=$3 AND consumed_at IS NULL
 		ORDER BY created_at DESC LIMIT 1 FOR UPDATE`, principal.User.ID, sha256Bytes(email), app.ID.String()).
-		Scan(&challengeID, &secret, &attempts, &maxAttempts, &expiresAt)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return AccountDeletionResult{}, ErrAccountDeletionCodeInvalid
-	}
-	if err != nil {
-		return AccountDeletionResult{}, fmt.Errorf("load account deletion challenge: %w", err)
-	}
-	if attempts >= maxAttempts {
-		_ = tx.Commit(ctx)
-		return AccountDeletionResult{}, ErrAccountDeletionCodeExhausted
-	}
-	if !time.Now().UTC().Before(expiresAt) {
-		_, _ = tx.Exec(ctx, `UPDATE iam.verification_challenges SET consumed_at=now() WHERE id=$1`, challengeID)
-		_ = tx.Commit(ctx)
-		return AccountDeletionResult{}, ErrAccountDeletionCodeExpired
-	}
-	if !hmac.Equal(secret, sha256Bytes(verificationCode)) {
-		attempts++
-		_, updateErr := tx.Exec(ctx, `UPDATE iam.verification_challenges SET attempts=$2,consumed_at=CASE WHEN $2>=max_attempts THEN now() ELSE NULL END WHERE id=$1`, challengeID, attempts)
-		if updateErr != nil {
-			return AccountDeletionResult{}, fmt.Errorf("record account deletion verification failure: %w", updateErr)
+			Scan(&challengeID, &secret, &attempts, &maxAttempts, &expiresAt)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return AccountDeletionResult{}, ErrAccountDeletionCodeInvalid
 		}
-		if err = tx.Commit(ctx); err != nil {
-			return AccountDeletionResult{}, fmt.Errorf("commit account deletion verification failure: %w", err)
+		if err != nil {
+			return AccountDeletionResult{}, fmt.Errorf("load account deletion challenge: %w", err)
 		}
 		if attempts >= maxAttempts {
+			_ = tx.Commit(ctx)
 			return AccountDeletionResult{}, ErrAccountDeletionCodeExhausted
 		}
-		return AccountDeletionResult{}, ErrAccountDeletionCodeInvalid
-	}
-	if _, err = tx.Exec(ctx, `UPDATE iam.verification_challenges SET attempts=attempts+1,consumed_at=now() WHERE id=$1`, challengeID); err != nil {
-		return AccountDeletionResult{}, fmt.Errorf("consume account deletion challenge: %w", err)
+		if !time.Now().UTC().Before(expiresAt) {
+			_, _ = tx.Exec(ctx, `UPDATE iam.verification_challenges SET consumed_at=now() WHERE id=$1`, challengeID)
+			_ = tx.Commit(ctx)
+			return AccountDeletionResult{}, ErrAccountDeletionCodeExpired
+		}
+		if !hmac.Equal(secret, sha256Bytes(verificationCode)) {
+			attempts++
+			_, updateErr := tx.Exec(ctx, `UPDATE iam.verification_challenges SET attempts=$2,consumed_at=CASE WHEN $2>=max_attempts THEN now() ELSE NULL END WHERE id=$1`, challengeID, attempts)
+			if updateErr != nil {
+				return AccountDeletionResult{}, fmt.Errorf("record account deletion verification failure: %w", updateErr)
+			}
+			if err = tx.Commit(ctx); err != nil {
+				return AccountDeletionResult{}, fmt.Errorf("commit account deletion verification failure: %w", err)
+			}
+			if attempts >= maxAttempts {
+				return AccountDeletionResult{}, ErrAccountDeletionCodeExhausted
+			}
+			return AccountDeletionResult{}, ErrAccountDeletionCodeInvalid
+		}
+		if _, err = tx.Exec(ctx, `UPDATE iam.verification_challenges SET attempts=attempts+1,consumed_at=now() WHERE id=$1`, challengeID); err != nil {
+			return AccountDeletionResult{}, fmt.Errorf("consume account deletion challenge: %w", err)
+		}
 	}
 	if err = s.eraseCurrentAppAccount(ctx, tx, app, principal.User.ID, email); err != nil {
 		return AccountDeletionResult{}, err
@@ -220,6 +281,8 @@ func (s *Service) eraseCurrentAppAccount(ctx context.Context, tx pgx.Tx, app App
 		{"preferences", `DELETE FROM iam.user_preferences WHERE app_id=$1 AND user_id=$2`, []any{app.ID, userID}},
 		{"sessions", `DELETE FROM iam.sessions WHERE app_id=$1 AND user_id=$2 AND audience='ak-mobile'`, []any{app.ID, userID}},
 		{"verification_challenges", `DELETE FROM iam.verification_challenges WHERE user_id=$1 AND metadata->>'app_id'=$2`, []any{userID, app.ID.String()}},
+		{"oauth_accounts", `DELETE FROM iam.app_oauth_accounts WHERE app_id=$1 AND user_id=$2`, []any{app.ID, userID}},
+		{"login_identifiers", `DELETE FROM app.user_login_identifiers WHERE app_id=$1 AND user_id=$2`, []any{app.ID, userID}},
 		{"app_membership", `DELETE FROM app.user_memberships WHERE app_id=$1 AND tenant_id=$2 AND user_id=$3`, []any{app.ID, app.TenantID, userID}},
 	}
 	for _, statement := range statements {

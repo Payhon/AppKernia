@@ -29,7 +29,9 @@ cd apps/ak-mobile
 
 Android/iOS 云打包前必须已登录 HBuilderX。iOS 真机基座另需与 `com.appkernia.mobile` 匹配的开发证书和 Provisioning Profile；不得复用本机其他公司或其他 App 的签名材料。所有密码、证书私钥和 HarmonyOS 本机签名配置都留在用户目录或忽略目录中，不写入仓库。
 
-HarmonyOS 流水线不会信任 HBuilderX 生成工程里的默认 AppScope。它在每次编译后运行 `prepare-harmony-native.py`，把 `harmony-configs/AppScope` 的 `com.appkernia.mobile`、名称和图标覆盖到忽略目录中的原生工程，把运行时资源目录规范化为当前 `manifest.appid`，再调用 DevEco `ohpm`/`hvigorw`。默认移除 HBuilderX 生成目录里的签名引用并生成 `entry-default-unsigned.hap`，避免把属于 `io.dcloud.uniappx` 的旧调试签名错误用于 AppKernia。
+HarmonyOS 流水线不会信任 HBuilderX 生成工程里的默认 AppScope。它在每次编译后运行 `prepare-harmony-native.py`，把 `harmony-configs/AppScope` 的 `com.appkernia.mobile`、名称和图标覆盖到忽略目录中的原生工程，把运行时资源目录规范化为当前 `manifest.appid`，再调用 DevEco `ohpm`/`hvigorw`。脚本还会读取 `harmony-configs/entry/src/main/oauth-links.generated.json`，仅把 allowlist 内的微信 `weixin` query scheme、`action.system.home`/`wxentity.action.open` action 和 GitHub HTTPS host/path 精确合并进 `EntryAbility.skills`；未知字段、非 HTTPS 回跳和宽泛 host 会直接拒绝。默认移除 HBuilderX 生成目录里的签名引用并生成 `entry-default-unsigned.hap`，避免把属于 `io.dcloud.uniappx` 的旧调试签名错误用于 AppKernia。
+
+HarmonyOS 微信授权边界使用 DCloud uni-app x 的 `uni.login({ provider: 'weixin', onlyAuthorize: true })` 封装；按 DCloud 当前 HarmonyOS 登录能力说明，该实现固定接入腾讯 `@tencent/wechat_open_sdk` 并只向业务层返回一次性授权码。它不是 Web OAuth 或动态插件。静态检查只证明 UTS 调用了该封装、Harmony overlay 精确生成；仍必须使用真实微信开放平台 AppID、签名 HAP 与真机微信客户端验证拉起、取消、回跳和授权码消费，未完成这些门禁时不得写成真机通过。
 
 需要安装到 HarmonyOS 真机时，先执行一次上述 `harmony` 命令生成原生工程，并通过 USB/IP 连接已开启调试的目标设备。再在 DevEco Studio 打开 `unpackage/dist/dev/app-harmony`，进入 **File > Project Structure > Project > Signing Configs**，为 `com.appkernia.mobile` 配置自动或手工调试签名。DevEco Managed Profile 会绑定在线设备；未连接设备时会报 `Unable to create the profile due to a lack of a device`，不会生成可用于真机的 Profile。签名动作会在本机创建或引用证书、私钥和 Provision Profile，必须由有权使用该华为开发者帐号的人确认。
 

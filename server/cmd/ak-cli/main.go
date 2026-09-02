@@ -39,6 +39,8 @@ func main() {
 		err = appStartupCommand(os.Args[2:])
 	case "app-share":
 		err = appShareCommand(os.Args[2:])
+	case "app-login-provider":
+		err = appLoginProviderCommand(os.Args[2:])
 	default:
 		usage()
 		os.Exit(2)
@@ -50,7 +52,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: ak-cli doctor | migrate up|down [steps] | seed core-permissions | bootstrap-admin [flags] | app-startup export --app-id UUID --output DIR [--check] | app-share export --app-id UUID --output DIR [--check]")
+	fmt.Fprintln(os.Stderr, "usage: ak-cli doctor | migrate up|down [steps] | seed core-permissions | bootstrap-admin [flags] | app-startup export --app-id UUID --output DIR [--check] | app-share export --app-id UUID --output DIR [--check] | app-login-provider export --app-id UUID --output DIR [--check]")
 }
 
 func doctor() error {

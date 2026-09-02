@@ -118,6 +118,7 @@ type Service struct {
 	accountDeletionEnabled bool
 	shareRuntime           ShareRuntimeLoader
 	pushRuntime            PushRuntimeLoader
+	accountDeletionStepUp  AccountDeletionStepUp
 }
 
 type Authenticator interface {
@@ -149,6 +150,11 @@ type PushRuntime struct {
 	BuildVariants []string `json:"build_variants"`
 }
 type PushRuntimeLoader func(context.Context, uuid.UUID) (PushRuntime, error)
+
+// AccountDeletionStepUp returns the Apple OAuth account ID whose fresh
+// provider reauth was verified and revoked, or uuid.Nil when no Apple account
+// is currently bound.
+type AccountDeletionStepUp func(context.Context, string, uuid.UUID, string) (uuid.UUID, error)
 type Option func(*Service)
 
 func WithOTPNotifier(notifier OTPNotifier) Option {
@@ -173,6 +179,10 @@ func WithShareRuntime(loader ShareRuntimeLoader) Option {
 
 func WithPushRuntime(loader PushRuntimeLoader) Option {
 	return func(service *Service) { service.pushRuntime = loader }
+}
+
+func WithAccountDeletionStepUp(consumer AccountDeletionStepUp) Option {
+	return func(service *Service) { service.accountDeletionStepUp = consumer }
 }
 
 const (
@@ -347,20 +357,17 @@ func (s *Service) RegisterMobile(ctx context.Context, app Application, email, di
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	var userID uuid.UUID
-	err = tx.QueryRow(ctx, `SELECT id FROM iam.users WHERE email=$1 AND deleted_at IS NULL FOR UPDATE`, email).Scan(&userID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		err = tx.QueryRow(ctx, `INSERT INTO iam.users (email,display_name,locale,status) VALUES ($1,$2,$3,$4) RETURNING id`, email, strings.TrimSpace(displayName), locale, map[bool]string{true: "pending", false: "active"}[app.RegistrationVerification == "email_otp"]).Scan(&userID)
-		if err != nil {
-			return fmt.Errorf("create app user: %w", err)
-		}
-		if _, err = tx.Exec(ctx, `INSERT INTO iam.user_credentials (user_id,password_hash) VALUES ($1,$2)`, userID, hash); err != nil {
-			return fmt.Errorf("create app credentials: %w", err)
-		}
-		if _, err = tx.Exec(ctx, `INSERT INTO iam.tenant_members (tenant_id,user_id,status) VALUES ($1,$2,'active')`, app.TenantID, userID); err != nil {
-			return fmt.Errorf("create app tenant member: %w", err)
-		}
-	} else if err != nil {
-		return fmt.Errorf("find app user: %w", err)
+	// Mobile identifiers are App-scoped facts. Do not reuse a global IAM user
+	// solely because the same email exists in another App.
+	err = tx.QueryRow(ctx, `INSERT INTO iam.users (display_name,locale,status) VALUES ($1,$2,'active') RETURNING id`, strings.TrimSpace(displayName), locale).Scan(&userID)
+	if err != nil {
+		return fmt.Errorf("create app user: %w", err)
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO iam.user_credentials (user_id,password_hash) VALUES ($1,$2)`, userID, hash); err != nil {
+		return fmt.Errorf("create app credentials: %w", err)
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO iam.tenant_members (tenant_id,user_id,status) VALUES ($1,$2,'active')`, app.TenantID, userID); err != nil {
+		return fmt.Errorf("create app tenant member: %w", err)
 	}
 	status := "active"
 	if app.RegistrationVerification == "email_otp" {
@@ -368,6 +375,16 @@ func (s *Service) RegisterMobile(ctx context.Context, app Application, email, di
 	}
 	if _, err = tx.Exec(ctx, `INSERT INTO app.user_memberships (app_id,tenant_id,user_id,source,status) VALUES ($1,$2,$3,'self_registration',$4) ON CONFLICT (app_id,user_id) DO NOTHING`, app.ID, app.TenantID, userID, status); err != nil {
 		return fmt.Errorf("create app membership: %w", err)
+	}
+	var verifiedAt *time.Time
+	if app.RegistrationVerification != "email_otp" {
+		now := time.Now().UTC()
+		verifiedAt = &now
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO app.user_login_identifiers(
+tenant_id,app_id,user_id,identifier_type,normalized_value,display_hint,verified_at,status)
+VALUES($1,$2,$3,'email',$4,$5,$6,'active')`, app.TenantID, app.ID, userID, email, maskedEmail(email), verifiedAt); err != nil {
+		return fmt.Errorf("create app login identifier: %w", err)
 	}
 	if app.RegistrationVerification == "email_otp" {
 		if err = s.createOTP(ctx, tx, app, userID, email, "email_otp"); err != nil {
@@ -397,7 +414,8 @@ func (s *Service) VerifyRegistrationEmail(ctx context.Context, app Application, 
 	if _, err = tx.Exec(ctx, `UPDATE app.user_memberships SET status='active',verified_at=now(),disabled_at=NULL WHERE app_id=$1 AND tenant_id=$2 AND user_id=$3 AND status='pending_verification'`, app.ID, app.TenantID, userID); err != nil {
 		return fmt.Errorf("activate app membership: %w", err)
 	}
-	if _, err = tx.Exec(ctx, `UPDATE iam.users SET email_verified_at=COALESCE(email_verified_at,now()),status=CASE WHEN status='pending' THEN 'active' ELSE status END,updated_at=now() WHERE id=$1`, userID); err != nil {
+	if _, err = tx.Exec(ctx, `UPDATE app.user_login_identifiers SET verified_at=COALESCE(verified_at,now()),status='active'
+WHERE app_id=$1 AND user_id=$2 AND identifier_type='email' AND normalized_value=$3`, app.ID, userID, email); err != nil {
 		return fmt.Errorf("verify email: %w", err)
 	}
 	return tx.Commit(ctx)
@@ -409,7 +427,10 @@ func (s *Service) ResendRegistrationEmail(ctx context.Context, app Application, 
 		return 0, ErrInvalidInput
 	}
 	var userID uuid.UUID
-	err := s.pool.QueryRow(ctx, `SELECT m.user_id FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id WHERE m.app_id=$1 AND m.tenant_id=$2 AND u.email=$3 AND m.status='pending_verification'`, app.ID, app.TenantID, email).Scan(&userID)
+	err := s.pool.QueryRow(ctx, `SELECT m.user_id FROM app.user_memberships m
+JOIN app.user_login_identifiers i ON i.app_id=m.app_id AND i.user_id=m.user_id AND i.tenant_id=m.tenant_id
+WHERE m.app_id=$1 AND m.tenant_id=$2 AND i.identifier_type='email' AND i.normalized_value=$3
+  AND i.status='active' AND m.status='pending_verification'`, app.ID, app.TenantID, email).Scan(&userID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return int(emailOTPCooldown.Seconds()), nil
 	}
@@ -441,7 +462,10 @@ func (s *Service) ForgotMobilePassword(ctx context.Context, app Application, ema
 		return 0, ErrInvalidInput
 	}
 	var userID uuid.UUID
-	err := s.pool.QueryRow(ctx, `SELECT m.user_id FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id WHERE m.app_id=$1 AND m.tenant_id=$2 AND m.status='active' AND u.email=$3`, app.ID, app.TenantID, email).Scan(&userID)
+	err := s.pool.QueryRow(ctx, `SELECT m.user_id FROM app.user_memberships m
+JOIN app.user_login_identifiers i ON i.app_id=m.app_id AND i.user_id=m.user_id AND i.tenant_id=m.tenant_id
+WHERE m.app_id=$1 AND m.tenant_id=$2 AND m.status='active' AND i.identifier_type='email'
+  AND i.normalized_value=$3 AND i.status='active' AND i.verified_at IS NOT NULL`, app.ID, app.TenantID, email).Scan(&userID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return int(emailOTPCooldown.Seconds()), nil
 	}
@@ -1549,12 +1573,17 @@ func (s *Service) AdminUsers(ctx context.Context, token string, appID uuid.UUID,
 	if err != nil {
 		return AdminAppUserPage{}, err
 	}
-	where := `m.app_id=$1 AND m.tenant_id=$2 AND ($3='' OR m.status=$3) AND ($4='' OR COALESCE(u.email::text,'') ILIKE '%' || $4 || '%' OR u.display_name ILIKE '%' || $4 || '%')`
+	where := `m.app_id=$1 AND m.tenant_id=$2 AND ($3='' OR m.status=$3) AND ($4='' OR COALESCE(li.normalized_value::text,'') ILIKE '%' || $4 || '%' OR u.display_name ILIKE '%' || $4 || '%')`
+	from := ` FROM app.user_memberships m
+JOIN iam.users u ON u.id=m.user_id
+LEFT JOIN app.user_login_identifiers li
+  ON li.app_id=m.app_id AND li.user_id=m.user_id
+ AND li.identifier_type='email' AND li.status='active'`
 	var total int
-	if err = s.pool.QueryRow(ctx, `SELECT count(*) FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id WHERE `+where, appID, p.Tenant.ID, filter.Status, filter.Query).Scan(&total); err != nil {
+	if err = s.pool.QueryRow(ctx, `SELECT count(*)`+from+` WHERE `+where, appID, p.Tenant.ID, filter.Status, filter.Query).Scan(&total); err != nil {
 		return AdminAppUserPage{}, fmt.Errorf("count app users: %w", err)
 	}
-	rows, err := s.pool.Query(ctx, `SELECT m.user_id,m.user_id,COALESCE(u.email::text,''),u.display_name,u.avatar_file_id,m.status,m.source,m.verified_at,m.created_at,(SELECT max(last_seen_at) FROM iam.sessions s WHERE s.app_id=m.app_id AND s.user_id=m.user_id AND s.audience='ak-mobile'),m.lock_version FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id WHERE `+where+` ORDER BY m.created_at DESC,m.user_id LIMIT $5 OFFSET $6`, appID, p.Tenant.ID, filter.Status, filter.Query, filter.PageSize, (filter.Page-1)*filter.PageSize)
+	rows, err := s.pool.Query(ctx, `SELECT m.user_id,m.user_id,COALESCE(li.normalized_value::text,''),u.display_name,u.avatar_file_id,m.status,m.source,m.verified_at,m.created_at,(SELECT max(last_seen_at) FROM iam.sessions s WHERE s.app_id=m.app_id AND s.user_id=m.user_id AND s.audience='ak-mobile'),m.lock_version`+from+` WHERE `+where+` ORDER BY m.created_at DESC,m.user_id LIMIT $5 OFFSET $6`, appID, p.Tenant.ID, filter.Status, filter.Query, filter.PageSize, (filter.Page-1)*filter.PageSize)
 	if err != nil {
 		return AdminAppUserPage{}, err
 	}
@@ -1591,7 +1620,13 @@ func (s *Service) GetAdminUser(ctx context.Context, token string, appID, userID 
 }
 func (s *Service) readAdminAppUser(ctx context.Context, appID, userID uuid.UUID) (out AdminAppUser, err error) {
 	var avatarFileID *uuid.UUID
-	err = s.pool.QueryRow(ctx, `SELECT m.user_id,m.user_id,COALESCE(u.email::text,''),u.display_name,u.avatar_file_id,m.status,m.source,m.verified_at,m.created_at,(SELECT max(last_seen_at) FROM iam.sessions s WHERE s.app_id=m.app_id AND s.user_id=m.user_id AND s.audience='ak-mobile'),m.lock_version FROM app.user_memberships m JOIN iam.users u ON u.id=m.user_id WHERE m.app_id=$1 AND m.user_id=$2`, appID, userID).Scan(&out.ID, &out.UserID, &out.Email, &out.DisplayName, &avatarFileID, &out.Status, &out.Source, &out.VerifiedAt, &out.CreatedAt, &out.LastSignInAt, &out.LockVersion)
+	err = s.pool.QueryRow(ctx, `SELECT m.user_id,m.user_id,COALESCE(li.normalized_value::text,''),u.display_name,u.avatar_file_id,m.status,m.source,m.verified_at,m.created_at,(SELECT max(last_seen_at) FROM iam.sessions s WHERE s.app_id=m.app_id AND s.user_id=m.user_id AND s.audience='ak-mobile'),m.lock_version
+FROM app.user_memberships m
+JOIN iam.users u ON u.id=m.user_id
+LEFT JOIN app.user_login_identifiers li
+  ON li.app_id=m.app_id AND li.user_id=m.user_id
+ AND li.identifier_type='email' AND li.status='active'
+WHERE m.app_id=$1 AND m.user_id=$2`, appID, userID).Scan(&out.ID, &out.UserID, &out.Email, &out.DisplayName, &avatarFileID, &out.Status, &out.Source, &out.VerifiedAt, &out.CreatedAt, &out.LastSignInAt, &out.LockVersion)
 	out.AvatarURL = adminAppUserAvatarURL(appID, out.UserID, avatarFileID)
 	return out, err
 }
@@ -1656,7 +1691,10 @@ func (s *Service) CreateAdminUser(ctx context.Context, token string, appID uuid.
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	var userID uuid.UUID
-	err = tx.QueryRow(ctx, `INSERT INTO iam.users (email,display_name,locale,status,email_verified_at) VALUES ($1,$2,$3,'active',now()) RETURNING id`, email, strings.TrimSpace(input.DisplayName), input.Locale).Scan(&userID)
+	// This creates an App user, not an ak-admin identity. Email ownership is
+	// scoped to the App identifier table so the same address may belong to a
+	// different user in another App without colliding on iam.users.email.
+	err = tx.QueryRow(ctx, `INSERT INTO iam.users (display_name,locale,status) VALUES ($1,$2,'active') RETURNING id`, strings.TrimSpace(input.DisplayName), input.Locale).Scan(&userID)
 	if err != nil {
 		return AdminAppUser{}, err
 	}
@@ -1668,6 +1706,11 @@ func (s *Service) CreateAdminUser(ctx context.Context, token string, appID uuid.
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO app.user_memberships (app_id,tenant_id,user_id,source,status,verified_at,invited_by) VALUES ($1,$2,$3,'admin_created','active',now(),$4)`, appID, p.Tenant.ID, userID, p.User.ID)
 	if err != nil {
+		return AdminAppUser{}, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO app.user_login_identifiers(
+tenant_id,app_id,user_id,identifier_type,normalized_value,display_hint,verified_at,status)
+VALUES($1,$2,$3,'email',$4,$5,now(),'active')`, p.Tenant.ID, appID, userID, email, maskedEmail(email)); err != nil {
 		return AdminAppUser{}, err
 	}
 	if err = tx.Commit(ctx); err != nil {

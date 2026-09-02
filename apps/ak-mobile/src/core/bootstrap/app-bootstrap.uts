@@ -23,6 +23,8 @@ import { preloadOnboardingSlides } from '../../features/onboarding/onboarding-pr
 import { pushRuntime } from '../../features/push/infrastructure/push-runtime.uts'
 import { pushCoordinator } from '../../features/push/application/push-coordinator.uts'
 import { accountDeletionRuntime } from '../../features/account-deletion/infrastructure/account-deletion-runtime.uts'
+import { oauthCoordinator } from '../../features/auth/oauth-coordinator.uts'
+import { loginMethodsRuntime } from '../../features/auth/login-methods-runtime.uts'
 
 /**
  * Reads only the packaged, approved manifest configuration. No production URL,
@@ -44,7 +46,16 @@ export function initializeAppRuntime(): boolean {
   const client = new AkHttpClient(config, appSessionStore)
   appPublicConfigRuntime.configure(client, config.appId, config.apiBaseUrl)
   legalRuntime.configure(client)
-  authRuntime.configure(client, sessionRuntime)
+  oauthCoordinator.onCompleted(result => { if (result.mode == 'login') completeAuthenticatedBootstrap() })
+  authRuntime.configure(client, sessionRuntime, () => continueAfterDeviceKey(config, client, sessionRuntime), () => {
+    uni.reLaunch({ url: '/pages/error/offline/index?reason=secure_storage_unavailable' })
+  })
+  return true
+}
+
+/** No OAuth callback or authenticated request starts before the persisted installation key is ready. */
+function continueAfterDeviceKey(config: AkConfig, client: AkHttpClient, sessionRuntime: SessionRuntime): void {
+  loginMethodsRuntime.configure(client)
   const auth = authRuntime.getService()
   if (auth != null) {
     articleRuntime.configure(config, appSessionStore, auth, new RefreshCoordinator(sessionRuntime, auth))
@@ -91,7 +102,6 @@ export function initializeAppRuntime(): boolean {
     })
     if (configLoad == null) restoreSession()
   }
-  return true
 }
 
 /** Login and token restoration share the same context/preferences handoff. */

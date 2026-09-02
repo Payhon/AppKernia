@@ -1,6 +1,5 @@
 import {
   availability as vaultAvailability,
-  clearNamespace as vaultClearNamespace,
   get as vaultGet,
   remove as vaultRemove,
   set as vaultSet,
@@ -11,6 +10,7 @@ const REFRESH_TOKEN_KEY = 'session.refresh-token'
 const DEVICE_KEY = 'session.device-key'
 const SESSION_ID_KEY = 'session.session-id'
 const SUBJECT_VERSION_KEY = 'session.subject-version'
+const SESSION_KEYS: Array<string> = [REFRESH_TOKEN_KEY, DEVICE_KEY, SESSION_ID_KEY, SUBJECT_VERSION_KEY]
 
 /**
  * Platform vault adapter. Credential members are separate so Harmony Asset
@@ -48,7 +48,12 @@ export class AkSecureSessionStorage implements SecureSessionStoragePort {
 
   clear(onSuccess: () => void, onFailure: () => void): void {
     if (!vaultAvailability().available) { onFailure(); return }
-  vaultClearNamespace(onSuccess, (_: string) => onFailure())
+    this.clearField(0, false, onSuccess, onFailure)
+  }
+
+  private clearField(index: number, failed: boolean, onSuccess: () => void, onFailure: () => void): void {
+    if (index >= SESSION_KEYS.length) { if (failed) onFailure(); else onSuccess(); return }
+    vaultRemove(SESSION_KEYS[index], () => this.clearField(index + 1, failed, onSuccess, onFailure), (_: string) => this.clearField(index + 1, true, onSuccess, onFailure))
   }
 
   private writeField(key: string, value: string, onSuccess: () => void, onFailure: () => void): void {

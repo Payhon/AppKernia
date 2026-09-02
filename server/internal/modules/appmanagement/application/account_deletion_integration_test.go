@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -57,7 +58,7 @@ func TestAccountDeletionVerificationIsBoundAndAttemptLimited(t *testing.T) {
 		wrongCode = "111111"
 	}
 	for attempt := 1; attempt <= 5; attempt++ {
-		_, confirmErr := service.ConfirmAccountDeletion(ctx, "session-token", app, wrongCode, true)
+		_, confirmErr := service.ConfirmAccountDeletion(ctx, "session-token", app, wrongCode, "", true)
 		if attempt < 5 && !errors.Is(confirmErr, ErrAccountDeletionCodeInvalid) {
 			t.Fatalf("attempt %d error=%v, want invalid code", attempt, confirmErr)
 		}
@@ -85,10 +86,78 @@ func TestAccountDeletionVerificationIsBoundAndAttemptLimited(t *testing.T) {
 		WHERE user_id=$1 AND challenge_type='account_delete' AND consumed_at IS NULL`, userID); err != nil {
 		t.Fatal(err)
 	}
-	if _, confirmErr := service.ConfirmAccountDeletion(ctx, "session-token", app, expiringCode, true); !errors.Is(confirmErr, ErrAccountDeletionCodeExpired) {
+	if _, confirmErr := service.ConfirmAccountDeletion(ctx, "session-token", app, expiringCode, "", true); !errors.Is(confirmErr, ErrAccountDeletionCodeExpired) {
 		t.Fatalf("expired code error=%v, want expired", confirmErr)
 	}
 	assertCount(t, pool, `SELECT count(*) FROM app.user_memberships WHERE app_id=$1 AND user_id=$2`, 1, appID, userID)
+}
+
+func TestAppleBoundAccountDeletionFailsClosedWithoutStepUpConsumer(t *testing.T) {
+	pool := accountDeletionTestPool(t)
+	ctx := context.Background()
+	suffix := uuid.NewString()
+	tenantID, appID := createDeletionTenantApp(t, pool, "apple-fail-closed-"+suffix)
+	defer cleanupDeletionFixtures(pool, []uuid.UUID{tenantID})
+	userID := createDeletionUser(t, pool, "apple-"+suffix+"@example.test", tenantID, appID)
+	if _, err := pool.Exec(ctx, `INSERT INTO iam.app_oauth_accounts(
+tenant_id,app_id,user_id,provider_code,issuer,external_client_id,subject,status)
+VALUES($1,$2,$3,'apple','https://appleid.apple.com','com.example.app',$4,'active')`, tenantID, appID, userID, "subject-"+suffix); err != nil {
+		t.Fatal(err)
+	}
+	notifier := &integrationOTPNotifier{}
+	service := NewService(pool, deletionAuthenticator{principal: deletionPrincipal(userID, tenantID, appID)}, WithOTPNotifier(notifier), WithAccountDeletionEnabled(true))
+	app := Application{ID: appID, TenantID: tenantID, DefaultLocale: "zh-CN"}
+	requirements, err := service.RequestAccountDeletionCode(ctx, "session", app)
+	if err != nil || !requirements.ReauthRequired || requirements.ReauthProvider != "apple" {
+		t.Fatalf("requirements=%#v err=%v", requirements, err)
+	}
+	if _, err = service.ConfirmAccountDeletion(ctx, "session", app, notifier.calls[0].Code, "forged", true); !errors.Is(err, ErrAccountDeletionUnavailable) {
+		t.Fatalf("confirm error=%v, want fail-closed unavailable", err)
+	}
+	assertCount(t, pool, `SELECT count(*) FROM app.user_memberships WHERE app_id=$1 AND user_id=$2`, 1, appID, userID)
+}
+
+func TestAppleAccountDeletionRejectsBindingSwappedAfterReauth(t *testing.T) {
+	pool := accountDeletionTestPool(t)
+	ctx := context.Background()
+	suffix := uuid.NewString()
+	tenantID, appID := createDeletionTenantApp(t, pool, "apple-swap-"+suffix)
+	defer cleanupDeletionFixtures(pool, []uuid.UUID{tenantID})
+	userID := createDeletionUser(t, pool, "apple-swap-"+suffix+"@example.test", tenantID, appID)
+	var originalID uuid.UUID
+	if err := pool.QueryRow(ctx, `INSERT INTO iam.app_oauth_accounts(
+tenant_id,app_id,user_id,provider_code,issuer,external_client_id,subject,status)
+VALUES($1,$2,$3,'apple','https://appleid.apple.com','com.example.app',$4,'active') RETURNING id`,
+		tenantID, appID, userID, "original-"+suffix).Scan(&originalID); err != nil {
+		t.Fatal(err)
+	}
+	notifier := &integrationOTPNotifier{}
+	service := NewService(pool, deletionAuthenticator{principal: deletionPrincipal(userID, tenantID, appID)},
+		WithOTPNotifier(notifier), WithAccountDeletionEnabled(true),
+		WithAccountDeletionStepUp(func(context.Context, string, uuid.UUID, string) (uuid.UUID, error) {
+			// Deterministically simulate another session replacing the binding in
+			// the interval after the original provider reauth and before deletion.
+			if _, err := pool.Exec(ctx, `DELETE FROM iam.app_oauth_accounts WHERE id=$1`, originalID); err != nil {
+				return uuid.Nil, err
+			}
+			if _, err := pool.Exec(ctx, `INSERT INTO iam.app_oauth_accounts(
+tenant_id,app_id,user_id,provider_code,issuer,external_client_id,subject,status)
+VALUES($1,$2,$3,'apple','https://appleid.apple.com','com.example.app',$4,'active')`,
+				tenantID, appID, userID, "replacement-"+suffix); err != nil {
+				return uuid.Nil, err
+			}
+			return originalID, nil
+		}),
+	)
+	app := Application{ID: appID, TenantID: tenantID, DefaultLocale: "zh-CN"}
+	if _, err := service.RequestAccountDeletionCode(ctx, "session", app); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.ConfirmAccountDeletion(ctx, "session", app, notifier.calls[0].Code, "fresh-provider-ticket", true); !errors.Is(err, ErrAccountDeletionUnavailable) {
+		t.Fatalf("confirm error=%v, want fail-closed unavailable after Apple binding swap", err)
+	}
+	assertCount(t, pool, `SELECT count(*) FROM app.user_memberships WHERE app_id=$1 AND user_id=$2`, 1, appID, userID)
+	assertCount(t, pool, `SELECT count(*) FROM iam.app_oauth_accounts WHERE app_id=$1 AND user_id=$2 AND provider_code='apple'`, 1, appID, userID)
 }
 
 func TestAccountDeletionRemovesOnlyCurrentAppThenDeletesUnsharedIdentity(t *testing.T) {
@@ -104,6 +173,10 @@ func TestAccountDeletionRemovesOnlyCurrentAppThenDeletesUnsharedIdentity(t *test
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO app.user_memberships(app_id,tenant_id,user_id,source,status,verified_at) VALUES($1,$2,$3,'self_registration','active',now())`, appB, tenantB, userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO app.user_login_identifiers(tenant_id,app_id,user_id,identifier_type,normalized_value,display_hint,verified_at,status)
+		VALUES($1,$2,$3,'email',$4,$5,now(),'active')`, tenantB, appB, userID, email, maskedEmail(email)); err != nil {
 		t.Fatal(err)
 	}
 	sessionA := createDeletionSession(t, pool, userID, tenantA, appA)
@@ -149,7 +222,7 @@ func TestAccountDeletionRemovesOnlyCurrentAppThenDeletesUnsharedIdentity(t *test
 		t.Fatal(err)
 	}
 	codeA := notifier.calls[len(notifier.calls)-1].Code
-	if result, err := serviceA.ConfirmAccountDeletion(ctx, "session-a", Application{ID: appA, TenantID: tenantA}, codeA, true); err != nil || !result.Deleted {
+	if result, err := serviceA.ConfirmAccountDeletion(ctx, "session-a", Application{ID: appA, TenantID: tenantA}, codeA, "", true); err != nil || !result.Deleted {
 		t.Fatalf("delete current app result=%#v err=%v", result, err)
 	}
 
@@ -191,7 +264,7 @@ func TestAccountDeletionRemovesOnlyCurrentAppThenDeletesUnsharedIdentity(t *test
 		t.Fatal(err)
 	}
 	codeB := notifier.calls[len(notifier.calls)-1].Code
-	if _, err := serviceB.ConfirmAccountDeletion(ctx, "session-b", Application{ID: appB, TenantID: tenantB}, codeB, true); err != nil {
+	if _, err := serviceB.ConfirmAccountDeletion(ctx, "session-b", Application{ID: appB, TenantID: tenantB}, codeB, "", true); err != nil {
 		t.Fatal(err)
 	}
 	assertCount(t, pool, `SELECT count(*) FROM iam.users WHERE id=$1`, 0, userID)
@@ -247,7 +320,7 @@ func TestAccountDeletionRetainsIdentityUsedByAdmin(t *testing.T) {
 		t.Fatal(err)
 	}
 	code := notifier.calls[len(notifier.calls)-1].Code
-	if result, err := service.ConfirmAccountDeletion(ctx, "mobile-session", app, code, true); err != nil || !result.Deleted {
+	if result, err := service.ConfirmAccountDeletion(ctx, "mobile-session", app, code, "", true); err != nil || !result.Deleted {
 		t.Fatalf("delete app identity result=%#v err=%v", result, err)
 	}
 
@@ -313,6 +386,10 @@ func createDeletionUser(t *testing.T, pool *pgxpool.Pool, email string, tenantID
 		t.Fatal(err)
 	}
 	if _, err := pool.Exec(ctx, `INSERT INTO app.user_memberships(app_id,tenant_id,user_id,source,status,verified_at) VALUES($1,$2,$3,'self_registration','active',now())`, appID, tenantID, userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO app.user_login_identifiers(tenant_id,app_id,user_id,identifier_type,normalized_value,display_hint,verified_at,status)
+		VALUES($1,$2,$3,'email',$4,$5,now(),'active')`, tenantID, appID, userID, strings.ToLower(email), maskedEmail(strings.ToLower(email))); err != nil {
 		t.Fatal(err)
 	}
 	return userID

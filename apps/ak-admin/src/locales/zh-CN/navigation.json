@@ -170,5 +170,7 @@
   "menu.system.notifications.operations": "消息运营",
   "routes.system.notifications.operations.title": "消息运营",
   "menu.app.feedbacks": "问题反馈",
-  "routes.app.feedbacks.title": "问题反馈"
+  "routes.app.feedbacks.title": "问题反馈",
+  "menu.system.settings.login_providers": "第三方登录配置",
+  "routes.system.settings.login_providers.title": "第三方登录配置"
 }

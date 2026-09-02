@@ -23,7 +23,7 @@ RUN apk add --no-cache ca-certificates tzdata \
     && chown -R appkernia:appkernia /app/data
 WORKDIR /app/server
 COPY --from=build /out/ /app/bin/
-COPY blueprint/ /app/blueprint/
+COPY --chown=appkernia:appkernia blueprint/ /app/blueprint/
 USER appkernia
 EXPOSE 8080
 ENTRYPOINT ["/app/bin/ak-api"]

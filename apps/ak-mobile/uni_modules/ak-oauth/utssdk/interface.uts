@@ -1,0 +1,45 @@
+export type OAuthNativeProvider = 'wechat' | 'github' | 'apple' | 'google'
+export type OAuthNativePlatform = 'ios' | 'android' | 'harmony'
+export type OAuthNativeBuildVariant = 'ios' | 'android_google' | 'android_china' | 'harmony'
+export type OAuthNativeKind = 'native_code' | 'native_id_token' | 'browser_ticket'
+export type OAuthNativeCredentialKind = 'authorization_code' | 'id_token' | 'browser_started'
+export type OAuthNativeFailureCode = 'authorization_denied' | 'configuration_missing' | 'native_sdk_unavailable' | 'unsupported_provider' | 'browser_unavailable' | 'native_failure'
+
+export class OAuthNativeCapability {
+  readonly platform: OAuthNativePlatform
+  readonly buildVariant: OAuthNativeBuildVariant
+  readonly providers: Array<OAuthNativeProvider>
+  constructor(platform: OAuthNativePlatform, buildVariant: OAuthNativeBuildVariant, providers: Array<OAuthNativeProvider>) { this.platform = platform; this.buildVariant = buildVariant; this.providers = providers }
+}
+
+export class OAuthNativeAuthorizationRequest {
+  readonly provider: OAuthNativeProvider
+  readonly kind: OAuthNativeKind
+  readonly flowId: string
+  readonly state: string
+  readonly nonce: string
+  readonly authorizationURL: string
+  readonly appId: string
+  readonly externalClientId: string
+  readonly serverClientId: string
+  readonly appReturnURI: string
+  constructor(provider: OAuthNativeProvider, kind: OAuthNativeKind, flowId: string, state: string, nonce: string, authorizationURL: string, appId: string, externalClientId: string, serverClientId: string, appReturnURI: string) {
+    this.provider = provider; this.kind = kind; this.flowId = flowId; this.state = state; this.nonce = nonce; this.authorizationURL = authorizationURL; this.appId = appId; this.externalClientId = externalClientId; this.serverClientId = serverClientId; this.appReturnURI = appReturnURI
+  }
+}
+
+export class OAuthNativeAuthorizationResult {
+  readonly credentialKind: OAuthNativeCredentialKind
+  readonly authorizationCode: string
+  readonly idToken: string
+  readonly displayName: string
+  constructor(credentialKind: OAuthNativeCredentialKind, authorizationCode: string, idToken: string, displayName: string) { this.credentialKind = credentialKind; this.authorizationCode = authorizationCode; this.idToken = idToken; this.displayName = displayName }
+}
+
+export type OAuthNativeSuccess = (result: OAuthNativeAuthorizationResult) => void
+export type OAuthNativeFailure = (code: OAuthNativeFailureCode) => void
+export type OAuthReturnListener = (url: string) => void
+export type GetOAuthCapability = () => OAuthNativeCapability
+export type AuthorizeOAuth = (request: OAuthNativeAuthorizationRequest, success: OAuthNativeSuccess, failure: OAuthNativeFailure) => void
+export type OnOAuthReturn = (listener: OAuthReturnListener | null) => void
+export type ConsumeOAuthReturn = () => void

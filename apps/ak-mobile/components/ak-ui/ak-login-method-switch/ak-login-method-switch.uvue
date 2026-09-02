@@ -1,0 +1,13 @@
+<template>
+  <view class="method-switch" role="tablist" :aria-label="t('auth.method.label', null)">
+    <view v-for="item in items" :key="item.value" :class="item.value === modelValue ? 'method-option method-option--selected' : 'method-option'" role="tab" :aria-label="item.label" :aria-selected="item.value === modelValue" @click="select(item.value)"><text :class="item.value === modelValue ? 'method-label method-label--selected' : 'method-label'">{{item.label}}</text></view>
+  </view>
+</template>
+<script lang="uts">
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+type LoginMethodOption = { value: string; label: string }
+export default { name:'AkLoginMethodSwitch', props:{modelValue:{type:String,default:'password'}}, emits:['update:modelValue'], computed:{t(){return akI18n.t},items():Array<LoginMethodOption>{return[{value:'password',label:akI18n.t('auth.method.password',null)},{value:'email_otp',label:akI18n.t('auth.method.emailOtp',null)},{value:'sms_otp',label:akI18n.t('auth.method.smsOtp',null)}]}},methods:{select(value:string){if(value!=this.modelValue)this.$emit('update:modelValue',value)}}}
+</script>
+<style lang="scss">
+.method-switch{flex-direction:row;align-items:center;padding:4px;border:1px solid var(--ak-border);border-radius:14px;background:var(--ak-surface-subtle);margin-bottom:20px}.method-option{flex:1;min-height:44px;padding:0 8px;align-items:center;justify-content:center;border-radius:10px}.method-option--selected{background:var(--ak-surface);border:1px solid var(--ak-border)}.method-label{font-size:14px;line-height:20px;text-align:center;color:var(--ak-muted)}.method-label--selected{color:var(--ak-text);font-weight:600}
+</style>

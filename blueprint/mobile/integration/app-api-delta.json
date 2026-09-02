@@ -29,13 +29,19 @@
     {
       "method": "GET",
       "path": "/api/v1/auth/oauth/providers",
-      "purpose": "返回当前启用的第三方登录 Provider 与移动端配置。",
+      "purpose": "按 platform/build_variant 返回当前 App 启用、随包能力与配置哈希一致的第三方登录 Provider；缺少隐私同意时客户端不得请求或展示。",
       "phase": "P2"
     },
     {
       "method": "POST",
       "path": "/api/v1/auth/oauth/{provider}/authorize",
       "purpose": "创建 OAuth PKCE/state 授权会话并返回授权参数。",
+      "phase": "P2"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/auth/oauth/{provider}/browser-callback",
+      "purpose": "GitHub HTTPS 服务端回调；校验 code/state 后只向已验证 App Link 返回 provider、flow_id 与一次性 ticket，不向 App 暴露 GitHub 授权 code。",
       "phase": "P2"
     },
     {
@@ -53,8 +59,38 @@
     {
       "method": "POST",
       "path": "/api/v1/auth/step-up",
-      "purpose": "通过密码或 MFA 获取短生命周期 Step-up Token，用于敏感操作。",
+      "purpose": "通过密码或指定 identifier_id 的邮箱/短信 OTP 获取绑定具体 purpose/resource 的短生命周期 Step-up Token。",
       "phase": "P1"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/step-up/verification-code",
+      "purpose": "按 identifier_id、purpose、resource 创建 Step-up OTP challenge；不接收或回传已绑定邮箱/手机号原值。",
+      "phase": "P1"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/me/login-methods",
+      "purpose": "返回密码、邮箱、手机号与全部历史第三方账号的服务端能力事实，包括 login_capable、can_bind、can_change、can_unbind 与 block_reason。",
+      "phase": "P2"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/me/login-identifiers/{identifier_type}/challenge",
+      "purpose": "为 email/mobile 首次绑定或换绑创建新标识验证码 challenge；响应包含 challenge_id。",
+      "phase": "P2"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/me/login-identifiers/{identifier_type}",
+      "purpose": "使用新标识 challenge 完成 email/mobile 绑定或换绑；已有标识换绑还必须提交 identifier_change Step-up Token。",
+      "phase": "P2"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/v1/me/login-identifiers/{identifier_type}",
+      "purpose": "使用 identifier_unbind Step-up Token 解绑 email/mobile，服务端阻止删除最后一种可登录方式。",
+      "phase": "P2"
     },
     {
       "method": "GET",

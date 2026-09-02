@@ -62,6 +62,22 @@ type AppApplicationChannel struct {
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
+// App selection and runtime enablement of tenant login-provider configurations.
+type AppApplicationLoginProviderBinding struct {
+	ID                    uuid.UUID          `json:"id"`
+	TenantID              uuid.UUID          `json:"tenant_id"`
+	AppID                 uuid.UUID          `json:"app_id"`
+	ProviderCode          string             `json:"provider_code"`
+	LoginProviderConfigID uuid.UUID          `json:"login_provider_config_id"`
+	Enabled               bool               `json:"enabled"`
+	SortOrder             int32              `json:"sort_order"`
+	LockVersion           int32              `json:"lock_version"`
+	CreatedBy             *uuid.UUID         `json:"created_by"`
+	UpdatedBy             *uuid.UUID         `json:"updated_by"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
+}
+
 type AppApplicationOnboardingDraftAsset struct {
 	TenantID           uuid.UUID          `json:"tenant_id"`
 	AppID              uuid.UUID          `json:"app_id"`
@@ -266,6 +282,22 @@ type AppLegalConsent struct {
 	IpAddress    *netip.Addr        `json:"ip_address"`
 	UserAgent    *string            `json:"user_agent"`
 	AnonymizedAt pgtype.Timestamptz `json:"anonymized_at"`
+}
+
+// App-scoped email/mobile identifiers used by Mobile login and account binding.
+type AppUserLoginIdentifier struct {
+	ID              uuid.UUID          `json:"id"`
+	TenantID        uuid.UUID          `json:"tenant_id"`
+	AppID           uuid.UUID          `json:"app_id"`
+	UserID          uuid.UUID          `json:"user_id"`
+	IdentifierType  string             `json:"identifier_type"`
+	NormalizedValue string             `json:"normalized_value"`
+	DisplayHint     string             `json:"display_hint"`
+	VerifiedAt      pgtype.Timestamptz `json:"verified_at"`
+	Status          string             `json:"status"`
+	LockVersion     int32              `json:"lock_version"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
 type AppUserMembership struct {
@@ -714,6 +746,26 @@ type ContentVideoExternalHost struct {
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
 
+// App-scoped external identities for Mobile; independent from Admin iam.oauth_accounts.
+type IamAppOauthAccount struct {
+	ID                  uuid.UUID          `json:"id"`
+	TenantID            uuid.UUID          `json:"tenant_id"`
+	AppID               uuid.UUID          `json:"app_id"`
+	UserID              uuid.UUID          `json:"user_id"`
+	ProviderCode        string             `json:"provider_code"`
+	Issuer              string             `json:"issuer"`
+	ExternalClientID    string             `json:"external_client_id"`
+	Subject             string             `json:"subject"`
+	UnionSubject        *string            `json:"union_subject"`
+	ProviderUsername    *string            `json:"provider_username"`
+	ProviderProfile     []byte             `json:"provider_profile"`
+	Status              string             `json:"status"`
+	BoundAt             pgtype.Timestamptz `json:"bound_at"`
+	LastAuthenticatedAt pgtype.Timestamptz `json:"last_authenticated_at"`
+	CreatedAt           pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt           pgtype.Timestamptz `json:"updated_at"`
+}
+
 type IamBlockRule struct {
 	ID           uuid.UUID          `json:"id"`
 	TenantID     *uuid.UUID         `json:"tenant_id"`
@@ -798,6 +850,37 @@ type IamOauthAccount struct {
 	Status           string             `json:"status"`
 	CreatedAt        pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt        pgtype.Timestamptz `json:"updated_at"`
+}
+
+// Short-lived hash/encrypted OAuth state with single-consumption semantics.
+type IamOauthAuthorizationFlow struct {
+	ID                         uuid.UUID          `json:"id"`
+	TenantID                   uuid.UUID          `json:"tenant_id"`
+	AppID                      uuid.UUID          `json:"app_id"`
+	LoginProviderConfigID      uuid.UUID          `json:"login_provider_config_id"`
+	ProviderCode               string             `json:"provider_code"`
+	Mode                       string             `json:"mode"`
+	Platform                   string             `json:"platform"`
+	BuildVariant               string             `json:"build_variant"`
+	UserID                     *uuid.UUID         `json:"user_id"`
+	SessionID                  *uuid.UUID         `json:"session_id"`
+	ReauthPurpose              *string            `json:"reauth_purpose"`
+	TargetOauthAccountID       *uuid.UUID         `json:"target_oauth_account_id"`
+	StateHash                  []byte             `json:"state_hash"`
+	NonceHash                  []byte             `json:"nonce_hash"`
+	PkceVerifierCiphertext     []byte             `json:"pkce_verifier_ciphertext"`
+	PkceKeyVersion             *int32             `json:"pkce_key_version"`
+	DeviceKeyHash              []byte             `json:"device_key_hash"`
+	VerifiedIdentityCiphertext []byte             `json:"verified_identity_ciphertext"`
+	VerifiedIdentityKeyVersion *int32             `json:"verified_identity_key_version"`
+	CompletionTicketHash       []byte             `json:"completion_ticket_hash"`
+	CompletionTicketExpiresAt  pgtype.Timestamptz `json:"completion_ticket_expires_at"`
+	ExpiresAt                  pgtype.Timestamptz `json:"expires_at"`
+	ProviderVerifiedAt         pgtype.Timestamptz `json:"provider_verified_at"`
+	ConsumedAt                 pgtype.Timestamptz `json:"consumed_at"`
+	FailureCount               int32              `json:"failure_count"`
+	LastFailureCode            *string            `json:"last_failure_code"`
+	CreatedAt                  pgtype.Timestamptz `json:"created_at"`
 }
 
 type IamOauthBindingChallenge struct {
@@ -1554,6 +1637,32 @@ type SysIdempotencyKey struct {
 	ExpiresAt       pgtype.Timestamptz `json:"expires_at"`
 	CreatedAt       pgtype.Timestamptz `json:"created_at"`
 	CompletedAt     pgtype.Timestamptz `json:"completed_at"`
+}
+
+// Tenant-owned, code-registered third-party login configurations; secret plaintext is never returned or logged.
+type SysLoginProviderConfig struct {
+	ID                    uuid.UUID          `json:"id"`
+	TenantID              uuid.UUID          `json:"tenant_id"`
+	Name                  string             `json:"name"`
+	Description           string             `json:"description"`
+	ProviderCode          string             `json:"provider_code"`
+	ExternalClientID      string             `json:"external_client_id"`
+	ConfigSchemaVersion   int32              `json:"config_schema_version"`
+	PublicConfig          []byte             `json:"public_config"`
+	SecretCiphertext      []byte             `json:"secret_ciphertext"`
+	SecretKeyVersion      *int32             `json:"secret_key_version"`
+	SecretFieldNames      []string           `json:"secret_field_names"`
+	CredentialFingerprint *string            `json:"credential_fingerprint"`
+	Status                string             `json:"status"`
+	LastPreflightAt       pgtype.Timestamptz `json:"last_preflight_at"`
+	LastPreflightStatus   *string            `json:"last_preflight_status"`
+	LastPreflightIssues   []byte             `json:"last_preflight_issues"`
+	LockVersion           int32              `json:"lock_version"`
+	CreatedBy             *uuid.UUID         `json:"created_by"`
+	UpdatedBy             *uuid.UUID         `json:"updated_by"`
+	DeletedAt             pgtype.Timestamptz `json:"deleted_at"`
+	CreatedAt             pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
 }
 
 // Admin navigation metadata. UI actions and API authorization are represented by iam.permissions, not encoded as menu rows.

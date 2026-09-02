@@ -297,5 +297,6 @@
   "apps.public_web.preview_hint": "仅模拟手机外观和尺寸，平台识别仍以当前浏览器为准。",
   "apps.public_web.preview_frame": "{name} 的手机预览",
   "apps.public_web.preview_loading": "正在加载公开页面…",
-  "apps.public_web.preview_timeout": "无法确认页面已加载，请重试或独立打开。"
+  "apps.public_web.preview_timeout": "无法确认页面已加载，请重试或独立打开。",
+  "apps.client_config.tabs.login_providers": "第三方登录"
 }

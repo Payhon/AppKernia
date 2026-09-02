@@ -62,6 +62,14 @@ describe('static route registry', () => {
     expect(resolved[0]?.children[0]?.children[0]?.path).toBe('/system/settings/share-configs')
   })
 
+  it('exposes third-party sign-in configuration only with its dedicated view permission', () => {
+    const menus = systemTree('system.settings.login-providers', 'system.settings')
+    expect(resolveBackendMenus(menus, new Set(), {})).toEqual([])
+    const resolved = resolveBackendMenus(menus, new Set(['sys.login_provider_config.read']), {})
+    expect(resolved).toHaveLength(1)
+    expect(resolved[0]?.children[0]?.children[0]?.path).toBe('/system/settings/login-providers')
+  })
+
   it('keeps App management as a static permission-gated root', () => {
     const app = directory('app', null, 15)
     const users = page('app.users', app.id, 'app.users')
@@ -144,6 +152,7 @@ describe('static route registry', () => {
     expect(isSafeInternalRedirect('/profile/security')).toBe(true)
     expect(isSafeInternalRedirect('/system/notifications/notices')).toBe(true)
     expect(isSafeInternalRedirect('/system/integrations/schedules')).toBe(true)
+    expect(isSafeInternalRedirect('/system/settings/login-providers')).toBe(true)
     expect(isSafeInternalRedirect('/app/content/pages')).toBe(true)
     expect(isSafeInternalRedirect('//evil.example/dashboard')).toBe(false)
     expect(isSafeInternalRedirect('https://evil.example')).toBe(false)

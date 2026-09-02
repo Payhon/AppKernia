@@ -1335,6 +1335,78 @@
       "status": "active"
     },
     {
+      "code": "sys.login_provider_config.read",
+      "name": "查看第三方登录配置",
+      "module_code": "sys",
+      "resource_name": "login_provider_config",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.login_provider_config.create",
+      "name": "创建第三方登录配置",
+      "module_code": "sys",
+      "resource_name": "login_provider_config",
+      "action_name": "create",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.login_provider_config.update",
+      "name": "更新第三方登录配置",
+      "module_code": "sys",
+      "resource_name": "login_provider_config",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.login_provider_config.delete",
+      "name": "删除第三方登录配置",
+      "module_code": "sys",
+      "resource_name": "login_provider_config",
+      "action_name": "delete",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.login_provider_config.rotate_secret",
+      "name": "轮换第三方登录凭据",
+      "module_code": "sys",
+      "resource_name": "login_provider_config",
+      "action_name": "rotate_secret",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "sys.login_provider_config.preflight",
+      "name": "预检第三方登录配置",
+      "module_code": "sys",
+      "resource_name": "login_provider_config",
+      "action_name": "preflight",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.login_provider_binding.read",
+      "name": "查看应用第三方登录绑定",
+      "module_code": "app",
+      "resource_name": "login_provider_binding",
+      "action_name": "read",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
+      "code": "app.login_provider_binding.update",
+      "name": "更新应用第三方登录绑定",
+      "module_code": "app",
+      "resource_name": "login_provider_binding",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
       "code": "sys.share_config.read",
       "name": "查看分享配置",
       "module_code": "sys",

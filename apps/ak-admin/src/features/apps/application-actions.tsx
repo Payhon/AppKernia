@@ -10,6 +10,7 @@ import {
 import type { MenuProps } from "antd";
 
 import type { ManagedApplication } from "./model";
+import { canReadAnyClientConfig } from "./client-config-registry";
 
 export interface ApplicationActionLabels {
   edit: string;
@@ -46,7 +47,7 @@ export function createApplicationActionItems(
     { key: "upgrade-center", icon: <RocketOutlined />, label: labels.upgradeCenter, onClick: handlers.upgradeCenter },
     { key: "content", icon: <FileTextOutlined />, label: labels.content, onClick: handlers.content },
   );
-  if (permissions.has("app.share_binding.read") || permissions.has("app.scanner_config.read")) {
+  if (canReadAnyClientConfig(permissions)) {
     items.push({ key: "client-config", icon: <MobileOutlined />, label: labels.clientConfig, onClick: handlers.clientConfig });
   }
   if (permissions.has("app.application.disable")) {

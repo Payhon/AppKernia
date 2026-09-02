@@ -29,7 +29,12 @@
       "route_key": "auth.login.password",
       "endpoints": [
         "POST /api/v1/auth/login/password",
-        "GET /api/v1/auth/oauth/providers"
+        "POST /api/v1/auth/email/send-code",
+        "POST /api/v1/auth/mobile/send-code",
+        "POST /api/v1/auth/login/otp",
+        "GET /api/v1/auth/oauth/providers",
+        "POST /api/v1/auth/oauth/{provider}/authorize",
+        "POST /api/v1/auth/oauth/{provider}/callback"
       ],
       "phase": "P0"
     },
@@ -224,9 +229,17 @@
     {
       "route_key": "profile.connections",
       "endpoints": [
+        "GET /api/v1/auth/oauth/providers",
+        "POST /api/v1/auth/oauth/{provider}/authorize",
+        "POST /api/v1/auth/oauth/{provider}/callback",
+        "GET /api/v1/me/login-methods",
+        "POST /api/v1/me/login-identifiers/{identifier_type}/challenge",
+        "PUT /api/v1/me/login-identifiers/{identifier_type}",
+        "DELETE /api/v1/me/login-identifiers/{identifier_type}",
+        "POST /api/v1/auth/step-up/verification-code",
+        "POST /api/v1/auth/step-up",
         "GET /api/v1/me/oauth-accounts",
-        "DELETE /api/v1/me/oauth-accounts/{account_id}",
-        "POST /api/v1/auth/oauth/{provider}/authorize"
+        "DELETE /api/v1/me/oauth-accounts/{account_id}"
       ],
       "phase": "P2"
     },

@@ -49,6 +49,31 @@
       }
     },
     {
+      "component_key": "system.settings.login-providers",
+      "view": [
+        "sys.login_provider_config.read"
+      ],
+      "actions": {
+        "create": "sys.login_provider_config.create",
+        "update": "sys.login_provider_config.update",
+        "delete": "sys.login_provider_config.delete",
+        "rotateSecret": "sys.login_provider_config.rotate_secret",
+        "preflight": "sys.login_provider_config.preflight",
+        "readAppBinding": "app.login_provider_binding.read",
+        "updateAppBinding": "app.login_provider_binding.update"
+      },
+      "permission_status": {
+        "sys.login_provider_config.read": "existing",
+        "sys.login_provider_config.create": "existing",
+        "sys.login_provider_config.update": "existing",
+        "sys.login_provider_config.delete": "existing",
+        "sys.login_provider_config.rotate_secret": "existing",
+        "sys.login_provider_config.preflight": "existing",
+        "app.login_provider_binding.read": "existing",
+        "app.login_provider_binding.update": "existing"
+      }
+    },
+    {
       "component_key": "system.settings.dictionaries",
       "view": [
         "sys.dictionary.read"
@@ -574,8 +599,12 @@
       "actions": {
         "create": "app.application.create",
         "update": "app.application.update",
+        "readShareBinding": "app.share_binding.read",
+        "updateShareBinding": "app.share_binding.update",
         "readScannerConfig": "app.scanner_config.read",
         "updateScannerConfig": "app.scanner_config.update",
+        "readLoginProviderBinding": "app.login_provider_binding.read",
+        "updateLoginProviderBinding": "app.login_provider_binding.update",
         "publishOnboarding": "app.onboarding.publish",
         "disable": "app.application.disable",
         "delete": "app.application.delete",
@@ -586,8 +615,12 @@
         "app.application.read": "existing",
         "app.application.create": "existing",
         "app.application.update": "existing",
+        "app.share_binding.read": "existing",
+        "app.share_binding.update": "existing",
         "app.scanner_config.read": "existing",
         "app.scanner_config.update": "existing",
+        "app.login_provider_binding.read": "existing",
+        "app.login_provider_binding.update": "existing",
         "app.onboarding.publish": "existing",
         "app.application.disable": "existing",
         "app.application.delete": "existing",

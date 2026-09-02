@@ -76,7 +76,12 @@
       "required_permissions": [],
       "apis": [
         "POST /api/v1/auth/login/password",
-        "GET /api/v1/auth/oauth/providers"
+        "POST /api/v1/auth/email/send-code",
+        "POST /api/v1/auth/mobile/send-code",
+        "POST /api/v1/auth/login/otp",
+        "GET /api/v1/auth/oauth/providers",
+        "POST /api/v1/auth/oauth/{provider}/authorize",
+        "POST /api/v1/auth/oauth/{provider}/callback"
       ],
       "feature_flag": null,
       "tab_key": null,
@@ -191,7 +196,7 @@
       "route_key": "auth.oauth-callback",
       "path": "pages/auth/oauth-callback/index",
       "file": "apps/ak-mobile/pages/auth/oauth-callback/index.uvue",
-      "access": "mixed",
+      "access": "public",
       "kind": "callback",
       "title_key": "routes.auth.oauthCallback.title",
       "phase": "P2",
@@ -199,7 +204,7 @@
       "apis": [
         "POST /api/v1/auth/oauth/{provider}/callback"
       ],
-      "feature_flag": "oauth_login_enabled",
+      "feature_flag": null,
       "tab_key": null,
       "params": {},
       "ui_skill_required": true
@@ -549,15 +554,21 @@
       "kind": "page",
       "title_key": "routes.profile.connections.title",
       "phase": "P2",
-      "required_permissions": [
-        "iam.oauth.manage_self"
-      ],
+      "required_permissions": [],
       "apis": [
+        "GET /api/v1/auth/oauth/providers",
+        "POST /api/v1/auth/oauth/{provider}/authorize",
+        "POST /api/v1/auth/oauth/{provider}/callback",
+        "GET /api/v1/me/login-methods",
+        "POST /api/v1/me/login-identifiers/{identifier_type}/challenge",
+        "PUT /api/v1/me/login-identifiers/{identifier_type}",
+        "DELETE /api/v1/me/login-identifiers/{identifier_type}",
+        "POST /api/v1/auth/step-up/verification-code",
+        "POST /api/v1/auth/step-up",
         "GET /api/v1/me/oauth-accounts",
-        "DELETE /api/v1/me/oauth-accounts/{account_id}",
-        "POST /api/v1/auth/oauth/{provider}/authorize"
+        "DELETE /api/v1/me/oauth-accounts/{account_id}"
       ],
-      "feature_flag": "oauth_login_enabled",
+      "feature_flag": null,
       "tab_key": null,
       "params": {},
       "ui_skill_required": true

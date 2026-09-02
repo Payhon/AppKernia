@@ -191,6 +191,8 @@ paths:
       operationId: listMobileFeedbacks
       tags:
       - mobile-profile
+      security:
+      - mobileBearer: []
       parameters:
       - &id002
         $ref: '#/components/parameters/AppID'
@@ -254,6 +256,8 @@ paths:
       operationId: createMobileFeedback
       tags:
       - mobile-profile
+      security:
+      - mobileBearer: []
       parameters:
       - *id002
       - *id003
@@ -295,6 +299,8 @@ paths:
       operationId: getMobileFeedback
       tags:
       - mobile-profile
+      security:
+      - mobileBearer: []
       parameters:
       - *id002
       - *id003
@@ -325,6 +331,8 @@ paths:
       operationId: getMobileFeedbackAttachment
       tags:
       - mobile-profile
+      security:
+      - mobileBearer: []
       parameters:
       - *id002
       - *id003
@@ -575,6 +583,8 @@ paths:
       operationId: createMobileFeedbackUpload
       tags:
       - mobile-profile
+      security:
+      - mobileBearer: []
       parameters:
       - *id002
       - *id003
@@ -609,6 +619,8 @@ paths:
       operationId: cancelMobileFeedbackUpload
       tags:
       - mobile-profile
+      security:
+      - mobileBearer: []
       parameters:
       - *id002
       - *id003
@@ -639,6 +651,8 @@ paths:
       operationId: uploadMobileFeedbackImage
       tags:
       - mobile-profile
+      security:
+      - mobileBearer: []
       parameters:
       - *id002
       - *id003
@@ -800,24 +814,25 @@ paths:
       summary: Record acceptance of the currently published App legal revision
       operationId: acceptAppLegalDocument
       tags: [mobile-content]
+      security: [{mobileBearer: []}]
       parameters: [{$ref: "#/components/parameters/AppID"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppLegalConsentRequest"}}}}
       responses: {"200": {description: Consent was recorded idempotently., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/account-deletion/verification-code:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     post:
-      summary: Send a one-time account deletion code to the authenticated user's verified email
+      summary: Resolve account-deletion verification and provider-reauth requirements
       operationId: requestMobileAccountDeletionCode
       tags: [mobile-profile]
-      description: The target email and user are always derived from the current Mobile session and X-AppID. The client must not retry this write automatically.
+      security: [{mobileBearer: []}]
+      description: The App-scoped email and Apple binding are derived from the current Mobile session and X-AppID. A verified App email receives a one-time code; OAuth-only accounts may not require a code. Apple accounts require fresh Apple reauth and revoke before confirmation. The client must not retry this write automatically.
       responses:
         "202":
-          description: A single-use six-digit code was queued for delivery.
+          description: Requirements were resolved and, when verification_required is true, a single-use six-digit email code was queued.
           headers: {Retry-After: {schema: {type: integer, minimum: 1}}}
           content: {application/json: {schema: {$ref: "#/components/schemas/AccountDeletionVerificationCodeResponse"}}}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {description: Account deletion is disabled for the current App., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
-        "409": {description: The current account has no verified email., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
         "429": {description: A code was sent during the resend cooldown., headers: {Retry-After: {schema: {type: integer, minimum: 1}}}, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
         "503": {description: Account deletion verification is temporarily unavailable., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
   /api/v1/me/account-deletion/confirm:
@@ -826,14 +841,15 @@ paths:
       summary: Immediately delete the authenticated user's current App account
       operationId: confirmMobileAccountDeletion
       tags: [mobile-profile]
-      description: Atomically consumes the App- and user-bound code and deletes the current App account. This request is not idempotent and must never be retried automatically.
+      security: [{mobileBearer: []}]
+      description: When required, atomically consumes the App- and user-bound email code. A fresh Apple account_delete step-up token must identify the exact currently locked Apple account whose temporary provider token was revoked. This request is not idempotent and must never be retried automatically.
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AccountDeletionConfirmRequest"}}}}
       responses:
         "200": {description: The current App account and active sessions were deleted immediately., content: {application/json: {schema: {$ref: "#/components/schemas/AccountDeletionResultResponse"}}}}
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {description: Account deletion is disabled for the current App., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
-        "409": {description: The current account has no verified email., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
-        "422": {description: The acknowledgement or verification code is invalid, expired, or exhausted., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "422": {description: "The acknowledgement or verification code is invalid, expired, or exhausted.", content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "428": {description: Fresh provider-backed step-up is required., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
         "503": {description: Account deletion failed without changing the account., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
   /api/v1/regions:
     parameters: [{$ref: "#/components/parameters/AppID"}]
@@ -860,6 +876,135 @@ paths:
       security: []
       parameters: [{$ref: "#/components/parameters/AppID"}, {name: release_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: file_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: expires, in: query, required: true, schema: {type: integer, format: int64}}, {name: signature, in: query, required: true, schema: {type: string}}]
       responses: {"200": {description: Private package bytes with no-store cache policy., content: {application/octet-stream: {schema: {type: string, format: binary}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+  /api/v1/auth/oauth/providers:
+    get:
+      summary: List login providers enabled for the current App and native build target
+      operationId: listMobileLoginProviders
+      tags: [mobile-auth]
+      security: []
+      parameters:
+        - {$ref: "#/components/parameters/AppID"}
+        - {name: platform, in: query, required: true, schema: {$ref: "#/components/schemas/LoginProviderPlatform"}}
+        - {name: build_variant, in: query, required: true, schema: {$ref: "#/components/schemas/LoginProviderBuildVariant"}}
+      responses:
+        "200": {description: Registered providers filtered by the App binding and platform configuration., content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginProviderListResponse"}}}}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+  /api/v1/auth/oauth/{provider}/authorize:
+    post:
+      summary: Create a device-bound OAuth authorization flow
+      operationId: authorizeMobileOAuth
+      tags: [mobile-auth]
+      description: Login is anonymous. Bind and reauth modes require the current ak-mobile bearer session. The flow is bound to App, provider, platform, build variant, mode and installation-key hash.
+      security: [{}, {mobileBearer: []}]
+      parameters:
+        - {$ref: "#/components/parameters/AppID"}
+        - {$ref: "#/components/parameters/LoginProviderDeviceKey"}
+        - {name: provider, in: path, required: true, schema: {$ref: "#/components/schemas/LoginProviderCode"}}
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileOAuthAuthorizeRequest"}}}}
+      responses:
+        "200": {description: Short-lived authorization flow. State and nonce must not be logged., content: {application/json: {schema: {$ref: "#/components/schemas/MobileOAuthAuthorizeResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "428": {description: A single-use step-up token is required., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v1/auth/oauth/{provider}/callback:
+    post:
+      summary: Complete one native or browser-ticket OAuth flow
+      operationId: callbackMobileOAuth
+      tags: [mobile-auth]
+      description: Native flows submit state plus provider credential. GitHub submits only the server-issued ticket. Apple reauth also submits the authorization code for immediate exchange and revocation. Provider codes and tokens never enter an App deep link.
+      security: [{}, {mobileBearer: []}]
+      parameters:
+        - {$ref: "#/components/parameters/AppID"}
+        - {$ref: "#/components/parameters/LoginProviderDeviceKey"}
+        - {name: provider, in: path, required: true, schema: {$ref: "#/components/schemas/LoginProviderCode"}}
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileOAuthCallbackRequest"}}}}
+      responses:
+        "200": {description: "Login session, bound account, or provider-backed step-up result according to mode.", content: {application/json: {schema: {$ref: "#/components/schemas/MobileOAuthCallbackResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {description: "Identity conflict, consumed flow, or ACCOUNT_LINK_REQUIRED.", content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "410": {description: Authorization flow expired., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v1/auth/oauth/{provider}/browser-callback:
+    get:
+      summary: Receive the fixed HTTPS GitHub callback and redirect an opaque ticket to the App
+      operationId: callbackGitHubOAuthBrowser
+      tags: [mobile-auth]
+      security: []
+      parameters:
+        - {name: provider, in: path, required: true, schema: {type: string, enum: [github]}}
+        - {name: code, in: query, required: true, schema: {type: string, minLength: 1, maxLength: 2048}}
+        - {name: state, in: query, required: true, schema: {type: string, minLength: 32, maxLength: 512}}
+      responses:
+        "302": {description: "Redirects only to the validated return URI with provider=github, flow_id, and one_time_ticket.", headers: {Location: {schema: {type: string, format: uri}}, Cache-Control: {schema: {type: string, const: no-store}}, Pragma: {schema: {type: string, const: no-cache}}, Referrer-Policy: {schema: {type: string, const: no-referrer}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v1/auth/email/send-code:
+    post:
+      summary: Send an App-scoped email OTP with enumeration-resistant responses
+      operationId: sendMobileEmailLoginCode
+      tags: [mobile-auth]
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}, {$ref: "#/components/parameters/AcceptLanguage"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/EmailLoginCodeRequest"}}}}
+      responses:
+        "202": {description: Same accepted shape and persisted cooldown for known and unknown identifiers., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v1/auth/mobile/send-code:
+    post:
+      summary: Send an App-scoped SMS OTP with enumeration-resistant responses
+      operationId: sendMobileSMSLoginCode
+      tags: [mobile-auth]
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}, {$ref: "#/components/parameters/AcceptLanguage"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginCodeRequest"}}}}
+      responses:
+        "202": {description: Same accepted shape and persisted cooldown for known and unknown identifiers., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v1/auth/login/otp:
+    post:
+      summary: Sign in with a previously issued App-scoped email or SMS challenge
+      operationId: mobileOTPLogin
+      tags: [mobile-auth]
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileOTPLoginRequest"}}}}
+      responses:
+        "200": {description: Bearer access token plus a one-time opaque refresh token., content: {application/json: {schema: {$ref: "#/components/schemas/MobileTokenResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+  /api/v1/auth/step-up/verification-code:
+    post:
+      summary: Send a step-up code to one server-resolved bound identifier
+      operationId: sendMobileStepUpCode
+      tags: [mobile-auth]
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileStepUpCodeRequest"}}}}
+      responses:
+        "202": {description: Step-up challenge accepted., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v1/auth/step-up:
+    post:
+      summary: Exchange password or identifier OTP verification for a scoped single-use step-up token
+      operationId: createMobileStepUpToken
+      tags: [mobile-auth]
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileStepUpRequest"}}}}
+      responses:
+        "200": {description: Short-lived purpose- and resource-bound token., content: {application/json: {schema: {$ref: "#/components/schemas/MobileStepUpResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
   /api/v1/auth/login/password:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     post:
@@ -930,6 +1075,7 @@ paths:
       summary: Revoke the current mobile session
       operationId: mobileLogout
       tags: [mobile-auth]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: Session revoked, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/auth/context:
     parameters: [{$ref: "#/components/parameters/AppID"}]
@@ -937,6 +1083,7 @@ paths:
       summary: Get the authenticated mobile identity context
       operationId: mobileAuthContext
       tags: [mobile-auth]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: Authenticated mobile context, content: {application/json: {schema: {$ref: "#/components/schemas/MobileContextResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/auth/password/change:
     parameters: [{$ref: "#/components/parameters/AppID"}]
@@ -944,19 +1091,105 @@ paths:
       summary: Change the current mobile user's password and revoke other sessions
       operationId: mobileChangePassword
       tags: [mobile-auth]
+      security: [{mobileBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SelfPasswordChangeRequest"}}}}
       responses: {"200": {description: Password changed, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/me/login-methods:
+    get:
+      summary: List password, App-scoped identifiers and external-account login methods
+      operationId: getMobileLoginMethods
+      tags: [mobile-profile]
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AppID"}]
+      responses:
+        "200": {description: "Includes unbound placeholders and server-computed login_capable, can_bind, can_change, can_unbind and block_reason fields.", content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginMethodsResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v1/me/oauth-accounts:
+    get:
+      summary: List external accounts bound to the current App user
+      operationId: listMobileOAuthAccounts
+      tags: [mobile-profile]
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AppID"}]
+      responses:
+        "200": {description: "Bound App-scoped external accounts, including historical unknown providers.", content: {application/json: {schema: {$ref: "#/components/schemas/MobileOAuthAccountListResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /api/v1/me/oauth-accounts/{account_id}:
+    delete:
+      summary: Unbind one external account after scoped step-up or provider reauth
+      operationId: deleteMobileOAuthAccount
+      tags: [mobile-profile]
+      security: [{mobileBearer: []}]
+      description: Apple requires a fresh Apple reauth flow whose code is exchanged and revoked before this operation. The last usable login method cannot be removed.
+      parameters: [{$ref: "#/components/parameters/AppID"}, {name: account_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/StepUpTokenRequest"}}}}
+      responses:
+        "200": {description: Account unbound., content: {application/json: {schema: {$ref: "#/components/schemas/UnboundResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "428": {description: A provider-appropriate step-up is required., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+  /api/v1/me/login-identifiers/{type}/challenge:
+    post:
+      summary: Send a verification code for a new App-scoped email or mobile identifier
+      operationId: challengeMobileLoginIdentifier
+      tags: [mobile-profile]
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}, {name: type, in: path, required: true, schema: {$ref: "#/components/schemas/LoginIdentifierType"}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LoginIdentifierChallengeRequest"}}}}
+      responses:
+        "202": {description: Verification challenge accepted., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v1/me/login-identifiers/{type}:
+    put:
+      summary: Bind or replace one verified App-scoped login identifier
+      operationId: putMobileLoginIdentifier
+      tags: [mobile-profile]
+      security: [{mobileBearer: []}]
+      description: First binding needs the new-identifier OTP. Replacing an existing value additionally requires a single-use identifier_change step_up_token.
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}, {name: type, in: path, required: true, schema: {$ref: "#/components/schemas/LoginIdentifierType"}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LoginIdentifierVerifyRequest"}}}}
+      responses:
+        "200": {description: Identifier bound., content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginIdentifierMutationResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "428": {description: identifier_change step-up is required for replacement., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+    delete:
+      summary: Unbind one App-scoped email or mobile identifier
+      operationId: deleteMobileLoginIdentifier
+      tags: [mobile-profile]
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AppID"}, {name: type, in: path, required: true, schema: {$ref: "#/components/schemas/LoginIdentifierType"}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/StepUpTokenRequest"}}}}
+      responses:
+        "200": {description: Identifier unbound., content: {application/json: {schema: {$ref: "#/components/schemas/UnboundResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "428": {description: identifier_unbind step-up is required., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
   /api/v1/me:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: Get the current mobile user profile
       operationId: getMobileMe
       tags: [mobile-profile]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: Current profile, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
     patch:
       summary: Update the current mobile user profile
       operationId: updateMobileMe
       tags: [mobile-profile]
+      security: [{mobileBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileUpdateRequest"}}}}
       responses: {"200": {description: Updated profile, content: {application/json: {schema: {$ref: "#/components/schemas/SelfProfileResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/avatar/upload-session:
@@ -966,6 +1199,7 @@ paths:
       description: Creates a short-lived target after the mobile client has completed its square crop and preview. Tenant, owner, object provider and random object key are server-derived.
       operationId: createMobileSelfAvatarUploadSession
       tags: [mobile-profile]
+      security: [{mobileBearer: []}]
       requestBody:
         required: true
         content:
@@ -983,6 +1217,7 @@ paths:
       description: Accepts one multipart image from uni-app x, validates declared size, decoded MIME, dimensions, ownership and expiry, then atomically attaches it to the current user.
       operationId: uploadMobileSelfAvatarContent
       tags: [mobile-profile]
+      security: [{mobileBearer: []}]
       requestBody:
         required: true
         content:
@@ -1003,6 +1238,7 @@ paths:
       summary: Read the current mobile user's private avatar
       operationId: getMobileSelfAvatarContent
       tags: [mobile-profile]
+      security: [{mobileBearer: []}]
       responses:
         "200":
           description: Private avatar bytes after owner, tenant, status and scan gate checks.
@@ -1019,6 +1255,7 @@ paths:
       summary: List the current user's mobile sessions
       operationId: listMobileSelfSessions
       tags: [mobile-devices-sessions]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: Mobile sessions, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSessionListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/me/sessions/{id}:
     parameters: [{$ref: "#/components/parameters/AppID"}]
@@ -1026,6 +1263,7 @@ paths:
       summary: Revoke one current-user mobile session
       operationId: revokeMobileSelfSession
       tags: [mobile-devices-sessions]
+      security: [{mobileBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Session revoked, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/devices:
@@ -1034,6 +1272,7 @@ paths:
       summary: List the current user's devices
       operationId: listMobileSelfDevices
       tags: [mobile-devices-sessions]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: Mobile devices, content: {application/json: {schema: {$ref: "#/components/schemas/MobileDeviceListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/me/devices/{id}:
     parameters: [{$ref: "#/components/parameters/AppID"}]
@@ -1041,6 +1280,7 @@ paths:
       summary: Remove a current-user device and its sessions
       operationId: removeMobileSelfDevice
       tags: [mobile-devices-sessions]
+      security: [{mobileBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Device removed, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/preferences:
@@ -1049,26 +1289,29 @@ paths:
       summary: Get current-user locale and appearance preferences
       operationId: getMobilePreferences
       tags: [mobile-profile]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: Current preferences, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
     patch:
       summary: Update current-user locale, appearance, and notification preferences
       operationId: updateMobilePreferences
       tags: [mobile-profile]
+      security: [{mobileBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesUpdateRequest"}}}}
       responses: {"200": {description: Updated preferences, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/notification-preferences:
     parameters: [{$ref: "#/components/parameters/AppID"}]
-    get: {summary: Get current-user notification preferences, operationId: getMobileNotificationPreferences, tags: [mobile-notifications], responses: {"200": {description: Current notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
-    patch: {summary: Update current-user notification preferences, operationId: updateMobileNotificationPreferences, tags: [mobile-notifications], requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesUpdateRequest"}}}}, responses: {"200": {description: Updated notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}}
+    get: {summary: Get current-user notification preferences, operationId: getMobileNotificationPreferences, tags: [mobile-notifications], security: [{mobileBearer: []}], responses: {"200": {description: Current notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    patch: {summary: Update current-user notification preferences, operationId: updateMobileNotificationPreferences, tags: [mobile-notifications], security: [{mobileBearer: []}], requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesUpdateRequest"}}}}, responses: {"200": {description: Updated notification preferences only., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPreferencesResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}}
   /api/v1/me/notifications/unread-count:
     parameters: [{$ref: "#/components/parameters/AppID"}]
-    get: {summary: Count unread in-app notifications for the current user, operationId: getMobileUnreadNotificationCount, tags: [mobile-notifications], responses: {"200": {description: Unread count, content: {application/json: {schema: {$ref: "#/components/schemas/MobileUnreadCountResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    get: {summary: Count unread in-app notifications for the current user, operationId: getMobileUnreadNotificationCount, tags: [mobile-notifications], security: [{mobileBearer: []}], responses: {"200": {description: Unread count, content: {application/json: {schema: {$ref: "#/components/schemas/MobileUnreadCountResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
   /api/v1/me/notifications:
     parameters: [{$ref: "#/components/parameters/AppID"}]
     get:
       summary: List delivered current-user in-app notifications with an opaque cursor
       operationId: listMobileNotifications
       tags: [mobile-notifications]
+      security: [{mobileBearer: []}]
       parameters: [{name: cursor, in: query, schema: {type: string}}, {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
       responses: {"200": {description: Delivered notifications visible only to the authenticated tenant member., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationPageResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/notifications/read-all:
@@ -1077,6 +1320,7 @@ paths:
       summary: Idempotently mark every visible current-user notification as read
       operationId: markAllMobileNotificationsRead
       tags: [mobile-notifications]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: All visible unread notifications were marked read., content: {application/json: {schema: {$ref: "#/components/schemas/MobileMarkAllNotificationsReadResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/me/notifications/{id}:
     parameters: [{$ref: "#/components/parameters/AppID"}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
@@ -1084,6 +1328,7 @@ paths:
       summary: Read one delivered current-user in-app notification
       operationId: getMobileNotification
       tags: [mobile-notifications]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: Notification detail scoped to the authenticated user and App., content: {application/json: {schema: {$ref: "#/components/schemas/MobileNotificationResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/notifications/{id}/read:
     parameters: [{$ref: "#/components/parameters/AppID"}]
@@ -1091,6 +1336,7 @@ paths:
       summary: Mark one delivered current-user notification as read
       operationId: markMobileNotificationRead
       tags: [mobile-notifications]
+      security: [{mobileBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Notification read state updated, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/push-devices/current:
@@ -1099,6 +1345,7 @@ paths:
       summary: Read the current authenticated installation push binding without exposing its token
       operationId: getMobileCurrentPushDevice
       tags: [mobile-notifications]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: Current installation binding, content: {application/json: {schema: {$ref: "#/components/schemas/MobileCurrentPushDeviceResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}
   /api/v1/me/push-devices:
     parameters: [{$ref: "#/components/parameters/AppID"}]
@@ -1106,6 +1353,7 @@ paths:
       summary: Idempotently register or refresh the current installation push token
       operationId: registerMobilePushDevice
       tags: [mobile-notifications]
+      security: [{mobileBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobilePushDeviceRegisterRequest"}}}}
       responses: {"200": {description: Active push binding; token is never returned., content: {application/json: {schema: {$ref: "#/components/schemas/MobilePushDeviceResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {description: Push capability unavailable.}}
   /api/v1/me/push-devices/{push_device_id}:
@@ -1114,6 +1362,7 @@ paths:
       summary: Disable the current user's push binding before local SDK unregister
       operationId: disableMobilePushDevice
       tags: [mobile-notifications]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: Binding disabled., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/push-deliveries/{delivery_id}/opened:
     parameters: [{$ref: "#/components/parameters/AppID"}, {name: delivery_id, in: path, required: true, schema: {type: string, format: uuid}}]
@@ -1121,24 +1370,27 @@ paths:
       summary: Idempotently record that the authenticated user opened one owned push delivery
       operationId: markMobilePushDeliveryOpened
       tags: [mobile-notifications]
+      security: [{mobileBearer: []}]
       responses: {"200": {description: Open event recorded; this does not mark the message read., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "404": {$ref: "#/components/responses/NotFound"}}
   /api/v1/me/login-events:
     parameters: [{$ref: "#/components/parameters/AppID"}]
-    get: {summary: List the current user's mobile login events, operationId: listMobileLoginEvents, tags: [mobile-security], responses: {"200": {description: Login events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    get: {summary: List the current user's mobile login events, operationId: listMobileLoginEvents, tags: [mobile-security], security: [{mobileBearer: []}], responses: {"200": {description: Login events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileLoginEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
   /api/v1/me/security-events:
     parameters: [{$ref: "#/components/parameters/AppID"}]
-    get: {summary: List current-user security events, operationId: listMobileSecurityEvents, tags: [mobile-security], responses: {"200": {description: Security events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSecurityEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
+    get: {summary: List current-user security events, operationId: listMobileSecurityEvents, tags: [mobile-security], security: [{mobileBearer: []}], responses: {"200": {description: Security events, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSecurityEventListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}}}
   /admin-api/v1/mobile/releases:
     parameters: [{name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
     get:
       summary: List administrator-managed mobile release policies
       operationId: listAdminMobileReleases
       tags: [admin-releases]
+      security: [{adminBearer: []}]
       responses: {"200": {description: Global platform release policies, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}}
     post:
       summary: Create a mobile release policy
       operationId: createAdminMobileRelease
       tags: [admin-releases]
+      security: [{adminBearer: []}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
       responses: {"201": {description: Release policy created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/mobile/releases/{id}:
@@ -1147,12 +1399,14 @@ paths:
       summary: Read one mobile release through the compatibility entry
       operationId: getAdminMobileRelease
       tags: [admin-releases]
+      security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Release detail, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update one mobile release policy using optimistic locking
       operationId: updateAdminMobileRelease
       tags: [admin-releases]
+      security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseRequest"}}}}
       responses: {"200": {description: Release policy updated; platform is immutable and must match the stored record., content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
@@ -1160,6 +1414,7 @@ paths:
       summary: Delete one never-published release draft through the compatibility entry
       operationId: deleteAdminMobileRelease
       tags: [admin-releases]
+      security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       responses: {"200": {description: Draft deleted, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
   /admin-api/v1/mobile/releases/batch-delete:
@@ -1167,6 +1422,7 @@ paths:
       summary: Atomically delete compatibility-entry release drafts
       operationId: batchDeleteAdminMobileReleases
       tags: [admin-releases]
+      security: [{adminBearer: []}]
       parameters: [{name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/UUIDBatchRequest"}}}}
       responses: {"200": {description: Drafts deleted, content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -1175,6 +1431,7 @@ paths:
       summary: Publish a release through the compatibility entry
       operationId: publishAdminMobileRelease
       tags: [admin-releases]
+      security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
       responses: {"200": {description: Release published, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
@@ -1183,9 +1440,137 @@ paths:
       summary: Unpublish a release through the compatibility entry
       operationId: unpublishAdminMobileRelease
       tags: [admin-releases]
+      security: [{adminBearer: []}]
       parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: X-AppID, in: header, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
       responses: {"200": {description: Release unpublished, content: {application/json: {schema: {$ref: "#/components/schemas/AdminMobileReleaseResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}}
+  /admin-api/v1/login-provider-catalog:
+    get:
+      summary: List the compile-time third-party login provider catalog
+      operationId: listAdminLoginProviderCatalog
+      tags: [admin-system-settings]
+      security: [{adminBearer: []}]
+      x-permission: sys.login_provider_config.read
+      responses:
+        "200": {description: Registered provider descriptors and help links., content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderCatalogResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /admin-api/v1/login-provider-configs:
+    get:
+      summary: List tenant login provider configurations without loading or returning secret ciphertext
+      operationId: listAdminLoginProviderConfigs
+      tags: [admin-system-settings]
+      security: [{adminBearer: []}]
+      x-permission: sys.login_provider_config.read
+      parameters:
+        - {name: q, in: query, schema: {type: string, maxLength: 160}}
+        - {name: provider_code, in: query, schema: {$ref: "#/components/schemas/LoginProviderCode"}}
+        - {name: status, in: query, schema: {$ref: "#/components/schemas/LoginProviderConfigStatus"}}
+        - {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}
+        - {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        "200": {description: "Tenant-scoped configurations. Secrets are represented only by has_secret, field names and a non-secret fingerprint.", content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderConfigPageResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+    post:
+      summary: Create a draft tenant login provider configuration
+      operationId: createAdminLoginProviderConfig
+      tags: [admin-system-settings]
+      security: [{adminBearer: []}]
+      x-permission: sys.login_provider_config.create
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderConfigRequest"}}}}
+      responses:
+        "201": {description: Draft configuration created without secret values., content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderConfigResponse"}}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "409": {$ref: "#/components/responses/Conflict"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+  /admin-api/v1/login-provider-configs/{id}:
+    parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+    get:
+      summary: Read one tenant login provider configuration without secret ciphertext
+      operationId: getAdminLoginProviderConfig
+      tags: [admin-system-settings]
+      security: [{adminBearer: []}]
+      x-permission: sys.login_provider_config.read
+      responses: {"200": {description: Public configuration projection., content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderConfigResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    patch:
+      summary: Update public configuration fields with optimistic locking
+      operationId: updateAdminLoginProviderConfig
+      tags: [admin-system-settings]
+      security: [{adminBearer: []}]
+      x-permission: sys.login_provider_config.update
+      description: external_client_id cannot be changed in place after any bound external identity exists. Rotate secrets through the dedicated write-only endpoint.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderConfigUpdateRequest"}}}}
+      responses: {"200": {description: Updated public projection., content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderConfigResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+    delete:
+      summary: Soft-delete an unused configuration and erase its encrypted secret material
+      operationId: deleteAdminLoginProviderConfig
+      tags: [admin-system-settings]
+      security: [{adminBearer: []}]
+      x-permission: sys.login_provider_config.delete
+      parameters: [{name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
+      responses: {"200": {description: Configuration deleted and secret ciphertext cleared., content: {application/json: {schema: {$ref: "#/components/schemas/DeletedResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/login-provider-configs/{id}/rotate-secret:
+    post:
+      summary: Replace the encrypted write-only provider secret envelope
+      operationId: rotateAdminLoginProviderSecret
+      tags: [admin-system-settings]
+      security: [{adminBearer: []}]
+      x-permission: sys.login_provider_config.rotate_secret
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderSecretRequest"}}}}
+      responses: {"200": {description: Secret rotated; no secret value is returned., content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderConfigResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/login-provider-configs/{id}/preflight:
+    post:
+      summary: Validate public fields and encrypted credentials through the registered adapter
+      operationId: preflightAdminLoginProviderConfig
+      tags: [admin-system-settings]
+      security: [{adminBearer: []}]
+      x-permission: sys.login_provider_config.preflight
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Persisted ready or failed preflight result; error details are sanitized., content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderConfigResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {$ref: "#/components/responses/ServiceUnavailable"}}
+  /admin-api/v1/login-provider-configs/{id}/activate:
+    post:
+      summary: Activate a ready login provider configuration
+      operationId: activateAdminLoginProviderConfig
+      tags: [admin-system-settings]
+      security: [{adminBearer: []}]
+      x-permission: sys.login_provider_config.update
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Configuration activated., content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderConfigResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/login-provider-configs/{id}/disable:
+    post:
+      summary: Disable a configuration for new login while preserving selected bindings for secure reauth
+      operationId: disableAdminLoginProviderConfig
+      tags: [admin-system-settings]
+      security: [{adminBearer: []}]
+      x-permission: sys.login_provider_config.update
+      parameters: [{name: id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LockVersionRequest"}}}}
+      responses: {"200": {description: Configuration disabled., content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderConfigResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/login-provider-bindings:
+    get:
+      summary: List every registered provider row for an App
+      operationId: listAdminAppLoginProviderBindings
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      x-permission: app.login_provider_binding.read
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: "One row for every compile-time registered provider, including unselected placeholders.", content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderBindingListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    put:
+      summary: Atomically replace all registered login provider binding rows for an App
+      operationId: replaceAdminAppLoginProviderBindings
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      x-permission: app.login_provider_binding.update
+      description: The request must contain each provider from the current compile-time catalog exactly once. Missing, duplicate, stale, cross-tenant, or Client-ID-breaking changes fail the entire transaction.
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderBindingBulkRequest"}}}}
+      responses: {"200": {description: Entire binding set committed atomically., content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderBindingListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/apps:
     get:
       summary: List Apps scoped to the authenticated Admin tenant
@@ -4918,6 +5303,12 @@ components:
       required: true
       description: Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
       schema: {type: string, format: uuid}
+    LoginProviderDeviceKey:
+      name: X-AK-Device-Key
+      in: header
+      required: true
+      description: Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+      schema: {type: string, minLength: 16, maxLength: 512}
     CSRFToken:
       name: X-CSRF-Token
       in: header
@@ -5634,6 +6025,467 @@ components:
         revision_id: {type: string, format: uuid}
         content_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
         locale: {$ref: "#/components/schemas/SupportedLocale"}
+    LoginProviderCode:
+      type: string
+      enum: [wechat, github, apple, google]
+    LoginProviderPlatform:
+      type: string
+      enum: [ios, android, harmony]
+    LoginProviderBuildVariant:
+      type: string
+      enum: [ios, android_google, android_china, harmony]
+    LoginProviderConfigStatus:
+      type: string
+      enum: [draft, active, disabled]
+    LoginProviderPreflightStatus:
+      type: [string, "null"]
+      enum: [ready, failed, null]
+    LoginIdentifierType:
+      type: string
+      enum: [email, mobile]
+    LoginProviderFieldDescriptor:
+      type: object
+      additionalProperties: false
+      required: [name, location, value_type, required, secret, max_length, help_key]
+      properties:
+        name: {type: string}
+        location: {type: string, enum: [external_client_id, public_config, secret]}
+        value_type: {type: string, enum: [string, url, pem, string_array]}
+        required: {type: boolean}
+        secret: {type: boolean}
+        max_length: {type: integer, minimum: 1}
+        help_key: {type: string}
+    LoginProviderDescriptor:
+      type: object
+      additionalProperties: false
+      required: [provider_code, display_name_key, icon_key, authorization_kind, supported_platforms, build_variants, config_schema_version, requires_secret, fields, help_url]
+      properties:
+        provider_code: {$ref: "#/components/schemas/LoginProviderCode"}
+        display_name_key: {type: string}
+        icon_key: {type: string}
+        authorization_kind: {type: string, enum: [native_code, browser_ticket, native_id_token]}
+        supported_platforms: {type: array, items: {$ref: "#/components/schemas/LoginProviderPlatform"}}
+        build_variants: {type: array, items: {$ref: "#/components/schemas/LoginProviderBuildVariant"}}
+        config_schema_version: {type: integer, const: 1}
+        requires_secret: {type: boolean}
+        fields: {type: array, items: {$ref: "#/components/schemas/LoginProviderFieldDescriptor"}}
+        help_url: {type: string, format: uri}
+    LoginProviderCatalog:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items: {type: array, minItems: 4, items: {$ref: "#/components/schemas/LoginProviderDescriptor"}}
+    LoginProviderCatalogResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/LoginProviderCatalog"}, request_id: {type: string}}
+    LoginProviderPlatformConfig:
+      type: object
+      additionalProperties: false
+      required: [enabled]
+      properties:
+        enabled: {type: boolean}
+        package_name: {type: string, maxLength: 255}
+        app_signature: {type: string, maxLength: 256}
+        bundle_id: {type: string, maxLength: 255}
+        universal_link: {type: string, format: uri, maxLength: 2048}
+        bundle_name: {type: string, maxLength: 255}
+    WechatLoginProviderPublicConfig:
+      type: object
+      additionalProperties: false
+      required: [android, ios, harmony]
+      properties:
+        android: {$ref: "#/components/schemas/LoginProviderPlatformConfig"}
+        ios: {$ref: "#/components/schemas/LoginProviderPlatformConfig"}
+        harmony: {$ref: "#/components/schemas/LoginProviderPlatformConfig"}
+    GitHubLoginProviderPublicConfig:
+      type: object
+      additionalProperties: false
+      required: [app_return_uri]
+      properties: {app_return_uri: {type: string, format: uri, maxLength: 2048}}
+    AppleLoginProviderPublicConfig:
+      type: object
+      additionalProperties: false
+      required: [team_id, key_id]
+      properties:
+        team_id: {type: string, pattern: '^[A-Z0-9]{10}$'}
+        key_id: {type: string, pattern: '^[A-Z0-9]{10}$'}
+    GoogleLoginProviderPublicConfig:
+      type: object
+      additionalProperties: false
+      required: [android_package_name, android_certificate_sha256]
+      properties:
+        android_package_name: {type: string, maxLength: 255}
+        android_certificate_sha256: {type: array, minItems: 1, maxItems: 16, uniqueItems: true, items: {type: string, pattern: '^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$'}}
+    LoginProviderPublicConfig:
+      oneOf:
+        - {$ref: "#/components/schemas/WechatLoginProviderPublicConfig"}
+        - {$ref: "#/components/schemas/GitHubLoginProviderPublicConfig"}
+        - {$ref: "#/components/schemas/AppleLoginProviderPublicConfig"}
+        - {$ref: "#/components/schemas/GoogleLoginProviderPublicConfig"}
+    LoginProviderConfig:
+      type: object
+      additionalProperties: false
+      required: [id, name, description, provider_code, external_client_id, config_schema_version, public_config, secret_field_names, has_secret, status, last_preflight_at, last_preflight_status, last_preflight_issues, binding_count, lock_version, created_at, updated_at]
+      properties:
+        id: {type: string, format: uuid}
+        tenant_id: {type: string, format: uuid}
+        name: {type: string, minLength: 1, maxLength: 160}
+        description: {type: string, maxLength: 2000}
+        provider_code: {$ref: "#/components/schemas/LoginProviderCode"}
+        external_client_id: {type: string, minLength: 2, maxLength: 255}
+        config_schema_version: {type: integer, const: 1}
+        public_config: {$ref: "#/components/schemas/LoginProviderPublicConfig"}
+        secret_field_names: {type: array, items: {type: string}}
+        has_secret: {type: boolean}
+        credential_fingerprint: {type: string, pattern: '^[a-f0-9]{64}$'}
+        status: {$ref: "#/components/schemas/LoginProviderConfigStatus"}
+        last_preflight_at: {type: [string, "null"], format: date-time}
+        last_preflight_status: {$ref: "#/components/schemas/LoginProviderPreflightStatus"}
+        last_preflight_issues: {type: array, items: {type: string}}
+        binding_count: {type: integer, format: int64, minimum: 0}
+        lock_version: {type: integer, minimum: 1}
+        callback_uri: {type: string, format: uri, description: Exact fixed HTTPS callback to register for GitHub; omitted for other providers.}
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
+    LoginProviderConfigRequest:
+      type: object
+      additionalProperties: false
+      required: [name, description, provider_code, external_client_id, config_schema_version, public_config]
+      properties:
+        name: {type: string, minLength: 1, maxLength: 160}
+        description: {type: string, maxLength: 2000}
+        provider_code: {$ref: "#/components/schemas/LoginProviderCode"}
+        external_client_id: {type: string, minLength: 2, maxLength: 255}
+        config_schema_version: {type: integer, const: 1}
+        public_config: {$ref: "#/components/schemas/LoginProviderPublicConfig"}
+    LoginProviderConfigUpdateRequest:
+      allOf:
+        - {$ref: "#/components/schemas/LoginProviderConfigRequest"}
+        - type: object
+          required: [lock_version]
+          properties: {lock_version: {type: integer, minimum: 1}}
+    LoginProviderSecretRequest:
+      type: object
+      additionalProperties: false
+      required: [values, lock_version]
+      properties:
+        values: {type: object, minProperties: 1, additionalProperties: {type: string, minLength: 1, maxLength: 8192}, writeOnly: true}
+        lock_version: {type: integer, minimum: 1}
+    LoginProviderConfigPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, page_size, total]
+      properties:
+        items: {type: array, items: {$ref: "#/components/schemas/LoginProviderConfig"}}
+        page: {type: integer, minimum: 1}
+        page_size: {type: integer, minimum: 1, maximum: 100}
+        total: {type: integer, format: int64, minimum: 0}
+    LoginProviderConfigResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/LoginProviderConfig"}, request_id: {type: string}}
+    LoginProviderConfigPageResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/LoginProviderConfigPage"}, request_id: {type: string}}
+    LoginProviderBinding:
+      type: object
+      additionalProperties: false
+      required: [id, app_id, provider_code, login_provider_config_id, config_name, config_status, preflight_status, enabled, sort_order, lock_version, updated_at]
+      properties:
+        id: {type: [string, "null"], format: uuid}
+        app_id: {type: string, format: uuid}
+        provider_code: {$ref: "#/components/schemas/LoginProviderCode"}
+        login_provider_config_id: {type: [string, "null"], format: uuid}
+        config_name: {type: [string, "null"]}
+        config_status: {oneOf: [{$ref: "#/components/schemas/LoginProviderConfigStatus"}, {type: "null"}]}
+        preflight_status: {$ref: "#/components/schemas/LoginProviderPreflightStatus"}
+        enabled: {type: boolean}
+        sort_order: {type: integer, minimum: 0, maximum: 1000}
+        lock_version: {type: integer, minimum: 0}
+        updated_at: {type: [string, "null"], format: date-time}
+    LoginProviderBindingInput:
+      type: object
+      additionalProperties: false
+      required: [provider_code, login_provider_config_id, enabled, sort_order, lock_version]
+      properties:
+        provider_code: {$ref: "#/components/schemas/LoginProviderCode"}
+        login_provider_config_id: {type: [string, "null"], format: uuid}
+        enabled: {type: boolean}
+        sort_order: {type: integer, minimum: 0, maximum: 1000}
+        lock_version: {type: integer, minimum: 0}
+    LoginProviderBindingBulkRequest:
+      type: object
+      additionalProperties: false
+      required: [bindings]
+      properties:
+        bindings: {type: array, minItems: 4, maxItems: 4, items: {$ref: "#/components/schemas/LoginProviderBindingInput"}}
+    LoginProviderBindingList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties: {items: {type: array, items: {$ref: "#/components/schemas/LoginProviderBinding"}}}
+    LoginProviderBindingListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/LoginProviderBindingList"}, request_id: {type: string}}
+    MobileLoginProvider:
+      type: object
+      additionalProperties: false
+      required: [provider_code, display_name_key, icon_key, authorization_kind, supported_platforms, build_variants, login_enabled, binding_enabled, sort_order, config_schema_version, build_config_hash, build_config]
+      properties:
+        provider_code: {$ref: "#/components/schemas/LoginProviderCode"}
+        display_name_key: {type: string}
+        icon_key: {type: string}
+        authorization_kind: {type: string, enum: [native_code, browser_ticket, native_id_token]}
+        supported_platforms: {type: array, items: {$ref: "#/components/schemas/LoginProviderPlatform"}}
+        build_variants: {type: array, items: {$ref: "#/components/schemas/LoginProviderBuildVariant"}}
+        login_enabled: {type: boolean}
+        binding_enabled: {type: boolean}
+        sort_order: {type: integer}
+        config_schema_version: {type: integer, const: 1}
+        build_config_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        build_config: {type: object, additionalProperties: true}
+    MobileLoginProviderList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties: {items: {type: array, items: {$ref: "#/components/schemas/MobileLoginProvider"}}}
+    MobileLoginProviderListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/MobileLoginProviderList"}, request_id: {type: string}}
+    MobileOAuthAuthorizeRequest:
+      type: object
+      additionalProperties: false
+      required: [mode, platform, build_variant, build_config_hash]
+      properties:
+        mode: {type: string, enum: [login, bind, reauth]}
+        platform: {$ref: "#/components/schemas/LoginProviderPlatform"}
+        build_variant: {$ref: "#/components/schemas/LoginProviderBuildVariant"}
+        build_config_hash: {type: string, pattern: '^[a-f0-9]{64}$'}
+        step_up_token: {type: string, minLength: 32, maxLength: 4096}
+        reauth_purpose: {type: string, enum: [oauth_unbind, account_delete]}
+        account_id: {type: string, format: uuid}
+    MobileOAuthAuthorizeResult:
+      type: object
+      additionalProperties: false
+      required: [flow_id, provider_code, mode, authorization_kind, state, expires_at]
+      properties:
+        flow_id: {type: string, format: uuid}
+        provider_code: {$ref: "#/components/schemas/LoginProviderCode"}
+        mode: {type: string, enum: [login, bind, reauth]}
+        authorization_kind: {type: string, enum: [native_code, browser_ticket, native_id_token]}
+        authorization_url: {type: string, format: uri}
+        state: {type: string, minLength: 32}
+        nonce: {type: string, minLength: 32}
+        expires_at: {type: string, format: date-time}
+    MobileOAuthAuthorizeResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/MobileOAuthAuthorizeResult"}, request_id: {type: string}}
+    MobileOAuthCallbackRequest:
+      type: object
+      additionalProperties: false
+      required: [flow_id]
+      properties:
+        flow_id: {type: string, format: uuid}
+        state: {type: string, minLength: 32, maxLength: 512}
+        authorization_code: {type: string, minLength: 1, maxLength: 8192}
+        id_token: {type: string, minLength: 1, maxLength: 32768}
+        one_time_ticket: {type: string, minLength: 32, maxLength: 512}
+        display_name: {type: string, minLength: 1, maxLength: 120, description: Apple-only first-authorization display name. Used only after ID-token verification and never for identity matching.}
+    MobileSessionTokens:
+      type: object
+      additionalProperties: false
+      required: [access_token, token_type, expires_in, refresh_token, refresh_token_expires_in, session_id, app_id]
+      properties:
+        access_token: {type: string, minLength: 1}
+        token_type: {type: string, const: Bearer}
+        expires_in: {type: integer, format: int64, minimum: 0}
+        refresh_token: {type: string, minLength: 32}
+        refresh_token_expires_in: {type: integer, format: int64, minimum: 0}
+        session_id: {type: string, format: uuid}
+        app_id: {type: string, format: uuid}
+    MobileOAuthCallbackResult:
+      type: object
+      additionalProperties: false
+      required: [mode]
+      properties:
+        mode: {type: string, enum: [login, bind, reauth]}
+        oauth_account: {$ref: "#/components/schemas/MobileOAuthAccount"}
+        session: {$ref: "#/components/schemas/MobileSessionTokens"}
+        step_up_token: {type: string}
+        step_up_expires_at: {type: string, format: date-time}
+    MobileOAuthCallbackResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/MobileOAuthCallbackResult"}, request_id: {type: string}}
+    EmailLoginCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [email]
+      properties: {email: {type: string, format: email, maxLength: 254}}
+    MobileLoginCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [mobile]
+      properties: {mobile: {type: string, pattern: '^\\+[1-9][0-9]{7,14}$'}}
+    OTPChallenge:
+      type: object
+      additionalProperties: false
+      required: [challenge_id, accepted, retry_after_seconds, expires_at]
+      properties:
+        challenge_id: {type: string, format: uuid}
+        accepted: {type: boolean, const: true}
+        retry_after_seconds: {type: integer, minimum: 1}
+        expires_at: {type: string, format: date-time}
+    OTPChallengeResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/OTPChallenge"}, request_id: {type: string}}
+    MobileOTPLoginRequest:
+      type: object
+      additionalProperties: false
+      required: [identifier_type, identifier, challenge_id, verification_code]
+      properties:
+        identifier_type: {$ref: "#/components/schemas/LoginIdentifierType"}
+        identifier: {type: string, minLength: 3, maxLength: 320}
+        challenge_id: {type: string, format: uuid}
+        verification_code: {type: string, pattern: '^[0-9]{6}$'}
+    MobileStepUpCodeRequest:
+      type: object
+      additionalProperties: false
+      required: [identifier_id, purpose, resource]
+      properties:
+        identifier_id: {type: string, format: uuid}
+        purpose: {type: string, enum: [oauth_bind, oauth_unbind, identifier_change, identifier_unbind, account_delete]}
+        resource: {type: string, minLength: 1, maxLength: 160}
+    MobileStepUpRequest:
+      type: object
+      additionalProperties: false
+      required: [method, purpose, resource]
+      properties:
+        method: {type: string, enum: [password, email_otp, mobile_otp]}
+        purpose: {type: string, enum: [oauth_bind, oauth_unbind, identifier_change, identifier_unbind, account_delete]}
+        resource: {type: string, minLength: 1, maxLength: 160}
+        password: {type: string, format: password, maxLength: 256}
+        identifier_id: {type: string, format: uuid}
+        challenge_id: {type: string, format: uuid}
+        verification_code: {type: string, pattern: '^[0-9]{6}$'}
+    MobileStepUpResult:
+      type: object
+      additionalProperties: false
+      required: [step_up_token, expires_at]
+      properties: {step_up_token: {type: string, minLength: 32}, expires_at: {type: string, format: date-time}}
+    MobileStepUpResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/MobileStepUpResult"}, request_id: {type: string}}
+    MobileOAuthAccount:
+      type: object
+      additionalProperties: false
+      required: [id, provider_code, display_name_key, provider_username_hint, status, login_enabled, login_capable, can_bind, can_change, bound_at, can_unbind]
+      properties:
+        id: {type: string, format: uuid}
+        provider_code: {type: string, pattern: '^[a-z][a-z0-9_]{1,31}$'}
+        display_name_key: {type: string}
+        provider_username_hint: {type: string}
+        status: {type: string, enum: [active, disabled, unbound]}
+        login_enabled: {type: boolean}
+        login_capable: {type: boolean}
+        can_bind: {type: boolean}
+        can_change: {type: boolean, const: false, description: v1 requires explicit unbind before binding a different subject.}
+        bound_at: {type: string, format: date-time}
+        last_authenticated_at: {type: [string, "null"], format: date-time}
+        can_unbind: {type: boolean}
+        block_reason: {type: string, enum: [last_login_method, provider_disabled, reauth_required, step_up_method_required]}
+    MobileLoginIdentifier:
+      type: object
+      additionalProperties: false
+      required: [id, identifier_type, display_hint, verified, status, login_capable, can_bind, can_change, can_unbind]
+      properties:
+        id: {type: string, format: uuid}
+        identifier_type: {$ref: "#/components/schemas/LoginIdentifierType"}
+        display_hint: {type: string}
+        verified: {type: boolean}
+        status: {type: string, enum: [active, disabled, unbound]}
+        login_capable: {type: boolean}
+        can_bind: {type: boolean}
+        can_change: {type: boolean}
+        can_unbind: {type: boolean}
+        block_reason: {type: string, enum: [last_login_method]}
+    MobilePasswordMethod:
+      type: object
+      additionalProperties: false
+      required: [present, login_capable, can_bind, can_change, can_unbind]
+      properties:
+        present: {type: boolean}
+        login_capable: {type: boolean}
+        can_bind: {type: boolean}
+        can_change: {type: boolean}
+        can_unbind: {type: boolean}
+        block_reason: {type: string, enum: [last_login_method]}
+    MobileLoginMethods:
+      type: object
+      additionalProperties: false
+      required: [password, identifiers, oauth_accounts, remaining_login_methods]
+      properties:
+        password: {$ref: "#/components/schemas/MobilePasswordMethod"}
+        identifiers: {type: array, minItems: 2, items: {$ref: "#/components/schemas/MobileLoginIdentifier"}}
+        oauth_accounts: {type: array, minItems: 4, items: {$ref: "#/components/schemas/MobileOAuthAccount"}}
+        remaining_login_methods: {type: integer, minimum: 0}
+    MobileLoginMethodsResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/MobileLoginMethods"}, request_id: {type: string}}
+    MobileOAuthAccountList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties: {items: {type: array, items: {$ref: "#/components/schemas/MobileOAuthAccount"}}}
+    MobileOAuthAccountListResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/MobileOAuthAccountList"}, request_id: {type: string}}
+    LoginIdentifierChallengeRequest:
+      type: object
+      additionalProperties: false
+      required: [identifier]
+      properties: {identifier: {type: string, minLength: 3, maxLength: 320}}
+    LoginIdentifierVerifyRequest:
+      type: object
+      additionalProperties: false
+      required: [identifier, challenge_id, verification_code]
+      properties:
+        identifier: {type: string, minLength: 3, maxLength: 320}
+        challenge_id: {type: string, format: uuid}
+        verification_code: {type: string, pattern: '^[0-9]{6}$'}
+        step_up_token: {type: string, minLength: 32, maxLength: 4096}
+    MobileLoginIdentifierMutation:
+      type: object
+      additionalProperties: false
+      required: [identifier]
+      properties: {identifier: {$ref: "#/components/schemas/MobileLoginIdentifier"}}
+    MobileLoginIdentifierMutationResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {$ref: "#/components/schemas/MobileLoginIdentifierMutation"}, request_id: {type: string}}
+    StepUpTokenRequest:
+      type: object
+      additionalProperties: false
+      required: [step_up_token]
+      properties: {step_up_token: {type: string, minLength: 32, maxLength: 4096}}
+    UnboundResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {type: object, additionalProperties: false, required: [unbound], properties: {unbound: {type: boolean, const: true}}}, request_id: {type: string}}
+    DeletedResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string, const: OK}, message: {type: string}, data: {type: object, additionalProperties: false, required: [deleted], properties: {deleted: {type: boolean, const: true}}}, request_id: {type: string}}
     AppRegistrationRequest:
       type: object
       additionalProperties: false
@@ -5668,12 +6520,16 @@ components:
     AccountDeletionVerificationCode:
       type: object
       additionalProperties: false
-      required: [accepted, target_hint, expires_in_seconds, retry_after_seconds]
+      required: [accepted, target_hint, expires_in_seconds, retry_after_seconds, verification_required, reauth_required]
       properties:
         accepted: {type: boolean, const: true}
-        target_hint: {type: string, description: Masked verified email address.}
-        expires_in_seconds: {type: integer, const: 600}
-        retry_after_seconds: {type: integer, minimum: 1}
+        target_hint: {type: string, description: "Masked verified App email, or empty when email verification is not required."}
+        expires_in_seconds: {type: integer, minimum: 0, description: Zero when verification_required is false.}
+        retry_after_seconds: {type: integer, minimum: 0, description: Zero when verification_required is false.}
+        verification_required: {type: boolean}
+        reauth_required: {type: boolean}
+        reauth_provider: {type: string, enum: [apple]}
+        reauth_account_id: {type: string, format: uuid}
     AccountDeletionVerificationCodeResponse:
       type: object
       required: [code, message, data, request_id]
@@ -5681,9 +6537,10 @@ components:
     AccountDeletionConfirmRequest:
       type: object
       additionalProperties: false
-      required: [verification_code, acknowledged]
+      required: [acknowledged]
       properties:
-        verification_code: {type: string, pattern: '^[0-9]{6}$'}
+        verification_code: {type: string, pattern: '^[0-9]{6}$', description: Required only when verification_required was true.}
+        step_up_token: {type: string, minLength: 32, maxLength: 4096, description: Required only when reauth_required was true; must be issued by the fresh provider reauth flow for reauth_account_id.}
         acknowledged: {type: boolean, const: true}
     AccountDeletionResult:
       type: object
@@ -8599,7 +9456,7 @@ components:
         title: {type: string, maxLength: 300}
         summary: {type: string, maxLength: 3000}
         body_format: {type: string, enum: [markdown]}
-        body: {type: string, maxLength: 100000, description: Markdown source. Raw HTML, base64 media, javascript URLs, and unregistered image references are forbidden. Managed images use the protected content asset path.}
+        body: {type: string, maxLength: 100000, description: "Markdown source. Raw HTML, base64 media, javascript URLs, and unregistered image references are forbidden. Managed images use the protected content asset path."}
     ContentCategoryTranslation:
       type: object
       required: [name, description]

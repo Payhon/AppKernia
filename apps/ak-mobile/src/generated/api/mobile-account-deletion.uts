@@ -3,6 +3,10 @@
 
 export type AccountDeletionVerificationCodeWire = {
   readonly accepted: boolean
+  readonly verification_required: boolean
+  readonly reauth_required: boolean
+  readonly reauth_provider: string | null
+  readonly reauth_account_id: string | null
   readonly target_hint: string
   readonly expires_in_seconds: number
   readonly retry_after_seconds: number
@@ -10,6 +14,7 @@ export type AccountDeletionVerificationCodeWire = {
 
 export type AccountDeletionConfirmWire = {
   readonly verification_code: string
+  readonly step_up_token: string
   readonly acknowledged: boolean
 }
 

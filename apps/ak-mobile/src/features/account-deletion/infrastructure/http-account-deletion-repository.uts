@@ -11,12 +11,24 @@ export class HttpAccountDeletionRepository {
 
   requestCode(ok: (value: AccountDeletionVerification) => void, fail: (error: AkError) => void): HttpCancellation {
     return this.http.execute<UTSJSONObject, AccountDeletionVerificationCodeWire>(this.request('POST', '/me/account-deletion/verification-code', {} as UTSJSONObject), response => {
-      ok({ targetHint: response.data.target_hint, expiresInSeconds: response.data.expires_in_seconds, retryAfterSeconds: response.data.retry_after_seconds })
+      if (!response.data.accepted) { fail(new AkError('unknown', 'account_deletion.invalid_requirements', 'errors.unknown', response.requestId)); return }
+      const provider = response.data.reauth_provider == null ? '' : response.data.reauth_provider!
+      const accountId = response.data.reauth_account_id == null ? '' : response.data.reauth_account_id!
+      if (response.data.reauth_required && (provider != 'apple' || accountId.length == 0)) { fail(new AkError('unknown', 'account_deletion.invalid_reauth_requirement', 'errors.unknown', response.requestId)); return }
+      ok({
+        verificationRequired: response.data.verification_required,
+        reauthRequired: response.data.reauth_required,
+        reauthProvider: provider,
+        reauthAccountId: accountId,
+        targetHint: response.data.target_hint,
+        expiresInSeconds: response.data.expires_in_seconds,
+        retryAfterSeconds: response.data.retry_after_seconds,
+      })
     }, fail)
   }
 
   confirm(input: AccountDeletionConfirmation, ok: () => void, fail: (error: AkError) => void): HttpCancellation {
-    const body: AccountDeletionConfirmWire = { verification_code: input.verificationCode, acknowledged: input.acknowledged }
+    const body: AccountDeletionConfirmWire = { verification_code: input.verificationCode, step_up_token: input.stepUpToken, acknowledged: input.acknowledged }
     return this.http.execute<AccountDeletionConfirmWire, AccountDeletionResultWire>(this.request('POST', '/me/account-deletion/confirm', body), response => {
       if (response.data.deleted) ok()
       else fail(new AkError('unknown', 'account_deletion.invalid_result', 'errors.unknown', response.requestId))

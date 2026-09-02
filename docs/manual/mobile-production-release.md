@@ -247,6 +247,34 @@ build succeeded
 
 上述清单完成前，可以报告“功能代码/编译通过”，不能报告“可直接上架”或“审核通过”。
 
+### 8.1 App 第三方登录原生配置导出
+
+第三方登录配置在后台完成预检并被 App 选择后，必须在制作原生包前导出。导出器读取 App 仍选中的未删除配置；只有 `active + ready` 且绑定开启的配置会在快照中标记为可登录。绑定关闭、配置停用或仅因 Secret 轮换回到草稿时仍保留公开构建字段，避免误删安全解绑所需能力或触发无意义重建。密钥、授权码、Token 和私钥不会写入移动端目录。
+
+```bash
+cd server
+go run ./cmd/ak-cli app-login-provider export \
+  --app-id <public-app-uuid> \
+  --output ../apps/ak-mobile \
+  --android-package <release-package> \
+  --android-signature <wechat-release-signature> \
+  --android-certificate-sha256 <google-release-sha256> \
+  --ios-bundle-id <release-bundle-id> \
+  --harmony-bundle-name <release-bundle-name>
+
+go run ./cmd/ak-cli app-login-provider export \
+  --app-id <public-app-uuid> \
+  --output ../apps/ak-mobile \
+  --android-package <release-package> \
+  --android-signature <wechat-release-signature> \
+  --android-certificate-sha256 <google-release-sha256> \
+  --ios-bundle-id <release-bundle-id> \
+  --harmony-bundle-name <release-bundle-name> \
+  --check
+```
+
+同名环境变量 `AK_ANDROID_PACKAGE`、`AK_ANDROID_SIGNATURE`、`AK_ANDROID_CERTIFICATE_SHA256`、`AK_IOS_BUNDLE_ID`、`AK_HARMONY_BUNDLE_NAME` 可替代身份参数。导出器会更新 DCloud `uni-oauth`、iOS Entitlements、Android HTTPS App Link、HarmonyOS 受控 Overlay，以及 `config/login-providers.generated.json` 无密钥能力快照；`--check` 用于阻止构建字段或构建 Hash 漂移。Secret 轮换不改变构建 Hash，Client ID、包身份、签名指纹或 Link 变化必须重新导出和打包。
+
 自定义调试基座请阅读 [AppKernia 多端自定义基座编译与打包](./mobile-custom-base-build.md)。
 ## 9. 多厂商 Push 发布门禁
 

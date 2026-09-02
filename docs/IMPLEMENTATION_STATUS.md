@@ -1,6 +1,18 @@
 # AppKernia 实施状态
 
-更新时间：2026-09-01（Asia/Shanghai）
+更新时间：2026-09-02（Asia/Shanghai）
+
+## 2026-09-02 App 级第三方登录与账号绑定
+
+- Backend 已新增 30 号双向迁移和编译期 Provider Registry，首期固定支持微信、GitHub、Apple、Google；租户级加密配置、App 原子绑定、App 级第三方身份、App 级邮箱/手机号、OAuth Flow/State/Nonce/PKCE、GitHub 一次性浏览器票据、OTP、Step-up、Apple/Google OIDC/JWKS 与 Apple 撤销均已接入。既有 Admin 自身 `iam.oauth_accounts` 保持不变，第三方 Token/授权码不落库。
+- Mobile 首登在 Serializable 事务内原子创建 User、Membership、App 身份、Session、Refresh Token 与审计；未知身份仅在 App 允许注册时创建，Provider 邮箱冲突返回 `ACCOUNT_LINK_REQUIRED`，不按邮箱自动合并。邮箱、手机号和第三方账号均由服务端返回 `login_capable/can_bind/can_change/can_unbind/block_reason`，并以最后可用登录方式保护约束为准。
+- Admin 新增“系统设置 > 第三方登录配置”和 App 客户端配置第三个 Tab，覆盖强类型公开字段、独立只写 Secret 轮换、预检、启停、删除、409 保值重载、固定官方帮助链接及四 Provider 原子 Bulk PUT。普通读取不返回 Secret；已选择但停用的配置保留，运行入口 fail-closed。
+- Mobile 新增统一 `ak-oauth`、登录页/认证 Sheet 图标入口和“账号与登录方式”页面。微信三端、GitHub 系统浏览器回跳、Apple AuthenticationServices、Google Credential Manager 的编译期 Adapter 已接线；安装级设备键保存在独立安全存储，退出登录不会清除。当前无后台导出快照时 Provider 集合为空，移动端不展示入口。
+- CLI 新增 `ak-cli app-login-provider export --app-id ... --output ... [--check]`，只导出无 Secret 的 Manifest/Entitlement/App Link/Harmony Overlay 和构建 Hash；Secret 轮换不触发重建，Client ID、包名、Bundle ID、签名指纹或 Link 变化会产生漂移。iOS 启用其他消费级社交登录时强制同时包含 Apple 能力。
+- OpenAPI、sqlc、权限/菜单 Seed、Admin/Mobile 生成 Client、`zh-CN/en-US`、Blueprint、Design System、UI Skill 产物和发布手册已同步。PostgreSQL 18 完成 `30 → 29 → 30` 往返与回填，Backend 294 项普通测试、全包 race、真实数据库集成、Admin 56 文件/242 项测试、三端 43 页面静态构建及受控 Chromium 双语/响应式/axe 证据均通过。
+- 外部门禁仍未完成：四平台真实凭据、Provider 控制台配置、签名安装包、物理设备首次登录/绑定/解绑/撤销/冷启动回跳及读屏/最大字号。`android_google` 的固定 Credential Manager 依赖原生 AAR 已编译通过，但完整 HBuilder 云自定义基座仍在免费队列；不得将这些静态、Mock 或 fixture 证据表述为真实平台登录验收。
+- 初始上线状态保持全部配置为草稿、App 绑定关闭。下一批建议为华为账号、QQ、受 Issuer Allowlist 与 SSRF 防护约束的通用 OIDC，以及按企业客户需求增加企业微信、钉钉、飞书；支付宝、GitLab、自定义在线 Provider 和动态插件不在首期范围。
+- 已启动隔离的本机测试栈 `appkernia-login-dev`：Admin `http://localhost:14174`、API `http://localhost:18080`、PostgreSQL `localhost:55433`，迁移为 `30:false`，API/Admin/PostgreSQL 均 healthy。Core Seed 已创建 `admin@appkernia.local`，密码沿用 Git 忽略的 `.secrets/seed-admin-password`；真实 Nginx 代理登录验证通过。既有 `appkernia-news-demo` 未修改。首次部署暴露 Dockerfile 复制 `0600` 蓝图文件后运行用户无法读取的问题，已通过 `COPY --chown=appkernia:appkernia` 根治并完成镜像重建。
 
 ## 2026-09-01 App 用户操作菜单
 

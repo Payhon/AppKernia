@@ -60,7 +60,8 @@ func TestMobileOTPFlowsInvokeNotifierAndRollBack(t *testing.T) {
 	if len(n.calls) != 1 || n.calls[0].Purpose != "email_otp" || n.calls[0].Code == "" {
 		t.Fatalf("register notifier calls=%#v", n.calls)
 	}
-	if _, err = pool.Exec(ctx, `UPDATE iam.verification_challenges SET created_at=now()-interval '2 minutes' WHERE user_id=(SELECT id FROM iam.users WHERE email=$1)`, email); err != nil {
+	if _, err = pool.Exec(ctx, `UPDATE iam.verification_challenges SET created_at=now()-interval '2 minutes'
+WHERE user_id=(SELECT user_id FROM app.user_login_identifiers WHERE app_id=$1 AND identifier_type='email' AND normalized_value=$2)`, appID, email); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = service.ResendRegistrationEmail(ctx, app, email); err != nil {
@@ -75,7 +76,12 @@ func TestMobileOTPFlowsInvokeNotifierAndRollBack(t *testing.T) {
 	if len(n.calls) != 2 {
 		t.Fatalf("forgot pending account must remain non-enumerating, calls=%d", len(n.calls))
 	}
-	if _, err = pool.Exec(ctx, `UPDATE app.user_memberships SET status='active' WHERE app_id=$1 AND user_id=(SELECT id FROM iam.users WHERE email=$2)`, appID, email); err != nil {
+	if _, err = pool.Exec(ctx, `UPDATE app.user_memberships SET status='active' WHERE app_id=$1
+AND user_id=(SELECT user_id FROM app.user_login_identifiers WHERE app_id=$1 AND identifier_type='email' AND normalized_value=$2)`, appID, email); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = pool.Exec(ctx, `UPDATE app.user_login_identifiers SET verified_at=now()
+WHERE app_id=$1 AND identifier_type='email' AND normalized_value=$2`, appID, email); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = service.ForgotMobilePassword(ctx, app, email); err != nil {
@@ -86,12 +92,19 @@ func TestMobileOTPFlowsInvokeNotifierAndRollBack(t *testing.T) {
 	}
 	n.err = errors.New("queue failed")
 	failedEmail := "rollback-" + suffix + "@example.test"
+	var usersBefore int
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM iam.users`).Scan(&usersBefore); err != nil {
+		t.Fatal(err)
+	}
 	if err = service.RegisterMobile(ctx, app, failedEmail, "Rollback User", "otp integration password 2026!", "en-US"); err == nil {
 		t.Fatal("notifier failure must fail registration")
 	}
-	var users int
-	if err = pool.QueryRow(ctx, `SELECT count(*) FROM iam.users WHERE email=$1`, failedEmail).Scan(&users); err != nil || users != 0 {
-		t.Fatalf("notifier failure leaked user count=%d err=%v", users, err)
+	var usersAfter, identifiers int
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM iam.users`).Scan(&usersAfter); err != nil || usersAfter != usersBefore {
+		t.Fatalf("notifier failure changed user count before=%d after=%d err=%v", usersBefore, usersAfter, err)
+	}
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM app.user_login_identifiers WHERE app_id=$1 AND identifier_type='email' AND normalized_value=$2`, appID, failedEmail).Scan(&identifiers); err != nil || identifiers != 0 {
+		t.Fatalf("notifier failure leaked identifier count=%d err=%v", identifiers, err)
 	}
 	app.RegistrationVerification = "none"
 	n.err = nil

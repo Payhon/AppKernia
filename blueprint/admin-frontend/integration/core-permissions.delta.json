@@ -1,5 +1,5 @@
 {
   "schema_version": 1,
-  "description": "AK Admin 相对当前 Backend 权限目录的待实现增量；当前为空。",
+  "description": "AK Admin 相对当前 Backend 权限目录的待实现增量。",
   "permissions": []
 }

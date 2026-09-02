@@ -92,6 +92,11 @@
     "app.feedback_replies",
     "app.feedback_events",
     "app.application_public_web_configs",
-    "app.application_public_web_translations"
+    "app.application_public_web_translations",
+    "sys.login_provider_configs",
+    "app.application_login_provider_bindings",
+    "iam.app_oauth_accounts",
+    "iam.oauth_authorization_flows",
+    "app.user_login_identifiers"
   ]
 }

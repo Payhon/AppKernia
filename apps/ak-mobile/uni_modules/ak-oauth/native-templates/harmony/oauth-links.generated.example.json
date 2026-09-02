@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "query_schemes": ["weixin"],
+  "actions": ["wxentity.action.open"],
+  "https_links": [
+    { "scheme": "https", "host": "login.example.invalid", "path": "/api/v1/auth/oauth/github/app-return" }
+  ]
+}

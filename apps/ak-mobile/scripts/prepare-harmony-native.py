@@ -13,8 +13,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / "harmony-configs/AppScope"
+OAUTH_LINKS_SOURCE = ROOT / "harmony-configs/entry/src/main/oauth-links.generated.json"
 NATIVE_ROOT = ROOT / "unpackage/dist/dev/app-harmony"
 NATIVE = NATIVE_ROOT / "AppScope"
+NATIVE_ENTRY_MODULE = NATIVE_ROOT / "entry/src/main/module.json5"
+APPLIED_OAUTH_LINKS = NATIVE_ROOT / ".ak-oauth-links-applied.json"
 BUILD_PROFILE = NATIVE_ROOT / "build-profile.json5"
 SIGN_TOOL = Path(
     "/Applications/DevEco-Studio.app/Contents/sdk/default/openharmony/"
@@ -25,6 +28,133 @@ APP_RESOURCES = (
     ROOT
     / "unpackage/dist/dev/app-harmony/entry/src/main/resources/resfile/uni-app-x/apps"
 )
+
+
+def oauth_host(value: object) -> str:
+    if not isinstance(value, str):
+        raise SystemExit("Harmony OAuth link host must be a string")
+    host = value.strip().lower()
+    allowed = set("abcdefghijklmnopqrstuvwxyz0123456789.-")
+    if not host or host.startswith(".") or host.endswith(".") or ".." in host:
+        raise SystemExit("Harmony OAuth link host is invalid")
+    if any(character not in allowed for character in host):
+        raise SystemExit("Harmony OAuth link host contains an invalid character")
+    return host
+
+
+def oauth_path(value: object) -> str:
+    if not isinstance(value, str):
+        raise SystemExit("Harmony OAuth link path must be a string")
+    path = value.strip()
+    if not path.startswith("/") or "?" in path or "#" in path or ".." in path:
+        raise SystemExit("Harmony OAuth link path is invalid")
+    return path
+
+
+def oauth_link_skills() -> list[dict]:
+    """Load only the fixed, public Harmony OAuth link export shape."""
+
+    if not OAUTH_LINKS_SOURCE.is_file():
+        return []
+    try:
+        exported = json.loads(OAUTH_LINKS_SOURCE.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Harmony OAuth link export is not strict JSON: {exc}") from exc
+    allowed_keys = {"schema_version", "query_schemes", "actions", "https_links"}
+    if not isinstance(exported, dict) or set(exported) != allowed_keys:
+        raise SystemExit("Harmony OAuth link export contains an unknown or missing field")
+    if exported["schema_version"] != 1:
+        raise SystemExit("Harmony OAuth link export schema version is unsupported")
+    query_schemes = exported["query_schemes"]
+    actions = exported["actions"]
+    https_links = exported["https_links"]
+    if not isinstance(query_schemes, list) or any(value != "weixin" for value in query_schemes):
+        raise SystemExit("Harmony OAuth query scheme is not allowlisted")
+    allowed_actions = {"action.system.home", "wxentity.action.open"}
+    if not isinstance(actions, list) or any(value not in allowed_actions for value in actions):
+        raise SystemExit("Harmony OAuth action is not allowlisted")
+    if not isinstance(https_links, list):
+        raise SystemExit("Harmony OAuth HTTPS links must be an array")
+    skills: list[dict] = []
+    if query_schemes or actions:
+        if not query_schemes or not actions:
+            raise SystemExit("Harmony WeChat OAuth schemes and actions must be exported together")
+        if "wxentity.action.open" not in actions:
+            raise SystemExit("Harmony WeChat OAuth action is missing")
+        skills.append(
+            {
+                "entities": ["entity.system.browsable"],
+                "actions": sorted(set(actions) | {"action.system.home"}),
+                "uris": [{"scheme": value} for value in sorted(set(query_schemes))],
+            }
+        )
+    seen_links: set[tuple[str, str]] = set()
+    uris: list[dict] = []
+    for link in https_links:
+        if not isinstance(link, dict) or set(link) != {"scheme", "host", "path"}:
+            raise SystemExit("Harmony OAuth HTTPS link contains an unknown or missing field")
+        if link["scheme"] != "https":
+            raise SystemExit("Harmony OAuth app return link must use HTTPS")
+        host = oauth_host(link["host"])
+        path = oauth_path(link["path"])
+        key = (host, path)
+        if key in seen_links:
+            continue
+        seen_links.add(key)
+        uris.append({"scheme": "https", "host": host, "path": path})
+    if uris:
+        skills.append(
+            {
+                "entities": ["entity.system.browsable"],
+                "actions": ["ohos.want.action.viewData"],
+                "uris": uris,
+            }
+        )
+    return skills
+
+
+def merge_oauth_skills(existing: list, previous: list[dict], current: list[dict]) -> list:
+    """Replace only exact skills recorded by this tool and keep unrelated links."""
+
+    preserved = [skill for skill in existing if skill not in previous]
+    for skill in current:
+        if skill not in preserved:
+            preserved.append(skill)
+    return preserved
+
+
+def merge_entry_oauth_links() -> None:
+    """Merge the controlled OAuth skills without replacing HBuilderX module data."""
+
+    if not NATIVE_ENTRY_MODULE.is_file():
+        raise SystemExit("generated Harmony entry module is missing")
+    native = json.loads(NATIVE_ENTRY_MODULE.read_text(encoding="utf-8"))
+    abilities = native.get("module", {}).get("abilities", [])
+    ability = next((item for item in abilities if item.get("name") == "EntryAbility"), None)
+    if ability is None:
+        raise SystemExit("generated Harmony EntryAbility is missing")
+    existing = ability.get("skills", [])
+    if not isinstance(existing, list):
+        raise SystemExit("generated Harmony EntryAbility skills are invalid")
+    previous: list[dict] = []
+    if APPLIED_OAUTH_LINKS.is_file():
+        try:
+            applied = json.loads(APPLIED_OAUTH_LINKS.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise SystemExit(f"Harmony applied OAuth link sidecar is invalid: {exc}") from exc
+        if not isinstance(applied, list) or any(not isinstance(item, dict) for item in applied):
+            raise SystemExit("Harmony applied OAuth link sidecar has an invalid shape")
+        previous = applied
+    current = oauth_link_skills()
+    ability["skills"] = merge_oauth_skills(existing, previous, current)
+    NATIVE_ENTRY_MODULE.write_text(
+        json.dumps(native, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    APPLIED_OAUTH_LINKS.write_text(
+        json.dumps(current, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
 
 def disable_generated_signing() -> None:
@@ -202,6 +332,8 @@ def main() -> None:
             destination = native_resources / source.relative_to(source_resources)
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
+
+    merge_entry_oauth_links()
 
     verified = json.loads((NATIVE / "app.json5").read_text(encoding="utf-8"))
     if verified["app"]["bundleName"] != "com.appkernia.mobile":

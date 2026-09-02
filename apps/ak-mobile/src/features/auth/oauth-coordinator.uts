@@ -1,0 +1,222 @@
+import { authorizeOAuth, consumeOAuthReturn, getOAuthCapability, onOAuthReturn } from '@/uni_modules/ak-oauth'
+import { OAuthNativeAuthorizationRequest, OAuthNativeAuthorizationResult, OAuthNativeFailureCode } from '@/uni_modules/ak-oauth/utssdk/interface.uts'
+import { AkError } from '../../core/errors/ak-error.uts'
+import { MobileAuthService } from './mobile-auth-service.uts'
+import { OAuthAuthorizationFlow, OAuthBuildConfig, OAuthCallbackResult, OAuthMode, OAuthProviderCode, OAuthProviderDescriptor, OAuthReauthPurpose } from './oauth-models.uts'
+import { loadOAuthBundledSnapshot, OAuthProviderRegistry, OAuthRuntimeTarget } from './oauth-provider-registry.uts'
+import { HttpOAuthRepository } from './oauth-repository.uts'
+import { legalConsentStore } from '../legal/legal-consent-store.uts'
+
+export type OAuthOperationSuccess = (result: OAuthCallbackResult) => void
+export type OAuthOperationFailure = (error: AkError) => void
+export type OAuthBrowserStarted = () => void
+
+export class OAuthCoordinator {
+  private repository: HttpOAuthRepository | null = null
+  private auth: MobileAuthService | null = null
+  private registry: OAuthProviderRegistry | null = null
+  private descriptors: Array<OAuthProviderDescriptor> = []
+  private activeSuccess: OAuthOperationSuccess | null = null
+  private activeFailure: OAuthOperationFailure | null = null
+  private completionListener: OAuthOperationSuccess | null = null
+  private active: boolean = false
+  private browserPending: boolean = false
+
+  configure(repository: HttpOAuthRepository, auth: MobileAuthService, expectedAppId: string): void {
+    this.repository = repository
+    this.auth = auth
+    const capability = getOAuthCapability()
+    this.registry = new OAuthProviderRegistry(new OAuthRuntimeTarget(capability.platform, capability.buildVariant), capability.providers, loadOAuthBundledSnapshot(expectedAppId))
+    onOAuthReturn((url: string) => this.handleReturnURL(url))
+  }
+
+  onCompleted(listener: OAuthOperationSuccess | null): void { this.completionListener = listener }
+
+  loadProviders(mode: 'login' | 'bind', onSuccess: (items: Array<OAuthProviderDescriptor>) => void, onFailure: OAuthOperationFailure): void {
+    if (!legalConsentStore.acceptedAll()) { onSuccess([]); return }
+    const repository = this.repository
+    const registry = this.registry
+    if (repository == null || registry == null) { onFailure(this.runtimeUnavailable()); return }
+    const target = registry.currentTarget()
+    repository.providers(target.platform, target.buildVariant, items => {
+      this.descriptors = items
+      onSuccess(registry.available(items, mode))
+    }, onFailure)
+  }
+
+  authorize(provider: OAuthProviderCode, mode: OAuthMode, onBrowserStarted: OAuthBrowserStarted, onSuccess: OAuthOperationSuccess, onFailure: OAuthOperationFailure, stepUpToken: string = ''): void {
+    if (!legalConsentStore.acceptedAll()) { onFailure(new AkError('forbidden', 'oauth.consent_required', 'errors.oauth.consentRequired', null)); return }
+    if (this.active) { onFailure(new AkError('conflict', 'oauth.operation_in_progress', 'errors.request.conflict', null)); return }
+    const descriptor = this.descriptor(provider, mode)
+    if (descriptor == null) {
+      this.loadProviders(mode == 'login' ? 'login' : 'bind', () => {
+        const refreshed = this.descriptor(provider, mode)
+        if (refreshed == null) { onFailure(this.providerUnavailable()); return }
+        this.start(refreshed, mode, onBrowserStarted, onSuccess, onFailure, stepUpToken)
+      }, onFailure)
+      return
+    }
+    this.start(descriptor, mode, onBrowserStarted, onSuccess, onFailure, stepUpToken)
+  }
+
+  reauthorize(provider: OAuthProviderCode, accountId: string, purpose: OAuthReauthPurpose, onBrowserStarted: OAuthBrowserStarted, onSuccess: OAuthOperationSuccess, onFailure: OAuthOperationFailure): void {
+    if (!legalConsentStore.acceptedAll()) { onFailure(new AkError('forbidden', 'oauth.consent_required', 'errors.oauth.consentRequired', null)); return }
+    if (this.active) { onFailure(new AkError('conflict', 'oauth.operation_in_progress', 'errors.request.conflict', null)); return }
+    const registry = this.registry
+    if (registry == null) { onFailure(this.runtimeUnavailable()); return }
+    const bundled = registry.bundledForTarget(provider)
+    if (bundled == null || accountId.length == 0) { onFailure(this.providerUnavailable()); return }
+    this.begin(provider, bundled.buildConfigHash, bundled.buildConfig, 'reauth', '', purpose, accountId, onBrowserStarted, onSuccess, onFailure)
+  }
+
+  resume(): void {
+    consumeOAuthReturn()
+    if (this.browserPending) setTimeout(() => {
+      if (!this.browserPending) return
+      this.browserPending = false
+      this.fail(new AkError('cancelled', 'oauth.browser_cancelled', 'errors.oauth.browserCancelled', null))
+    }, 500)
+  }
+
+  unbind(accountId: string, stepUpToken: string, onSuccess: () => void, onFailure: OAuthOperationFailure): void {
+    const repository = this.repository
+    if (repository == null) { onFailure(this.runtimeUnavailable()); return }
+    repository.unbind(accountId, stepUpToken, onSuccess, onFailure)
+  }
+
+  private start(descriptor: OAuthProviderDescriptor, mode: OAuthMode, onBrowserStarted: OAuthBrowserStarted, onSuccess: OAuthOperationSuccess, onFailure: OAuthOperationFailure, stepUpToken: string): void {
+    this.begin(descriptor.providerCode, descriptor.buildConfigHash, descriptor.buildConfig, mode, stepUpToken, null, '', onBrowserStarted, onSuccess, onFailure)
+  }
+
+  private begin(provider: OAuthProviderCode, buildConfigHash: string, config: OAuthBuildConfig, mode: OAuthMode, stepUpToken: string, reauthPurpose: OAuthReauthPurpose | null, accountId: string, onBrowserStarted: OAuthBrowserStarted, onSuccess: OAuthOperationSuccess, onFailure: OAuthOperationFailure): void {
+    const repository = this.repository
+    const registry = this.registry
+    if (repository == null || registry == null) { onFailure(this.runtimeUnavailable()); return }
+    this.active = true
+    this.activeSuccess = onSuccess
+    this.activeFailure = onFailure
+    const target = registry.currentTarget()
+    repository.authorize(provider, mode, target.platform, target.buildVariant, buildConfigHash, stepUpToken, reauthPurpose, accountId, flow => {
+      if (flow.providerCode != provider || flow.mode != mode) { this.fail(new AkError('validation', 'oauth.flow_mismatch', 'errors.oauth.callbackInvalid', null)); return }
+      const request = new OAuthNativeAuthorizationRequest(provider, flow.authorizationKind, flow.flowId, flow.state, flow.nonce, flow.authorizationURL, config.appId, config.externalClientId, config.serverClientId, config.appReturnURI)
+      authorizeOAuth(request, result => {
+        if (result.credentialKind == 'browser_started') { this.browserPending = true; onBrowserStarted(); return }
+        this.exchangeNative(flow, result)
+      }, code => this.fail(this.nativeError(code)))
+    }, error => this.fail(error))
+  }
+
+  private exchangeNative(flow: OAuthAuthorizationFlow, result: OAuthNativeAuthorizationResult): void {
+    const repository = this.repository
+    if (repository == null) { this.fail(this.runtimeUnavailable()); return }
+    if (result.credentialKind == 'authorization_code') {
+      repository.callbackCode(flow.providerCode, flow.flowId, flow.state, result.authorizationCode, value => this.finish(value), error => this.fail(error))
+      return
+    }
+    if (result.credentialKind == 'id_token') {
+      if (flow.providerCode == 'apple') repository.callbackApple(flow.flowId, flow.state, result.idToken, result.authorizationCode, result.displayName, value => this.finish(value), error => this.fail(error))
+      else repository.callbackIDToken(flow.providerCode, flow.flowId, flow.state, result.idToken, value => this.finish(value), error => this.fail(error))
+      return
+    }
+    this.fail(new AkError('unknown', 'oauth.invalid_native_result', 'errors.oauth.callbackInvalid', null))
+  }
+
+  private handleReturnURL(url: string): void {
+    this.exchangeReturnURL(url)
+  }
+
+  private exchangeReturnURL(url: string): void {
+    const values = this.parseGitHubReturn(url)
+    if (values == null) { this.failOrNotify(new AkError('validation', 'oauth.return_link_invalid', 'errors.oauth.callbackInvalid', null)); return }
+    const repository = this.repository
+    if (repository == null) { this.failOrNotify(this.runtimeUnavailable()); return }
+    this.browserPending = false
+    this.active = true
+    repository.callbackTicket('github', values.get('flow_id')!, values.get('one_time_ticket')!, result => this.finish(result), error => this.fail(error))
+  }
+
+  /** Accepts exactly the configured HTTPS URI and three non-duplicated keys. */
+  parseGitHubReturn(url: string): Map<string, string> | null {
+    if (!url.startsWith('https://') || url.indexOf('#') >= 0) return null
+    const question = url.indexOf('?')
+    if (question <= 8 || question == url.length - 1) return null
+    const base = url.substring(0, question)
+    const registry = this.registry
+    if (registry == null) return null
+    const allowed: boolean = registry.githubReturnURIs().indexOf(base) >= 0
+    if (!allowed) return null
+    const values = new Map<string, string>()
+    const parts = url.substring(question + 1).split('&')
+    if (parts.length != 3) return null
+    for (let index = 0; index < parts.length; index++) {
+      const pair = parts[index].split('=')
+      if (pair.length != 2) return null
+      let decodedKey: string | null = null
+      let decodedValue: string | null = null
+      try { decodedKey = decodeURIComponent(pair[0]); decodedValue = decodeURIComponent(pair[1]) } catch (_error) { return null }
+      if (decodedKey == null || decodedValue == null) return null
+      const key: string = decodedKey!
+      const value: string = decodedValue!
+      if (key != 'provider' && key != 'flow_id' && key != 'one_time_ticket' || values.has(key) || value.length == 0) return null
+      values.set(key, value)
+    }
+    const provider = values.get('provider')
+    const flowId = values.get('flow_id')
+    const ticket = values.get('one_time_ticket')
+    if (provider != 'github' || flowId == null || ticket == null) return null
+    if (!/^[0-9a-fA-F-]{36}$/.test(flowId) || !/^[A-Za-z0-9_-]{20,512}$/.test(ticket)) return null
+    return values
+  }
+
+  private finish(result: OAuthCallbackResult): void {
+    if (result.mode == 'login') {
+      const auth = this.auth
+      if (auth == null || result.session == null) { this.fail(new AkError('unknown', 'oauth.session_missing', 'errors.oauth.callbackInvalid', null)); return }
+      auth.establish(result.session!, () => this.deliver(result), error => this.fail(error))
+      return
+    }
+    this.deliver(result)
+  }
+
+  private deliver(result: OAuthCallbackResult): void {
+    this.active = false
+    this.browserPending = false
+    const success = this.activeSuccess
+    this.activeSuccess = null
+    this.activeFailure = null
+    if (success != null) success(result)
+    else if (this.completionListener != null) this.completionListener!(result)
+  }
+
+  private fail(error: AkError): void {
+    this.active = false
+    this.browserPending = false
+    const failure = this.activeFailure
+    this.activeSuccess = null
+    this.activeFailure = null
+    if (failure != null) failure(error)
+  }
+
+  private failOrNotify(error: AkError): void { this.fail(error) }
+
+  private descriptor(provider: OAuthProviderCode, mode: OAuthMode): OAuthProviderDescriptor | null {
+    const registry = this.registry
+    if (registry == null) return null
+    const available = registry.available(this.descriptors, mode == 'login' ? 'login' : 'bind')
+    for (let index = 0; index < available.length; index++) if (available[index].providerCode == provider) return available[index]
+    return null
+  }
+
+  private nativeError(code: OAuthNativeFailureCode): AkError {
+    if (code == 'authorization_denied') return new AkError('cancelled', 'IAM.OAUTH.AUTHORIZATION_DENIED', 'errors.oauth.authorizationDenied', null)
+    if (code == 'configuration_missing') return new AkError('maintenance', 'IAM.OAUTH.PROVIDER_UNAVAILABLE', 'errors.oauth.providerUnavailable', null)
+    if (code == 'native_sdk_unavailable') return new AkError('maintenance', 'oauth.native_sdk_unavailable', 'errors.oauth.nativeSdkUnavailable', null)
+    if (code == 'browser_unavailable') return new AkError('unknown', 'oauth.browser_unavailable', 'errors.oauth.browserUnavailable', null)
+    return new AkError('unknown', 'oauth.native_failure', 'errors.oauth.nativeFailure', null)
+  }
+
+  private runtimeUnavailable(): AkError { return new AkError('unknown', 'oauth.runtime_unavailable', 'errors.runtime.unavailable', null) }
+  private providerUnavailable(): AkError { return new AkError('maintenance', 'IAM.OAUTH.PROVIDER_UNAVAILABLE', 'errors.oauth.providerUnavailable', null) }
+}
+
+export const oauthCoordinator = new OAuthCoordinator()

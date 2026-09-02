@@ -3,8 +3,8 @@ import { zhCNEntries, enUSEntries } from './generated/catalog-entries.uts'
 
 type CatalogValues = Map<string, string>
 
-const zhCN: CatalogValues = catalogFromEntries(zhCNEntries)
-const enUS: CatalogValues = catalogFromEntries(enUSEntries)
+const zhCN: CatalogValues = catalogFromEntries(zhCNEntries as Array<string>)
+const enUS: CatalogValues = catalogFromEntries(enUSEntries as Array<string>)
 
 function catalogFromEntries(source: Array<string>): CatalogValues {
   const catalog: CatalogValues = new Map<string, string>()

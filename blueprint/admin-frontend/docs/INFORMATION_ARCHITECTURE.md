@@ -17,6 +17,8 @@ Dashboard
 系统
 ├── 系统设置
 │   ├── 系统配置
+│   ├── 分享配置
+│   ├── 第三方登录配置
 │   ├── 字典管理
 │   ├── 地区管理
 │   └── 模块信息
@@ -59,6 +61,7 @@ Dashboard
 | `dashboard` | Dashboard | `/dashboard` | `authenticated` | P0 | existing |
 | `system.settings.configs` | 系统配置 | `/system/settings/configs` | `sys.config.read` | P2 | existing |
 | `system.settings.share-configs` | 分享配置 | `/system/settings/share-configs` | `sys.share_config.read` | P2 | existing |
+| `system.settings.login-providers` | 第三方登录配置 | `/system/settings/login-providers` | `sys.login_provider_config.read` | P2 | existing |
 | `system.settings.dictionaries` | 字典管理 | `/system/settings/dictionaries` | `sys.dictionary.read` | P2 | existing |
 | `system.settings.regions` | 地区管理 | `/system/settings/regions` | `sys.region.read` | P2 | existing |
 | `system.users.departments` | 部门 | `/system/users/departments` | `org.unit.read` | P1 | existing |

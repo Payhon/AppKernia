@@ -14,6 +14,7 @@ const implementedComponentKeys = new Set([
   "auth.oauth-callback",
   "system.settings.configs",
   "system.settings.share-configs",
+  "system.settings.login-providers",
   "system.settings.dictionaries",
   "system.settings.regions",
   "system.storage.files",
@@ -213,6 +214,8 @@ export function isSafeInternalRedirect(
   | "/profile/security"
   | "/profile/connections"
   | "/system/settings/configs"
+  | "/system/settings/share-configs"
+  | "/system/settings/login-providers"
   | "/system/settings/dictionaries"
   | "/system/settings/regions"
   | "/system/storage/files"
@@ -250,6 +253,8 @@ export function isSafeInternalRedirect(
     value === "/profile/security" ||
     value === "/profile/connections" ||
     value === "/system/settings/configs" ||
+    value === "/system/settings/share-configs" ||
+    value === "/system/settings/login-providers" ||
     value === "/system/settings/dictionaries" ||
     value === "/system/settings/regions" ||
     value === "/system/storage/files" ||

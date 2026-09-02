@@ -45,6 +45,11 @@ describe("application action menu", () => {
     expect(items.map((item) => item?.key)).toEqual(["upgrade-center", "content", "client-config"]);
   });
 
+  it("shows client configuration when only login provider bindings are readable", () => {
+    const items = createApplicationActionItems(application, new Set(["app.login_provider_binding.read"]), labels, handlers, false);
+    expect(items.map((item) => item?.key)).toEqual(["upgrade-center", "content", "client-config"]);
+  });
+
   it("hides unauthorized and ineligible actions without hiding safe destinations", () => {
     const activeDefault = { ...application, status: "active", is_default: true } as ManagedApplication;
     const items = createApplicationActionItems(activeDefault, new Set(), labels, handlers, false);

@@ -1,0 +1,6 @@
+import { AuthorizeOAuth, ConsumeOAuthReturn, GetOAuthCapability, OAuthNativeAuthorizationRequest, OAuthNativeFailure, OAuthNativeSuccess, OAuthNativeCapability, OnOAuthReturn, OAuthReturnListener } from '../interface.uts'
+
+export const getOAuthCapability: GetOAuthCapability = function (): OAuthNativeCapability { return new OAuthNativeCapability('android', 'android_china', []) }
+export const authorizeOAuth: AuthorizeOAuth = function (_request: OAuthNativeAuthorizationRequest, _success: OAuthNativeSuccess, failure: OAuthNativeFailure): void { failure('native_sdk_unavailable') }
+export const onOAuthReturn: OnOAuthReturn = function (_listener: OAuthReturnListener | null): void {}
+export const consumeOAuthReturn: ConsumeOAuthReturn = function (): void {}

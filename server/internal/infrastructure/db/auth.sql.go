@@ -191,6 +191,7 @@ WHERE id = $1
   AND tenant_id = $3
   AND audience = $4
   AND access_token_version = $5
+	AND app_id IS NOT DISTINCT FROM $6
   AND status = 'active'
   AND revoked_at IS NULL
   AND absolute_expires_at > now()
@@ -202,6 +203,7 @@ type GetActiveSessionParams struct {
 	TenantID           *uuid.UUID `json:"tenant_id"`
 	Audience           string     `json:"audience"`
 	AccessTokenVersion int32      `json:"access_token_version"`
+	AppID              *uuid.UUID `json:"app_id"`
 }
 
 func (q *Queries) GetActiveSession(ctx context.Context, arg GetActiveSessionParams) (uuid.UUID, error) {
@@ -211,6 +213,7 @@ func (q *Queries) GetActiveSession(ctx context.Context, arg GetActiveSessionPara
 		arg.TenantID,
 		arg.Audience,
 		arg.AccessTokenVersion,
+		arg.AppID,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)

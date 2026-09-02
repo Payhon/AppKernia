@@ -42,7 +42,7 @@ test-race:
 test-integration:
 	@test -n "$(AK_TEST_DATABASE_URL)" || (echo "AK_TEST_DATABASE_URL is required"; exit 2)
 	$(GO) test -tags=integration ./internal/seed
-	$(GO) test -tags=integration ./internal/modules/opsadmin/repository ./internal/modules/iam/application ./internal/modules/iam/repository ./internal/modules/jobadmin/repository ./internal/modules/systemsettings/repository ./internal/modules/notificationadmin/repository ./internal/modules/storage/repository ./internal/modules/content/repository ./internal/modules/appmanagement/application ./internal/modules/appmanagement/worker ./internal/modules/feedback/repository ./internal/modules/feedback/worker
+	$(GO) test -tags=integration ./internal/modules/opsadmin/repository ./internal/modules/iam/application ./internal/modules/iam/repository ./internal/modules/jobadmin/repository ./internal/modules/systemsettings/repository ./internal/modules/notificationadmin/repository ./internal/modules/storage/repository ./internal/modules/content/repository ./internal/modules/appmanagement/application ./internal/modules/appmanagement/worker ./internal/modules/feedback/repository ./internal/modules/feedback/worker ./internal/modules/loginprovider/repository
 
 fmt-fix:
 	GOTOOLCHAIN=go1.26.5 gofmt -w .

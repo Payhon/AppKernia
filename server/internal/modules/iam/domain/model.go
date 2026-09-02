@@ -26,6 +26,7 @@ var (
 type User struct {
 	ID           uuid.UUID
 	Email        string
+	Mobile       string
 	DisplayName  string
 	Locale       string
 	TimeZone     string

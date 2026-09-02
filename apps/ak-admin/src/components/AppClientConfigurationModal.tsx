@@ -3,13 +3,14 @@ import { type ReactNode, useCallback, useEffect, useMemo, useState } from "react
 import { useTranslation } from "react-i18next";
 
 import type { ManagedApplication } from "../features/apps/model";
+import { clientConfigTabPermissions, type ClientConfigTabId } from "../features/apps/client-config-registry";
+import { AppLoginProviderConfigurationPanel } from "./AppLoginProviderConfigurationPanel";
 import { AppScannerConfigurationPanel } from "./AppScannerConfigurationPanel";
 import { AppShareConfigurationPanel } from "./AppShareConfigurationPanel";
 
-export type ClientConfigTabId = "share" | "scanner";
-
 interface ClientConfigTabRenderProps {
   appId: string;
+  canOpenConfigurationPage: boolean;
   canUpdate: boolean;
   onDirtyChange: (dirty: boolean) => void;
 }
@@ -23,9 +24,12 @@ export interface ClientConfigTabDefinition {
 }
 
 export const clientConfigTabs: ClientConfigTabDefinition[] = [
-  { id: "share", labelKey: "apps.client_config.tabs.share", readPermission: "app.share_binding.read", updatePermission: "app.share_binding.update", render: (props) => <AppShareConfigurationPanel {...props} /> },
-  { id: "scanner", labelKey: "apps.client_config.tabs.scanner", readPermission: "app.scanner_config.read", updatePermission: "app.scanner_config.update", render: (props) => <AppScannerConfigurationPanel {...props} /> },
+  { ...clientConfigTabPermissions[0], labelKey: "apps.client_config.tabs.share", render: ({ appId, canUpdate, onDirtyChange }) => <AppShareConfigurationPanel appId={appId} canUpdate={canUpdate} onDirtyChange={onDirtyChange} /> },
+  { ...clientConfigTabPermissions[1], labelKey: "apps.client_config.tabs.scanner", render: ({ appId, canUpdate, onDirtyChange }) => <AppScannerConfigurationPanel appId={appId} canUpdate={canUpdate} onDirtyChange={onDirtyChange} /> },
+  { ...clientConfigTabPermissions[2], labelKey: "apps.client_config.tabs.login_providers", render: (props) => <AppLoginProviderConfigurationPanel {...props} /> },
 ];
+
+const cleanDirtyState = (): Record<ClientConfigTabId, boolean> => Object.fromEntries(clientConfigTabs.map((tab) => [tab.id, false])) as Record<ClientConfigTabId, boolean>;
 
 interface Props {
   app: ManagedApplication | null;
@@ -38,7 +42,7 @@ export function AppClientConfigurationModal({ app, permissions, onClose }: Props
   const screens = Grid.useBreakpoint();
   const availableTabs = useMemo(() => clientConfigTabs.filter((tab) => permissions.has(tab.readPermission)), [permissions]);
   const [activeTab, setActiveTab] = useState<ClientConfigTabId>("share");
-  const [dirty, setDirty] = useState<Record<ClientConfigTabId, boolean>>({ share: false, scanner: false });
+  const [dirty, setDirty] = useState<Record<ClientConfigTabId, boolean>>(cleanDirtyState);
 
   useEffect(() => {
     const first = availableTabs[0]?.id;
@@ -46,7 +50,7 @@ export function AppClientConfigurationModal({ app, permissions, onClose }: Props
   }, [app?.id, availableTabs, activeTab]);
 
   useEffect(() => {
-    if (app) setDirty({ share: false, scanner: false });
+    if (app) setDirty(cleanDirtyState());
   }, [app?.id]);
 
   const markDirty = useCallback((id: ClientConfigTabId, value: boolean) => {
@@ -54,7 +58,7 @@ export function AppClientConfigurationModal({ app, permissions, onClose }: Props
   }, []);
 
   const close = () => {
-    if (!dirty.share && !dirty.scanner) {
+    if (!Object.values(dirty).some(Boolean)) {
       onClose();
       return;
     }
@@ -71,7 +75,7 @@ export function AppClientConfigurationModal({ app, permissions, onClose }: Props
   const items = app ? availableTabs.map((tab) => ({
     key: tab.id,
     label: t(tab.labelKey),
-    children: tab.render({ appId: app.id, canUpdate: permissions.has(tab.updatePermission), onDirtyChange: (value) => { markDirty(tab.id, value); } }),
+    children: tab.render({ appId: app.id, canOpenConfigurationPage: permissions.has("sys.login_provider_config.read"), canUpdate: permissions.has(tab.updatePermission), onDirtyChange: (value) => { markDirty(tab.id, value); } }),
   })) : [];
 
   return <Modal

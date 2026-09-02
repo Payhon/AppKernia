@@ -32,12 +32,13 @@ describe("scanner host pattern validation", () => {
 });
 
 describe("client configuration tab registry", () => {
-  it("keeps sharing before scanner and declares separate permissions", async () => {
+  it("keeps the stable client configuration order and declares separate permissions", async () => {
     const { clientConfigTabs } = await import("./AppClientConfigurationModal");
-    expect(clientConfigTabs.map((tab) => tab.id)).toEqual(["share", "scanner"]);
+    expect(clientConfigTabs.map((tab) => tab.id)).toEqual(["share", "scanner", "login-providers"]);
     expect(clientConfigTabs.map((tab) => [tab.readPermission, tab.updatePermission])).toEqual([
       ["app.share_binding.read", "app.share_binding.update"],
       ["app.scanner_config.read", "app.scanner_config.update"],
+      ["app.login_provider_binding.read", "app.login_provider_binding.update"],
     ]);
   });
 });

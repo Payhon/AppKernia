@@ -1,0 +1,20 @@
+{
+  "id": "ak-oauth",
+  "displayName": "AK OAuth",
+  "version": "1.0.0",
+  "description": "Typed AppKernia native authorization and verified return-link boundary.",
+  "engines": { "HBuilderX": "^5.06", "uni-app-x": "^5.06" },
+  "dcloudext": {
+    "type": "uts",
+    "declaration": {
+      "ads": "none",
+      "data": "Handles ephemeral provider authorization codes, identity tokens and one-time browser tickets in memory.",
+      "permissions": "Opens the provider application or system browser only after an explicit user action."
+    }
+  },
+  "uni_modules": {
+    "dependencies": [],
+    "encrypt": [],
+    "platforms": { "client": { "uni-app-x": { "app": { "android": "√", "ios": "√", "harmony": "√" } } } }
+  }
+}

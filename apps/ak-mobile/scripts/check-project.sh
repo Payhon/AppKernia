@@ -7,6 +7,7 @@ repo_root="$(cd "$project_root/../.." && pwd)"
 python3 "$repo_root/blueprint/mobile/scripts/validate_blueprint_specs.py"
 python3 "$repo_root/blueprint/scripts/validate_i18n_contract.py"
 python3 "$project_root/scripts/check-i18n-catalogs.py"
+python3 "$project_root/scripts/generate-oauth-snapshot-uts.py"
 python3 "$project_root/scripts/test_notification_contract.py"
 python3 "$project_root/scripts/test_bookmark_filter_contract.py"
 python3 "$project_root/scripts/test_scanner_contract.py"
@@ -105,8 +106,20 @@ for uuid_pattern in "randomHex(8)" "'-4' + this.randomHex(3)" "this.randomHex(12
     exit 1
   fi
 done
-if ! rg -Fq 'activeClient.setDeviceKey(value)' "$auth_runtime" || ! rg -Fq 'this.resetDeviceKey()' "$auth_runtime" || ! rg -Fq '!this.isDeviceKey(credential.deviceKey)' "$auth_runtime"; then
-  printf 'mobile authentication must keep fresh and restored secure device UUIDs aligned with the HTTP client\n' >&2
+for installation_key_pattern in \
+  'activeClient.setDeviceKey(value)' \
+  'installationStorage.readDeviceKey' \
+  'migrateSessionDeviceKeyOrCreate' \
+  'writeDeviceKey(credential.deviceKey' \
+  'credential.deviceKey != this.deviceKey' \
+  'oauthCoordinator.configure'; do
+  if ! rg -Fq "$installation_key_pattern" "$auth_runtime"; then
+    printf 'mobile authentication is missing the stable secure installation UUID contract: %s\n' "$installation_key_pattern" >&2
+    exit 1
+  fi
+done
+if rg -Fq 'clearNamespace' "$project_root/src/core/stores/ak-secure-session-storage.uts"; then
+  printf 'mobile sign-out must remove only session fields and preserve the installation UUID\n' >&2
   exit 1
 fi
 

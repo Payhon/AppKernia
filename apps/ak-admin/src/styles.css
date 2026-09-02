@@ -1097,6 +1097,102 @@ a,
   text-underline-offset: 3px;
 }
 .ak-push-guide-panel .ant-typography-link:hover { color: #002f61; }
+.ak-login-providers-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.ak-login-provider-guide-trigger {
+  display: inline-grid;
+  place-items: center;
+  min-width: 40px;
+  min-height: 40px;
+  color: var(--ak-muted);
+  cursor: pointer;
+}
+.ak-login-provider-guide-trigger:hover,
+.ak-login-provider-guide-trigger:focus-visible { color: var(--ak-focus); }
+.ak-login-provider-guide-modal .ant-modal-body {
+  max-height: min(74vh, 760px);
+  overflow-y: auto;
+}
+.ak-login-provider-guide-title.ant-typography {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+.ak-login-provider-guide-tabs { margin-top: 20px; }
+.ak-login-provider-guide-tabs > .ant-tabs-nav { min-width: 196px; }
+.ak-login-provider-guide-mobile-picker {
+  display: grid;
+  gap: 6px;
+  margin: 20px 0;
+  color: var(--ak-ink);
+  font-weight: 600;
+}
+.ak-login-provider-guide-mobile-picker select {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  color: var(--ak-ink);
+  background: var(--ak-surface, #fff);
+  font: inherit;
+}
+.ak-login-provider-guide-mobile-picker select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ak-focus) 35%, transparent);
+  outline-offset: 2px;
+}
+.ak-login-provider-guide-panel { min-width: 0; padding-inline: 8px 4px; }
+.ak-login-provider-guide-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ak-login-provider-guide-heading .ant-typography { margin-top: 0; }
+.ak-login-provider-guide-heading .ant-tag { flex: 0 0 auto; white-space: normal; }
+.ak-login-provider-guide-steps { margin: 12px 0 20px; }
+.ak-login-provider-guide-steps .ant-steps-item-wait .ant-steps-item-title {
+  color: var(--ak-ink) !important;
+  font-weight: 600;
+}
+.ak-login-provider-guide-steps .ant-steps-item-content {
+  max-width: 72ch !important;
+  color: var(--ak-body) !important;
+  line-height: 1.6;
+}
+.ak-login-provider-guide-fields { margin: 12px 0 20px; }
+.ak-login-provider-guide-fields .ant-descriptions-item-label {
+  width: min(34%, 220px);
+  color: var(--ak-ink);
+  font-weight: 600;
+}
+.ak-login-provider-guide-fields .ant-descriptions-item-content {
+  overflow-wrap: anywhere;
+  color: var(--ak-body);
+}
+.ak-login-provider-guide-note { margin-bottom: 20px; }
+.ak-login-provider-guide-panel .ant-typography-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #003e7e;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.ak-login-provider-guide-panel .ant-typography-link:hover { color: #002f61; }
+.ak-login-provider-client-id {
+  display: inline-block;
+  max-width: 34ch;
+  overflow-wrap: anywhere;
+  color: var(--ak-body);
+}
+.ak-login-provider-card { width: 100%; }
+.ak-login-provider-card .ant-card-extra { margin-inline-start: 12px; }
+.ak-login-provider-drawer-alert,
+.ak-login-provider-fields-card { margin-top: 16px; }
 .ak-page-heading {
   margin-bottom: 28px;
 }
@@ -1127,6 +1223,14 @@ a,
   .ak-push-guide-panel { padding-inline: 0; }
   .ak-push-guide-provider-heading { flex-direction: column; gap: 4px; }
   .ak-push-guide-fields .ant-descriptions-item-label { width: 40%; }
+  .ak-login-providers-heading { flex-direction: column; gap: 12px; }
+  .ak-login-providers-heading > .ant-space { width: 100%; justify-content: flex-end; }
+  .ak-login-provider-guide-modal { max-width: calc(100vw - 24px); margin: 12px auto; }
+  .ak-login-provider-guide-modal .ant-modal-body { max-height: calc(100vh - 190px); }
+  .ak-login-provider-guide-tabs > .ant-tabs-nav { min-width: 0; }
+  .ak-login-provider-guide-panel { padding-inline: 0; }
+  .ak-login-provider-guide-heading { flex-direction: column; gap: 4px; }
+  .ak-login-provider-guide-fields .ant-descriptions-item-label { width: 40%; }
 }
 .ak-org-heading {
   display: flex;
@@ -2678,6 +2782,18 @@ a,
 .ak-client-config-hosts.ant-space {
   width: 100%;
 }
+
+.ak-login-provider-binding-list,
+.ak-login-provider-binding-list.ant-space { width: 100%; }
+
+.ak-login-provider-binding-card .ant-card-head {
+  align-items: center;
+  min-height: 48px;
+}
+
+.ak-login-provider-binding-card .ant-card-extra { margin-inline-start: 12px; }
+
+.ak-login-provider-binding-card .ant-form-item { margin-bottom: 8px; }
 
 .ak-client-config-actions,
 .ak-client-config-host-row {

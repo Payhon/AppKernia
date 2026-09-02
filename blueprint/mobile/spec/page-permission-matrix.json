@@ -66,7 +66,7 @@
       "route_key": "auth.oauth-callback",
       "view_permissions": [],
       "action_permissions": [],
-      "feature_flag": "oauth_login_enabled"
+      "feature_flag": null
     },
     {
       "route_key": "home",
@@ -200,11 +200,9 @@
     },
     {
       "route_key": "profile.connections",
-      "view_permissions": [
-        "iam.oauth.manage_self"
-      ],
+      "view_permissions": [],
       "action_permissions": [],
-      "feature_flag": "oauth_login_enabled"
+      "feature_flag": null
     },
     {
       "route_key": "settings.index",

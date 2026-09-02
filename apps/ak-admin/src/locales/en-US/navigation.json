@@ -170,5 +170,7 @@
   "menu.system.notifications.operations": "Message Operations",
   "routes.system.notifications.operations.title": "Message Operations",
   "menu.app.feedbacks": "Feedback",
-  "routes.app.feedbacks.title": "Feedback"
+  "routes.app.feedbacks.title": "Feedback",
+  "menu.system.settings.login_providers": "Third-party sign-in",
+  "routes.system.settings.login_providers.title": "Third-party Sign-in"
 }

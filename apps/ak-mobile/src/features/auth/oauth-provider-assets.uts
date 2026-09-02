@@ -1,0 +1,12 @@
+/**
+ * Maps provider protocol codes to packaged, reviewed brand assets.
+ * Unknown historical providers intentionally use a neutral local icon so they
+ * remain manageable without pretending to be a registered provider.
+ */
+export function oauthProviderIcon(code: string, isDark: boolean): string {
+  if (code == 'wechat') return '/static/login-providers/wechat.svg'
+  if (code == 'github') return isDark ? '/static/login-providers/github-white.png' : '/static/login-providers/github-black.png'
+  if (code == 'google') return isDark ? '/static/login-providers/google-dark.png' : '/static/login-providers/google-light.png'
+  if (code == 'apple') return isDark ? '/static/login-providers/apple-white.png' : '/static/login-providers/apple-black.png'
+  return '/static/ak-icons/profile.svg'
+}

@@ -2,10 +2,8 @@
   <ak-theme-root><scroll-view class="page" scroll-y>
     <view class="hero"><text class="brand">{{t('information.appName', null)}}</text><text class="title">{{t('routes.auth.login.title', null)}}</text></view>
     <ak-card class="form-card">
-      <ak-text-field v-model="email" :label="t('auth.email', null)" :error="emailError" />
-      <ak-text-field v-model="password" :label="t('auth.password', null)" :error="passwordError" password />
-      <ak-status-view v-if="state==='error'" state="error" :title="t('state.error.title', null)" :description="errorText" />
-      <ak-button variant="primary" :loading="state==='loading'" :loading-text="t('common.loading', null)" @click="login">{{t('auth.login', null)}}</ak-button>
+      <ak-login-method-form @authenticated="authenticated" />
+      <ak-login-provider-list mode="login" @authenticated="authenticated" />
       <view class="auth-link-row">
         <view class="auth-link" @click="goForgot"><text class="auth-link-text">{{t('auth.forgotPassword', null)}}</text></view>
         <view v-if="registrationEnabled" class="auth-link auth-link-register" @click="goRegister"><text class="auth-link-text">{{t('auth.register.link', null)}}</text></view>
@@ -17,11 +15,10 @@
 <script lang="uts">
 import {akI18n} from '../../../src/core/i18n/ak-i18n.uts'
 import {completeAuthenticatedBootstrap} from '../../../src/core/bootstrap/app-bootstrap.uts'
-import {authRuntime} from '../../../src/features/auth/auth-runtime.uts'
 import {appPublicConfigRuntime} from '../../../src/features/app-config/public-config-runtime.uts'
-export default { data() { return {email:'',password:'',state:'content',errorText:'',emailError:'',passwordError:''} }, computed: { t(){return akI18n.t}, registrationEnabled(): boolean { return appPublicConfigRuntime.registrationEnabled() } }, onLoad(options:UTSJSONObject){const deleted=options.getString('account_deleted');if(deleted=='1')setTimeout(()=>uni.showToast({title:akI18n.t('accountDeletion.success',null),icon:'success'}),100)}, methods: {
+export default { computed: { t(){return akI18n.t}, registrationEnabled(): boolean { return appPublicConfigRuntime.registrationEnabled() } }, onLoad(options:UTSJSONObject){const deleted=options.getString('account_deleted');if(deleted=='1')setTimeout(()=>uni.showToast({title:akI18n.t('accountDeletion.success',null),icon:'success'}),100)}, methods: {
   goForgot(){uni.navigateTo({url:'/pages/auth/forgot-password/index'})}, goRegister(){uni.navigateTo({url:'/pages/auth/register/index'})}, goPrivacy(){uni.navigateTo({url:'/pages/legal/privacy/index'})}, goTerms(){uni.navigateTo({url:'/pages/legal/terms/index'})},
-  login(){ this.emailError=''; this.passwordError=''; if(this.email.trim().length==0){this.emailError=akI18n.t('errors.validation.required',null);return}; if(this.password.length==0){this.passwordError=akI18n.t('errors.validation.required',null);return}; const service=authRuntime.getService(); if(service==null){this.errorText=akI18n.t('errors.runtime.unavailable',null);this.state='error';return}; this.state='loading'; service.login({email:this.email.trim(),password:this.password,deviceKey:authRuntime.getDeviceKey()},()=>{completeAuthenticatedBootstrap()},error=>{this.errorText=akI18n.t(error.messageKey,null);this.state='error'}) }
+  authenticated(){completeAuthenticatedBootstrap()}
 } }
 </script>
 <style lang="scss">

@@ -1,7 +1,54 @@
 # AppKernia Codex 交付报告
 
-日期：2026-09-01
-范围：AppKernia 全仓交付记录；本轮修复 Admin 浏览器刷新后的登录态恢复，并将发行页配置菜单图标等当前工作树改动合并部署到本地开发环境；未提交、未推送、未部署生产。
+日期：2026-09-02
+范围：AppKernia 全仓交付记录；本轮交付 App 级第三方登录、邮箱/手机号 OTP 与账号绑定、Admin 配置、Mobile 原生边界和构建导出，并启动隔离本机测试栈；未提交、未推送、未生产部署或改动既有本地演示栈。
+
+## App 级第三方登录与账号绑定
+
+### 本机开发测试部署
+
+- Compose project `appkernia-login-dev` 使用独立网络和数据卷，映射 Admin `14174`、API `18080`、PostgreSQL `55433`；既有 `appkernia-news-demo` 的 `4174/8080/55432` 容器、镜像和数据未变更。
+- 当前 PostgreSQL 迁移为 `30:false`，第三方登录四张核心表存在；Migration、Core Seed 均退出 0，API/Admin/PostgreSQL 全部 healthy，启动日志未发现 panic、fatal、error 或 permission denied。
+- 开发管理员 `admin@appkernia.local` 已由 Git 忽略的 `.secrets/seed-admin-password` 幂等创建；经 Admin Nginx `/admin-api/v1/auth/login` 实际验证返回有效 Access Token envelope，Secret 和 Token 均未输出。
+- 首次 Seed 失败的根因是宿主机三份蓝图 JSON 为 `0600`，镜像以 root 原样复制后切换到 `appkernia` 用户。`server/Dockerfile` 已改为 `COPY --chown=appkernia:appkernia`，不放宽宿主机权限、不让长期服务以 root 运行；重建后 Seed 与服务启动通过。
+
+### 已交付
+
+- 数据与 Backend：新增 `sys.login_provider_configs`、`app.application_login_provider_bindings`、`iam.app_oauth_accounts`、`iam.oauth_authorization_flows`、`app.user_login_identifiers`，保留 Admin 自身 OAuth 表。Provider 使用编译期 Registry、版本化 Schema 和固定 Adapter；AES-GCM Secret、凭据指纹、乐观锁、预检、App/租户复合约束、App 级邮箱/手机号回填与 `federated_registration` 已完成。
+- 认证安全：OAuth Flow 绑定 App、Provider、平台、构建变体、设备和模式；State/Nonce 只存 Hash，PKCE Verifier 加密，Flow、GitHub Ticket、OTP、Step-up 均单次消费。Apple/Google 固定 Issuer/Audience/签名/过期/Nonce 和 JWKS 缓存；GitHub 使用精确 Callback、PKCE S256、无敏感参数深链；生产 Secret、Code/Token 和原始身份标识不进入日志或截图，自动化数据均为明确标记的非真实值。
+- 身份语义：同一第三方 Subject、邮箱和手机号按 App 隔离；Provider 邮箱冲突返回 `ACCOUNT_LINK_REQUIRED`，不自动合并。首次第三方注册与 Membership/Session/Refresh/Audit 在 Serializable 事务内完成，并发首登收敛为同一用户。解绑前按服务端事实保留至少一种可用登录方式；Apple 解绑/删号要求 fresh reauth 并撤销临时 Token。
+- Admin：新增 `/system/settings/login-providers`、6 项配置权限和 2 项 App 绑定权限；列表、Drawer、只写 Secret 轮换、预检、启停、删除、409 保值重载和固定官方帮助 Allowlist 已完成。“客户端配置”顺序为“分享配置 → 扫码配置 → 第三方登录”，四 Provider 每次原子提交完整绑定集合。
+- Mobile：新增 `ak-oauth`、共享 Provider 图标列表、OAuth Coordinator、安装级安全设备键、GitHub 冷/热启动回跳、账号与登录方式页面、邮箱/手机号 OTP 登录和绑定换绑解绑。Apple 使用 AuthenticationServices；Google 只进入 `android_google` Credential Manager；微信 Android/iOS 使用 `uni.login(... onlyAuthorize: true)`，Harmony 使用固定 OpenSDK Adapter。
+- 构建导出：新增 `ak-cli app-login-provider export --app-id <id> --output <dir> [--check]`，幂等写入无 Secret 的原生能力配置和构建 Hash，保留无关 Manifest/Entitlement。Client ID 或原生身份变化会触发 `--check` 漂移；Secret 轮换不会。
+- 契约与 UI：OpenAPI、sqlc、权限/菜单 Seed、Admin/Mobile 生成 Client、双语 Catalog、Design System 页面 Override、`ui-ux-pro-max` request/output/decisions/checklist 与截图索引均已同步。
+
+### 实际验证
+
+| 命令 / 阶段 | Exit | 真实结果 |
+|---|---:|---|
+| PostgreSQL 18：`migrate up 30 → down 1 → up 30` | 0 | `version=30, dirty=false`；回滚后第三方登录表不存在，再升级后恢复；旧 Membership 的合法邮箱/E.164 手机号完成 App 级回填。 |
+| `make -C server sqlc-generate` | 0 | 30 号迁移及查询生成物同步。 |
+| `make -C server check` | 0 | gofmt、Go vet、全包普通测试通过；独立统计为 53 个包、294 项通过、1 项按既有条件跳过。 |
+| `make -C server test-race` | 0 | Backend 全包 race 通过。 |
+| `AK_TEST_DATABASE_URL=... make -C server test-integration` | 0 | PostgreSQL 18 集成包通过；新功能覆盖并发首登、故障回滚、OTP 防枚举/发送失败、Apple 无 Consumer/绑定交换，以及邮箱+手机/OAuth 最后登录方式保护。 |
+| Redocly 2.12.4 lint | 0 | OpenAPI 3.1 有效，0 error；21 条为既有非阻断 warning。418 个操作均有唯一模块映射和双语标题。 |
+| `pnpm --filter @appkernia/admin check` | 0 | 生成、reference、ESLint、strict typecheck、56 个 Vitest 文件/242 项测试、production build、bundle、OpenAPI docs、Admin Blueprint 全通过。宿主 Node 26.5.0 仅产生项目要求 Node 24 的 engine warning。 |
+| Chromium 152 受控 API fixture | 0 | 10 个双语/1440/375 状态；axe 全等级 violation=0、横向溢出=0、console/page error=0，8 条官方帮助链接 Allowlist 全覆盖。所有截图有 `API FIXTURE · NOT PLATFORM ACCEPTANCE` 水印。 |
+| `python3 -m unittest discover apps/ak-mobile/scripts/tests -v` | 0 | 19/19 Mobile OAuth/生成器/契约测试通过。 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile Blueprint、双语 key/placeholder、生成 Client、Catalog、构建快照和静态安全门禁通过。 |
+| Android China / iOS / Harmony 构建 | 0 / 0 / 0 | HBuilderX 5.24 完成三端 43 页面源码编译；Harmony 使用 DevEco 6.0.2.640 生成无签名 HAP。 |
+| Google 原生 Bridge Gradle AAR | 0 | Gradle 8.11.1、AGP 8.7.3、JDK 17.0.16、Android SDK 36，Credential Manager 1.6.0 与 Google ID 1.2.0；源码 `cmp` 一致，24 tasks 的 `assembleDebug` 通过。仅证明 Bridge 与固定真实依赖可编译。 |
+| 四套 Blueprint/i18n 校验、Admin Blueprint SHA-256 清单、`git diff --check` | 0 | 30 组迁移、50 菜单、61 路由、179 权限、50 Mobile 路由和 `zh-CN/en-US` parity 通过；蓝图包 43 文件清单一致。 |
+
+验证中发现并修复的真实问题：既有 OTP 集成测试仍读取全局邮箱而未适配 App 标识；API Reference 漏掉新操作的模块映射/双语标题；OpenAPI 漏列运行时真实返回的部分 401/404/422/503 响应；`usableLoginMethodCount` 的空排除参数触发 SQL `NULL` 比较并漏算全部邮箱/手机；测试 Principal 缺少真实 Session 导致审计外键失败；Ant Design 窄屏溢出 Tabs 造成 axe critical。修复后均从对应最小复现到完整门禁重新执行，失败结果未写成成功。
+
+### 截图与验收边界
+
+- Admin 证据位于 `output/playwright/login-providers/`，索引为 `apps/ak-admin/artifacts/ui-ux-pro-max/AKADM-login-provider-configuration/screenshot-index.md`。它使用真实 Chrome + production build，但 API 是受控 fixture，不是实时 Backend 或 Provider 验收。
+- Mobile UI Skill 证据位于 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-120-login-providers/`；本轮没有伪造 Mobile 真机截图。iOS/Android/Harmony 登录、绑定、解绑、撤销、安装/未安装、取消、冷启动和读屏/最大字号仍待正式凭据与签名真机。
+- `android_google` 完整 HBuilder 云自定义基座仍在免费队列；独立 AAR、Android China 构建或空 Provider 快照都不能替代 Google 完整基座和真实登录。当前空快照按设计 fail-closed，不显示任何第三方图标。
+- 本轮没有 commit、push、生产部署、真实第三方请求或对既有 `appkernia-news-demo` 容器/数据做变更。测试用 PostgreSQL 容器在最终门禁后删除。
+- 后续建议：华为账号、QQ、受 Issuer Allowlist 与 Discovery SSRF 防护约束的通用 OIDC，以及按企业客户需求增加企业微信、钉钉、飞书；支付宝、GitLab、自定义 OAuth/OIDC 和在线插件仍不在首期范围。
 
 ## App 用户操作菜单
 

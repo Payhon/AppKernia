@@ -1,0 +1,339 @@
+<template>
+  <ak-theme-root>
+    <scroll-view class="page" scroll-y>
+      <view class="nav">
+        <ak-back-button />
+        <text class="nav-title">{{ t('routes.profile.connections.title', null) }}</text>
+        <view class="nav-slot" />
+      </view>
+
+      <text class="intro">{{ t('connections.description', null) }}</text>
+      <ak-status-view v-if="state != 'content'" :state="state" :title="stateTitle" :description="errorText" :loading-label="t('common.loading', null)" :retry-label="t('common.retry', null)" @retry="reload" />
+
+      <view v-else>
+        <text class="section-title">{{ t('connections.accountMethods', null) }}</text>
+        <ak-cell-list>
+          <view class="method-row" :aria-label="passwordAccessibility">
+            <view class="method-copy">
+              <text class="method-name">{{ t('auth.password', null) }}</text>
+              <text class="method-status">{{ methods != null && methods!.passwordPresent ? t('connections.configured', null) : t('connections.notConfigured', null) }}</text>
+            </view>
+            <text class="method-static">{{ methods != null && methods!.passwordLoginCapable ? t('connections.canLogin', null) : t('connections.unavailable', null) }}</text>
+          </view>
+
+          <view class="method-row" role="button" :aria-disabled="!canEditIdentifier(emailIdentifier)" :aria-label="identifierAccessibility('email', emailIdentifier)" @click="startIdentifier('email')">
+            <view class="method-copy">
+              <text class="method-name">{{ t('auth.email', null) }}</text>
+              <text class="method-status">{{ identifierStatus(emailIdentifier) }}</text>
+            </view>
+            <text class="method-action">{{ identifierAction(emailIdentifier) }}</text>
+          </view>
+
+          <view class="method-row" role="button" :aria-disabled="!canEditIdentifier(mobileIdentifier)" :aria-label="identifierAccessibility('mobile', mobileIdentifier)" @click="startIdentifier('mobile')">
+            <view class="method-copy">
+              <text class="method-name">{{ t('auth.mobile', null) }}</text>
+              <text class="method-status">{{ identifierStatus(mobileIdentifier) }}</text>
+            </view>
+            <text class="method-action">{{ identifierAction(mobileIdentifier) }}</text>
+          </view>
+        </ak-cell-list>
+
+        <view v-if="emailIdentifier != null && emailIdentifier!.canUnbind" class="inline-action" role="button" :aria-label="t('connections.accessibility.unbindEmail', null)" @click="confirmIdentifierDelete('email')">
+          <text class="inline-action-text">{{ t('connections.unbindEmail', null) }}</text>
+        </view>
+        <view v-if="mobileIdentifier != null && mobileIdentifier!.canUnbind" class="inline-action" role="button" :aria-label="t('connections.accessibility.unbindMobile', null)" @click="confirmIdentifierDelete('mobile')">
+          <text class="inline-action-text">{{ t('connections.unbindMobile', null) }}</text>
+        </view>
+
+        <text class="section-title">{{ t('connections.thirdParty', null) }}</text>
+        <ak-cell-list v-if="oauthAccounts.length > 0">
+          <view v-for="account in oauthAccounts" :key="account.id" class="oauth-row" :aria-label="oauthAccessibility(account)">
+            <view class="oauth-badge"><image class="oauth-icon" :src="providerIcon(account.providerCode)" mode="aspectFit" /></view>
+            <view class="method-copy">
+              <text class="method-name">{{ oauthName(account) }}</text>
+              <text class="method-status">{{ account.providerUsernameHint.length > 0 ? account.providerUsernameHint : t(account.loginCapable ? 'connections.connected' : 'connections.unavailable', null) }}</text>
+            </view>
+            <view v-if="account.canChange && knownProvider(account.providerCode)" :class="mutating ? 'row-action row-action--disabled' : 'row-action'" role="button" :aria-disabled="mutating" :aria-label="t('connections.replace', null)" @click="changeOAuth(account)">
+              <text class="row-action-text">{{ t('connections.replace', null) }}</text>
+            </view>
+            <view :class="account.canUnbind && !mutating ? 'row-action' : 'row-action row-action--disabled'" role="button" :aria-disabled="!account.canUnbind || mutating" :aria-label="t('connections.unbind', null)" @click="confirmOAuthUnbind(account)">
+              <text class="row-action-text">{{ account.canUnbind ? t('connections.unbind', null) : t('connections.protected', null) }}</text>
+            </view>
+          </view>
+        </ak-cell-list>
+        <text v-else class="empty-copy">{{ t('connections.noThirdParty', null) }}</text>
+
+        <text v-if="bindingMethodRequired" class="binding-help">{{ t('connections.stepUp.bindMethodRequired', null) }}</text>
+        <ak-login-provider-list mode="bind" :excluded-providers="excludedBindingProviderCodes" @bound="bound" @step-up-required="stepUpForBinding" />
+        <text v-if="oauthWaiting" class="provider-waiting">{{ t('connections.reauth.waiting', null) }}</text>
+      </view>
+      <view class="safe-bottom" />
+      <view class="safe-area" />
+    </scroll-view>
+
+    <ak-bottom-sheet :open="identifierOpen" :title="t(pendingIdentifier == 'email' ? 'connections.emailEditor' : 'connections.mobileEditor', null)" @close="closeIdentifier">
+      <view class="sheet-content">
+        <ak-text-field v-model="identifierValue" :label="t(pendingIdentifier == 'email' ? 'auth.email' : 'auth.mobile', null)" :placeholder="pendingIdentifier == 'mobile' ? t('auth.mobilePlaceholder', null) : ''" :error="identifierValueError" />
+        <view class="code-row">
+          <view class="code-field"><ak-text-field v-model="identifierCode" :label="t('auth.otp.code', null)" input-type="number" :max-length="6" :error="identifierCodeError" /></view>
+          <view :class="identifierCountdown > 0 ? 'send-code send-code--disabled' : 'send-code'" role="button" :aria-disabled="identifierCountdown > 0" :aria-label="identifierSendLabel" @click="sendIdentifierCode"><text class="send-code-text">{{ identifierSendLabel }}</text></view>
+        </view>
+        <ak-button :label="t('common.continue', null)" @click="continueIdentifier" />
+      </view>
+    </ak-bottom-sheet>
+
+    <ak-bottom-sheet :open="stepUpOpen" :title="t('connections.stepUp.title', null)" :dismissible="!mutating" @close="closeStepUp">
+      <view class="sheet-content">
+        <text class="sheet-description">{{ t('connections.stepUp.description', null) }}</text>
+        <ak-text-field v-if="stepUpMethod == 'password'" v-model="stepUpSecret" :label="t('auth.password', null)" password :error="stepUpError" />
+        <view v-else class="code-row">
+          <view class="code-field"><ak-text-field v-model="stepUpSecret" :label="t('auth.otp.code', null)" input-type="number" :max-length="6" :error="stepUpError" /></view>
+          <view :class="stepUpCountdown > 0 ? 'send-code send-code--disabled' : 'send-code'" role="button" :aria-disabled="stepUpCountdown > 0" :aria-label="stepUpSendLabel" @click="sendStepUpCode"><text class="send-code-text">{{ stepUpSendLabel }}</text></view>
+        </view>
+        <ak-button :loading="mutating" :loading-text="t('common.loading', null)" :label="t('connections.stepUp.verify', null)" @click="verifyStepUp" />
+      </view>
+    </ak-bottom-sheet>
+  </ak-theme-root>
+</template>
+
+<script lang="uts">
+import { AkError } from '../../../src/core/errors/ak-error.uts'
+import { akI18n } from '../../../src/core/i18n/ak-i18n.uts'
+import { HttpCancellation } from '../../../src/core/network/http-port.uts'
+import { themeState } from '../../../src/core/theme/theme-store.uts'
+import { OTPChallenge } from '../../../src/features/auth/auth-repository.uts'
+import { loginMethodsRuntime } from '../../../src/features/auth/login-methods-runtime.uts'
+import { oauthCoordinator } from '../../../src/features/auth/oauth-coordinator.uts'
+import { LoginIdentifier, LoginMethods, OAuthAccount, OAuthProviderCode, StepUpProof } from '../../../src/features/auth/oauth-models.uts'
+import { oauthProviderIcon } from '../../../src/features/auth/oauth-provider-assets.uts'
+
+let activeTask: HttpCancellation | null = null
+let identifierTimer: number = 0
+let stepUpTimer: number = 0
+
+export default {
+  data() {
+    return {
+      state: 'loading', errorText: '', methods: null as LoginMethods | null, oauthAccounts: [] as Array<OAuthAccount>,
+      identifierOpen: false, pendingIdentifier: 'email', identifierValue: '', identifierCode: '', identifierChallengeId: '', identifierValueError: '', identifierCodeError: '', identifierCountdown: 0,
+      stepUpOpen: false, stepUpMethod: 'password', stepUpSecret: '', stepUpChallengeId: '', stepUpError: '', stepUpCountdown: 0,
+      pendingAction: '', pendingAccountId: '', pendingProvider: '', mutating: false, oauthWaiting: false,
+    }
+  },
+  computed: {
+    t() { return akI18n.t },
+    stateTitle(): string { return akI18n.t(this.state == 'error' ? 'state.error.title' : 'state.loading.title', null) },
+    emailIdentifier(): LoginIdentifier | null { return this.findIdentifier('email') },
+    mobileIdentifier(): LoginIdentifier | null { return this.findIdentifier('mobile') },
+    excludedBindingProviderCodes(): Array<string> {
+      const values: Array<string> = []
+      if (this.methods == null) return values
+      this.methods!.oauthAccounts.forEach((item: OAuthAccount) => {
+        if (item.status != 'unbound' || !item.canBind) values.push(item.providerCode)
+      })
+      return values
+    },
+    bindingMethodRequired(): boolean {
+      if (this.methods == null) return false
+      for (let index = 0; index < this.methods!.oauthAccounts.length; index++) {
+        const item = this.methods!.oauthAccounts[index]
+        if (item.status == 'unbound' && !item.canBind && item.blockReason == 'step_up_method_required') return true
+      }
+      return false
+    },
+    passwordAccessibility(): string {
+      const status = this.methods != null && this.methods!.passwordLoginCapable ? akI18n.t('connections.canLogin', null) : akI18n.t('connections.unavailable', null)
+      return akI18n.t('connections.accessibility.password', new Map<string, string>([['status', status]]))
+    },
+    identifierSendLabel(): string {
+      return this.identifierCountdown > 0 ? akI18n.t('auth.otp.resendIn', new Map<string, string>([['seconds', this.identifierCountdown.toString()]])) : akI18n.t('auth.otp.send', null)
+    },
+    stepUpSendLabel(): string {
+      return this.stepUpCountdown > 0 ? akI18n.t('auth.otp.resendIn', new Map<string, string>([['seconds', this.stepUpCountdown.toString()]])) : akI18n.t('auth.otp.send', null)
+    },
+  },
+  onLoad() { this.reload() },
+  onUnload() { this.cancelActiveTask(); this.clearTimers(); this.stepUpSecret = ''; this.identifierCode = '' },
+  methods: {
+    cancelActiveTask(): void { const task = activeTask; activeTask = null; if (task != null) task!.cancel() },
+    clearTimers(): void {
+      if (identifierTimer != 0) { clearInterval(identifierTimer); identifierTimer = 0 }
+      if (stepUpTimer != 0) { clearInterval(stepUpTimer); stepUpTimer = 0 }
+    },
+    reload(): void {
+      const repository = loginMethodsRuntime.getRepository()
+      if (repository == null) { this.state = 'error'; this.errorText = akI18n.t('errors.runtime.unavailable', null); return }
+      this.cancelActiveTask()
+      this.state = 'loading'
+      this.errorText = ''
+      activeTask = repository.load(value => {
+        activeTask = null
+        this.methods = value
+        const bound: Array<OAuthAccount> = []
+        value.oauthAccounts.forEach((item: OAuthAccount) => { if (item.status != 'unbound') bound.push(item) })
+        this.oauthAccounts = bound
+        this.state = 'content'
+      }, error => { activeTask = null; this.errorText = akI18n.t(error.messageKey, null); this.state = 'error' })
+    },
+    findIdentifier(kind: string): LoginIdentifier | null {
+      if (this.methods == null) return null
+      for (let index = 0; index < this.methods!.identifiers.length; index++) { const item = this.methods!.identifiers[index]; if (item.identifierType == kind) return item }
+      return null
+    },
+    identifierStatus(item: LoginIdentifier | null): string {
+      if (item == null) return akI18n.t('connections.unavailable', null)
+      if (item!.status == 'unbound') return akI18n.t('connections.notBound', null)
+      const verified = item!.verified ? akI18n.t('connections.verified', null) : akI18n.t('connections.unverified', null)
+      return item!.displayHint + ' · ' + verified
+    },
+    canEditIdentifier(item: LoginIdentifier | null): boolean { return item != null && (item!.canBind || item!.canChange) },
+    identifierAction(item: LoginIdentifier | null): string {
+      if (item == null) return akI18n.t('connections.unavailable', null)
+      if (item!.canBind) return akI18n.t('connections.bind', null)
+      if (item!.canChange) return akI18n.t('connections.replace', null)
+      return akI18n.t('connections.protected', null)
+    },
+    identifierAccessibility(kind: string, item: LoginIdentifier | null): string {
+      return akI18n.t('connections.accessibility.identifier', new Map<string, string>([
+        ['type', akI18n.t(kind == 'email' ? 'auth.email' : 'auth.mobile', null)], ['status', this.identifierStatus(item)], ['action', this.identifierAction(item)],
+      ]))
+    },
+    knownProvider(code: string): boolean { return code == 'wechat' || code == 'github' || code == 'apple' || code == 'google' },
+    providerIcon(code: string): string { return oauthProviderIcon(code, themeState.isDark) },
+    oauthName(account: OAuthAccount): string {
+      return this.knownProvider(account.providerCode) ? akI18n.t(account.displayNameKey, null) : akI18n.t('connections.providerUnknown', new Map<string, string>([['provider', account.providerCode]]))
+    },
+    oauthAccessibility(account: OAuthAccount): string {
+      return akI18n.t('connections.accessibility.oauth', new Map<string, string>([
+        ['provider', this.oauthName(account)], ['status', account.canUnbind ? akI18n.t('connections.connected', null) : akI18n.t('connections.protected', null)],
+      ]))
+    },
+    startIdentifier(kind: string): void {
+      const item = this.findIdentifier(kind)
+      if (!this.canEditIdentifier(item)) return
+      this.pendingIdentifier = kind; this.identifierValue = ''; this.identifierCode = ''; this.identifierChallengeId = ''; this.identifierValueError = ''; this.identifierCodeError = ''; this.identifierOpen = true
+    },
+    closeIdentifier(): void { if (this.mutating) return; this.identifierOpen = false; this.identifierCode = '' },
+    sendIdentifierCode(): void {
+      if (this.identifierCountdown > 0) return
+      const value = this.identifierValue.trim()
+      if (!this.validIdentifier(value)) { this.identifierValueError = akI18n.t(this.pendingIdentifier == 'email' ? 'errors.validation.email' : 'errors.validation.mobile', null); return }
+      const repository = loginMethodsRuntime.getRepository()
+      if (repository == null) return
+      this.identifierValueError = ''
+      activeTask = repository.sendIdentifierCode(this.pendingIdentifier as 'email' | 'mobile', value, (challenge: OTPChallenge) => {
+        activeTask = null; this.identifierChallengeId = challenge.challengeId; this.identifierCountdown = challenge.retryAfterSeconds > 0 ? challenge.retryAfterSeconds : 60
+        if (identifierTimer != 0) clearInterval(identifierTimer)
+        identifierTimer = setInterval(() => { if (this.identifierCountdown <= 1) { this.identifierCountdown = 0; clearInterval(identifierTimer); identifierTimer = 0 } else this.identifierCountdown -= 1 }, 1000)
+      }, error => { activeTask = null; this.identifierCodeError = akI18n.t(error.messageKey, null) })
+    },
+    validIdentifier(value: string): boolean { return this.pendingIdentifier == 'email' ? value.indexOf('@') > 0 && !value.endsWith('@') : /^\+[1-9][0-9]{7,14}$/.test(value) },
+    continueIdentifier(): void {
+      this.identifierValueError = ''; this.identifierCodeError = ''
+      if (!this.validIdentifier(this.identifierValue.trim())) { this.identifierValueError = akI18n.t(this.pendingIdentifier == 'email' ? 'errors.validation.email' : 'errors.validation.mobile', null); return }
+      if (this.identifierChallengeId.length == 0 || !/^[0-9]{6}$/.test(this.identifierCode)) { this.identifierCodeError = akI18n.t('errors.validation.otp', null); return }
+      const item = this.findIdentifier(this.pendingIdentifier)
+      if (item == null || !this.canEditIdentifier(item)) { this.identifierCodeError = akI18n.t('connections.protected', null); return }
+      this.identifierOpen = false; this.pendingAction = 'update_' + this.pendingIdentifier
+      if (item!.canBind && !item!.canChange) { this.commitIdentifier(''); return }
+      this.openStepUp()
+    },
+    confirmIdentifierDelete(kind: string): void {
+      const item = this.findIdentifier(kind)
+      if (item == null || !item!.canUnbind || this.mutating) return
+      uni.showModal({ title: akI18n.t('connections.confirm.title', null), content: akI18n.t('connections.confirm.identifier', null), confirmText: akI18n.t('connections.unbind', null), cancelText: akI18n.t('common.cancel', null), success: result => { if (result.confirm) { this.pendingAction = 'delete_' + kind; this.openStepUp() } } })
+    },
+    confirmOAuthUnbind(account: OAuthAccount): void {
+      if (!account.canUnbind || this.mutating) return
+      uni.showModal({ title: akI18n.t('connections.confirm.title', null), content: akI18n.t('connections.confirm.oauth', null), confirmText: akI18n.t('connections.unbind', null), cancelText: akI18n.t('common.cancel', null), success: result => {
+        if (!result.confirm) return
+        this.pendingAction = 'unbind_oauth'; this.pendingAccountId = account.id
+        if (account.providerCode == 'apple') this.reauthOAuth(account); else this.openStepUp()
+      } })
+    },
+    changeOAuth(account: OAuthAccount): void { if (!account.canChange || !this.knownProvider(account.providerCode) || this.mutating) return; this.pendingAction = 'retry_bind'; this.pendingProvider = account.providerCode; this.openStepUp() },
+    stepUpForBinding(provider: string): void { if (!this.knownProvider(provider) || this.mutating) return; this.pendingAction = 'retry_bind'; this.pendingProvider = provider; this.openStepUp() },
+    openStepUp(): void { this.stepUpSecret = ''; this.stepUpChallengeId = ''; this.stepUpError = ''; this.stepUpCountdown = 0; this.stepUpMethod = this.preferredStepUpMethod(); this.stepUpOpen = true },
+    closeStepUp(): void { if (this.mutating) return; this.stepUpOpen = false; this.stepUpSecret = '' },
+    preferredStepUpMethod(): string {
+      if (this.methods != null && this.methods!.passwordPresent && this.methods!.passwordLoginCapable) return 'password'
+      const email = this.emailIdentifier
+      if (email != null && email!.loginCapable) return 'email_otp'
+      const mobile = this.mobileIdentifier
+      if (mobile != null && mobile!.loginCapable) return 'mobile_otp'
+      return ''
+    },
+    stepUpPurpose(): string { if (this.pendingAction == 'retry_bind') return 'oauth_bind'; if (this.pendingAction == 'unbind_oauth') return 'oauth_unbind'; if (this.pendingAction.startsWith('delete_')) return 'identifier_unbind'; return 'identifier_change' },
+    stepUpResource(): string { if (this.pendingAction == 'retry_bind') return this.pendingProvider; if (this.pendingAction == 'unbind_oauth') return this.pendingAccountId; return this.pendingAction.endsWith('email') ? 'email' : 'mobile' },
+    stepUpIdentifier(): LoginIdentifier | null { if (this.stepUpMethod == 'email_otp') return this.emailIdentifier; if (this.stepUpMethod == 'mobile_otp') return this.mobileIdentifier; return null },
+    sendStepUpCode(): void {
+      if (this.stepUpCountdown > 0 || this.stepUpMethod == 'password') return
+      const repository = loginMethodsRuntime.getRepository(); const identifier = this.stepUpIdentifier()
+      if (repository == null || identifier == null || identifier!.id.length == 0) { this.stepUpError = akI18n.t('connections.stepUp.methodUnavailable', null); return }
+      activeTask = repository.sendStepUpCode(identifier!.id, this.stepUpPurpose(), this.stepUpResource(), (challenge: OTPChallenge) => {
+        activeTask = null; this.stepUpChallengeId = challenge.challengeId; this.stepUpCountdown = challenge.retryAfterSeconds > 0 ? challenge.retryAfterSeconds : 60
+        if (stepUpTimer != 0) clearInterval(stepUpTimer)
+        stepUpTimer = setInterval(() => { if (this.stepUpCountdown <= 1) { this.stepUpCountdown = 0; clearInterval(stepUpTimer); stepUpTimer = 0 } else this.stepUpCountdown -= 1 }, 1000)
+      }, error => { activeTask = null; this.stepUpError = akI18n.t(error.messageKey, null) })
+    },
+    verifyStepUp(): void {
+      this.stepUpError = ''
+      if (this.stepUpMethod.length == 0) { this.stepUpError = akI18n.t('connections.stepUp.methodUnavailable', null); return }
+      if (this.stepUpSecret.length == 0) { this.stepUpError = akI18n.t('errors.validation.required', null); return }
+      if (this.stepUpMethod != 'password' && !/^[0-9]{6}$/.test(this.stepUpSecret)) { this.stepUpError = akI18n.t('errors.validation.otp', null); return }
+      const repository = loginMethodsRuntime.getRepository()
+      if (repository == null) return
+      this.mutating = true
+      const success = (proof: StepUpProof) => this.executePending(proof.token)
+      const failure = (error: AkError) => { activeTask = null; this.mutating = false; this.stepUpError = akI18n.t(error.messageKey, null) }
+      if (this.stepUpMethod == 'password') { activeTask = repository.stepUpPassword(this.stepUpPurpose(), this.stepUpResource(), this.stepUpSecret, success, failure); return }
+      const identifier = this.stepUpIdentifier()
+      if (identifier == null || this.stepUpChallengeId.length == 0) { this.mutating = false; this.stepUpError = akI18n.t('auth.otp.sendFirst', null); return }
+      activeTask = repository.stepUpOTP(this.stepUpMethod as 'email_otp' | 'mobile_otp', this.stepUpPurpose(), this.stepUpResource(), identifier!.id, this.stepUpChallengeId, this.stepUpSecret, success, failure)
+    },
+    commitIdentifier(stepUpToken: string): void {
+      const repository = loginMethodsRuntime.getRepository()
+      if (repository == null) return
+      this.mutating = true
+      activeTask = repository.updateIdentifier(this.pendingIdentifier as 'email' | 'mobile', this.identifierValue.trim(), this.identifierChallengeId, this.identifierCode, stepUpToken, _identifier => {
+        activeTask = null; this.mutating = false; this.identifierCode = ''; this.identifierChallengeId = ''; this.reload()
+      }, error => { activeTask = null; this.mutating = false; this.stepUpOpen = true; this.stepUpError = akI18n.t(error.messageKey, null) })
+    },
+    executePending(stepUpToken: string): void {
+      const repository = loginMethodsRuntime.getRepository()
+      if (repository == null) { this.mutating = false; return }
+      const done = () => { activeTask = null; this.mutating = false; this.stepUpOpen = false; this.stepUpSecret = ''; this.stepUpChallengeId = ''; this.identifierCode = ''; this.reload() }
+      const fail = (error: AkError) => { activeTask = null; this.mutating = false; this.stepUpError = akI18n.t(error.messageKey, null) }
+      if (this.pendingAction == 'unbind_oauth') { oauthCoordinator.unbind(this.pendingAccountId, stepUpToken, done, fail); return }
+      if (this.pendingAction == 'delete_email' || this.pendingAction == 'delete_mobile') { activeTask = repository.deleteIdentifier(this.pendingAction.endsWith('email') ? 'email' : 'mobile', stepUpToken, done, fail); return }
+      if (this.pendingAction == 'update_email' || this.pendingAction == 'update_mobile') { this.stepUpOpen = false; this.commitIdentifier(stepUpToken); return }
+      if (this.pendingAction == 'retry_bind') {
+        this.stepUpOpen = false
+        oauthCoordinator.authorize(this.pendingProvider as OAuthProviderCode, 'bind', () => { this.oauthWaiting = true }, _result => { this.oauthWaiting = false; done() }, error => { this.oauthWaiting = false; fail(error) }, stepUpToken)
+        return
+      }
+      this.mutating = false
+    },
+    reauthOAuth(account: OAuthAccount): void {
+      this.mutating = true; this.oauthWaiting = false
+      oauthCoordinator.reauthorize('apple', account.id, 'oauth_unbind', () => { this.oauthWaiting = true }, result => {
+        this.oauthWaiting = false
+        if (result.stepUpToken.length == 0) { this.mutating = false; this.oauthFailure(new AkError('validation', 'oauth.step_up_missing', 'errors.oauth.callbackInvalid', null)); return }
+        oauthCoordinator.unbind(account.id, result.stepUpToken, () => { this.mutating = false; this.reload() }, error => { this.mutating = false; this.oauthFailure(error) })
+      }, error => { this.oauthWaiting = false; this.mutating = false; if (error.code != 'IAM.OAUTH.AUTHORIZATION_DENIED' && error.code != 'oauth.browser_cancelled') this.oauthFailure(error) })
+    },
+    bound(): void { this.reload() },
+    oauthFailure(error: AkError): void { uni.showToast({ title: akI18n.t(error.messageKey, null), icon: 'none' }) },
+  },
+}
+</script>
+
+<style lang="scss">
+.page{height:100%;flex:1;padding:16px 20px 0;background:var(--ak-page)}
+.nav{height:44px;flex-direction:row;align-items:center;justify-content:space-between}.nav-title{font-size:17px;font-weight:600;color:var(--ak-text)}.nav-slot{width:44px;height:44px}
+.intro{font-size:15px;line-height:22px;color:var(--ak-muted);margin:18px 0 8px}.section-title{font-size:20px;line-height:28px;font-weight:700;color:var(--ak-text);margin:24px 0 12px}
+.method-row,.oauth-row{min-height:64px;padding:10px 16px;flex-direction:row;align-items:center;border-bottom:1px solid var(--ak-border)}.method-copy{flex:1;min-width:0}.method-name{font-size:16px;line-height:22px;font-weight:600;color:var(--ak-text)}.method-status{font-size:13px;line-height:19px;color:var(--ak-muted);margin-top:3px}.method-action,.method-static{font-size:14px;line-height:20px;color:var(--ak-brand);margin-left:12px}
+.oauth-badge{width:40px;height:40px;border-radius:20px;align-items:center;justify-content:center;background:var(--ak-surface-subtle);margin-right:12px}.oauth-icon{width:28px;height:28px}.row-action{min-width:64px;min-height:44px;margin-left:8px;align-items:center;justify-content:center}.row-action--disabled{opacity:.65}.row-action-text{font-size:14px;color:var(--ak-brand)}
+.inline-action{min-height:44px;align-items:flex-end;justify-content:center}.inline-action-text{font-size:13px;color:var(--ak-danger)}.empty-copy{font-size:14px;line-height:21px;color:var(--ak-muted);padding:16px 4px}.binding-help,.provider-waiting{font-size:13px;line-height:19px;color:var(--ak-muted);text-align:center;margin-top:8px}.safe-bottom{height:48px}.safe-area{height:env(safe-area-inset-bottom)}
+.sheet-content{padding-bottom:20px}.sheet-description{font-size:15px;line-height:22px;color:var(--ak-muted);margin-bottom:16px}.code-row{flex-direction:row;align-items:flex-start}.code-field{flex:1}.send-code{width:112px;min-height:48px;margin-left:10px;margin-top:23px;padding:0 8px;border:1px solid var(--ak-brand);border-radius:12px;align-items:center;justify-content:center}.send-code--disabled{opacity:.5}.send-code-text{font-size:13px;line-height:18px;color:var(--ak-brand);font-weight:600;text-align:center}
+</style>

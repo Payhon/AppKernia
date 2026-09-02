@@ -24,8 +24,9 @@
 | `AKADM-240` | P2C | 定时任务 | AKADM-040 | 必须 | timezone/DST；handler restriction；execute confirmation |
 | `AKADM-250` | P2C | API Client 与 Webhook | AKADM-040 | 必须 | one-time disclosure；SSRF validation；delivery E2E |
 | `AKADM-260` | P2C | 访问控制与服务状态 | AKADM-140 | 必须 | impact confirmation；redacted subjects；no secret exposure |
+| `AKADM-270` | P2C | 第三方登录配置与 App 绑定 | AKADM-020, AKADM-040 | 必须 | write-only secret；preflight lifecycle；atomic four-provider binding |
 | `AKADM-300` | P3 | OAuth 绑定与完整 MFA | AKADM-060 | 必须 | PKCE/state test；one-time secret；step-up E2E |
-| `AKADM-310` | P3 | 全量硬化、性能、i18n 完整性与视觉回归 | AKADM-070, AKADM-130, AKADM-150, AKADM-200, AKADM-220, AKADM-230, AKADM-240, AKADM-250, AKADM-260 | 必须 | pnpm lint；pnpm typecheck；pnpm test |
+| `AKADM-310` | P3 | 全量硬化、性能、i18n 完整性与视觉回归 | AKADM-070, AKADM-130, AKADM-150, AKADM-200, AKADM-220, AKADM-230, AKADM-240, AKADM-250, AKADM-260, AKADM-270 | 必须 | pnpm lint；pnpm typecheck；pnpm test |
 
 Agent 一次只领取一个 Task ID。UI Task 先读取/生成 Master 和页面 override；API 缺口先更新 OpenAPI 与 delta；完成后记录实际命令、测试数、截图和风险。
 

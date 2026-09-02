@@ -365,6 +365,449 @@ export type AppLegalConsentRequest = {
     locale: SupportedLocale;
 };
 
+export type LoginProviderCode = 'wechat' | 'github' | 'apple' | 'google';
+
+export type LoginProviderPlatform = 'ios' | 'android' | 'harmony';
+
+export type LoginProviderBuildVariant = 'ios' | 'android_google' | 'android_china' | 'harmony';
+
+export type LoginProviderConfigStatus = 'draft' | 'active' | 'disabled';
+
+export type LoginProviderPreflightStatus = 'ready' | 'failed' | null;
+
+export type LoginIdentifierType = 'email' | 'mobile';
+
+export type LoginProviderFieldDescriptor = {
+    name: string;
+    location: 'external_client_id' | 'public_config' | 'secret';
+    value_type: 'string' | 'url' | 'pem' | 'string_array';
+    required: boolean;
+    secret: boolean;
+    max_length: number;
+    help_key: string;
+};
+
+export type LoginProviderDescriptor = {
+    provider_code: LoginProviderCode;
+    display_name_key: string;
+    icon_key: string;
+    authorization_kind: 'native_code' | 'browser_ticket' | 'native_id_token';
+    supported_platforms: Array<LoginProviderPlatform>;
+    build_variants: Array<LoginProviderBuildVariant>;
+    config_schema_version: 1;
+    requires_secret: boolean;
+    fields: Array<LoginProviderFieldDescriptor>;
+    help_url: string;
+};
+
+export type LoginProviderCatalog = {
+    items: Array<LoginProviderDescriptor>;
+};
+
+export type LoginProviderCatalogResponse = {
+    code: 'OK';
+    message: string;
+    data: LoginProviderCatalog;
+    request_id: string;
+};
+
+export type LoginProviderPlatformConfig = {
+    enabled: boolean;
+    package_name?: string;
+    app_signature?: string;
+    bundle_id?: string;
+    universal_link?: string;
+    bundle_name?: string;
+};
+
+export type WechatLoginProviderPublicConfig = {
+    android: LoginProviderPlatformConfig;
+    ios: LoginProviderPlatformConfig;
+    harmony: LoginProviderPlatformConfig;
+};
+
+export type GitHubLoginProviderPublicConfig = {
+    app_return_uri: string;
+};
+
+export type AppleLoginProviderPublicConfig = {
+    team_id: string;
+    key_id: string;
+};
+
+export type GoogleLoginProviderPublicConfig = {
+    android_package_name: string;
+    android_certificate_sha256: Array<string>;
+};
+
+export type LoginProviderPublicConfig = WechatLoginProviderPublicConfig | GitHubLoginProviderPublicConfig | AppleLoginProviderPublicConfig | GoogleLoginProviderPublicConfig;
+
+export type LoginProviderConfig = {
+    id: string;
+    tenant_id?: string;
+    name: string;
+    description: string;
+    provider_code: LoginProviderCode;
+    external_client_id: string;
+    config_schema_version: 1;
+    public_config: LoginProviderPublicConfig;
+    secret_field_names: Array<string>;
+    has_secret: boolean;
+    credential_fingerprint?: string;
+    status: LoginProviderConfigStatus;
+    last_preflight_at: string | null;
+    last_preflight_status: LoginProviderPreflightStatus;
+    last_preflight_issues: Array<string>;
+    binding_count: number;
+    lock_version: number;
+    /**
+     * Exact fixed HTTPS callback to register for GitHub; omitted for other providers.
+     */
+    callback_uri?: string;
+    created_at: string;
+    updated_at: string;
+};
+
+export type LoginProviderConfigRequest = {
+    name: string;
+    description: string;
+    provider_code: LoginProviderCode;
+    external_client_id: string;
+    config_schema_version: 1;
+    public_config: LoginProviderPublicConfig;
+};
+
+export type LoginProviderConfigUpdateRequest = LoginProviderConfigRequest & {
+    lock_version: number;
+};
+
+export type LoginProviderSecretRequest = {
+    lock_version: number;
+};
+
+export type LoginProviderConfigPage = {
+    items: Array<LoginProviderConfig>;
+    page: number;
+    page_size: number;
+    total: number;
+};
+
+export type LoginProviderConfigResponse = {
+    code: 'OK';
+    message: string;
+    data: LoginProviderConfig;
+    request_id: string;
+};
+
+export type LoginProviderConfigPageResponse = {
+    code: 'OK';
+    message: string;
+    data: LoginProviderConfigPage;
+    request_id: string;
+};
+
+export type LoginProviderBinding = {
+    id: string | null;
+    app_id: string;
+    provider_code: LoginProviderCode;
+    login_provider_config_id: string | null;
+    config_name: string | null;
+    config_status: LoginProviderConfigStatus | null;
+    preflight_status: LoginProviderPreflightStatus;
+    enabled: boolean;
+    sort_order: number;
+    lock_version: number;
+    updated_at: string | null;
+};
+
+export type LoginProviderBindingInput = {
+    provider_code: LoginProviderCode;
+    login_provider_config_id: string | null;
+    enabled: boolean;
+    sort_order: number;
+    lock_version: number;
+};
+
+export type LoginProviderBindingBulkRequest = {
+    bindings: [
+        LoginProviderBindingInput,
+        LoginProviderBindingInput,
+        LoginProviderBindingInput,
+        LoginProviderBindingInput
+    ];
+};
+
+export type LoginProviderBindingList = {
+    items: Array<LoginProviderBinding>;
+};
+
+export type LoginProviderBindingListResponse = {
+    code: 'OK';
+    message: string;
+    data: LoginProviderBindingList;
+    request_id: string;
+};
+
+export type MobileLoginProvider = {
+    provider_code: LoginProviderCode;
+    display_name_key: string;
+    icon_key: string;
+    authorization_kind: 'native_code' | 'browser_ticket' | 'native_id_token';
+    supported_platforms: Array<LoginProviderPlatform>;
+    build_variants: Array<LoginProviderBuildVariant>;
+    login_enabled: boolean;
+    binding_enabled: boolean;
+    sort_order: number;
+    config_schema_version: 1;
+    build_config_hash: string;
+    build_config: {
+        [key: string]: unknown;
+    };
+};
+
+export type MobileLoginProviderList = {
+    items: Array<MobileLoginProvider>;
+};
+
+export type MobileLoginProviderListResponse = {
+    code: 'OK';
+    message: string;
+    data: MobileLoginProviderList;
+    request_id: string;
+};
+
+export type MobileOAuthAuthorizeRequest = {
+    mode: 'login' | 'bind' | 'reauth';
+    platform: LoginProviderPlatform;
+    build_variant: LoginProviderBuildVariant;
+    build_config_hash: string;
+    step_up_token?: string;
+    reauth_purpose?: 'oauth_unbind' | 'account_delete';
+    account_id?: string;
+};
+
+export type MobileOAuthAuthorizeResult = {
+    flow_id: string;
+    provider_code: LoginProviderCode;
+    mode: 'login' | 'bind' | 'reauth';
+    authorization_kind: 'native_code' | 'browser_ticket' | 'native_id_token';
+    authorization_url?: string;
+    state: string;
+    nonce?: string;
+    expires_at: string;
+};
+
+export type MobileOAuthAuthorizeResponse = {
+    code: 'OK';
+    message: string;
+    data: MobileOAuthAuthorizeResult;
+    request_id: string;
+};
+
+export type MobileOAuthCallbackRequest = {
+    flow_id: string;
+    state?: string;
+    authorization_code?: string;
+    id_token?: string;
+    one_time_ticket?: string;
+    /**
+     * Apple-only first-authorization display name. Used only after ID-token verification and never for identity matching.
+     */
+    display_name?: string;
+};
+
+export type MobileSessionTokens = {
+    access_token: string;
+    token_type: 'Bearer';
+    expires_in: number;
+    refresh_token: string;
+    refresh_token_expires_in: number;
+    session_id: string;
+    app_id: string;
+};
+
+export type MobileOAuthCallbackResult = {
+    mode: 'login' | 'bind' | 'reauth';
+    oauth_account?: MobileOAuthAccount;
+    session?: MobileSessionTokens;
+    step_up_token?: string;
+    step_up_expires_at?: string;
+};
+
+export type MobileOAuthCallbackResponse = {
+    code: 'OK';
+    message: string;
+    data: MobileOAuthCallbackResult;
+    request_id: string;
+};
+
+export type EmailLoginCodeRequest = {
+    email: string;
+};
+
+export type MobileLoginCodeRequest = {
+    mobile: string;
+};
+
+export type OtpChallenge = {
+    challenge_id: string;
+    accepted: true;
+    retry_after_seconds: number;
+    expires_at: string;
+};
+
+export type OtpChallengeResponse = {
+    code: 'OK';
+    message: string;
+    data: OtpChallenge;
+    request_id: string;
+};
+
+export type MobileOtpLoginRequest = {
+    identifier_type: LoginIdentifierType;
+    identifier: string;
+    challenge_id: string;
+    verification_code: string;
+};
+
+export type MobileStepUpCodeRequest = {
+    identifier_id: string;
+    purpose: 'oauth_bind' | 'oauth_unbind' | 'identifier_change' | 'identifier_unbind' | 'account_delete';
+    resource: string;
+};
+
+export type MobileStepUpRequest = {
+    method: 'password' | 'email_otp' | 'mobile_otp';
+    purpose: 'oauth_bind' | 'oauth_unbind' | 'identifier_change' | 'identifier_unbind' | 'account_delete';
+    resource: string;
+    password?: string;
+    identifier_id?: string;
+    challenge_id?: string;
+    verification_code?: string;
+};
+
+export type MobileStepUpResult = {
+    step_up_token: string;
+    expires_at: string;
+};
+
+export type MobileStepUpResponse = {
+    code: 'OK';
+    message: string;
+    data: MobileStepUpResult;
+    request_id: string;
+};
+
+export type MobileOAuthAccount = {
+    id: string;
+    provider_code: string;
+    display_name_key: string;
+    provider_username_hint: string;
+    status: 'active' | 'disabled' | 'unbound';
+    login_enabled: boolean;
+    login_capable: boolean;
+    can_bind: boolean;
+    /**
+     * v1 requires explicit unbind before binding a different subject.
+     */
+    can_change: false;
+    bound_at: string;
+    last_authenticated_at?: string | null;
+    can_unbind: boolean;
+    block_reason?: 'last_login_method' | 'provider_disabled' | 'reauth_required' | 'step_up_method_required';
+};
+
+export type MobileLoginIdentifier = {
+    id: string;
+    identifier_type: LoginIdentifierType;
+    display_hint: string;
+    verified: boolean;
+    status: 'active' | 'disabled' | 'unbound';
+    login_capable: boolean;
+    can_bind: boolean;
+    can_change: boolean;
+    can_unbind: boolean;
+    block_reason?: 'last_login_method';
+};
+
+export type MobilePasswordMethod = {
+    present: boolean;
+    login_capable: boolean;
+    can_bind: boolean;
+    can_change: boolean;
+    can_unbind: boolean;
+    block_reason?: 'last_login_method';
+};
+
+export type MobileLoginMethods = {
+    password: MobilePasswordMethod;
+    identifiers: Array<MobileLoginIdentifier>;
+    oauth_accounts: Array<MobileOAuthAccount>;
+    remaining_login_methods: number;
+};
+
+export type MobileLoginMethodsResponse = {
+    code: 'OK';
+    message: string;
+    data: MobileLoginMethods;
+    request_id: string;
+};
+
+export type MobileOAuthAccountList = {
+    items: Array<MobileOAuthAccount>;
+};
+
+export type MobileOAuthAccountListResponse = {
+    code: 'OK';
+    message: string;
+    data: MobileOAuthAccountList;
+    request_id: string;
+};
+
+export type LoginIdentifierChallengeRequest = {
+    identifier: string;
+};
+
+export type LoginIdentifierVerifyRequest = {
+    identifier: string;
+    challenge_id: string;
+    verification_code: string;
+    step_up_token?: string;
+};
+
+export type MobileLoginIdentifierMutation = {
+    identifier: MobileLoginIdentifier;
+};
+
+export type MobileLoginIdentifierMutationResponse = {
+    code: 'OK';
+    message: string;
+    data: MobileLoginIdentifierMutation;
+    request_id: string;
+};
+
+export type StepUpTokenRequest = {
+    step_up_token: string;
+};
+
+export type UnboundResponse = {
+    code: 'OK';
+    message: string;
+    data: {
+        unbound: true;
+    };
+    request_id: string;
+};
+
+export type DeletedResponse = {
+    code: 'OK';
+    message: string;
+    data: {
+        deleted: true;
+    };
+    request_id: string;
+};
+
 export type AppRegistrationRequest = {
     email: string;
     display_name: string;
@@ -399,11 +842,21 @@ export type AppAcceptedResponse = {
 export type AccountDeletionVerificationCode = {
     accepted: true;
     /**
-     * Masked verified email address.
+     * Masked verified App email, or empty when email verification is not required.
      */
     target_hint: string;
-    expires_in_seconds: 600;
+    /**
+     * Zero when verification_required is false.
+     */
+    expires_in_seconds: number;
+    /**
+     * Zero when verification_required is false.
+     */
     retry_after_seconds: number;
+    verification_required: boolean;
+    reauth_required: boolean;
+    reauth_provider?: 'apple';
+    reauth_account_id?: string;
 };
 
 export type AccountDeletionVerificationCodeResponse = {
@@ -414,7 +867,14 @@ export type AccountDeletionVerificationCodeResponse = {
 };
 
 export type AccountDeletionConfirmRequest = {
-    verification_code: string;
+    /**
+     * Required only when verification_required was true.
+     */
+    verification_code?: string;
+    /**
+     * Required only when reauth_required was true; must be issued by the fresh provider reauth flow for reauth_account_id.
+     */
+    step_up_token?: string;
     acknowledged: true;
 };
 
@@ -3398,7 +3858,7 @@ export type ContentTranslation = {
     summary: string;
     body_format: 'markdown';
     /**
-     * Markdown source. Raw HTML
+     * Markdown source. Raw HTML, base64 media, javascript URLs, and unregistered image references are forbidden. Managed images use the protected content asset path.
      */
     body: string;
 };
@@ -4505,6 +4965,13 @@ export type AdminPushProviderConfigListResponseWritable = {
     request_id: string;
 };
 
+export type LoginProviderSecretRequestWritable = {
+    values: {
+        [key: string]: string;
+    };
+    lock_version: number;
+};
+
 export type AdminUserCreateRequestWritable = {
     email: string;
     display_name: string;
@@ -4656,6 +5123,11 @@ export type AcceptLanguage = string;
  * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
  */
 export type AppId = string;
+
+/**
+ * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+ */
+export type LoginProviderDeviceKey = string;
 
 export type CsrfToken = string;
 
@@ -5591,10 +6063,6 @@ export type RequestMobileAccountDeletionCodeErrors = {
      */
     403: ErrorResponse;
     /**
-     * The current account has no verified email.
-     */
-    409: ErrorResponse;
-    /**
      * A code was sent during the resend cooldown.
      */
     429: ErrorResponse;
@@ -5608,7 +6076,7 @@ export type RequestMobileAccountDeletionCodeError = RequestMobileAccountDeletion
 
 export type RequestMobileAccountDeletionCodeResponses = {
     /**
-     * A single-use six-digit code was queued for delivery.
+     * Requirements were resolved and, when verification_required is true, a single-use six-digit email code was queued.
      */
     202: AccountDeletionVerificationCodeResponse;
 };
@@ -5638,13 +6106,13 @@ export type ConfirmMobileAccountDeletionErrors = {
      */
     403: ErrorResponse;
     /**
-     * The current account has no verified email.
-     */
-    409: ErrorResponse;
-    /**
-     * The acknowledgement or verification code is invalid
+     * The acknowledgement or verification code is invalid, expired, or exhausted.
      */
     422: ErrorResponse;
+    /**
+     * Fresh provider-backed step-up is required.
+     */
+    428: ErrorResponse;
     /**
      * Account deletion failed without changing the account.
      */
@@ -5774,6 +6242,384 @@ export type DownloadMobileAppVersionPackageResponses = {
 };
 
 export type DownloadMobileAppVersionPackageResponse = DownloadMobileAppVersionPackageResponses[keyof DownloadMobileAppVersionPackageResponses];
+
+export type ListMobileLoginProvidersData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query: {
+        platform: LoginProviderPlatform;
+        build_variant: LoginProviderBuildVariant;
+    };
+    url: '/api/v1/auth/oauth/providers';
+};
+
+export type ListMobileLoginProvidersErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListMobileLoginProvidersError = ListMobileLoginProvidersErrors[keyof ListMobileLoginProvidersErrors];
+
+export type ListMobileLoginProvidersResponses = {
+    /**
+     * Registered providers filtered by the App binding and platform configuration.
+     */
+    200: MobileLoginProviderListResponse;
+};
+
+export type ListMobileLoginProvidersResponse = ListMobileLoginProvidersResponses[keyof ListMobileLoginProvidersResponses];
+
+export type AuthorizeMobileOAuthData = {
+    body: MobileOAuthAuthorizeRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+    };
+    path: {
+        provider: LoginProviderCode;
+    };
+    query?: never;
+    url: '/api/v1/auth/oauth/{provider}/authorize';
+};
+
+export type AuthorizeMobileOAuthErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * A single-use step-up token is required.
+     */
+    428: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type AuthorizeMobileOAuthError = AuthorizeMobileOAuthErrors[keyof AuthorizeMobileOAuthErrors];
+
+export type AuthorizeMobileOAuthResponses = {
+    /**
+     * Short-lived authorization flow. State and nonce must not be logged.
+     */
+    200: MobileOAuthAuthorizeResponse;
+};
+
+export type AuthorizeMobileOAuthResponse = AuthorizeMobileOAuthResponses[keyof AuthorizeMobileOAuthResponses];
+
+export type CallbackMobileOAuthData = {
+    body: MobileOAuthCallbackRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+    };
+    path: {
+        provider: LoginProviderCode;
+    };
+    query?: never;
+    url: '/api/v1/auth/oauth/{provider}/callback';
+};
+
+export type CallbackMobileOAuthErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Identity conflict, consumed flow, or ACCOUNT_LINK_REQUIRED.
+     */
+    409: ErrorResponse;
+    /**
+     * Authorization flow expired.
+     */
+    410: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type CallbackMobileOAuthError = CallbackMobileOAuthErrors[keyof CallbackMobileOAuthErrors];
+
+export type CallbackMobileOAuthResponses = {
+    /**
+     * Login session, bound account, or provider-backed step-up result according to mode.
+     */
+    200: MobileOAuthCallbackResponse;
+};
+
+export type CallbackMobileOAuthResponse = CallbackMobileOAuthResponses[keyof CallbackMobileOAuthResponses];
+
+export type CallbackGitHubOAuthBrowserData = {
+    body?: never;
+    path: {
+        provider: 'github';
+    };
+    query: {
+        code: string;
+        state: string;
+    };
+    url: '/api/v1/auth/oauth/{provider}/browser-callback';
+};
+
+export type CallbackGitHubOAuthBrowserErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type CallbackGitHubOAuthBrowserError = CallbackGitHubOAuthBrowserErrors[keyof CallbackGitHubOAuthBrowserErrors];
+
+export type SendMobileEmailLoginCodeData = {
+    body: EmailLoginCodeRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/email/send-code';
+};
+
+export type SendMobileEmailLoginCodeErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type SendMobileEmailLoginCodeError = SendMobileEmailLoginCodeErrors[keyof SendMobileEmailLoginCodeErrors];
+
+export type SendMobileEmailLoginCodeResponses = {
+    /**
+     * Same accepted shape and persisted cooldown for known and unknown identifiers.
+     */
+    202: OtpChallengeResponse;
+};
+
+export type SendMobileEmailLoginCodeResponse = SendMobileEmailLoginCodeResponses[keyof SendMobileEmailLoginCodeResponses];
+
+export type SendMobileSmsLoginCodeData = {
+    body: MobileLoginCodeRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/mobile/send-code';
+};
+
+export type SendMobileSmsLoginCodeErrors = {
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type SendMobileSmsLoginCodeError = SendMobileSmsLoginCodeErrors[keyof SendMobileSmsLoginCodeErrors];
+
+export type SendMobileSmsLoginCodeResponses = {
+    /**
+     * Same accepted shape and persisted cooldown for known and unknown identifiers.
+     */
+    202: OtpChallengeResponse;
+};
+
+export type SendMobileSmsLoginCodeResponse = SendMobileSmsLoginCodeResponses[keyof SendMobileSmsLoginCodeResponses];
+
+export type MobileOtpLoginData = {
+    body: MobileOtpLoginRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/login/otp';
+};
+
+export type MobileOtpLoginErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type MobileOtpLoginError = MobileOtpLoginErrors[keyof MobileOtpLoginErrors];
+
+export type MobileOtpLoginResponses = {
+    /**
+     * Bearer access token plus a one-time opaque refresh token.
+     */
+    200: MobileTokenResponse;
+};
+
+export type MobileOtpLoginResponse = MobileOtpLoginResponses[keyof MobileOtpLoginResponses];
+
+export type SendMobileStepUpCodeData = {
+    body: MobileStepUpCodeRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/step-up/verification-code';
+};
+
+export type SendMobileStepUpCodeErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type SendMobileStepUpCodeError = SendMobileStepUpCodeErrors[keyof SendMobileStepUpCodeErrors];
+
+export type SendMobileStepUpCodeResponses = {
+    /**
+     * Step-up challenge accepted.
+     */
+    202: OtpChallengeResponse;
+};
+
+export type SendMobileStepUpCodeResponse = SendMobileStepUpCodeResponses[keyof SendMobileStepUpCodeResponses];
+
+export type CreateMobileStepUpTokenData = {
+    body: MobileStepUpRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/step-up';
+};
+
+export type CreateMobileStepUpTokenErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateMobileStepUpTokenError = CreateMobileStepUpTokenErrors[keyof CreateMobileStepUpTokenErrors];
+
+export type CreateMobileStepUpTokenResponses = {
+    /**
+     * Short-lived purpose- and resource-bound token.
+     */
+    200: MobileStepUpResponse;
+};
+
+export type CreateMobileStepUpTokenResponse = CreateMobileStepUpTokenResponses[keyof CreateMobileStepUpTokenResponses];
 
 export type MobilePasswordLoginData = {
     body: MobilePasswordLoginRequest;
@@ -6101,6 +6947,280 @@ export type MobileChangePasswordResponses = {
 };
 
 export type MobileChangePasswordResponse = MobileChangePasswordResponses[keyof MobileChangePasswordResponses];
+
+export type GetMobileLoginMethodsData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/login-methods';
+};
+
+export type GetMobileLoginMethodsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type GetMobileLoginMethodsError = GetMobileLoginMethodsErrors[keyof GetMobileLoginMethodsErrors];
+
+export type GetMobileLoginMethodsResponses = {
+    /**
+     * Includes unbound placeholders and server-computed login_capable, can_bind, can_change, can_unbind and block_reason fields.
+     */
+    200: MobileLoginMethodsResponse;
+};
+
+export type GetMobileLoginMethodsResponse = GetMobileLoginMethodsResponses[keyof GetMobileLoginMethodsResponses];
+
+export type ListMobileOAuthAccountsData = {
+    body?: never;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/oauth-accounts';
+};
+
+export type ListMobileOAuthAccountsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type ListMobileOAuthAccountsError = ListMobileOAuthAccountsErrors[keyof ListMobileOAuthAccountsErrors];
+
+export type ListMobileOAuthAccountsResponses = {
+    /**
+     * Bound App-scoped external accounts, including historical unknown providers.
+     */
+    200: MobileOAuthAccountListResponse;
+};
+
+export type ListMobileOAuthAccountsResponse = ListMobileOAuthAccountsResponses[keyof ListMobileOAuthAccountsResponses];
+
+export type DeleteMobileOAuthAccountData = {
+    body: StepUpTokenRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        account_id: string;
+    };
+    query?: never;
+    url: '/api/v1/me/oauth-accounts/{account_id}';
+};
+
+export type DeleteMobileOAuthAccountErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * A provider-appropriate step-up is required.
+     */
+    428: ErrorResponse;
+};
+
+export type DeleteMobileOAuthAccountError = DeleteMobileOAuthAccountErrors[keyof DeleteMobileOAuthAccountErrors];
+
+export type DeleteMobileOAuthAccountResponses = {
+    /**
+     * Account unbound.
+     */
+    200: UnboundResponse;
+};
+
+export type DeleteMobileOAuthAccountResponse = DeleteMobileOAuthAccountResponses[keyof DeleteMobileOAuthAccountResponses];
+
+export type ChallengeMobileLoginIdentifierData = {
+    body: LoginIdentifierChallengeRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+    };
+    path: {
+        type: LoginIdentifierType;
+    };
+    query?: never;
+    url: '/api/v1/me/login-identifiers/{type}/challenge';
+};
+
+export type ChallengeMobileLoginIdentifierErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type ChallengeMobileLoginIdentifierError = ChallengeMobileLoginIdentifierErrors[keyof ChallengeMobileLoginIdentifierErrors];
+
+export type ChallengeMobileLoginIdentifierResponses = {
+    /**
+     * Verification challenge accepted.
+     */
+    202: OtpChallengeResponse;
+};
+
+export type ChallengeMobileLoginIdentifierResponse = ChallengeMobileLoginIdentifierResponses[keyof ChallengeMobileLoginIdentifierResponses];
+
+export type DeleteMobileLoginIdentifierData = {
+    body: StepUpTokenRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+    };
+    path: {
+        type: LoginIdentifierType;
+    };
+    query?: never;
+    url: '/api/v1/me/login-identifiers/{type}';
+};
+
+export type DeleteMobileLoginIdentifierErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * identifier_unbind step-up is required.
+     */
+    428: ErrorResponse;
+};
+
+export type DeleteMobileLoginIdentifierError = DeleteMobileLoginIdentifierErrors[keyof DeleteMobileLoginIdentifierErrors];
+
+export type DeleteMobileLoginIdentifierResponses = {
+    /**
+     * Identifier unbound.
+     */
+    200: UnboundResponse;
+};
+
+export type DeleteMobileLoginIdentifierResponse = DeleteMobileLoginIdentifierResponses[keyof DeleteMobileLoginIdentifierResponses];
+
+export type PutMobileLoginIdentifierData = {
+    body: LoginIdentifierVerifyRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+    };
+    path: {
+        type: LoginIdentifierType;
+    };
+    query?: never;
+    url: '/api/v1/me/login-identifiers/{type}';
+};
+
+export type PutMobileLoginIdentifierErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * identifier_change step-up is required for replacement.
+     */
+    428: ErrorResponse;
+};
+
+export type PutMobileLoginIdentifierError = PutMobileLoginIdentifierErrors[keyof PutMobileLoginIdentifierErrors];
+
+export type PutMobileLoginIdentifierResponses = {
+    /**
+     * Identifier bound.
+     */
+    200: MobileLoginIdentifierMutationResponse;
+};
+
+export type PutMobileLoginIdentifierResponse = PutMobileLoginIdentifierResponses[keyof PutMobileLoginIdentifierResponses];
 
 export type GetMobileMeData = {
     body?: never;
@@ -7206,6 +8326,488 @@ export type UnpublishAdminMobileReleaseResponses = {
 };
 
 export type UnpublishAdminMobileReleaseResponse = UnpublishAdminMobileReleaseResponses[keyof UnpublishAdminMobileReleaseResponses];
+
+export type ListAdminLoginProviderCatalogData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/login-provider-catalog';
+};
+
+export type ListAdminLoginProviderCatalogErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+};
+
+export type ListAdminLoginProviderCatalogError = ListAdminLoginProviderCatalogErrors[keyof ListAdminLoginProviderCatalogErrors];
+
+export type ListAdminLoginProviderCatalogResponses = {
+    /**
+     * Registered provider descriptors and help links.
+     */
+    200: LoginProviderCatalogResponse;
+};
+
+export type ListAdminLoginProviderCatalogResponse = ListAdminLoginProviderCatalogResponses[keyof ListAdminLoginProviderCatalogResponses];
+
+export type ListAdminLoginProviderConfigsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        q?: string;
+        provider_code?: LoginProviderCode;
+        status?: LoginProviderConfigStatus;
+        page?: number;
+        page_size?: number;
+    };
+    url: '/admin-api/v1/login-provider-configs';
+};
+
+export type ListAdminLoginProviderConfigsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ListAdminLoginProviderConfigsError = ListAdminLoginProviderConfigsErrors[keyof ListAdminLoginProviderConfigsErrors];
+
+export type ListAdminLoginProviderConfigsResponses = {
+    /**
+     * Tenant-scoped configurations. Secrets are represented only by has_secret, field names and a non-secret fingerprint.
+     */
+    200: LoginProviderConfigPageResponse;
+};
+
+export type ListAdminLoginProviderConfigsResponse = ListAdminLoginProviderConfigsResponses[keyof ListAdminLoginProviderConfigsResponses];
+
+export type CreateAdminLoginProviderConfigData = {
+    body: LoginProviderConfigRequest;
+    path?: never;
+    query?: never;
+    url: '/admin-api/v1/login-provider-configs';
+};
+
+export type CreateAdminLoginProviderConfigErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type CreateAdminLoginProviderConfigError = CreateAdminLoginProviderConfigErrors[keyof CreateAdminLoginProviderConfigErrors];
+
+export type CreateAdminLoginProviderConfigResponses = {
+    /**
+     * Draft configuration created without secret values.
+     */
+    201: LoginProviderConfigResponse;
+};
+
+export type CreateAdminLoginProviderConfigResponse = CreateAdminLoginProviderConfigResponses[keyof CreateAdminLoginProviderConfigResponses];
+
+export type DeleteAdminLoginProviderConfigData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query: {
+        lock_version: number;
+    };
+    url: '/admin-api/v1/login-provider-configs/{id}';
+};
+
+export type DeleteAdminLoginProviderConfigErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type DeleteAdminLoginProviderConfigError = DeleteAdminLoginProviderConfigErrors[keyof DeleteAdminLoginProviderConfigErrors];
+
+export type DeleteAdminLoginProviderConfigResponses = {
+    /**
+     * Configuration deleted and secret ciphertext cleared.
+     */
+    200: DeletedResponse;
+};
+
+export type DeleteAdminLoginProviderConfigResponse = DeleteAdminLoginProviderConfigResponses[keyof DeleteAdminLoginProviderConfigResponses];
+
+export type GetAdminLoginProviderConfigData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/login-provider-configs/{id}';
+};
+
+export type GetAdminLoginProviderConfigErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminLoginProviderConfigError = GetAdminLoginProviderConfigErrors[keyof GetAdminLoginProviderConfigErrors];
+
+export type GetAdminLoginProviderConfigResponses = {
+    /**
+     * Public configuration projection.
+     */
+    200: LoginProviderConfigResponse;
+};
+
+export type GetAdminLoginProviderConfigResponse = GetAdminLoginProviderConfigResponses[keyof GetAdminLoginProviderConfigResponses];
+
+export type UpdateAdminLoginProviderConfigData = {
+    body: LoginProviderConfigUpdateRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/login-provider-configs/{id}';
+};
+
+export type UpdateAdminLoginProviderConfigErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateAdminLoginProviderConfigError = UpdateAdminLoginProviderConfigErrors[keyof UpdateAdminLoginProviderConfigErrors];
+
+export type UpdateAdminLoginProviderConfigResponses = {
+    /**
+     * Updated public projection.
+     */
+    200: LoginProviderConfigResponse;
+};
+
+export type UpdateAdminLoginProviderConfigResponse = UpdateAdminLoginProviderConfigResponses[keyof UpdateAdminLoginProviderConfigResponses];
+
+export type RotateAdminLoginProviderSecretData = {
+    body: LoginProviderSecretRequestWritable;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/login-provider-configs/{id}/rotate-secret';
+};
+
+export type RotateAdminLoginProviderSecretErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type RotateAdminLoginProviderSecretError = RotateAdminLoginProviderSecretErrors[keyof RotateAdminLoginProviderSecretErrors];
+
+export type RotateAdminLoginProviderSecretResponses = {
+    /**
+     * Secret rotated; no secret value is returned.
+     */
+    200: LoginProviderConfigResponse;
+};
+
+export type RotateAdminLoginProviderSecretResponse = RotateAdminLoginProviderSecretResponses[keyof RotateAdminLoginProviderSecretResponses];
+
+export type PreflightAdminLoginProviderConfigData = {
+    body: LockVersionRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/login-provider-configs/{id}/preflight';
+};
+
+export type PreflightAdminLoginProviderConfigErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type PreflightAdminLoginProviderConfigError = PreflightAdminLoginProviderConfigErrors[keyof PreflightAdminLoginProviderConfigErrors];
+
+export type PreflightAdminLoginProviderConfigResponses = {
+    /**
+     * Persisted ready or failed preflight result; error details are sanitized.
+     */
+    200: LoginProviderConfigResponse;
+};
+
+export type PreflightAdminLoginProviderConfigResponse = PreflightAdminLoginProviderConfigResponses[keyof PreflightAdminLoginProviderConfigResponses];
+
+export type ActivateAdminLoginProviderConfigData = {
+    body: LockVersionRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/login-provider-configs/{id}/activate';
+};
+
+export type ActivateAdminLoginProviderConfigErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ActivateAdminLoginProviderConfigError = ActivateAdminLoginProviderConfigErrors[keyof ActivateAdminLoginProviderConfigErrors];
+
+export type ActivateAdminLoginProviderConfigResponses = {
+    /**
+     * Configuration activated.
+     */
+    200: LoginProviderConfigResponse;
+};
+
+export type ActivateAdminLoginProviderConfigResponse = ActivateAdminLoginProviderConfigResponses[keyof ActivateAdminLoginProviderConfigResponses];
+
+export type DisableAdminLoginProviderConfigData = {
+    body: LockVersionRequest;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/login-provider-configs/{id}/disable';
+};
+
+export type DisableAdminLoginProviderConfigErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type DisableAdminLoginProviderConfigError = DisableAdminLoginProviderConfigErrors[keyof DisableAdminLoginProviderConfigErrors];
+
+export type DisableAdminLoginProviderConfigResponses = {
+    /**
+     * Configuration disabled.
+     */
+    200: LoginProviderConfigResponse;
+};
+
+export type DisableAdminLoginProviderConfigResponse = DisableAdminLoginProviderConfigResponses[keyof DisableAdminLoginProviderConfigResponses];
+
+export type ListAdminAppLoginProviderBindingsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/login-provider-bindings';
+};
+
+export type ListAdminAppLoginProviderBindingsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type ListAdminAppLoginProviderBindingsError = ListAdminAppLoginProviderBindingsErrors[keyof ListAdminAppLoginProviderBindingsErrors];
+
+export type ListAdminAppLoginProviderBindingsResponses = {
+    /**
+     * One row for every compile-time registered provider, including unselected placeholders.
+     */
+    200: LoginProviderBindingListResponse;
+};
+
+export type ListAdminAppLoginProviderBindingsResponse = ListAdminAppLoginProviderBindingsResponses[keyof ListAdminAppLoginProviderBindingsResponses];
+
+export type ReplaceAdminAppLoginProviderBindingsData = {
+    body: LoginProviderBindingBulkRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/login-provider-bindings';
+};
+
+export type ReplaceAdminAppLoginProviderBindingsErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type ReplaceAdminAppLoginProviderBindingsError = ReplaceAdminAppLoginProviderBindingsErrors[keyof ReplaceAdminAppLoginProviderBindingsErrors];
+
+export type ReplaceAdminAppLoginProviderBindingsResponses = {
+    /**
+     * Entire binding set committed atomically.
+     */
+    200: LoginProviderBindingListResponse;
+};
+
+export type ReplaceAdminAppLoginProviderBindingsResponse = ReplaceAdminAppLoginProviderBindingsResponses[keyof ReplaceAdminAppLoginProviderBindingsResponses];
 
 export type ListAdminAppsData = {
     body?: never;

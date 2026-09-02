@@ -1,4 +1,8 @@
 export type AccountDeletionVerification = {
+  readonly verificationRequired: boolean
+  readonly reauthRequired: boolean
+  readonly reauthProvider: string
+  readonly reauthAccountId: string
   readonly targetHint: string
   readonly expiresInSeconds: number
   readonly retryAfterSeconds: number
@@ -6,5 +10,6 @@ export type AccountDeletionVerification = {
 
 export type AccountDeletionConfirmation = {
   readonly verificationCode: string
+  readonly stepUpToken: string
   readonly acknowledged: boolean
 }

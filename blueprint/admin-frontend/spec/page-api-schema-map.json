@@ -70,6 +70,31 @@
       "backend_status": "existing"
     },
     {
+      "component_key": "system.settings.login-providers",
+      "title": "第三方登录配置",
+      "phase": "P2",
+      "schema": [
+        "sys.login_provider_configs",
+        "app.application_login_provider_bindings",
+        "app.applications"
+      ],
+      "endpoints": [
+        "GET /admin-api/v1/login-provider-catalog",
+        "GET /admin-api/v1/login-provider-configs",
+        "POST /admin-api/v1/login-provider-configs",
+        "GET /admin-api/v1/login-provider-configs/{id}",
+        "PATCH /admin-api/v1/login-provider-configs/{id}",
+        "DELETE /admin-api/v1/login-provider-configs/{id}",
+        "POST /admin-api/v1/login-provider-configs/{id}/rotate-secret",
+        "POST /admin-api/v1/login-provider-configs/{id}/preflight",
+        "POST /admin-api/v1/login-provider-configs/{id}/activate",
+        "POST /admin-api/v1/login-provider-configs/{id}/disable",
+        "GET /admin-api/v1/apps/{app_id}/login-provider-bindings",
+        "PUT /admin-api/v1/apps/{app_id}/login-provider-bindings"
+      ],
+      "backend_status": "delta_required"
+    },
+    {
       "component_key": "system.settings.dictionaries",
       "title": "字典管理",
       "phase": "P2",
@@ -718,12 +743,14 @@
         "app.application_channels",
         "app.application_scanner_configs",
         "app.application_share_bindings",
+        "app.application_login_provider_bindings",
         "app.application_store_listings",
         "app.application_team_members",
         "app.applications",
         "storage.file_usages",
         "storage.files",
         "sys.share_configs",
+        "sys.login_provider_configs",
         "app.application_public_web_configs",
         "app.application_public_web_translations"
       ],
@@ -740,12 +767,14 @@
         "PUT /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
         "DELETE /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}",
         "POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight",
+        "GET /admin-api/v1/apps/{app_id}/login-provider-bindings",
+        "PUT /admin-api/v1/apps/{app_id}/login-provider-bindings",
         "GET /admin-api/v1/apps/{app_id}/scanner-config",
         "PUT /admin-api/v1/apps/{app_id}/scanner-config",
         "GET /admin-api/v1/apps/{app_id}/public-web-config",
         "PUT /admin-api/v1/apps/{app_id}/public-web-config"
       ],
-      "backend_status": "existing"
+      "backend_status": "partial_delta"
     },
     {
       "component_key": "app.upgrade-center",
@@ -797,7 +826,8 @@
       "phase": "P2",
       "schema": [
         "app.applications",
-        "app.user_memberships"
+        "app.user_memberships",
+        "app.user_login_identifiers"
       ],
       "endpoints": [
         "GET /admin-api/v1/apps/{app_id}/users",

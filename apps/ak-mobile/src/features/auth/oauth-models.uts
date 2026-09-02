@@ -1,0 +1,192 @@
+import { MobileAuthToken } from './auth-repository.uts'
+
+export type OAuthProviderCode = 'wechat' | 'github' | 'apple' | 'google'
+export type OAuthMode = 'login' | 'bind' | 'reauth'
+export type OAuthReauthPurpose = 'oauth_unbind' | 'account_delete'
+export type OAuthAuthorizationKind = 'native_code' | 'native_id_token' | 'browser_ticket'
+export type OAuthPlatform = 'ios' | 'android' | 'harmony'
+export type OAuthBuildVariant = 'ios' | 'android_google' | 'android_china' | 'harmony'
+
+export class OAuthBuildConfig {
+  readonly appId: string
+  readonly externalClientId: string
+  readonly callbackURI: string
+  readonly appReturnURI: string
+  readonly serverClientId: string
+  readonly androidPackageName: string
+  readonly androidAppSignature: string
+  readonly androidCertificateSHA256: Array<string>
+  readonly iosBundleId: string
+  readonly iosUniversalLink: string
+  readonly harmonyBundleName: string
+
+  constructor(appId: string, externalClientId: string, callbackURI: string, appReturnURI: string, serverClientId: string, androidPackageName: string, androidAppSignature: string, androidCertificateSHA256: Array<string>, iosBundleId: string, iosUniversalLink: string, harmonyBundleName: string) {
+    this.appId = appId
+    this.externalClientId = externalClientId
+    this.callbackURI = callbackURI
+    this.appReturnURI = appReturnURI
+    this.serverClientId = serverClientId
+    this.androidPackageName = androidPackageName
+    this.androidAppSignature = androidAppSignature
+    this.androidCertificateSHA256 = androidCertificateSHA256
+    this.iosBundleId = iosBundleId
+    this.iosUniversalLink = iosUniversalLink
+    this.harmonyBundleName = harmonyBundleName
+  }
+}
+
+export class OAuthProviderDescriptor {
+  readonly providerCode: OAuthProviderCode
+  readonly displayNameKey: string
+  readonly iconKey: string
+  readonly authorizationKind: OAuthAuthorizationKind
+  readonly supportedPlatforms: Array<string>
+  readonly buildVariants: Array<string>
+  readonly loginEnabled: boolean
+  readonly bindingEnabled: boolean
+  readonly sortOrder: number
+  readonly configSchemaVersion: number
+  readonly buildConfigHash: string
+  readonly buildConfig: OAuthBuildConfig
+
+  constructor(providerCode: OAuthProviderCode, displayNameKey: string, iconKey: string, authorizationKind: OAuthAuthorizationKind, supportedPlatforms: Array<string>, buildVariants: Array<string>, loginEnabled: boolean, bindingEnabled: boolean, sortOrder: number, configSchemaVersion: number, buildConfigHash: string, buildConfig: OAuthBuildConfig) {
+    this.providerCode = providerCode
+    this.displayNameKey = displayNameKey
+    this.iconKey = iconKey
+    this.authorizationKind = authorizationKind
+    this.supportedPlatforms = supportedPlatforms
+    this.buildVariants = buildVariants
+    this.loginEnabled = loginEnabled
+    this.bindingEnabled = bindingEnabled
+    this.sortOrder = sortOrder
+    this.configSchemaVersion = configSchemaVersion
+    this.buildConfigHash = buildConfigHash
+    this.buildConfig = buildConfig
+  }
+}
+
+export class OAuthAuthorizationFlow {
+  readonly flowId: string
+  readonly providerCode: OAuthProviderCode
+  readonly mode: OAuthMode
+  readonly authorizationKind: OAuthAuthorizationKind
+  readonly authorizationURL: string
+  readonly state: string
+  readonly nonce: string
+  readonly expiresAt: string
+
+  constructor(flowId: string, providerCode: OAuthProviderCode, mode: OAuthMode, authorizationKind: OAuthAuthorizationKind, authorizationURL: string, state: string, nonce: string, expiresAt: string) {
+    this.flowId = flowId
+    this.providerCode = providerCode
+    this.mode = mode
+    this.authorizationKind = authorizationKind
+    this.authorizationURL = authorizationURL
+    this.state = state
+    this.nonce = nonce
+    this.expiresAt = expiresAt
+  }
+}
+
+export class OAuthAccount {
+  readonly id: string
+  readonly providerCode: string
+  readonly displayNameKey: string
+  readonly providerUsernameHint: string
+  readonly status: string
+  readonly loginEnabled: boolean
+  readonly loginCapable: boolean
+  readonly canBind: boolean
+  readonly canChange: boolean
+  readonly boundAt: string
+  readonly lastAuthenticatedAt: string
+  readonly canUnbind: boolean
+  readonly blockReason: string
+
+  constructor(id: string, providerCode: string, displayNameKey: string, providerUsernameHint: string, status: string, loginEnabled: boolean, loginCapable: boolean, canBind: boolean, canChange: boolean, boundAt: string, lastAuthenticatedAt: string, canUnbind: boolean, blockReason: string) {
+    this.id = id
+    this.providerCode = providerCode
+    this.displayNameKey = displayNameKey
+    this.providerUsernameHint = providerUsernameHint
+    this.status = status
+    this.loginEnabled = loginEnabled
+    this.loginCapable = loginCapable
+    this.canBind = canBind
+    this.canChange = canChange
+    this.boundAt = boundAt
+    this.lastAuthenticatedAt = lastAuthenticatedAt
+    this.canUnbind = canUnbind
+    this.blockReason = blockReason
+  }
+}
+
+export class OAuthCallbackResult {
+  readonly mode: OAuthMode
+  readonly session: MobileAuthToken | null
+  readonly oauthAccount: OAuthAccount | null
+  readonly stepUpToken: string
+  readonly stepUpExpiresAt: string
+
+  constructor(mode: OAuthMode, session: MobileAuthToken | null, oauthAccount: OAuthAccount | null, stepUpToken: string, stepUpExpiresAt: string) {
+    this.mode = mode
+    this.session = session
+    this.oauthAccount = oauthAccount
+    this.stepUpToken = stepUpToken
+    this.stepUpExpiresAt = stepUpExpiresAt
+  }
+}
+
+export class LoginIdentifier {
+  readonly id: string
+  readonly identifierType: 'email' | 'mobile'
+  readonly displayHint: string
+  readonly verified: boolean
+  readonly status: string
+  readonly loginCapable: boolean
+  readonly canBind: boolean
+  readonly canChange: boolean
+  readonly canUnbind: boolean
+  readonly blockReason: string
+
+  constructor(id: string, identifierType: 'email' | 'mobile', displayHint: string, verified: boolean, status: string, loginCapable: boolean, canBind: boolean, canChange: boolean, canUnbind: boolean, blockReason: string) {
+    this.id = id
+    this.identifierType = identifierType
+    this.displayHint = displayHint
+    this.verified = verified
+    this.status = status
+    this.loginCapable = loginCapable
+    this.canBind = canBind
+    this.canChange = canChange
+    this.canUnbind = canUnbind
+    this.blockReason = blockReason
+  }
+}
+
+export class LoginMethods {
+  readonly passwordPresent: boolean
+  readonly passwordLoginCapable: boolean
+  readonly passwordCanBind: boolean
+  readonly passwordCanChange: boolean
+  readonly passwordCanUnbind: boolean
+  readonly passwordBlockReason: string
+  readonly identifiers: Array<LoginIdentifier>
+  readonly oauthAccounts: Array<OAuthAccount>
+  readonly remainingLoginMethods: number
+
+  constructor(passwordPresent: boolean, passwordLoginCapable: boolean, passwordCanBind: boolean, passwordCanChange: boolean, passwordCanUnbind: boolean, passwordBlockReason: string, identifiers: Array<LoginIdentifier>, oauthAccounts: Array<OAuthAccount>, remainingLoginMethods: number) {
+    this.passwordPresent = passwordPresent
+    this.passwordLoginCapable = passwordLoginCapable
+    this.passwordCanBind = passwordCanBind
+    this.passwordCanChange = passwordCanChange
+    this.passwordCanUnbind = passwordCanUnbind
+    this.passwordBlockReason = passwordBlockReason
+    this.identifiers = identifiers
+    this.oauthAccounts = oauthAccounts
+    this.remainingLoginMethods = remainingLoginMethods
+  }
+}
+
+export class StepUpProof {
+  readonly token: string
+  readonly expiresAt: string
+  constructor(token: string, expiresAt: string) { this.token = token; this.expiresAt = expiresAt }
+}

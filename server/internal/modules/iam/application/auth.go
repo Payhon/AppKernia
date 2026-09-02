@@ -37,6 +37,10 @@ type ClientMetadata struct {
 	RequestID string
 }
 
+type appProfileIdentifierRepository interface {
+	AppProfileIdentifiers(context.Context, uuid.UUID, uuid.UUID) (string, string, error)
+}
+
 type UpdateSelfProfileInput struct {
 	DisplayName *string
 	Locale      *string
@@ -97,6 +101,27 @@ type SessionTokens struct {
 	RefreshTokenExpiresAt time.Time
 	SessionID             uuid.UUID
 	AppID                 *uuid.UUID
+}
+
+// PreparedMobileSession is a signed, opaque-token session envelope whose
+// persistence is intentionally delegated to the caller's transaction. It is
+// used by federated registration so user, membership, external identity,
+// session, refresh hash and audit rows commit atomically.
+type PreparedMobileSession struct {
+	Tokens             SessionTokens
+	RefreshTokenHash   []byte
+	AbsoluteExpiresAt  time.Time
+	IdleExpiresAt      time.Time
+	RefreshExpiresAt   time.Time
+	IPAddress          *netip.Addr
+	UserAgent          string
+	DeviceKey          string
+	RequestID          string
+	AccessTokenVersion int32
+}
+
+type appCredentialRepository interface {
+	FindCredentialByAppIdentifier(context.Context, uuid.UUID, string, string) (domain.Credential, error)
 }
 
 type AuthService struct {
@@ -163,6 +188,11 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 		}
 	}
 	credential, findErr := service.identities.FindCredentialByEmail(ctx, input.Email)
+	if input.Audience == "ak-mobile" && input.AppID != nil && *input.AppID != uuid.Nil {
+		if scoped, ok := service.identities.(appCredentialRepository); ok {
+			credential, findErr = scoped.FindCredentialByAppIdentifier(ctx, *input.AppID, "email", input.Email)
+		}
+	}
 	passwordHash := service.dummyPasswordHash
 	if findErr == nil {
 		passwordHash = credential.PasswordHash
@@ -229,6 +259,95 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 		AccessToken: accessToken, AccessTokenExpiresAt: accessExpiresAt,
 		RefreshToken: plainRefresh, RefreshTokenExpiresAt: refreshExpiresAt, SessionID: session.ID, AppID: session.AppID,
 	}, nil
+}
+
+// IssueMobileSession is the single token-issuance path for verified OAuth and
+// OTP identities. Provider tokens and OTP values never enter the IAM session.
+func (service *AuthService) IssueMobileSession(ctx context.Context, userID, appID uuid.UUID, authMethod string, client ClientMetadata) (SessionTokens, error) {
+	if userID == uuid.Nil || appID == uuid.Nil || (authMethod != "oauth" && authMethod != "email_otp" && authMethod != "sms_otp") {
+		return SessionTokens{}, ErrInvalidCredentials
+	}
+	deviceKey, err := normalizeDeviceKey(client.DeviceKey)
+	if err != nil {
+		return SessionTokens{}, err
+	}
+	tenant, err := service.identities.ResolveActiveMobileAppMembership(ctx, appID, userID)
+	if err != nil {
+		return SessionTokens{}, ErrInvalidCredentials
+	}
+	plainRefresh, refreshHash, err := NewOpaqueToken()
+	if err != nil {
+		return SessionTokens{}, err
+	}
+	now := service.clock().UTC()
+	refreshExpiresAt := now.Add(30 * 24 * time.Hour)
+	session, err := service.sessions.CreateSession(ctx, domain.CreateSession{
+		UserID: userID, TenantID: tenant.ID, AppID: &appID, Audience: "ak-mobile", AuthMethod: authMethod,
+		RefreshTokenHash: refreshHash, AbsoluteExpiresAt: refreshExpiresAt, IdleExpiresAt: now.Add(7 * 24 * time.Hour),
+		RefreshExpiresAt: refreshExpiresAt, IPAddress: client.IPAddress, UserAgent: client.UserAgent,
+		DeviceKey: deviceKey, RequestID: client.RequestID,
+	})
+	if err != nil {
+		return SessionTokens{}, fmt.Errorf("create verified mobile session: %w", err)
+	}
+	accessToken, accessExpiresAt, err := service.issuer.IssueForApp(userID, tenant.ID, session.ID, "ak-mobile", session.AccessTokenVersion, appID)
+	if err != nil {
+		_ = service.sessions.RevokeSession(ctx, session.ID, "access_token_issue_failed")
+		return SessionTokens{}, err
+	}
+	return SessionTokens{AccessToken: accessToken, AccessTokenExpiresAt: accessExpiresAt, RefreshToken: plainRefresh,
+		RefreshTokenExpiresAt: refreshExpiresAt, SessionID: session.ID, AppID: &appID}, nil
+}
+
+// PrepareAtomicMobileSession performs every non-database step required for a
+// mobile OAuth session. The login-provider repository persists the returned
+// hash and session metadata inside its identity transaction; any preparation
+// error therefore occurs before that transaction can commit.
+func (service *AuthService) PrepareAtomicMobileSession(userID, tenantID, appID uuid.UUID, authMethod string, client ClientMetadata) (PreparedMobileSession, error) {
+	if userID == uuid.Nil || tenantID == uuid.Nil || appID == uuid.Nil || authMethod != "oauth" {
+		return PreparedMobileSession{}, ErrInvalidCredentials
+	}
+	deviceKey, err := normalizeDeviceKey(client.DeviceKey)
+	if err != nil {
+		return PreparedMobileSession{}, err
+	}
+	plainRefresh, refreshHash, err := NewOpaqueToken()
+	if err != nil {
+		return PreparedMobileSession{}, err
+	}
+	sessionID, err := uuid.NewV7()
+	if err != nil {
+		return PreparedMobileSession{}, fmt.Errorf("generate mobile session id: %w", err)
+	}
+	now := service.clock().UTC()
+	refreshExpiresAt := now.Add(30 * 24 * time.Hour)
+	accessToken, accessExpiresAt, err := service.issuer.IssueForApp(userID, tenantID, sessionID, "ak-mobile", 1, appID)
+	if err != nil {
+		return PreparedMobileSession{}, err
+	}
+	appIDValue := appID
+	return PreparedMobileSession{
+		Tokens: SessionTokens{
+			AccessToken: accessToken, AccessTokenExpiresAt: accessExpiresAt,
+			RefreshToken: plainRefresh, RefreshTokenExpiresAt: refreshExpiresAt,
+			SessionID: sessionID, AppID: &appIDValue,
+		},
+		RefreshTokenHash: refreshHash, AbsoluteExpiresAt: refreshExpiresAt,
+		IdleExpiresAt: now.Add(7 * 24 * time.Hour), RefreshExpiresAt: refreshExpiresAt,
+		IPAddress: client.IPAddress, UserAgent: client.UserAgent, DeviceKey: deviceKey,
+		RequestID: client.RequestID, AccessTokenVersion: 1,
+	}, nil
+}
+
+func (service *AuthService) VerifyUserPassword(ctx context.Context, userID uuid.UUID, password string) error {
+	if userID == uuid.Nil || password == "" {
+		return ErrCurrentPassword
+	}
+	state, err := service.identities.GetSelfPasswordState(ctx, userID)
+	if err != nil || !VerifyPassword(state.CurrentHash, password) {
+		return ErrCurrentPassword
+	}
+	return nil
 }
 
 func (service *AuthService) Refresh(ctx context.Context, refreshToken, audience string, client ClientMetadata) (SessionTokens, error) {
@@ -348,6 +467,14 @@ func (service *AuthService) Authenticate(ctx context.Context, rawAccessToken, au
 	if audience == "ak-mobile" && claims.AppID == uuid.Nil {
 		return domain.AuthenticatedContext{}, ErrInvalidAccessToken
 	}
+	if audience == "ak-mobile" {
+		if scoped, ok := service.identities.(appProfileIdentifierRepository); ok {
+			contextValue.User.Email, contextValue.User.Mobile, err = scoped.AppProfileIdentifiers(ctx, claims.AppID, userID)
+			if err != nil {
+				return domain.AuthenticatedContext{}, err
+			}
+		}
+	}
 	return domain.AuthenticatedContext{AuthContext: contextValue, SessionID: claims.SessionID, AppID: appIDPointer(claims.AppID)}, nil
 }
 
@@ -372,11 +499,20 @@ func (service *AuthService) UpdateSelfProfile(
 	if err != nil {
 		return domain.User{}, err
 	}
-	return service.identities.UpdateSelfProfile(ctx, domain.UpdateSelfProfile{
+	user, err := service.identities.UpdateSelfProfile(ctx, domain.UpdateSelfProfile{
 		UserID: authenticated.User.ID, TenantID: authenticated.Tenant.ID, SessionID: authenticated.SessionID,
 		DisplayName: normalized.DisplayName, Locale: normalized.Locale, TimeZone: normalized.TimeZone,
 		RequestID: normalized.RequestID, IPAddress: normalized.Client.IPAddress, UserAgent: normalized.Client.UserAgent,
 	})
+	if err != nil {
+		return domain.User{}, err
+	}
+	if audience == "ak-mobile" && authenticated.AppID != nil {
+		if scoped, ok := service.identities.(appProfileIdentifierRepository); ok {
+			user.Email, user.Mobile, err = scoped.AppProfileIdentifiers(ctx, *authenticated.AppID, user.ID)
+		}
+	}
+	return user, err
 }
 
 func (service *AuthService) ListSelfSessions(

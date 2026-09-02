@@ -5,11 +5,13 @@ platform="${1:-}"
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cli=/Applications/HBuilderX.app/Contents/MacOS/cli
 
+python3 "$project_root/scripts/generate-oauth-snapshot-uts.py" --write
 "$cli" project open --path "$project_root" >/dev/null
 
 case "$platform" in
   android)
 	python3 "$project_root/scripts/configure-push-variant.py"
+	python3 "$project_root/scripts/configure-oauth-variant.py"
     command=("$cli" launch app-android --project "$project_root" --playground custom --compile true --cleanCache true --continue-on-error false)
     ;;
   ios)

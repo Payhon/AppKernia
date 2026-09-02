@@ -15,8 +15,8 @@
 |---|---|
 | 阶段 | P2 |
 | View Permission | `app.application.read` |
-| Schema | `app.applications`, `app.application_team_members`, `app.application_assets`, `app.application_channels`, `app.application_share_bindings`, `app.application_scanner_configs`, `app.application_store_listings`, `app.application_public_web_configs`, `app.application_public_web_translations`, `storage.files`, `storage.file_usages`, `sys.share_configs` |
-| 后端状态 | `existing` |
+| Schema | `app.applications`, `app.application_team_members`, `app.application_assets`, `app.application_channels`, `app.application_share_bindings`, `app.application_login_provider_bindings`, `app.application_scanner_configs`, `app.application_store_listings`, `app.application_public_web_configs`, `app.application_public_web_translations`, `storage.files`, `storage.file_usages`, `sys.share_configs`, `sys.login_provider_configs` |
+| 后端状态 | `partial_delta` |
 
 **API**
 
@@ -32,6 +32,8 @@
 - `PUT /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}`
 - `DELETE /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}`
 - `POST /admin-api/v1/apps/{app_id}/share-bindings/{provider_code}/preflight`
+- `GET /admin-api/v1/apps/{app_id}/login-provider-bindings`
+- `PUT /admin-api/v1/apps/{app_id}/login-provider-bindings`
 - `GET /admin-api/v1/apps/{app_id}/scanner-config`
 - `PUT /admin-api/v1/apps/{app_id}/scanner-config`
 - `GET /admin-api/v1/apps/{app_id}/public-web-config`
@@ -44,9 +46,10 @@
 - 每租户可管理多个应用；manifest AppID 设置后不可修改，App 类型创建后不可修改。
 - 图标、截图、渠道、团队和应用市场均保存关系数据；团队资料不改变 RBAC。
 - 仅可软删除已停用的非默认应用，批量删除至多 100 条且全有或全无。
-- 行操作中的“客户端配置”Modal 以代码注册的 Tab 整合分享配置与扫码配置；Tab 独立保存并在任一 Tab 未保存时拦截关闭。
+- 行操作中的“客户端配置”Modal 以代码注册的 Tab 依次整合分享配置、扫码配置与第三方登录；每个 Tab 独立保存并在任一 Tab 未保存时拦截关闭，Tab 是否出现由各自 read permission 裁剪。
 - 分享配置只允许选择已启用 Provider；保存前必须预检 HTTPS 落地域名、场景和原生身份，成功后明确提示重新导出并打包。
 - 扫码配置使用独立乐观锁接口；仅接受规范化的 ASCII/Punycode 精确域名或通配符域名，权限分别为 `app.scanner_config.read` 与 `app.scanner_config.update`。
+- 第三方登录固定提交微信、GitHub、Apple、Google 四项原子 binding；只允许选择同租户、已启用且预检通过的平台配置。409 保留本地修改且整批不部分生效；停用/失效引用明确 fail closed。
 
 ## `app.upgrade-center` — App升级中心
 
@@ -82,7 +85,7 @@
 |---|---|
 | 阶段 | P2 |
 | View Permission | `app.user.read` |
-| Schema | `app.applications`, `app.user_memberships` |
+| Schema | `app.applications`, `app.user_memberships`, `app.user_login_identifiers` |
 | 后端状态 | `existing` |
 
 **API**
@@ -235,6 +238,44 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - 初始目录包含基本、邮件、短信、登录注册、提现、云存储、地理位置、支付和微信；目录元数据不能通过客户端篡改。
 - `storage.driver` 与 `sms.provider` 必须读取 `x-appkernia-dictionary` 对应消费接口，不得在页面维护第二份选项数组；供应商字段按当前选择条件展示。
 - 云存储测试上传遵循服务端策略，不展示 Secret、Bucket 或对象键。
+
+## `system.settings.login-providers` — 第三方登录配置
+
+| 项目 | 定义 |
+|---|---|
+| 阶段 | P2 |
+| View Permission | `sys.login_provider_config.read` |
+| Schema | `sys.login_provider_configs`, `app.application_login_provider_bindings`, `app.applications` |
+| 后端状态 | `delta_required` |
+
+**筛选**：名称或平台客户端标识、Provider、状态、分页
+
+**主要动作**：创建草稿、编辑公开配置、独立写入/轮换 Secret、预检、启用、停用、删除未使用配置、查看 App 使用数
+
+**UX 规范**：桌面使用响应式表格、窄屏使用卡片；右上角问号打开微信、GitHub、Apple、Google 分平台申请指引与官方 HTTPS 外链。四个平台使用编译期强类型字段，服务端 capability catalog 仅声明已注册能力；目录与 Admin 定义不一致时停止写入。Secret 使用独立一次性表单、永不回显；GitHub callback 由服务端计算并只读展示。
+
+**API**
+
+- `GET /admin-api/v1/login-provider-catalog`
+- `GET /admin-api/v1/login-provider-configs`
+- `POST /admin-api/v1/login-provider-configs`
+- `GET /admin-api/v1/login-provider-configs/{id}`
+- `PATCH /admin-api/v1/login-provider-configs/{id}`
+- `DELETE /admin-api/v1/login-provider-configs/{id}`
+- `POST /admin-api/v1/login-provider-configs/{id}/rotate-secret`
+- `POST /admin-api/v1/login-provider-configs/{id}/preflight`
+- `POST /admin-api/v1/login-provider-configs/{id}/activate`
+- `POST /admin-api/v1/login-provider-configs/{id}/disable`
+- `GET /admin-api/v1/apps/{app_id}/login-provider-bindings`
+- `PUT /admin-api/v1/apps/{app_id}/login-provider-bindings`
+
+**页面验收**
+
+- 微信表单覆盖 AppID、Android 包名/签名、iOS Bundle ID/Universal Link、HarmonyOS Bundle Name 与 write-only AppSecret；GitHub 覆盖 Client ID、App return URI、只读 callback 与 write-only Client Secret。
+- Apple 仅标记 iOS，覆盖 Bundle ID、Team ID、Key ID 与 write-only `.p8`；Google 仅标记 Android Google 构建，使用 server Web Client ID、包名和一组 SHA-256 指纹且没有 Client Secret。
+- 预检通过后才允许启用；停用立即使相关 App binding 运行时失败关闭；被 App 引用的配置不可删除。所有更新使用 `lock_version`，409 不自动重放。
+- `sys.login_provider_config.*` 与 `app.login_provider_binding.*` 分别裁剪页面动作和客户端配置 Tab；前端裁剪不能替代服务端权限、租户与状态校验。
+- 375/768/1440、键盘焦点、双语长文案、Loading/Empty/Error/403/409、帮助 Modal 外链安全和 Secret 清空均纳入组件/E2E/视觉验收。
 
 ## `system.settings.dictionaries` — 字典管理
 

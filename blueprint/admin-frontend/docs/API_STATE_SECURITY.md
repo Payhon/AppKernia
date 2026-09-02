@@ -21,3 +21,5 @@ Query Key 示例：`['tenant', tenantId, 'users', normalizedSearch]`、`['global
 ## 错误、并发和敏感数据
 
 统一处理 400/401/403/404/409/422/429/5xx。409 显示刷新/对比，不静默覆盖。Secret 永不回显；一次性 Secret/恢复码只能展示一次。审计、日志、telemetry 不记录密码、Token、验证码、完整邮箱/手机、连接串或密钥。
+
+第三方登录配置使用 capability catalog + 编译期强类型 Provider 定义的双重校验；未知 Provider、字段版本或未打包能力必须 fail closed。App binding 通过一个 `PUT` 原子提交四个平台及各自 `lock_version`，409 保留表单且不自动重放。AppSecret、Client Secret、`.p8` 只进入独立 write-only mutation；响应 Zod schema 不包含 Secret，表单关闭或成功后立即 reset。OpenAPI delta 合入并重新生成客户端前，feature repository 可使用同一 DTO 的显式 TypeScript/Zod 边界，不得改写生成目录。

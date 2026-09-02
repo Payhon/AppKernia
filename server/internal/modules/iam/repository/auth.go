@@ -298,7 +298,7 @@ WHERE s.id=$1 AND s.audience='ak-mobile' AND s.app_id IS NOT NULL AND s.device_i
 func (repository *Postgres) ValidateSession(ctx context.Context, session domain.Session) error {
 	_, err := db.New(repository.pool).GetActiveSession(ctx, db.GetActiveSessionParams{
 		ID: session.ID, UserID: session.UserID, TenantID: &session.TenantID,
-		Audience: session.Audience, AccessTokenVersion: session.AccessTokenVersion,
+		Audience: session.Audience, AccessTokenVersion: session.AccessTokenVersion, AppID: session.AppID,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domain.ErrRefreshInvalid

@@ -1,0 +1,10 @@
+import { AkHttpClient } from '../../core/network/ak-http-client.uts'
+import { HttpLoginMethodsRepository } from './login-methods-repository.uts'
+
+export class LoginMethodsRuntime {
+  private repository: HttpLoginMethodsRepository | null = null
+  configure(client: AkHttpClient): void { this.repository = new HttpLoginMethodsRepository(client) }
+  getRepository(): HttpLoginMethodsRepository | null { return this.repository }
+}
+
+export const loginMethodsRuntime = new LoginMethodsRuntime()

@@ -269,6 +269,19 @@
       "phase": "P2"
     },
     {
+      "code": "system.settings.login-providers",
+      "i18n_key": "menu.system.settings.login_providers",
+      "title": "第三方登录配置",
+      "type": "page",
+      "path": "/system/settings/login-providers",
+      "sort": 16,
+      "parent": "system.settings",
+      "component_key": "system.settings.login-providers",
+      "icon": "LoginOutlined",
+      "permission": "sys.login_provider_config.read",
+      "phase": "P2"
+    },
+    {
       "code": "system.settings.regions",
       "i18n_key": "menu.system.settings.regions",
       "title": "地区管理",

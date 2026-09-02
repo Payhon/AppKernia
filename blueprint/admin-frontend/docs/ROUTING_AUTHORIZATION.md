@@ -23,6 +23,8 @@ OpenAPI canonical YAML 仍是唯一契约。文档入口加载后只在浏览器
 
 统一使用 `Can`、`useCan`、`requirePermission`，禁止在 JSX 散落字符串判断。403 不刷新 Token；未登录进入登录页；Feature Disabled 使用 404 或明确不可用页。
 
+第三方登录配置页的 View Permission 为 `sys.login_provider_config.read`；创建、更新/启停、删除、Secret 轮换和预检分别使用稳定的 `sys.login_provider_config.*` Action Permission。应用管理中的第三方登录 Tab 只由 `app.login_provider_binding.read` 显示，并由 `app.login_provider_binding.update` 决定是否可编辑；客户端配置 Modal 的 Tab 注册表集中保存这些权限，新增 Tab 不再扩散硬编码判断。
+
 ## URL 状态
 
 列表关键词、筛选、分页、排序、选中 Tab 等可分享状态进入类型安全 Search Params。Drawer 的纯临时编辑状态不进入 URL；独立详情页使用 path param 并设置 `active_menu_code`。

@@ -1,6 +1,6 @@
 # 前端蓝图要求的后端增量
 
-机器可读待实现增量见 `admin-api-delta.json` 和 `core-permissions.delta.json`；当前均为空。已落地接口和权限已归并到 Backend snapshot。每个未来增量仍必须同时提交 Go route、OpenAPI、SQL/sqlc（如需）、权限 Seed、审计、测试和前端 fixture。
+机器可读待实现增量见 `admin-api-delta.json` 和 `core-permissions.delta.json`；第三方登录配置与 App binding 当前列为待实现增量。已落地接口和权限应归并到 Backend snapshot。每个增量仍必须同时提交 Go route、OpenAPI、SQL/sqlc（如需）、权限 Seed、审计、测试和前端 fixture。
 
 ## P0
 
@@ -30,6 +30,8 @@
 - `GET /admin-api/v1/audit/security-events/{id}`：安全事件详情。
 
 ## P2
+
+- 第三方登录配置：`GET /login-provider-catalog`、`GET/POST /login-provider-configs`、单项读取/更新/删除、Secret 轮换、预检、启用/停用，以及 App 范围 `GET/PUT /apps/{app_id}/login-provider-bindings`。列表/详情永不返回 Secret；binding 的四 Provider bulk PUT 必须在 serializable transaction 中全成全败并校验租户、active、preflight ready 与乐观锁。
 
 - `GET /admin-api/v1/messages`：已落地；按当前租户、类型、状态和分页返回公告/站内消息。
 - `POST /admin-api/v1/messages`：已落地；创建公告或站内消息，服务端解析收件范围并返回精确计数。
@@ -62,6 +64,9 @@
 - `POST /admin-api/v1/me/mfa/recovery-codes/rotate`：已落地；轮换恢复码，明文只返回一次。
 
 ## 新权限码
+
+- `sys.login_provider_config.read/create/update/delete/rotate_secret/preflight`：第三方登录全局配置生命周期；启用/停用复用 update。
+- `app.login_provider_binding.read/update`：读取或原子更新 App 范围第三方登录绑定。
 
 - `notify.message.read`：已落地；查看站内消息
 - `notify.message.create`：已落地；创建站内消息
