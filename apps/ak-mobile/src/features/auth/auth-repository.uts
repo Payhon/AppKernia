@@ -5,6 +5,10 @@ import {
   MobileEmailOTPSendWire as EmailOTPSendWire,
   MobileOTPChallengeWire as OTPChallengeWire,
   MobileOTPLoginWire as OTPLoginWire,
+  MobileOTPRegistrationCodeWire as OTPRegistrationCodeWire,
+  MobileOTPRegistrationWire as OTPRegistrationWire,
+  MobilePasswordForgotWire as PasswordForgotWire,
+  MobilePasswordResetWire as PasswordResetWire,
   MobileSMSOTPSendWire as MobileOTPSendWire,
   MobileSessionTokenWire as TokenWire,
 } from '../../generated/api/mobile-identity.uts'
@@ -12,11 +16,12 @@ import {
 export type PasswordLoginInput = { readonly email: string; readonly password: string; readonly deviceKey: string }
 export type RegisterInput = { readonly email: string; readonly displayName: string; readonly password: string; readonly acceptTerms: boolean }
 export type VerificationInput = { readonly email: string; readonly code: string }
-export type PasswordResetInput = { readonly email: string; readonly code: string; readonly newPassword: string }
+export type OTPPasswordResetInput = { readonly identifierType: OTPIdentifierType; readonly identifier: string; readonly challengeId: string; readonly verificationCode: string; readonly newPassword: string }
 export type ResendRegistrationInput = { readonly email: string }
 export type OTPIdentifierType = 'email' | 'mobile'
 export type OTPChallenge = { readonly challengeId: string; readonly retryAfterSeconds: number; readonly expiresAt: string }
 export type OTPLoginInput = { readonly identifierType: OTPIdentifierType; readonly identifier: string; readonly challengeId: string; readonly verificationCode: string }
+export type OTPRegistrationInput = { readonly identifierType: OTPIdentifierType; readonly identifier: string; readonly challengeId: string; readonly verificationCode: string; readonly displayName: string; readonly acceptTerms: boolean }
 export type AcceptedResult = { readonly verificationRequired: boolean; readonly retryAfterSeconds: number }
 export type MobileAuthToken = { readonly accessToken: string; readonly refreshToken: string; readonly sessionId: string; readonly appId: string }
 export type MobileAuthContext = { readonly permissions: Array<string>; readonly enabledFlags: Array<string> }
@@ -25,7 +30,6 @@ type PasswordLoginWire = { readonly email: string; readonly password: string }
 type RegisterWire = { readonly email: string; readonly display_name: string; readonly password: string; readonly locale: string; readonly accept_terms: boolean }
 type VerificationWire = { readonly email: string; readonly code: string }
 type ForgotWire = { readonly email: string }
-type ResetWire = { readonly email: string; readonly code: string; readonly new_password: string }
 type RefreshWire = { readonly refresh_token: string }
 type BooleanWire = { readonly value: boolean }
 type ContextWire = { readonly permissions: Array<string>; readonly feature_flags: UTSJSONObject }
@@ -62,6 +66,18 @@ export class HttpAuthRepository {
     return this.http.execute<OTPLoginWire, TokenWire>(request, response => this.acceptToken(response.data, onSuccess, onFailure), onFailure)
   }
 
+  sendRegistrationOTP(identifierType: OTPIdentifierType, identifier: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: OTPRegistrationCodeWire = { identifier_type: identifierType, identifier: identifier }
+    const request: HttpRequest<OTPRegistrationCodeWire> = { method: 'POST', path: '/auth/registration/send-code', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<OTPRegistrationCodeWire, OTPChallengeWire>(request, response => this.acceptChallenge(response.data, onSuccess, onFailure), onFailure)
+  }
+
+  registerOTP(input: OTPRegistrationInput, onSuccess: (token: MobileAuthToken) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: OTPRegistrationWire = { identifier_type: input.identifierType, identifier: input.identifier, challenge_id: input.challengeId, verification_code: input.verificationCode, display_name: input.displayName, locale: akI18n.getLocale(), accept_terms: input.acceptTerms }
+    const request: HttpRequest<OTPRegistrationWire> = { method: 'POST', path: '/auth/register/otp', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<OTPRegistrationWire, TokenWire>(request, response => this.acceptToken(response.data, onSuccess, onFailure), onFailure)
+  }
+
   register(input: RegisterInput, onSuccess: (result: AcceptedResult) => void, onFailure: (error: AkError) => void): HttpCancellation {
     const body: RegisterWire = { email: input.email, display_name: input.displayName, password: input.password, locale: akI18n.getLocale(), accept_terms: input.acceptTerms }
     const request: HttpRequest<RegisterWire> = { method: 'POST', path: '/auth/register', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
@@ -74,15 +90,15 @@ export class HttpAuthRepository {
     const request: HttpRequest<ForgotWire> = { method: 'POST', path: '/auth/registration/resend-code', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
     return this.http.execute<ForgotWire, AcceptedWire>(request, response => onSuccess(this.accepted(response.data)), onFailure)
   }
-  forgotPassword(email: string, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
-    const body: ForgotWire = { email: email }
-    const request: HttpRequest<ForgotWire> = { method: 'POST', path: '/auth/password/forgot', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
-    return this.http.execute<ForgotWire, UTSJSONObject>(request, () => onSuccess(), onFailure)
+  forgotPassword(identifierType: OTPIdentifierType, identifier: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: PasswordForgotWire = { identifier_type: identifierType, identifier: identifier }
+    const request: HttpRequest<PasswordForgotWire> = { method: 'POST', path: '/auth/password/forgot', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<PasswordForgotWire, OTPChallengeWire>(request, response => this.acceptChallenge(response.data, onSuccess, onFailure), onFailure)
   }
-  resetPassword(input: PasswordResetInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
-    const body: ResetWire = { email: input.email, code: input.code, new_password: input.newPassword }
-    const request: HttpRequest<ResetWire> = { method: 'POST', path: '/auth/password/reset', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
-    return this.http.execute<ResetWire, UTSJSONObject>(request, () => onSuccess(), onFailure)
+  resetPassword(input: OTPPasswordResetInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: PasswordResetWire = { identifier_type: input.identifierType, identifier: input.identifier, challenge_id: input.challengeId, verification_code: input.verificationCode, new_password: input.newPassword }
+    const request: HttpRequest<PasswordResetWire> = { method: 'POST', path: '/auth/password/reset', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<PasswordResetWire, UTSJSONObject>(request, () => onSuccess(), onFailure)
   }
 
   refresh(refreshToken: string, onSuccess: (token: MobileAuthToken) => void, onFailure: (error: AkError) => void): HttpCancellation {

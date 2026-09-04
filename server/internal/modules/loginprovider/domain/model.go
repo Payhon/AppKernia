@@ -34,6 +34,7 @@ var (
 	ErrCallbackInvalid     = errors.New("provider callback is invalid")
 	ErrLastLoginMethod     = errors.New("the last usable login method cannot be removed")
 	ErrIdentifierConflict  = errors.New("identifier is already bound")
+	ErrAccountExists       = errors.New("account already exists")
 	ErrOTPInvalid          = errors.New("verification code is invalid")
 	ErrDeliveryUnavailable = errors.New("identifier delivery channel is unavailable")
 	ErrStepUpRequired      = errors.New("step-up authentication is required")
@@ -526,6 +527,7 @@ type AtomicLoginSession struct {
 	DeviceKey          string
 	RequestID          string
 	AccessTokenVersion int32
+	AuthMethod         string
 }
 
 type LoginSessionFactory func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (AtomicLoginSession, error)
@@ -566,6 +568,26 @@ type OTPConsume struct {
 	Purpose         string
 }
 
+type AppLoginSettings struct {
+	TenantID         uuid.UUID
+	Registration     bool
+	OTPEnabled       bool
+	EmailOTPEnabled  bool
+	MobileOTPEnabled bool
+}
+
+type OTPRegistration struct {
+	AppID           uuid.UUID
+	IdentifierType  string
+	NormalizedValue string
+	DisplayHint     string
+	DisplayName     string
+	Locale          string
+	ChallengeID     uuid.UUID
+	TargetHash      []byte
+	SecretHash      []byte
+}
+
 type IdentifierMutation struct {
 	Principal
 	AppID           uuid.UUID
@@ -579,6 +601,7 @@ type IdentifierMutation struct {
 
 type Repository interface {
 	ResolveApp(context.Context, uuid.UUID) (uuid.UUID, string, error)
+	AppLoginSettings(context.Context, uuid.UUID) (AppLoginSettings, error)
 	ListConfigs(context.Context, uuid.UUID, ListFilter) (ConfigPage, error)
 	GetConfig(context.Context, uuid.UUID, uuid.UUID) (Config, error)
 	GetConfigSecret(context.Context, uuid.UUID, uuid.UUID) (Config, error)
@@ -607,6 +630,9 @@ type Repository interface {
 	FindOTPLoginUser(context.Context, uuid.UUID, string, string) (uuid.UUID, uuid.UUID, string, error)
 	CreateOTPChallenge(context.Context, OTPChallenge) (uuid.UUID, error)
 	ConsumeOTPChallenge(context.Context, OTPConsume) (uuid.UUID, error)
+	RegisterWithOTP(context.Context, OTPRegistration, LoginSessionFactory) (uuid.UUID, error)
+	ResetPasswordWithOTP(context.Context, OTPConsume, string) error
+	SetPassword(context.Context, Principal, uuid.UUID, string) error
 	UpsertIdentifier(context.Context, IdentifierMutation) (Identifier, error)
 	DeleteIdentifier(context.Context, Principal, uuid.UUID, string) error
 	CreateStepUpTicket(context.Context, StepUpTicket) error

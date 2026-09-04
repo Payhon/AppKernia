@@ -24,6 +24,7 @@ type Principal struct {
 	RequestID                   string
 	IPAddress                   *netip.Addr
 	UserAgent                   string
+	CanUpdateGlobalConfigs      bool
 }
 
 type PageFilter struct {
@@ -186,6 +187,7 @@ type RegionUpdateInput struct {
 
 type Repository interface {
 	ListPublicConfigs(context.Context) (map[string]json.RawMessage, error)
+	GetGlobalString(context.Context, string, string, string) (string, error)
 	ListRegions(context.Context, RegionFilter) ([]Region, error)
 	CreateRegion(context.Context, Principal, RegionCreateInput) (Region, error)
 	UpdateRegion(context.Context, Principal, string, RegionUpdateInput) (Region, error)

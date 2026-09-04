@@ -85,6 +85,7 @@ def render_public_config() -> str:
         "build_variants:",
         "PublicScannerConfig:",
         "allowed_host_patterns:",
+        "PublicLoginMethods:",
     )
     missing = [value for value in required if value not in source]
     if missing:
@@ -119,6 +120,7 @@ export type PublicConfigWire = {
   readonly share: PublicShareRuntimeWire
   readonly push: PublicPushRuntimeWire
   readonly scanner: PublicScannerRuntimeWire | null
+  readonly login_methods: PublicLoginMethodsWire
 }
 
 export type PublicShareProviderWire = {
@@ -146,6 +148,12 @@ export type PublicScannerWebViewWire = {
 
 export type PublicScannerRuntimeWire = {
   readonly webview: PublicScannerWebViewWire | null
+}
+
+export type PublicLoginMethodsWire = {
+  readonly password: { readonly enabled: true }
+  readonly otp: { readonly enabled: boolean; readonly email_enabled: boolean; readonly sms_enabled: boolean }
+  readonly oauth: { readonly enabled: boolean }
 }
 """
 
@@ -255,6 +263,10 @@ def render_mobile_identity() -> str:
         "MobileStepUpResult": ("step_up_token", "expires_at"),
         "OTPChallenge": ("challenge_id", "accepted", "retry_after_seconds", "expires_at"),
         "MobileOTPLoginRequest": ("identifier_type", "identifier", "challenge_id", "verification_code"),
+        "AppIdentifierRequest": ("identifier_type", "identifier"),
+        "AppOTPRegistrationRequest": ("identifier_type", "identifier", "challenge_id", "verification_code", "display_name", "locale", "accept_terms"),
+        "MobilePasswordResetRequest": ("identifier_type", "identifier", "challenge_id", "verification_code", "new_password"),
+        "MobileSetPasswordRequest": ("new_password", "step_up_token"),
         "MobileToken": (
             "access_token", "token_type", "expires_in", "refresh_token",
             "refresh_token_expires_in", "session_id", "app_id",
@@ -403,6 +415,11 @@ export type MobileStepUpProofWire = { readonly step_up_token: string; readonly e
 export type MobileEmailOTPSendWire = { readonly email: string }
 export type MobileSMSOTPSendWire = { readonly mobile: string }
 export type MobileOTPLoginWire = { readonly identifier_type: string; readonly identifier: string; readonly challenge_id: string; readonly verification_code: string }
+export type MobileOTPRegistrationCodeWire = { readonly identifier_type: string; readonly identifier: string }
+export type MobileOTPRegistrationWire = { readonly identifier_type: string; readonly identifier: string; readonly challenge_id: string; readonly verification_code: string; readonly display_name: string; readonly locale: string; readonly accept_terms: boolean }
+export type MobilePasswordForgotWire = { readonly identifier_type: string; readonly identifier: string }
+export type MobilePasswordResetWire = { readonly identifier_type: string; readonly identifier: string; readonly challenge_id: string; readonly verification_code: string; readonly new_password: string }
+export type MobileSetPasswordWire = { readonly new_password: string; readonly step_up_token: string }
 """
 
 

@@ -58,7 +58,7 @@ export function AnonymousPage({ children, featureFlag }: { children: ReactNode; 
   useEffect(() => {
     if (status === 'authenticated') void navigate({ to: '/dashboard', search: { range: '30d' }, replace: true })
   }, [navigate, status])
-  if (status === 'bootstrapping' || status === 'authenticating' || status === 'authenticated' || (featureFlag !== undefined && publicConfig.isPending)) return <PageFallback />
+  if (status === 'bootstrapping' || status === 'authenticated' || (featureFlag !== undefined && publicConfig.isPending)) return <PageFallback />
   if (featureFlag !== undefined && publicConfig.isError) return <LazyPage><ErrorPage status="500" titleKey="routes.errors.server-error.title" /></LazyPage>
   if (featureFlag !== undefined && publicConfig.data?.feature_flags[featureFlag] !== true) return <LazyPage><ErrorPage status="404" titleKey="routes.errors.not-found.title" /></LazyPage>
   return <>{children}</>

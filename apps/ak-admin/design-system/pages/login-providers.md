@@ -12,4 +12,6 @@ This page inherits `../MASTER.md`.
 - Lifecycle order is draft or disabled → write Secret if required → preflight → active. Activation is available only after successful preflight. Disable and delete use confirmations that identify the configuration and binding impact; bound configurations cannot be deleted.
 - The form exposes GitHub's computed callback URL as read-only. Native build identity fields explain that Admin persistence does not change an installed App and a rebuild/export remains required.
 - Preserve URL search state for query, Provider, status and page. Loading, empty, error, catalog mismatch, 403 and 409 are explicit non-overlapping states. A conflict retains edits and never automatically replays an unsafe write.
+- The App client Tab starts with basic methods: password is fixed on and disabled with explanatory copy; the OTP master conditionally reveals email and SMS channel switches and cannot be saved without at least one channel.
+- Basic-method and Provider sections use independent read/update permissions and do not issue hidden requests for unauthorized sections.
 - Validate both locales at 1440, 768 and 375 px. Include keyboard navigation, modal focus, long English labels, link safety, reduced motion and no plaintext Secret in screenshots, fixtures, telemetry or logs.

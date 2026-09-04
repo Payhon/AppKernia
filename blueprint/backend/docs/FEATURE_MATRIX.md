@@ -141,7 +141,8 @@ GET  /admin-api/v1/auth/context
 - 用户名/邮箱/手机号规范化。
 - Argon2id 密码哈希。
 - 登录失败统一文案，防账号枚举。
-- Admin 同一 HMAC 保护范围在 30 分钟内第三次失败后强制短时、一次性 PNG 图形验证码；刷新客户端不能绕过。
+- Admin 同一 HMAC 保护范围在 30 分钟内第三次失败后强制 `click | slide | drag | rotate` 交互式验证码（默认 `slide`）；Mobile 不触发。挑战 5 分钟有效、最多尝试 5 次、成功后单次消费，刷新旧挑战受 2 秒冷却且客户端刷新不能绕过失败状态。
+- 验证码类型来自全局 `iam/security/admin.login_captcha.type`；仅平台租户 `super-admin` 且具备 `sys.platform_config.update` 可修改。缺失/非法值回退 `slide`，配置读取失败时拒绝签发。
 - Access Token + 旋转 Refresh Token。
 - Audience 隔离：`ak-mobile`、`ak-admin`、`ak-api`。
 - 登录风控、失败次数和临时锁定。

@@ -514,3 +514,22 @@ export function readLoginProviderFilters(search: string): LoginProviderConfigFil
     page_size: 20,
   };
 }
+
+export const appLoginSettingsSchema = z.object({
+  app_id: z.uuid(),
+  password_enabled: z.literal(true),
+  otp_enabled: z.boolean(),
+  email_otp_enabled: z.boolean(),
+  sms_otp_enabled: z.boolean(),
+  oauth_enabled: z.boolean(),
+  lock_version: z.number().int().nonnegative(),
+  updated_at: z.string().min(1),
+});
+export type AppLoginSettings = z.infer<typeof appLoginSettingsSchema>;
+export const appLoginSettingsInputSchema = z.object({
+  otp_enabled: z.boolean(),
+  email_otp_enabled: z.boolean(),
+  sms_otp_enabled: z.boolean(),
+  lock_version: z.number().int().nonnegative(),
+}).refine((value) => !value.otp_enabled || value.email_otp_enabled || value.sms_otp_enabled, { path: ["otp_enabled"] });
+export type AppLoginSettingsInput = z.infer<typeof appLoginSettingsInputSchema>;

@@ -83,8 +83,28 @@ func (repository *Postgres) LoginCaptchaRequired(ctx context.Context, scopeHash 
 	return count >= 3, nil
 }
 
+func (repository *Postgres) CheckLoginCaptchaGeneration(ctx context.Context, scopeHash []byte, now time.Time) error {
+	required, err := repository.LoginCaptchaRequired(ctx, scopeHash, now)
+	if err != nil {
+		return fmt.Errorf("check login captcha generation: %w", err)
+	}
+	if !required {
+		return domain.ErrLoginCaptchaNotRequired
+	}
+	coolingDown, err := db.New(repository.pool).LoginCaptchaCoolingDown(ctx, db.LoginCaptchaCoolingDownParams{
+		ScopeHash: scopeHash, NowAt: timestamp(now),
+	})
+	if err != nil {
+		return fmt.Errorf("check login captcha generation: %w", err)
+	}
+	if coolingDown {
+		return domain.ErrLoginCaptchaCooldown
+	}
+	return nil
+}
+
 func (repository *Postgres) RecordLoginFailure(ctx context.Context, input domain.LoginFailure) (int32, error) {
-	tx, err := repository.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	tx, err := repository.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
 		return 0, fmt.Errorf("begin failed login transaction: %w", err)
 	}
@@ -116,19 +136,39 @@ func (repository *Postgres) ResetLoginFailures(ctx context.Context, scopeHash []
 }
 
 func (repository *Postgres) CreateLoginCaptcha(ctx context.Context, input domain.LoginCaptchaChallenge) (uuid.UUID, error) {
-	tx, err := repository.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if input.ID == uuid.Nil || len(input.ScopeHash) != sha256.Size || len(input.ProofHash) != sha256.Size ||
+		!validLoginCaptchaType(input.CaptchaType) || !input.ExpiresAt.After(input.CreatedAt) {
+		return uuid.Nil, fmt.Errorf("invalid login captcha challenge")
+	}
+	tx, err := repository.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("begin login captcha transaction: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	queries := db.New(tx)
+	state, err := queries.GetLoginCaptchaFailureStateForUpdate(ctx, input.ScopeHash)
+	if errors.Is(err, pgx.ErrNoRows) || (err == nil && (state.FailureCount < 3 || !state.ExpiresAt.Valid || !state.ExpiresAt.Time.After(input.CreatedAt))) {
+		return uuid.Nil, domain.ErrLoginCaptchaNotRequired
+	}
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("lock login failure state: %w", err)
+	}
+	coolingDown, err := queries.LoginCaptchaCoolingDown(ctx, db.LoginCaptchaCoolingDownParams{
+		ScopeHash: input.ScopeHash, NowAt: timestamp(input.CreatedAt),
+	})
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("check login captcha cooldown: %w", err)
+	}
+	if coolingDown {
+		return uuid.Nil, domain.ErrLoginCaptchaCooldown
+	}
 	if err = queries.InvalidateActiveLoginCaptchas(ctx, db.InvalidateActiveLoginCaptchasParams{
 		ScopeHash: input.ScopeHash, NowAt: timestamp(input.CreatedAt),
 	}); err != nil {
 		return uuid.Nil, fmt.Errorf("invalidate active login captcha: %w", err)
 	}
-	challenge, err := queries.InsertLoginCaptchaChallenge(ctx, db.InsertLoginCaptchaChallengeParams{
-		ScopeHash: input.ScopeHash, AnswerSalt: input.AnswerSalt, AnswerHash: input.AnswerHash,
+	challengeID, err := queries.InsertLoginCaptchaChallenge(ctx, db.InsertLoginCaptchaChallengeParams{
+		ID: input.ID, ScopeHash: input.ScopeHash, CaptchaType: input.CaptchaType, ProofHash: input.ProofHash,
 		ExpiresAt: timestamp(input.ExpiresAt), CreatedAt: timestamp(input.CreatedAt),
 	})
 	if err != nil {
@@ -137,11 +177,14 @@ func (repository *Postgres) CreateLoginCaptcha(ctx context.Context, input domain
 	if err = tx.Commit(ctx); err != nil {
 		return uuid.Nil, fmt.Errorf("commit login captcha transaction: %w", err)
 	}
-	return challenge.ID, nil
+	return challengeID, nil
 }
 
 func (repository *Postgres) VerifyLoginCaptcha(ctx context.Context, input domain.LoginCaptchaAttempt) error {
-	tx, err := repository.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if input.ID == uuid.Nil || len(input.ScopeHash) != sha256.Size || len(input.ProofHash) != sha256.Size || !validLoginCaptchaType(input.CaptchaType) {
+		return domain.ErrLoginCaptchaInvalid
+	}
+	tx, err := repository.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
 		return fmt.Errorf("begin captcha verification: %w", err)
 	}
@@ -156,23 +199,35 @@ func (repository *Postgres) VerifyLoginCaptcha(ctx context.Context, input domain
 	if err != nil {
 		return fmt.Errorf("lock login captcha: %w", err)
 	}
-	hasher := sha256.New()
-	hasher.Write(challenge.AnswerSalt)
-	hasher.Write([]byte(strings.TrimSpace(input.Answer)))
-	actualHash := hasher.Sum(nil)
-	valid := len(actualHash) == len(challenge.AnswerHash) && subtle.ConstantTimeCompare(actualHash, challenge.AnswerHash) == 1
+	if !loginCaptchaProofMatches(challenge.CaptchaType, challenge.ProofHash, input) {
+		return domain.ErrLoginCaptchaInvalid
+	}
 	if err = queries.CompleteLoginCaptchaAttempt(ctx, db.CompleteLoginCaptchaAttemptParams{
-		ID: input.ID, Consume: valid, NowAt: timestamp(input.Now),
+		ID: input.ID, Consume: input.Valid, NowAt: timestamp(input.Now),
 	}); err != nil {
 		return fmt.Errorf("complete login captcha attempt: %w", err)
 	}
 	if err = tx.Commit(ctx); err != nil {
 		return fmt.Errorf("commit captcha verification: %w", err)
 	}
-	if !valid {
+	if !input.Valid {
 		return domain.ErrLoginCaptchaInvalid
 	}
 	return nil
+}
+
+func loginCaptchaProofMatches(storedType string, storedHash []byte, input domain.LoginCaptchaAttempt) bool {
+	return validLoginCaptchaType(input.CaptchaType) && storedType == input.CaptchaType &&
+		len(storedHash) == len(input.ProofHash) && subtle.ConstantTimeCompare(storedHash, input.ProofHash) == 1
+}
+
+func validLoginCaptchaType(value string) bool {
+	switch value {
+	case "click", "slide", "drag", "rotate":
+		return true
+	default:
+		return false
+	}
 }
 
 func (repository *Postgres) RotateRefreshToken(ctx context.Context, oldHash, newHash []byte, ipAddress *netip.Addr) (domain.Session, error) {

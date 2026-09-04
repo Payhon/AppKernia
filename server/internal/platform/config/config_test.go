@@ -9,6 +9,7 @@ func TestLoadDevelopmentDefaults(t *testing.T) {
 	t.Setenv("AK_LOGIN_PROTECTION_KEY_BASE64", "")
 	t.Setenv("AK_SHUTDOWN_TIMEOUT", "")
 	t.Setenv("AK_ADMIN_REGISTRATION_ENABLED", "")
+	t.Setenv("AK_PLATFORM_TENANT_CODE", "")
 	t.Setenv("AK_PASSWORD_RECOVERY_ENABLED", "")
 	t.Setenv("AK_PASSWORD_RECOVERY_ADAPTER", "")
 	t.Setenv("AK_AVATAR_UPLOAD_ENABLED", "")
@@ -17,6 +18,7 @@ func TestLoadDevelopmentDefaults(t *testing.T) {
 	t.Setenv("AK_MFA_ENABLED", "")
 	t.Setenv("AK_OAUTH_ENABLED", "")
 	t.Setenv("AK_OAUTH_ADAPTER", "")
+	t.Setenv("AK_OTP_ADAPTER", "")
 	t.Setenv("AK_OBJECT_STORAGE_ADAPTER", "")
 	t.Setenv("AK_LOCAL_OBJECT_STORAGE_DIR", "")
 	cfg, err := Load()
@@ -32,11 +34,38 @@ func TestLoadDevelopmentDefaults(t *testing.T) {
 	if cfg.AdminOrigin != "http://localhost:4173" {
 		t.Fatalf("AdminOrigin = %q", cfg.AdminOrigin)
 	}
-	if cfg.AdminRegistrationEnabled || cfg.PasswordRecoveryEnabled || cfg.AvatarUploadEnabled || cfg.FileStorageEnabled || cfg.MultiTenantEnabled || cfg.MFAEnabled || cfg.OAuthEnabled || cfg.PasswordRecoveryAdapter != "local" || cfg.ObjectStorageAdapter != "configured" || cfg.OAuthAdapter != "local-mock" {
+	if cfg.PlatformTenantCode != "local" {
+		t.Fatalf("PlatformTenantCode = %q", cfg.PlatformTenantCode)
+	}
+	if cfg.AdminRegistrationEnabled || cfg.PasswordRecoveryEnabled || cfg.AvatarUploadEnabled || cfg.FileStorageEnabled || cfg.MultiTenantEnabled || cfg.MFAEnabled || cfg.OAuthEnabled || cfg.PasswordRecoveryAdapter != "local" || cfg.ObjectStorageAdapter != "configured" || cfg.OAuthAdapter != "local-mock" || cfg.OTPAdapter != "database-capture" {
 		t.Fatalf("anonymous auth defaults must fail closed with the development adapter available: %#v", cfg)
 	}
 	if cfg.LocalObjectStorageDir == "" {
 		t.Fatal("development local object storage directory must be configured")
+	}
+}
+
+func TestLoadNormalizesConfiguredPlatformTenantCode(t *testing.T) {
+	t.Setenv("AK_ENV", "development")
+	t.Setenv("AK_PLATFORM_TENANT_CODE", "  Platform-OPS  ")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.PlatformTenantCode != "platform-ops" {
+		t.Fatalf("PlatformTenantCode = %q", cfg.PlatformTenantCode)
+	}
+}
+
+func TestLoadOTPCaptureFailsClosedOutsideDevelopment(t *testing.T) {
+	t.Setenv("AK_ENV", "production")
+	t.Setenv("AK_DATABASE_URL", "postgres://example.invalid/appkernia")
+	t.Setenv("AK_JWT_PRIVATE_KEY_BASE64", "test-signing-key")
+	t.Setenv("AK_LOGIN_PROTECTION_KEY_BASE64", developmentLoginProtectionKeyBase64)
+	t.Setenv("AK_CONFIG_MASTER_KEY_BASE64", "dGVzdC1jb25maWctbWFzdGVyLWtleS0zMmJ5dGVzIQ==")
+	t.Setenv("AK_OTP_ADAPTER", "database-capture")
+	if _, err := Load(); err == nil {
+		t.Fatal("Load() accepted plaintext OTP capture in production")
 	}
 }
 

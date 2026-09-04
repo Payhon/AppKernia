@@ -60,6 +60,7 @@
   "required_namespaces": [
     "common",
     "auth",
+    "captcha",
     "navigation",
     "validation",
     "errors",

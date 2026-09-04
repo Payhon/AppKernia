@@ -13,6 +13,7 @@ import (
 
 	"github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	"github.com/appkernia/appkernia/server/internal/modules/iam/domain"
+	platformcaptcha "github.com/appkernia/appkernia/server/internal/platform/captcha"
 	"github.com/appkernia/appkernia/server/internal/shared/httpx"
 	"github.com/appkernia/appkernia/server/internal/shared/i18n"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -30,7 +31,7 @@ const (
 // browser-only admin flow, a native client stores its refresh token in the
 // platform secure store and therefore must not receive an HTTP cookie.
 func (handler *Handler) MobileLogin(request *ghttp.Request) {
-	var body loginRequest
+	var body mobileLoginRequest
 	if err := decodeSingleJSON(request, &body); err != nil || strings.TrimSpace(body.Email) == "" || body.Password == "" {
 		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
@@ -257,10 +258,20 @@ type Handler struct {
 }
 
 type loginRequest struct {
-	Email         string `json:"email"`
-	Password      string `json:"password"`
-	CaptchaID     string `json:"captcha_id"`
-	CaptchaAnswer string `json:"captcha_answer"`
+	Email    string                  `json:"email"`
+	Password string                  `json:"password"`
+	Captcha  *loginCaptchaSubmission `json:"captcha"`
+}
+
+type mobileLoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type loginCaptchaSubmission struct {
+	ID       string                   `json:"id"`
+	Token    string                   `json:"token"`
+	Response platformcaptcha.Response `json:"response"`
 }
 
 type loginCaptchaRequest struct {
@@ -268,10 +279,16 @@ type loginCaptchaRequest struct {
 }
 
 type loginCaptchaResponse struct {
-	CaptchaID    string `json:"captcha_id"`
-	ImageBase64  string `json:"image_base64"`
-	MimeType     string `json:"mime_type"`
-	ExpiresInSec int64  `json:"expires_in_seconds"`
+	CaptchaID      string                 `json:"captcha_id"`
+	CaptchaToken   string                 `json:"captcha_token"`
+	Type           platformcaptcha.Type   `json:"type"`
+	ExpiresInSec   int64                  `json:"expires_in_seconds"`
+	Image          platformcaptcha.Image  `json:"image"`
+	PromptImage    *platformcaptcha.Image `json:"prompt_image,omitempty"`
+	RequiredPoints int                    `json:"required_points,omitempty"`
+	TileImage      *platformcaptcha.Image `json:"tile_image,omitempty"`
+	InitialPoint   *platformcaptcha.Point `json:"initial_point,omitempty"`
+	ThumbImage     *platformcaptcha.Image `json:"thumb_image,omitempty"`
 }
 
 type switchTenantRequest struct {
@@ -368,18 +385,18 @@ func (handler *Handler) Login(request *ghttp.Request) {
 		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 		return
 	}
-	var captchaID *uuid.UUID
-	if strings.TrimSpace(body.CaptchaID) != "" {
-		parsed, err := uuid.Parse(body.CaptchaID)
+	var captcha *application.LoginCaptchaInput
+	if body.Captcha != nil {
+		parsed, err := uuid.Parse(strings.TrimSpace(body.Captcha.ID))
 		if err != nil {
 			handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 			return
 		}
-		captchaID = &parsed
+		captcha = &application.LoginCaptchaInput{ID: parsed, Token: body.Captcha.Token, Response: body.Captcha.Response}
 	}
 	tokens, err := handler.auth.Login(request.Context(), application.LoginInput{
 		Email: body.Email, Password: body.Password, Audience: adminAudience, Client: clientMetadata(request),
-		CaptchaID: captchaID, CaptchaAnswer: body.CaptchaAnswer,
+		Captcha: captcha,
 	})
 	switch {
 	case errors.Is(err, application.ErrDeviceValidation):
@@ -398,6 +415,7 @@ func (handler *Handler) Login(request *ghttp.Request) {
 }
 
 func (handler *Handler) LoginCaptcha(request *ghttp.Request) {
+	request.Response.Header().Set("Cache-Control", "no-store")
 	var body loginCaptchaRequest
 	if err := decodeSingleJSON(request, &body); err != nil || strings.TrimSpace(body.Email) == "" {
 		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
@@ -407,15 +425,21 @@ func (handler *Handler) LoginCaptcha(request *ghttp.Request) {
 	switch {
 	case errors.Is(err, application.ErrProfileValidation):
 		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+	case errors.Is(err, application.ErrCaptchaNotRequired):
+		handler.writeError(request, http.StatusConflict, "IAM.AUTH.CAPTCHA_NOT_REQUIRED", "errors.iam.auth.captcha_not_required")
+	case errors.Is(err, application.ErrCaptchaCooldown):
+		request.Response.Header().Set("Retry-After", "2")
+		handler.writeError(request, http.StatusTooManyRequests, "IAM.AUTH.CAPTCHA_COOLDOWN", "errors.iam.auth.captcha_cooldown")
 	case err != nil:
 		handler.writeError(request, http.StatusInternalServerError, "COMMON.UNKNOWN", "errors.common.unknown")
 	default:
-		request.Response.Header().Set("Cache-Control", "no-store")
 		request.Response.WriteJsonExit(httpx.Success[loginCaptchaResponse]{
 			Code: "OK", Message: "OK", RequestID: httpx.RequestID(request),
 			Data: loginCaptchaResponse{
-				CaptchaID: challenge.ID.String(), ImageBase64: challenge.ImageBase64,
-				MimeType: challenge.MimeType, ExpiresInSec: challenge.ExpiresInSec,
+				CaptchaID: challenge.ID.String(), CaptchaToken: challenge.Token, Type: challenge.Type,
+				ExpiresInSec: challenge.ExpiresInSec, Image: challenge.Image, PromptImage: challenge.PromptImage,
+				RequiredPoints: challenge.RequiredPoints, TileImage: challenge.TileImage,
+				InitialPoint: challenge.InitialPoint, ThumbImage: challenge.ThumbImage,
 			},
 		})
 	}

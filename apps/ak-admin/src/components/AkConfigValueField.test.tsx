@@ -154,4 +154,30 @@ describe("AkConfigValueField", () => {
       expect.objectContaining({ value: "cos" }),
     );
   });
+
+  it("localizes stable schema enum options and preserves their protocol values", async () => {
+    const onChange = vi.fn();
+    const config = {
+      ...item("string", "slide", {
+        enum: ["click", "slide", "drag", "rotate"],
+      }),
+      config_key: "admin.login_captcha.type",
+    };
+    render(
+      <LocaleProvider>
+        <FieldHarness config={config} onChange={onChange} />
+      </LocaleProvider>,
+    );
+
+    fireEvent.mouseDown(screen.getByRole("combobox"));
+    fireEvent.click(
+      (await screen.findAllByText(/旋转图形|Rotate image/)).at(-1) ??
+        document.body,
+    );
+
+    expect(onChange).toHaveBeenCalledWith(
+      "rotate",
+      expect.objectContaining({ value: "rotate" }),
+    );
+  });
 });

@@ -176,9 +176,9 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 **筛选**：module_code, config_group, config_key, value_type, status, is_public, is_secret
 
-**主要动作**：选择配置分类, 新建配置, 编辑当前值, 轮换 Secret, 使用字典选择存储/短信驱动, 使用当前云存储策略测试上传
+**主要动作**：选择配置分类, 新建配置, 编辑当前值, 轮换 Secret, 配置 Admin 登录验证码类型, 使用字典选择存储/短信驱动, 使用当前云存储策略测试上传
 
-**UX 规范**：左侧分类 + 配置表；目录元数据只读，当前值可编辑；Secret 永不回显明文，使用保持不变/替换/轮换语义；分类选择写入 URL。
+**UX 规范**：左侧分类 + 配置表；目录元数据只读，当前值可编辑；`iam/security/admin.login_captcha.type` 使用固定枚举 Select，不创建字典；全局项仅平台租户 `super-admin` 且具备 `sys.platform_config.update` 时可写；Secret 永不回显明文，使用保持不变/替换/轮换语义；分类选择写入 URL。
 
 **API**
 
@@ -196,6 +196,7 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 - 刷新后筛选、分页和排序从 URL Search Params 恢复。
 - View Permission 在路由层阻断；Action Permission 控制动作展示。
+- 全局验证码类型更新保留版本冲突反馈，非平台租户、非 `super-admin` 或缺少平台配置权限时只读。
 - Loading、Empty、Error、403 和数据刷新状态完整。
 
 ## `system.settings.share-configs` — 分享配置
@@ -1154,9 +1155,9 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 **筛选**：无
 
-**主要动作**：密码登录, 三次失败后图形验证码, 可选 MFA
+**主要动作**：密码登录, 三次失败后交互式验证码, 可选 MFA
 
-**UX 规范**：登录成功只接受同源 redirect；错误不泄露账号是否存在；图形验证码由服务端失败状态触发，刷新页面不可绕过。
+**UX 规范**：登录成功只接受同源 redirect；错误不泄露账号是否存在；`click | slide | drag | rotate` 交互式验证码由服务端失败状态触发，刷新页面不可绕过；Pointer、触控与键盘均可完成。
 
 **API**
 
@@ -1172,7 +1173,7 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 - 已登录用户刷新受保护路由时完成 CSRF/Refresh/Context 冷启动恢复并留在原路由。
 - Redirect 只接受同源白名单路径；错误不泄露账号是否存在。
 - 提交、限流、服务错误和离线状态完整；密码、验证码、Token 不写日志或持久化。
-- 键盘、自动填充、密码管理器和 768px 窄屏流程可用。
+- 键盘、触控、自动填充、密码管理器和 375/768/1440 响应式流程可用；验证码错误与异步状态可被辅助技术感知。
 
 ## `auth.register` — 注册页
 

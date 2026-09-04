@@ -12,11 +12,13 @@ apps/ak-admin/src/
 │   ├── load-namespace.ts
 │   └── types.ts
 └── locales/
-    ├── zh-CN/{common,auth,navigation,validation,errors,profile,settings,system,notifications,login_providers,...}.json
-    └── en-US/{common,auth,navigation,validation,errors,profile,settings,system,notifications,login_providers,...}.json
+    ├── zh-CN/{common,auth,captcha,navigation,validation,errors,profile,settings,system,notifications,login_providers,...}.json
+    └── en-US/{common,auth,captcha,navigation,validation,errors,profile,settings,system,notifications,login_providers,...}.json
 ```
 
 公共首屏 namespace 随主包加载，feature namespace 按路由懒加载。加载完成后原子切换 locale，避免半中半英。
+
+`captcha` 是例外的按组件 namespace：`auth.login.captcha.*` 由生成器单独输出，随 `AkInteractiveCaptcha` 懒 chunk 注册到现有 i18next `translation` namespace。登录页在服务端要求 Challenge 时先加载该模块，再显示 CAPTCHA 专用文案；主包不得静态 import 两份 CAPTCHA catalog。
 
 ## 2. 适配
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/appkernia/appkernia/server/internal/modules/iam/domain"
+	platformcaptcha "github.com/appkernia/appkernia/server/internal/platform/captcha"
 	"github.com/google/uuid"
 )
 
@@ -28,6 +29,8 @@ var (
 	ErrTenantUnavailable      = errors.New("tenant is unavailable to this user")
 	ErrCaptchaRequired        = errors.New("login captcha is required")
 	ErrCaptchaInvalid         = errors.New("login captcha is invalid")
+	ErrCaptchaNotRequired     = errors.New("login captcha is not required")
+	ErrCaptchaCooldown        = errors.New("login captcha generation is cooling down")
 )
 
 type ClientMetadata struct {
@@ -79,13 +82,12 @@ type RemoveSelfDeviceInput struct {
 }
 
 type LoginInput struct {
-	Email         string
-	Password      string
-	Audience      string
-	AppID         *uuid.UUID
-	Client        ClientMetadata
-	CaptchaID     *uuid.UUID
-	CaptchaAnswer string
+	Email    string
+	Password string
+	Audience string
+	AppID    *uuid.UUID
+	Client   ClientMetadata
+	Captcha  *LoginCaptchaInput
 }
 
 type SwitchTenantInput struct {
@@ -125,14 +127,17 @@ type appCredentialRepository interface {
 }
 
 type AuthService struct {
-	identities         domain.Repository
-	sessions           domain.SessionRepository
-	issuer             *TokenIssuer
-	clock              func() time.Time
-	dummyPasswordHash  string
-	anonymous          AnonymousAuthConfig
-	resetNotifier      PasswordResetNotifier
-	loginProtectionKey []byte
+	identities               domain.Repository
+	sessions                 domain.SessionRepository
+	issuer                   *TokenIssuer
+	clock                    func() time.Time
+	dummyPasswordHash        string
+	anonymous                AnonymousAuthConfig
+	resetNotifier            PasswordResetNotifier
+	loginProtectionKey       []byte
+	loginCaptcha             *platformcaptcha.Service
+	loginCaptchaCodec        *platformcaptcha.Codec
+	loginCaptchaTypeProvider func(context.Context) (platformcaptcha.Type, error)
 }
 
 func appIDValue(value *uuid.UUID) uuid.UUID {
@@ -160,6 +165,14 @@ func NewAuthService(identities domain.Repository, sessions domain.SessionReposit
 	for _, option := range options {
 		option(service)
 	}
+	service.loginCaptcha, err = platformcaptcha.NewService()
+	if err != nil {
+		return nil, fmt.Errorf("initialize login captcha: %w", err)
+	}
+	service.loginCaptchaCodec, err = platformcaptcha.NewCodec(service.loginProtectionKey)
+	if err != nil {
+		return nil, fmt.Errorf("initialize login captcha proof: %w", err)
+	}
 	return service, nil
 }
 
@@ -170,21 +183,16 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 	}
 	now := service.clock().UTC()
 	scopeHash := loginScopeHash(service.loginProtectionKey, input.Email, input.Audience, input.Client.IPAddress)
-	captchaRequired, err := service.identities.LoginCaptchaRequired(ctx, scopeHash, now)
-	if err != nil {
-		return SessionTokens{}, fmt.Errorf("read login protection state: %w", err)
-	}
-	if captchaRequired {
-		if input.CaptchaID == nil || strings.TrimSpace(input.CaptchaAnswer) == "" {
-			return SessionTokens{}, ErrCaptchaRequired
+	adminLogin := input.Audience == "ak-admin"
+	if adminLogin {
+		captchaRequired, captchaErr := service.identities.LoginCaptchaRequired(ctx, scopeHash, now)
+		if captchaErr != nil {
+			return SessionTokens{}, fmt.Errorf("read login protection state: %w", captchaErr)
 		}
-		if err = service.identities.VerifyLoginCaptcha(ctx, domain.LoginCaptchaAttempt{
-			ID: *input.CaptchaID, ScopeHash: scopeHash, Answer: input.CaptchaAnswer, Now: now,
-		}); err != nil {
-			if errors.Is(err, domain.ErrLoginCaptchaInvalid) {
-				return SessionTokens{}, ErrCaptchaInvalid
+		if captchaRequired {
+			if err = service.verifyLoginCaptcha(ctx, input.Captcha, scopeHash, now); err != nil {
+				return SessionTokens{}, err
 			}
-			return SessionTokens{}, fmt.Errorf("verify login captcha: %w", err)
 		}
 	}
 	credential, findErr := service.identities.FindCredentialByEmail(ctx, input.Email)
@@ -209,7 +217,7 @@ func (service *AuthService) Login(ctx context.Context, input LoginInput) (Sessio
 			IPAddress: input.Client.IPAddress, UserAgent: input.Client.UserAgent,
 			ScopeHash: scopeHash, FailedAt: now, ExpiresAt: now.Add(loginFailureWindow),
 		})
-		if recordErr == nil && failureCount >= loginCaptchaThreshold {
+		if adminLogin && recordErr == nil && failureCount >= loginCaptchaThreshold {
 			return SessionTokens{}, ErrCaptchaRequired
 		}
 		return SessionTokens{}, ErrInvalidCredentials
@@ -300,11 +308,11 @@ func (service *AuthService) IssueMobileSession(ctx context.Context, userID, appI
 }
 
 // PrepareAtomicMobileSession performs every non-database step required for a
-// mobile OAuth session. The login-provider repository persists the returned
+// mobile OAuth or OTP session. The login-provider repository persists the returned
 // hash and session metadata inside its identity transaction; any preparation
 // error therefore occurs before that transaction can commit.
 func (service *AuthService) PrepareAtomicMobileSession(userID, tenantID, appID uuid.UUID, authMethod string, client ClientMetadata) (PreparedMobileSession, error) {
-	if userID == uuid.Nil || tenantID == uuid.Nil || appID == uuid.Nil || authMethod != "oauth" {
+	if userID == uuid.Nil || tenantID == uuid.Nil || appID == uuid.Nil || (authMethod != "oauth" && authMethod != "email_otp" && authMethod != "sms_otp") {
 		return PreparedMobileSession{}, ErrInvalidCredentials
 	}
 	deviceKey, err := normalizeDeviceKey(client.DeviceKey)

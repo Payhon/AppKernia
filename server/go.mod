@@ -21,6 +21,8 @@ require (
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.3.93
 	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/sms v1.3.93
+	github.com/wenlng/go-captcha-assets v1.0.7
+	github.com/wenlng/go-captcha/v2 v2.0.5
 	github.com/wneessen/go-mail v0.8.1
 	github.com/yuin/goldmark v1.7.13
 	golang.org/x/crypto v0.54.0
@@ -49,6 +51,7 @@ require (
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/grokify/html-strip-tags-go v0.1.0 // indirect

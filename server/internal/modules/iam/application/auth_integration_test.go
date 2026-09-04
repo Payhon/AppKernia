@@ -16,6 +16,7 @@ import (
 	"github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	"github.com/appkernia/appkernia/server/internal/modules/iam/domain"
 	"github.com/appkernia/appkernia/server/internal/modules/iam/repository"
+	platformcaptcha "github.com/appkernia/appkernia/server/internal/platform/captcha"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -56,6 +57,9 @@ func TestAdminLoginRequiresCaptchaAfterThirdFailureAndResetsAfterSuccess(t *test
 	if err != nil {
 		t.Fatalf("create auth service: %v", err)
 	}
+	if _, captchaErr := service.CreateLoginCaptcha(ctx, email, "ak-admin", application.ClientMetadata{}); !errors.Is(captchaErr, application.ErrCaptchaNotRequired) {
+		t.Fatalf("captcha must not be generated below the failure threshold, got %v", captchaErr)
+	}
 
 	for attempt := 1; attempt <= 3; attempt++ {
 		_, loginErr := service.Login(ctx, application.LoginInput{
@@ -74,60 +78,170 @@ func TestAdminLoginRequiresCaptchaAfterThirdFailureAndResetsAfterSuccess(t *test
 	}); !errors.Is(loginErr, application.ErrCaptchaRequired) {
 		t.Fatalf("refreshing the client must not bypass captcha, got %v", loginErr)
 	}
+	type captchaGenerationResult struct {
+		challenge application.LoginCaptcha
+		err       error
+	}
+	const generators = 4
+	startGeneration := make(chan struct{})
+	generationResults := make(chan captchaGenerationResult, generators)
+	for index := 0; index < generators; index++ {
+		go func() {
+			<-startGeneration
+			challenge, challengeErr := service.CreateLoginCaptcha(ctx, email, "ak-admin", application.ClientMetadata{})
+			generationResults <- captchaGenerationResult{challenge: challenge, err: challengeErr}
+		}()
+	}
+	close(startGeneration)
+	successes, cooldowns := 0, 0
+	for index := 0; index < generators; index++ {
+		result := <-generationResults
+		switch {
+		case result.err == nil:
+			successes++
+			if result.challenge.Type != platformcaptcha.TypeSlide || result.challenge.Token == "" {
+				t.Fatalf("unexpected default interactive captcha: %+v", result.challenge)
+			}
+		case errors.Is(result.err, application.ErrCaptchaCooldown):
+			cooldowns++
+		default:
+			t.Fatalf("concurrent generation must return success or cooldown, got %v", result.err)
+		}
+	}
+	if successes != 1 || cooldowns != generators-1 {
+		t.Fatalf("concurrent generation results: successes=%d cooldowns=%d", successes, cooldowns)
+	}
 
 	keyDigest := sha256.Sum256(append([]byte("appkernia-login-protection\x00"), loginProtectionKey...))
 	scopeHasher := hmac.New(sha256.New, keyDigest[:])
 	scopeHasher.Write([]byte(email + "\nak-admin\nunknown"))
 	scopeHash := scopeHasher.Sum(nil)
-	createChallenge := func(answer string) uuid.UUID {
+	codec, err := platformcaptcha.NewCodec(keyDigest[:])
+	if err != nil {
+		t.Fatalf("create captcha codec: %v", err)
+	}
+	createChallenge := func() application.LoginCaptchaInput {
 		t.Helper()
-		salt := []byte("0123456789abcdef")
-		hasher := sha256.New()
-		hasher.Write(salt)
-		hasher.Write([]byte(answer))
+		if _, updateErr := pool.Exec(ctx, `UPDATE iam.login_captcha_challenges SET created_at = created_at - interval '3 seconds' WHERE scope_hash = $1`, scopeHash); updateErr != nil {
+			t.Fatalf("age prior captcha for cooldown: %v", updateErr)
+		}
 		now := time.Now().UTC()
+		id := uuid.Must(uuid.NewV7())
+		target := platformcaptcha.Point{X: 80, Y: 40}
+		proof, proofErr := platformcaptcha.NewProof(id.String(), scopeHash, now, now.Add(5*time.Minute), platformcaptcha.Solution{
+			Type: platformcaptcha.TypeSlide, CanvasWidth: 320, CanvasHeight: 180, Point: &target,
+		})
+		if proofErr != nil {
+			t.Fatalf("create known proof: %v", proofErr)
+		}
+		token, sealErr := codec.Seal(proof)
+		if sealErr != nil {
+			t.Fatalf("seal known proof: %v", sealErr)
+		}
 		id, challengeErr := repo.CreateLoginCaptcha(ctx, domain.LoginCaptchaChallenge{
-			ScopeHash: scopeHash, AnswerSalt: salt, AnswerHash: hasher.Sum(nil),
+			ID: id, ScopeHash: scopeHash, CaptchaType: "slide", ProofHash: platformcaptcha.TokenHash(token),
 			CreatedAt: now, ExpiresAt: now.Add(5 * time.Minute),
 		})
 		if challengeErr != nil {
 			t.Fatalf("create known captcha: %v", challengeErr)
 		}
-		return id
+		responsePoint := target
+		return application.LoginCaptchaInput{
+			ID: id, Token: token,
+			Response: platformcaptcha.Response{Type: platformcaptcha.TypeSlide, Point: &responsePoint},
+		}
 	}
 
-	wrongID := createChallenge("234567")
+	wrongCaptcha := createChallenge()
+	wrongPoint := platformcaptcha.Point{X: 200, Y: 40}
+	wrongCaptcha.Response.Point = &wrongPoint
 	if _, loginErr := service.Login(ctx, application.LoginInput{
-		Email: email, Password: password, Audience: "ak-admin", CaptchaID: &wrongID, CaptchaAnswer: "876543",
+		Email: email, Password: password, Audience: "ak-admin", Captcha: &wrongCaptcha,
 	}); !errors.Is(loginErr, application.ErrCaptchaInvalid) {
 		t.Fatalf("wrong captcha must be rejected before password authentication, got %v", loginErr)
 	}
-
-	consumedID := createChallenge("234567")
+	mismatchedCaptcha := createChallenge()
+	if _, err = pool.Exec(ctx, `UPDATE iam.login_captcha_challenges SET captcha_type = 'drag' WHERE id = $1`, mismatchedCaptcha.ID); err != nil {
+		t.Fatalf("change stored captcha type: %v", err)
+	}
 	if _, loginErr := service.Login(ctx, application.LoginInput{
-		Email: email, Password: "wrong password", Audience: "ak-admin", CaptchaID: &consumedID, CaptchaAnswer: "234567",
+		Email: email, Password: password, Audience: "ak-admin", Captcha: &mismatchedCaptcha,
+	}); !errors.Is(loginErr, application.ErrCaptchaInvalid) {
+		t.Fatalf("proof and database captcha types must agree, got %v", loginErr)
+	}
+
+	consumedCaptcha := createChallenge()
+	if _, loginErr := service.Login(ctx, application.LoginInput{
+		Email: email, Password: "wrong password", Audience: "ak-admin", Captcha: &consumedCaptcha,
 	}); !errors.Is(loginErr, application.ErrCaptchaRequired) {
 		t.Fatalf("a valid captcha with invalid credentials must keep protection active, got %v", loginErr)
 	}
 	if _, loginErr := service.Login(ctx, application.LoginInput{
-		Email: email, Password: password, Audience: "ak-admin", CaptchaID: &consumedID, CaptchaAnswer: "234567",
+		Email: email, Password: password, Audience: "ak-admin", Captcha: &consumedCaptcha,
 	}); !errors.Is(loginErr, application.ErrCaptchaInvalid) {
 		t.Fatalf("a consumed captcha must not be reusable, got %v", loginErr)
 	}
 
-	expiredID := createChallenge("234567")
-	if _, err = pool.Exec(ctx, `UPDATE iam.login_captcha_challenges SET created_at = now() - interval '2 minutes', expires_at = now() - interval '1 minute' WHERE id = $1`, expiredID); err != nil {
+	expiredCaptcha := createChallenge()
+	if _, err = pool.Exec(ctx, `UPDATE iam.login_captcha_challenges SET created_at = now() - interval '2 minutes', expires_at = now() - interval '1 minute' WHERE id = $1`, expiredCaptcha.ID); err != nil {
 		t.Fatalf("expire known captcha: %v", err)
 	}
 	if _, loginErr := service.Login(ctx, application.LoginInput{
-		Email: email, Password: password, Audience: "ak-admin", CaptchaID: &expiredID, CaptchaAnswer: "234567",
+		Email: email, Password: password, Audience: "ak-admin", Captcha: &expiredCaptcha,
 	}); !errors.Is(loginErr, application.ErrCaptchaInvalid) {
 		t.Fatalf("an expired captcha must be rejected, got %v", loginErr)
 	}
 
-	validID := createChallenge("234567")
+	concurrentCaptcha := createChallenge()
+	startVerification := make(chan struct{})
+	verificationResults := make(chan error, 2)
+	for range 2 {
+		go func() {
+			<-startVerification
+			verificationResults <- repo.VerifyLoginCaptcha(ctx, domain.LoginCaptchaAttempt{
+				ID: concurrentCaptcha.ID, ScopeHash: scopeHash, CaptchaType: "slide",
+				ProofHash: platformcaptcha.TokenHash(concurrentCaptcha.Token), Valid: true, Now: time.Now().UTC(),
+			})
+		}()
+	}
+	close(startVerification)
+	verificationSuccesses, verificationRejections := 0, 0
+	for range 2 {
+		switch verifyErr := <-verificationResults; {
+		case verifyErr == nil:
+			verificationSuccesses++
+		case errors.Is(verifyErr, domain.ErrLoginCaptchaInvalid):
+			verificationRejections++
+		default:
+			t.Fatalf("concurrent verification returned %v", verifyErr)
+		}
+	}
+	if verificationSuccesses != 1 || verificationRejections != 1 {
+		t.Fatalf("single-use verification results: success=%d rejected=%d", verificationSuccesses, verificationRejections)
+	}
+
+	limitedCaptcha := createChallenge()
+	for attempt := 1; attempt <= 6; attempt++ {
+		verifyErr := repo.VerifyLoginCaptcha(ctx, domain.LoginCaptchaAttempt{
+			ID: limitedCaptcha.ID, ScopeHash: scopeHash, CaptchaType: "slide",
+			ProofHash: platformcaptcha.TokenHash(limitedCaptcha.Token), Valid: false, Now: time.Now().UTC(),
+		})
+		if !errors.Is(verifyErr, domain.ErrLoginCaptchaInvalid) {
+			t.Fatalf("invalid captcha attempt %d returned %v", attempt, verifyErr)
+		}
+	}
+	var attemptCount int32
+	var consumed bool
+	if err = pool.QueryRow(ctx, `SELECT attempt_count, consumed_at IS NOT NULL FROM iam.login_captcha_challenges WHERE id=$1`, limitedCaptcha.ID).Scan(&attemptCount, &consumed); err != nil {
+		t.Fatalf("read attempt-limited captcha: %v", err)
+	}
+	if attemptCount != 5 || !consumed {
+		t.Fatalf("attempt-limited captcha state: attempts=%d consumed=%v", attemptCount, consumed)
+	}
+
+	validCaptcha := createChallenge()
 	if _, loginErr := service.Login(ctx, application.LoginInput{
-		Email: email, Password: password, Audience: "ak-admin", CaptchaID: &validID, CaptchaAnswer: "234567",
+		Email: email, Password: password, Audience: "ak-admin", Captcha: &validCaptcha,
 	}); loginErr != nil {
 		t.Fatalf("valid captcha and credentials must authenticate: %v", loginErr)
 	}

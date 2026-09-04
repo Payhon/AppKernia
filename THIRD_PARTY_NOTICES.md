@@ -28,6 +28,27 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+## go-captcha
+
+The Admin interactive CAPTCHA implementation includes `go-captcha/v2`
+version `2.0.5` and `go-captcha-assets` version `1.0.7`, available from
+https://github.com/wenlng/go-captcha. Both are distributed under the Apache
+License, Version 2.0.
+
+Copyright (c) 2024 Awen <wengaolng@gmail.com>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 ## Scalar API Reference
 
 The Admin OpenAPI page includes `@scalar/api-reference` version `1.64.1` and

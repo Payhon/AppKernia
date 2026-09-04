@@ -59,7 +59,7 @@
       "pages": [
         "auth.login"
       ],
-      "reason": "登录页仅消费一次性图形挑战，原始答案哈希、盐和挑战记录不对管理员暴露。"
+      "reason": "登录页仅消费一次性交互挑战，证明 Token 哈希、目标和挑战记录不对管理员暴露。"
     },
     {
       "table": "iam.login_failure_states",

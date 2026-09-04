@@ -16,6 +16,7 @@ import {
   MobileStepUpProofWire as StepUpProofWire,
   MobileStepUpTokenWire as StepUpTokenWire,
   MobileUnboundWire as UnboundWire,
+  MobileSetPasswordWire as SetPasswordWire,
 } from '../../generated/api/mobile-identity.uts'
 import { OTPChallenge } from './auth-repository.uts'
 import { LoginIdentifier, LoginMethods, OAuthAccount, StepUpProof } from './oauth-models.uts'
@@ -48,6 +49,12 @@ export class HttpLoginMethodsRepository {
     const body: StepUpTokenWire = { step_up_token: stepUpToken }
     const request: HttpRequest<StepUpTokenWire> = { method: 'DELETE', path: '/me/login-identifiers/' + identifierType, query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
     return this.http.execute<StepUpTokenWire, UnboundWire>(request, response => { if (response.data.unbound) onSuccess(); else onFailure(this.invalidResponse()) }, onFailure)
+  }
+
+  setPassword(newPassword: string, stepUpToken: string, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: SetPasswordWire = { new_password: newPassword, step_up_token: stepUpToken }
+    const request: HttpRequest<SetPasswordWire> = { method: 'PUT', path: '/me/password', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
+    return this.http.execute<SetPasswordWire, UTSJSONObject>(request, () => onSuccess(), onFailure)
   }
 
   sendStepUpCode(identifierId: string, purpose: string, resource: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation {

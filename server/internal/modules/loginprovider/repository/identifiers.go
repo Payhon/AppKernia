@@ -21,6 +21,10 @@ func challengeType(purpose, identifierType string) (string, error) {
 	switch purpose {
 	case "login":
 		return "login_otp", nil
+	case "registration":
+		return "registration_otp", nil
+	case "password_reset":
+		return "password_reset", nil
 	case "bind":
 		if identifierType == "email" {
 			return "email_verify", nil
@@ -77,7 +81,7 @@ ORDER BY created_at DESC,id DESC LIMIT 1`, challengeKind, targetHash, challenge.
 count(*) FILTER (WHERE metadata->>'app_id'=$1),
 count(*) FILTER (WHERE created_ip=nullif($2,'')::inet),
 count(*) FILTER (WHERE metadata->>'device_key_hash'=nullif($3,''))
-FROM iam.verification_challenges WHERE created_at>now()-interval '10 minutes' AND challenge_type IN ('login_otp','email_verify','mobile_verify','email_otp','sms_otp')`,
+FROM iam.verification_challenges WHERE created_at>now()-interval '10 minutes' AND challenge_type IN ('login_otp','registration_otp','password_reset','email_verify','mobile_verify','email_otp','sms_otp')`,
 		challenge.AppID.String(), challenge.CreatedIP, deviceHashHex).Scan(&appCount, &ipCount, &deviceCount)
 	if err != nil {
 		return uuid.Nil, err
@@ -110,7 +114,7 @@ VALUES($1,$2,$3,$4,$5,$6,5,$7,nullif($8,'')::inet,$9)`, challenge.ID, challenge.
 		return uuid.Nil, err
 	}
 	deliveryErr := r.otp.Queue(ctx, tx, challenge)
-	if deliveryErr != nil || challenge.UserID == nil {
+	if deliveryErr != nil || challenge.Purpose == "login" && challenge.UserID == nil {
 		if _, err = tx.Exec(ctx, `ROLLBACK TO SAVEPOINT login_otp_delivery`); err != nil {
 			return uuid.Nil, err
 		}
@@ -138,6 +142,145 @@ VALUES($1,$2,$3,'iam.otp.delivery_failed','medium','auth',nullif($4,'')::inet,$5
 		return uuid.Nil, err
 	}
 	return challenge.ID, nil
+}
+
+func (r *Postgres) RegisterWithOTP(ctx context.Context, input login.OTPRegistration, sessionFactory login.LoginSessionFactory) (uuid.UUID, error) {
+	challengeKind, err := challengeType("registration", input.IdentifierType)
+	if err != nil || input.AppID == uuid.Nil || input.ChallengeID == uuid.Nil || input.NormalizedValue == "" ||
+		len(input.TargetHash) != 32 || len(input.SecretHash) != 32 || !hmac.Equal(input.TargetHash, hashValue(input.NormalizedValue)) || sessionFactory == nil {
+		return uuid.Nil, login.ErrOTPInvalid
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var tenantID uuid.UUID
+	var registrationEnabled, otpEnabled, emailEnabled, mobileEnabled bool
+	err = tx.QueryRow(ctx, `SELECT a.tenant_id,a.registration_enabled,
+COALESCE(s.otp_login_enabled,false),COALESCE(s.email_otp_enabled,true),COALESCE(s.sms_otp_enabled,false)
+FROM app.applications a LEFT JOIN app.application_login_settings s ON s.tenant_id=a.tenant_id AND s.app_id=a.id
+WHERE a.id=$1 AND a.status='active' AND a.deleted_at IS NULL FOR SHARE OF a`, input.AppID).Scan(
+		&tenantID, &registrationEnabled, &otpEnabled, &emailEnabled, &mobileEnabled)
+	if err != nil || !registrationEnabled || !otpEnabled || input.IdentifierType == "email" && !emailEnabled || input.IdentifierType == "mobile" && !mobileEnabled {
+		return uuid.Nil, login.ErrProviderUnavailable
+	}
+	var storedSecret []byte
+	var attempts, maxAttempts int
+	var expiresAt time.Time
+	err = tx.QueryRow(ctx, `SELECT secret_hash,attempts,max_attempts,expires_at FROM iam.verification_challenges
+WHERE id=$1 AND challenge_type=$2 AND target_hash=$3 AND metadata->>'app_id'=$4
+AND metadata->>'identifier_type'=$5 AND metadata->>'purpose'='registration' AND consumed_at IS NULL FOR UPDATE`,
+		input.ChallengeID, challengeKind, input.TargetHash, input.AppID.String(), input.IdentifierType).Scan(&storedSecret, &attempts, &maxAttempts, &expiresAt)
+	if err != nil || attempts >= maxAttempts || !time.Now().UTC().Before(expiresAt) || !hmac.Equal(storedSecret, input.SecretHash) {
+		if err == nil {
+			_, _ = tx.Exec(ctx, `UPDATE iam.verification_challenges SET attempts=attempts+1,
+consumed_at=CASE WHEN attempts+1>=max_attempts OR expires_at<=now() THEN now() ELSE consumed_at END WHERE id=$1`, input.ChallengeID)
+			_ = tx.Commit(ctx)
+		}
+		return uuid.Nil, login.ErrOTPInvalid
+	}
+	var exists bool
+	if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM app.user_login_identifiers
+WHERE app_id=$1 AND identifier_type=$2 AND normalized_value=$3 AND status='active')`, input.AppID, input.IdentifierType, input.NormalizedValue).Scan(&exists); err != nil {
+		return uuid.Nil, err
+	}
+	if exists {
+		return uuid.Nil, login.ErrAccountExists
+	}
+	locale := input.Locale
+	if locale != "en-US" {
+		locale = "zh-CN"
+	}
+	var userID uuid.UUID
+	if err = tx.QueryRow(ctx, `INSERT INTO iam.users(display_name,status,locale) VALUES($1,'active',$2) RETURNING id`, input.DisplayName, locale).Scan(&userID); err != nil {
+		return uuid.Nil, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO iam.tenant_members(tenant_id,user_id,status) VALUES($1,$2,'active')`, tenantID, userID); err != nil {
+		return uuid.Nil, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO app.user_memberships(app_id,tenant_id,user_id,source,status,verified_at)
+VALUES($1,$2,$3,'self_registration','active',now())`, input.AppID, tenantID, userID); err != nil {
+		return uuid.Nil, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO app.user_login_identifiers(
+tenant_id,app_id,user_id,identifier_type,normalized_value,display_hint,verified_at,status)
+VALUES($1,$2,$3,$4,$5,$6,now(),'active')`, tenantID, input.AppID, userID, input.IdentifierType, input.NormalizedValue, input.DisplayHint); err != nil {
+		return uuid.Nil, classify(err)
+	}
+	if _, err = tx.Exec(ctx, `UPDATE iam.verification_challenges SET attempts=attempts+1,consumed_at=now() WHERE id=$1`, input.ChallengeID); err != nil {
+		return uuid.Nil, err
+	}
+	session, err := sessionFactory(ctx, userID, tenantID, input.AppID)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if err = createAtomicLoginSession(ctx, tx, login.ResolvedIdentity{TenantID: tenantID, AppID: input.AppID, UserID: userID, Created: true}, session); err != nil {
+		return uuid.Nil, err
+	}
+	details, _ := json.Marshal(map[string]any{"app_id": input.AppID, "identifier_type": input.IdentifierType})
+	if _, err = tx.Exec(ctx, `INSERT INTO audit.security_events(tenant_id,user_id,session_id,app_id,event_type,severity,source,details)
+VALUES($1,$2,$3,$4,'iam.otp.registration','info','auth',$5)`, tenantID, userID, session.ID, input.AppID, details); err != nil {
+		return uuid.Nil, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return uuid.Nil, classify(err)
+	}
+	return userID, nil
+}
+
+func (r *Postgres) ResetPasswordWithOTP(ctx context.Context, input login.OTPConsume, passwordHash string) error {
+	challengeKind, err := challengeType("password_reset", input.IdentifierType)
+	if err != nil || input.ID == uuid.Nil || input.AppID == uuid.Nil || input.NormalizedValue == "" || passwordHash == "" ||
+		len(input.TargetHash) != 32 || len(input.SecretHash) != 32 || !hmac.Equal(input.TargetHash, hashValue(input.NormalizedValue)) {
+		return login.ErrOTPInvalid
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var userID uuid.UUID
+	var storedSecret []byte
+	var attempts, maxAttempts int
+	var expiresAt time.Time
+	err = tx.QueryRow(ctx, `SELECT c.user_id,c.secret_hash,c.attempts,c.max_attempts,c.expires_at
+FROM iam.verification_challenges c
+JOIN app.user_login_identifiers i ON i.user_id=c.user_id AND i.app_id=$2 AND i.identifier_type=$3 AND i.normalized_value=$4
+JOIN app.user_memberships m ON m.app_id=i.app_id AND m.user_id=i.user_id AND m.status='active'
+JOIN iam.user_credentials p ON p.user_id=i.user_id
+WHERE c.id=$1 AND c.challenge_type=$5 AND c.target_hash=$6 AND c.metadata->>'app_id'=$7
+AND c.metadata->>'identifier_type'=$3 AND c.metadata->>'purpose'='password_reset' AND c.consumed_at IS NULL
+AND i.status='active' AND i.verified_at IS NOT NULL FOR UPDATE OF c,p`, input.ID, input.AppID, input.IdentifierType,
+		input.NormalizedValue, challengeKind, input.TargetHash, input.AppID.String()).Scan(&userID, &storedSecret, &attempts, &maxAttempts, &expiresAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return login.ErrOTPInvalid
+	}
+	if err != nil {
+		return err
+	}
+	if attempts >= maxAttempts || !time.Now().UTC().Before(expiresAt) || !hmac.Equal(storedSecret, input.SecretHash) {
+		if _, err = tx.Exec(ctx, `UPDATE iam.verification_challenges SET attempts=attempts+1,
+consumed_at=CASE WHEN attempts+1>=max_attempts OR expires_at<=now() THEN now() ELSE consumed_at END WHERE id=$1`, input.ID); err != nil {
+			return err
+		}
+		if err = tx.Commit(ctx); err != nil {
+			return err
+		}
+		return login.ErrOTPInvalid
+	}
+	if _, err = tx.Exec(ctx, `UPDATE iam.user_credentials SET password_hash=$2,password_version=password_version+1,
+password_changed_at=now(),force_password_change=false,failed_attempts=0,locked_until=NULL,updated_at=now() WHERE user_id=$1`, userID, passwordHash); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE iam.verification_challenges SET attempts=attempts+1,consumed_at=now() WHERE id=$1`, input.ID); err != nil {
+		return err
+	}
+	if _, err = tx.Exec(ctx, `UPDATE iam.sessions SET status='revoked',revoked_at=now(),revoke_reason='app_password_reset',updated_at=now()
+WHERE user_id=$1 AND audience='ak-mobile' AND app_id=$2 AND revoked_at IS NULL`, userID, input.AppID); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *Postgres) ConsumeOTPChallenge(ctx context.Context, input login.OTPConsume) (uuid.UUID, error) {
@@ -323,8 +466,44 @@ WHERE b.app_id=$1 AND b.provider_code=$2 AND b.enabled AND c.status='active' AND
 			delete(accountByProvider, account.ProviderCode)
 		}
 	}
-	passwordMethod := login.PasswordMethod{Present: password, LoginCapable: password && byType["email"].LoginCapable, CanChange: password}
+	passwordMethod := login.PasswordMethod{Present: password, LoginCapable: password && byType["email"].LoginCapable, CanBind: !password && stepUpCapable, CanChange: password}
 	return login.LoginMethods{Password: passwordMethod, Identifiers: identifiers, OAuthAccounts: oauthMethods, RemainingLoginMethods: usable}, nil
+}
+
+func (r *Postgres) SetPassword(ctx context.Context, principal login.Principal, appID uuid.UUID, passwordHash string) error {
+	if principal.TenantID == uuid.Nil || principal.UserID == uuid.Nil || appID == uuid.Nil || passwordHash == "" {
+		return login.ErrInvalid
+	}
+	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	var eligible bool
+	if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM app.user_memberships m
+JOIN app.user_login_identifiers i ON i.app_id=m.app_id AND i.user_id=m.user_id
+WHERE m.app_id=$1 AND m.tenant_id=$2 AND m.user_id=$3 AND m.status='active'
+AND i.status='active' AND i.verified_at IS NOT NULL)`, appID, principal.TenantID, principal.UserID).Scan(&eligible); err != nil {
+		return err
+	}
+	if !eligible {
+		return login.ErrForbidden
+	}
+	tag, err := tx.Exec(ctx, `INSERT INTO iam.user_credentials(user_id,password_hash)
+SELECT $1,$2 WHERE NOT EXISTS(SELECT 1 FROM iam.user_credentials WHERE user_id=$1)`, principal.UserID, passwordHash)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() != 1 {
+		return login.ErrConflict
+	}
+	details, _ := json.Marshal(map[string]any{"app_id": appID})
+	if _, err = tx.Exec(ctx, `INSERT INTO audit.security_events(tenant_id,user_id,session_id,app_id,event_type,severity,source,client_ip,user_agent,details)
+VALUES($1,$2,$3,$4,'iam.password.bound','info','auth',nullif($5,'')::inet,nullif($6,''),$7)`, principal.TenantID,
+		principal.UserID, principal.SessionID, appID, principal.IPAddress, principal.UserAgent, details); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func (r *Postgres) IdentifierTarget(ctx context.Context, appID, userID, identifierID uuid.UUID) (login.IdentifierTarget, error) {

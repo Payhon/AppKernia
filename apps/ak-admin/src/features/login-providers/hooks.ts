@@ -4,35 +4,58 @@ import { useTenantKey } from "../tenants/hooks";
 import {
   createLoginProviderConfig,
   deleteLoginProviderConfig,
+  getAppLoginSettings,
   listAppLoginProviderBindings,
   listLoginProviderCatalog,
   listLoginProviderConfigs,
   putAppLoginProviderBindings,
+  putAppLoginSettings,
   rotateLoginProviderSecret,
   transitionLoginProviderConfig,
   updateLoginProviderConfig,
 } from "./api";
 import type {
   AppLoginProviderBindingsWriteInput,
+  AppLoginSettingsInput,
   LoginProviderConfigFilters,
   LoginProviderConfigWriteInput,
   LoginProviderSecretRotationInput,
 } from "./model";
 
-export function useLoginProviderCatalog() {
+export function useAppLoginSettings(appId: string | null, enabled = true) {
+  const tenant = useTenantKey();
+  return useQuery({
+    queryKey: ["tenant", tenant, "apps", appId, "login-settings"],
+    queryFn: () => appId ? getAppLoginSettings(appId) : Promise.reject(new Error("App selection is required")),
+    enabled: Boolean(appId) && enabled,
+  });
+}
+
+export function useAppLoginSettingsMutation(appId: string | null) {
+  const client = useQueryClient();
+  const tenant = useTenantKey();
+  return useMutation({
+    mutationFn: (input: AppLoginSettingsInput) => appId ? putAppLoginSettings(appId, input) : Promise.reject(new Error("App selection is required")),
+    onSuccess: () => client.invalidateQueries({ queryKey: ["tenant", tenant, "apps", appId, "login-settings"] }),
+  });
+}
+
+export function useLoginProviderCatalog(enabled = true) {
   const tenant = useTenantKey();
   return useQuery({
     queryKey: ["tenant", tenant, "login-provider-catalog"],
     queryFn: listLoginProviderCatalog,
+    enabled,
     staleTime: Number.POSITIVE_INFINITY,
   });
 }
 
-export function useLoginProviderConfigs(filters: LoginProviderConfigFilters) {
+export function useLoginProviderConfigs(filters: LoginProviderConfigFilters, enabled = true) {
   const tenant = useTenantKey();
   return useQuery({
     queryKey: ["tenant", tenant, "login-provider-configs", filters],
     queryFn: () => listLoginProviderConfigs(filters),
+    enabled,
     placeholderData: (previous) => previous,
   });
 }
@@ -63,12 +86,12 @@ export function useLoginProviderConfigMutations() {
   };
 }
 
-export function useAppLoginProviderBindings(appId: string | null) {
+export function useAppLoginProviderBindings(appId: string | null, enabled = true) {
   const tenant = useTenantKey();
   return useQuery({
     queryKey: ["tenant", tenant, "apps", appId, "login-provider-bindings"],
     queryFn: () => appId ? listAppLoginProviderBindings(appId) : Promise.resolve([]),
-    enabled: Boolean(appId),
+    enabled: Boolean(appId) && enabled,
   });
 }
 

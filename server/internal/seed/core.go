@@ -110,6 +110,7 @@ type configCategoryDefinition struct {
 }
 
 type configItemDefinition struct {
+	Scope            string          `json:"scope"`
 	ModuleCode       string          `json:"module_code"`
 	ConfigGroup      string          `json:"config_group"`
 	ConfigKey        string          `json:"config_key"`
@@ -273,7 +274,11 @@ func readConfigCatalog(catalogPath string) (configCatalog, error) {
 		categories[key] = struct{}{}
 	}
 	items := make(map[string]struct{}, len(catalog.Items))
-	for _, item := range catalog.Items {
+	for index := range catalog.Items {
+		item := &catalog.Items[index]
+		if item.Scope == "" {
+			item.Scope = "tenant"
+		}
 		categoryKey := item.ModuleCode + "/" + item.ConfigGroup
 		itemKey := categoryKey + "/" + item.ConfigKey
 		if _, exists := categories[categoryKey]; !exists {
@@ -283,8 +288,11 @@ func readConfigCatalog(catalogPath string) (configCatalog, error) {
 			return configCatalog{}, fmt.Errorf("duplicate config item %q", itemKey)
 		}
 		items[itemKey] = struct{}{}
-		if item.ConfigKey == "" || item.DisplayName == "" || item.ValueType == "" || item.Status == "" || len(item.ValidationSchema) == 0 {
+		if item.ConfigKey == "" || item.DisplayName == "" || item.ValueType == "" || item.Status == "" || len(item.ValidationSchema) == 0 || (item.Scope != "tenant" && item.Scope != "global") {
 			return configCatalog{}, fmt.Errorf("config item %q is incomplete", itemKey)
+		}
+		if !json.Valid(item.ValidationSchema) || len(item.Value) > 0 && !json.Valid(item.Value) || len(item.DefaultValue) > 0 && !json.Valid(item.DefaultValue) {
+			return configCatalog{}, fmt.Errorf("config item %q contains invalid JSON", itemKey)
 		}
 		if item.IsSecret && (len(item.Value) > 0 || len(item.DefaultValue) > 0 || item.IsPublic) {
 			return configCatalog{}, fmt.Errorf("secret config item %q cannot define plaintext values or be public", itemKey)
@@ -478,17 +486,29 @@ func parseRegionCoordinate(value *string, minimum, maximum float64) (pgtype.Nume
 	return numeric, nil
 }
 
+func catalogValidationSchema(item configItemDefinition) ([]byte, error) {
+	var schema map[string]any
+	if err := json.Unmarshal(item.ValidationSchema, &schema); err != nil {
+		return nil, fmt.Errorf("decode validation schema for %s: %w", item.ConfigKey, err)
+	}
+	schema["x-appkernia-catalog"] = true
+	validationSchema, err := json.Marshal(schema)
+	if err != nil {
+		return nil, fmt.Errorf("encode validation schema for %s: %w", item.ConfigKey, err)
+	}
+	return validationSchema, nil
+}
+
 func seedTenantConfigs(ctx context.Context, queries *db.Queries, tenantID uuid.UUID, catalog configCatalog) (int, error) {
+	seeded := 0
 	for _, item := range catalog.Items {
-		description := item.Description
-		var schema map[string]any
-		if err := json.Unmarshal(item.ValidationSchema, &schema); err != nil {
-			return 0, fmt.Errorf("decode validation schema for %s: %w", item.ConfigKey, err)
+		if item.Scope != "tenant" {
+			continue
 		}
-		schema["x-appkernia-catalog"] = true
-		validationSchema, err := json.Marshal(schema)
+		description := item.Description
+		validationSchema, err := catalogValidationSchema(item)
 		if err != nil {
-			return 0, fmt.Errorf("encode validation schema for %s: %w", item.ConfigKey, err)
+			return 0, err
 		}
 		if _, err := queries.UpsertTenantCoreConfig(ctx, db.UpsertTenantCoreConfigParams{
 			TenantID: &tenantID, ModuleCode: item.ModuleCode, ConfigGroup: item.ConfigGroup,
@@ -499,12 +519,55 @@ func seedTenantConfigs(ctx context.Context, queries *db.Queries, tenantID uuid.U
 		}); err != nil {
 			return 0, fmt.Errorf("upsert config %s/%s/%s: %w", item.ModuleCode, item.ConfigGroup, item.ConfigKey, err)
 		}
+		seeded++
 	}
-	return len(catalog.Items), nil
+	return seeded, nil
 }
 
-// CoreConfigs idempotently installs catalog metadata and safe initial values for
-// every active tenant. Existing tenant values and encrypted secrets are preserved.
+func nullableCatalogJSON(raw json.RawMessage) any {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil
+	}
+	return []byte(raw)
+}
+
+func seedGlobalConfigs(ctx context.Context, tx pgx.Tx, catalog configCatalog) (int, error) {
+	seeded := 0
+	for _, item := range catalog.Items {
+		if item.Scope != "global" {
+			continue
+		}
+		validationSchema, err := catalogValidationSchema(item)
+		if err != nil {
+			return 0, err
+		}
+		if _, err = tx.Exec(ctx, `
+			INSERT INTO sys.config_items(
+				tenant_id,module_code,config_group,config_key,display_name,value_type,
+				value_json,default_value_json,is_secret,is_public,validation_schema,
+				description,sort_order,status
+			) VALUES(NULL,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,nullif($11,''),$12,$13)
+			ON CONFLICT (module_code,config_group,config_key) WHERE tenant_id IS NULL
+			DO UPDATE SET
+				display_name=EXCLUDED.display_name,
+				default_value_json=CASE WHEN sys.config_items.is_secret THEN NULL ELSE EXCLUDED.default_value_json END,
+				is_public=CASE WHEN sys.config_items.is_secret THEN false ELSE EXCLUDED.is_public END,
+				validation_schema=EXCLUDED.validation_schema,
+				description=EXCLUDED.description,
+				sort_order=EXCLUDED.sort_order,
+				status=EXCLUDED.status,
+				updated_at=now()`, item.ModuleCode, item.ConfigGroup, item.ConfigKey, item.DisplayName,
+			item.ValueType, nullableCatalogJSON(item.Value), nullableCatalogJSON(item.DefaultValue), item.IsSecret,
+			item.IsPublic, validationSchema, item.Description, item.SortOrder, item.Status); err != nil {
+			return 0, fmt.Errorf("upsert global config %s/%s/%s: %w", item.ModuleCode, item.ConfigGroup, item.ConfigKey, err)
+		}
+		seeded++
+	}
+	return seeded, nil
+}
+
+// CoreConfigs idempotently installs global catalog entries plus tenant catalog
+// entries for every active tenant. Existing values and encrypted secrets are preserved.
 func CoreConfigs(ctx context.Context, pool *pgxpool.Pool, catalogPath string) (int, error) {
 	catalog, err := readConfigCatalog(catalogPath)
 	if err != nil {
@@ -516,11 +579,14 @@ func CoreConfigs(ctx context.Context, pool *pgxpool.Pool, catalogPath string) (i
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 	queries := db.New(tx)
+	seeded, err := seedGlobalConfigs(ctx, tx, catalog)
+	if err != nil {
+		return 0, err
+	}
 	tenantIDs, err := queries.ListActiveTenantIDsForConfigSeed(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("list active tenants for config seed: %w", err)
 	}
-	seeded := 0
 	for _, tenantID := range tenantIDs {
 		count, seedErr := seedTenantConfigs(ctx, queries, tenantID, catalog)
 		if seedErr != nil {
@@ -760,6 +826,9 @@ func BootstrapAdmin(ctx context.Context, pool *pgxpool.Pool, input BootstrapAdmi
 		return domain.User{}, domain.Tenant{}, 0, 0, fmt.Errorf("assign bootstrap role: %w", err)
 	}
 	if input.ConfigCatalogPath != "" {
+		if _, err = seedGlobalConfigs(ctx, tx, catalog); err != nil {
+			return domain.User{}, domain.Tenant{}, 0, 0, err
+		}
 		if _, err = seedTenantConfigs(ctx, queries, tenant.ID, catalog); err != nil {
 			return domain.User{}, domain.Tenant{}, 0, 0, err
 		}

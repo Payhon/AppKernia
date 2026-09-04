@@ -5,7 +5,7 @@
       <ak-login-method-form @authenticated="authenticated" />
       <ak-login-provider-list mode="login" @authenticated="authenticated" />
       <view class="auth-link-row">
-        <view class="auth-link" @click="goForgot"><text class="auth-link-text">{{t('auth.forgotPassword', null)}}</text></view>
+        <view v-if="otpEnabled" class="auth-link" @click="goForgot"><text class="auth-link-text">{{t('auth.forgotPassword', null)}}</text></view>
         <view v-if="registrationEnabled" class="auth-link auth-link-register" @click="goRegister"><text class="auth-link-text">{{t('auth.register.link', null)}}</text></view>
       </view>
     </ak-card>
@@ -16,7 +16,7 @@
 import {akI18n} from '../../../src/core/i18n/ak-i18n.uts'
 import {completeAuthenticatedBootstrap} from '../../../src/core/bootstrap/app-bootstrap.uts'
 import {appPublicConfigRuntime} from '../../../src/features/app-config/public-config-runtime.uts'
-export default { computed: { t(){return akI18n.t}, registrationEnabled(): boolean { return appPublicConfigRuntime.registrationEnabled() } }, onLoad(options:UTSJSONObject){const deleted=options.getString('account_deleted');if(deleted=='1')setTimeout(()=>uni.showToast({title:akI18n.t('accountDeletion.success',null),icon:'success'}),100)}, methods: {
+export default { computed: { t(){return akI18n.t}, registrationEnabled(): boolean { return appPublicConfigRuntime.registrationEnabled() }, otpEnabled(): boolean { return appPublicConfigRuntime.otpEnabled() } }, onLoad(options:UTSJSONObject){const deleted=options.getString('account_deleted');if(deleted=='1')setTimeout(()=>uni.showToast({title:akI18n.t('accountDeletion.success',null),icon:'success'}),100)}, methods: {
   goForgot(){uni.navigateTo({url:'/pages/auth/forgot-password/index'})}, goRegister(){uni.navigateTo({url:'/pages/auth/register/index'})}, goPrivacy(){uni.navigateTo({url:'/pages/legal/privacy/index'})}, goTerms(){uni.navigateTo({url:'/pages/legal/terms/index'})},
   authenticated(){completeAuthenticatedBootstrap()}
 } }

@@ -25,6 +25,19 @@ func NewPostgres(pool *pgxpool.Pool) *Postgres {
 
 func (repository *Postgres) CreateIdentity(ctx context.Context, raw domain.CreateIdentity) (domain.User, domain.Tenant, error) {
 	input := raw.Normalize()
+	var lastErr error
+	for attempt := 0; attempt < 2; attempt++ {
+		user, tenant, err := repository.createIdentity(ctx, input)
+		var pgError *pgconn.PgError
+		if !errors.As(err, &pgError) || pgError.Code != "40001" {
+			return user, tenant, err
+		}
+		lastErr = err
+	}
+	return domain.User{}, domain.Tenant{}, fmt.Errorf("create identity serialization retry exhausted: %w", lastErr)
+}
+
+func (repository *Postgres) createIdentity(ctx context.Context, input domain.CreateIdentity) (domain.User, domain.Tenant, error) {
 	tx, err := repository.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.Serializable})
 	if err != nil {
 		return domain.User{}, domain.Tenant{}, fmt.Errorf("begin identity transaction: %w", err)

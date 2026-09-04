@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { AdminConfigItem } from "../generated/api/types.gen";
 import { useAdminDictionary } from "../features/settings/hooks";
+import "../shared/i18n/settings-catalog";
 import { AkFilePicker } from "./AkFilePicker";
 
 export type AkConfigDraftValue = boolean | number | string | null;
@@ -130,7 +131,10 @@ export function AkConfigValueField({
         label:
           typeof option === "boolean"
             ? t(`settings.common.boolean.${option ? "true" : "false"}`)
-            : String(option),
+            : t(
+                `settings.configOptions.${item.config_key}.${String(option)}`,
+                { defaultValue: String(option) },
+              ),
         value: option as boolean | number | string,
       }))
     : null;

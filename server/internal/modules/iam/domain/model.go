@@ -11,16 +11,18 @@ import (
 )
 
 var (
-	ErrEmailAlreadyExists  = errors.New("email already exists")
-	ErrIdentityNotFound    = errors.New("identity not found")
-	ErrRefreshInvalid      = errors.New("refresh token is invalid")
-	ErrRefreshReused       = errors.New("refresh token reuse detected")
-	ErrSessionNotFound     = errors.New("session not found")
-	ErrDeviceNotFound      = errors.New("device not found")
-	ErrPasswordChanged     = errors.New("password changed concurrently")
-	ErrResetTokenInvalid   = errors.New("password reset token is invalid")
-	ErrRegistrationTenant  = errors.New("registration tenant is unavailable")
-	ErrLoginCaptchaInvalid = errors.New("login captcha is invalid")
+	ErrEmailAlreadyExists      = errors.New("email already exists")
+	ErrIdentityNotFound        = errors.New("identity not found")
+	ErrRefreshInvalid          = errors.New("refresh token is invalid")
+	ErrRefreshReused           = errors.New("refresh token reuse detected")
+	ErrSessionNotFound         = errors.New("session not found")
+	ErrDeviceNotFound          = errors.New("device not found")
+	ErrPasswordChanged         = errors.New("password changed concurrently")
+	ErrResetTokenInvalid       = errors.New("password reset token is invalid")
+	ErrRegistrationTenant      = errors.New("registration tenant is unavailable")
+	ErrLoginCaptchaInvalid     = errors.New("login captcha is invalid")
+	ErrLoginCaptchaNotRequired = errors.New("login captcha is not required")
+	ErrLoginCaptchaCooldown    = errors.New("login captcha generation is cooling down")
 )
 
 type User struct {
@@ -74,6 +76,7 @@ type Repository interface {
 	GetSelfPasswordState(context.Context, uuid.UUID) (SelfPasswordState, error)
 	ChangeSelfPassword(context.Context, ChangeSelfPassword) error
 	LoginCaptchaRequired(context.Context, []byte, time.Time) (bool, error)
+	CheckLoginCaptchaGeneration(context.Context, []byte, time.Time) error
 	RecordLoginFailure(context.Context, LoginFailure) (int32, error)
 	ResetLoginFailures(context.Context, []byte) error
 	CreateLoginCaptcha(context.Context, LoginCaptchaChallenge) (uuid.UUID, error)
@@ -140,18 +143,21 @@ type LoginFailure struct {
 }
 
 type LoginCaptchaChallenge struct {
-	ScopeHash  []byte
-	AnswerSalt []byte
-	AnswerHash []byte
-	CreatedAt  time.Time
-	ExpiresAt  time.Time
+	ID          uuid.UUID
+	ScopeHash   []byte
+	CaptchaType string
+	ProofHash   []byte
+	CreatedAt   time.Time
+	ExpiresAt   time.Time
 }
 
 type LoginCaptchaAttempt struct {
-	ID        uuid.UUID
-	ScopeHash []byte
-	Answer    string
-	Now       time.Time
+	ID          uuid.UUID
+	ScopeHash   []byte
+	CaptchaType string
+	ProofHash   []byte
+	Valid       bool
+	Now         time.Time
 }
 
 type SelfPasswordState struct {

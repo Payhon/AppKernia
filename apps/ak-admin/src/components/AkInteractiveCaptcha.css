@@ -1,0 +1,209 @@
+.ak-interactive-captcha {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  overflow: hidden;
+  border: 1px solid var(--ak-hairline-strong);
+  border-radius: 10px;
+  background: var(--ak-canvas-soft);
+}
+
+.ak-captcha-heading,
+.ak-captcha-mode-footer {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ak-captcha-heading .ant-btn,
+.ak-captcha-mode-footer .ant-btn {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+}
+
+.ak-interactive-captcha > .ant-typography {
+  margin-block: 0;
+}
+
+.ak-captcha-mode {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ak-captcha-image-frame {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--ak-hairline-strong);
+  border-radius: 8px;
+  background: var(--ak-canvas-soft-2);
+  box-shadow: var(--ak-shadow-1);
+}
+
+.ak-captcha-image-frame:focus-visible {
+  border-color: var(--ak-focus);
+  outline: 3px solid color-mix(in srgb, var(--ak-focus) 38%, transparent);
+  outline-offset: 2px;
+}
+
+.ak-captcha-main-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+
+.ak-captcha-click-board {
+  cursor: crosshair;
+  touch-action: manipulation;
+}
+
+.ak-captcha-drag-board {
+  cursor: grab;
+  touch-action: none;
+}
+
+.ak-captcha-drag-board:active {
+  cursor: grabbing;
+}
+
+.ak-captcha-click-marker,
+.ak-captcha-keyboard-cursor {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--ak-link-deep);
+  box-shadow: 0 1px 5px rgb(0 0 0 / 35%);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+.ak-captcha-keyboard-cursor {
+  width: 22px;
+  height: 22px;
+  border-color: var(--ak-link-deep);
+  background: rgb(255 255 255 / 82%);
+  opacity: 0;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 90%);
+}
+
+.ak-captcha-click-board:focus-visible .ak-captcha-keyboard-cursor {
+  opacity: 1;
+}
+
+.ak-captcha-prompt {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ak-captcha-prompt-image {
+  display: block;
+  width: auto;
+  max-width: min(42%, 144px);
+  max-height: 48px;
+  border: 1px solid var(--ak-hairline);
+  border-radius: 6px;
+  object-fit: contain;
+  background: var(--ak-canvas);
+}
+
+.ak-captcha-tile-image {
+  position: absolute;
+  z-index: 1;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  filter: drop-shadow(0 2px 3px rgb(0 0 0 / 32%));
+}
+
+.ak-captcha-range-label {
+  display: grid;
+  gap: 2px;
+  color: var(--ak-body);
+  font-size: 13px;
+}
+
+.ak-captcha-range {
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  accent-color: var(--ak-focus);
+  cursor: pointer;
+}
+
+.ak-captcha-range:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--ak-focus) 38%, transparent);
+  outline-offset: 1px;
+}
+
+.ak-captcha-drag-ranges {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ak-captcha-rotate-board {
+  display: grid;
+  place-items: center;
+}
+
+.ak-captcha-rotate-thumb {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(46%, 144px);
+  height: min(70%, 144px);
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  transform-origin: center;
+  transition: transform 160ms ease-out;
+}
+
+.ak-captcha-error {
+  color: #991b1b;
+  font-size: 13px;
+}
+
+.ak-interactive-captcha[aria-busy="true"] {
+  opacity: 0.72;
+}
+
+.ak-interactive-captcha[aria-busy="true"] .ak-captcha-image-frame,
+.ak-interactive-captcha[aria-busy="true"] .ak-captcha-range {
+  cursor: wait;
+}
+
+@media (max-width: 767px) {
+  .ak-interactive-captcha {
+    padding: 10px;
+  }
+
+  .ak-captcha-drag-ranges {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ak-captcha-rotate-thumb {
+    transition: none;
+  }
+}

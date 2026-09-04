@@ -91,6 +91,7 @@ const configCategories = [
   ["notifications", "email", "email"],
   ["notifications", "sms", "sms"],
   ["iam", "registration", "registration"],
+  ["iam", "security", "security"],
   ["billing", "withdrawal", "withdrawal"],
   ["storage", "cloud", "cloud"],
   ["integrations", "location", "location"],

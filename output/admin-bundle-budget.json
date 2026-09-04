@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T17:03:31.907Z",
+  "generated_at": "2026-09-04T06:29:24.201Z",
   "budgets": {
     "initial_gzip_bytes": 307200,
     "chunk_gzip_bytes": 184320,
@@ -7,153 +7,157 @@
     "openapi_chunk_gzip_bytes": 768000
   },
   "actual": {
-    "initial_gzip_bytes": 306626,
+    "initial_gzip_bytes": 299105,
     "largest_chunks": [
       {
         "file": "assets/installCanvasRenderer-Da_Pk-O4.js",
-        "gzip_bytes": 165002
+        "gzip_bytes": 165652
       },
       {
         "file": "assets/index.nohighlight-BUT3wISq.js",
-        "gzip_bytes": 129867
-      },
-      {
-        "file": "assets/store-1FllZuS7.js",
-        "gzip_bytes": 115443
+        "gzip_bytes": 130290
       },
       {
         "file": "assets/SizeContext-Cx4yb70Q.js",
-        "gzip_bytes": 95830
+        "gzip_bytes": 96118
+      },
+      {
+        "file": "assets/i18n-C6Ounh33.js",
+        "gzip_bytes": 95193
       },
       {
         "file": "assets/typography-BqDEjAY6.js",
-        "gzip_bytes": 52119
+        "gzip_bytes": 52365
       },
       {
-        "file": "assets/table-CbezJw0T.js",
-        "gzip_bytes": 36228
+        "file": "assets/table-CgpVQQIi.js",
+        "gzip_bytes": 36325
       },
       {
-        "file": "assets/AppShell-Q9KSK-1E.js",
-        "gzip_bytes": 33770
+        "file": "assets/AppShell-C44Yz3Cn.js",
+        "gzip_bytes": 33975
       },
       {
-        "file": "assets/date-picker-BvMLfn2n.js",
-        "gzip_bytes": 32074
+        "file": "assets/date-picker-CVyCE9kv.js",
+        "gzip_bytes": 32104
       },
       {
         "file": "assets/space-CiTWnwPQ.js",
-        "gzip_bytes": 26950
+        "gzip_bytes": 27006
       },
       {
-        "file": "assets/AdminAppRoutes-CPmwG1LO.js",
-        "gzip_bytes": 25925
+        "file": "assets/AdminAppRoutes-BkmyYqiv.js",
+        "gzip_bytes": 26439
       }
     ],
-    "openapi_initial_gzip_bytes": 1001877,
+    "openapi_initial_gzip_bytes": 1007299,
     "openapi_largest_chunks": [
       {
         "file": "assets/add-scalar-classes-ZnMuVRn2.js",
-        "gzip_bytes": 682677
+        "gzip_bytes": 687038
       },
       {
-        "file": "assets/openapi-CRqBWAYM.js",
-        "gzip_bytes": 136749
+        "file": "assets/openapi-CU_Knhix.js",
+        "gzip_bytes": 137477
       },
       {
         "file": "assets/AgentScalarChatInterface.vue-BHoYZ-zx.js",
-        "gzip_bytes": 55325
+        "gzip_bytes": 55641
       },
       {
         "file": "assets/modal-B8K3yIr6.js",
-        "gzip_bytes": 50820
+        "gzip_bytes": 50968
       },
       {
         "file": "assets/client-YlGoElcT.js",
-        "gzip_bytes": 42279
+        "gzip_bytes": 42454
       },
       {
         "file": "assets/runtime-core.esm-bundler-BJbD5xlI.js",
-        "gzip_bytes": 32668
+        "gzip_bytes": 32685
       },
       {
         "file": "assets/browser-CNXWOmk1.js",
-        "gzip_bytes": 31240
+        "gzip_bytes": 31257
       },
       {
         "file": "assets/schemas-CR69Y3p8.js",
-        "gzip_bytes": 20290
+        "gzip_bytes": 20317
       },
       {
         "file": "assets/openapi-DdC-9Wgq.js",
-        "gzip_bytes": 14087
+        "gzip_bytes": 14121
       },
       {
         "file": "assets/interface-setting-cog.svg-CEoxNz01.js",
-        "gzip_bytes": 927
+        "gzip_bytes": 924
       }
     ]
   },
   "initial_files": [
     {
-      "file": "assets/store-1FllZuS7.js",
-      "gzip_bytes": 115443
+      "file": "assets/SizeContext-Cx4yb70Q.js",
+      "gzip_bytes": 96118
     },
     {
-      "file": "assets/SizeContext-Cx4yb70Q.js",
-      "gzip_bytes": 95830
+      "file": "assets/i18n-C6Ounh33.js",
+      "gzip_bytes": 95193
     },
     {
       "file": "assets/schemas-CR69Y3p8.js",
-      "gzip_bytes": 20290
+      "gzip_bytes": 20317
     },
     {
       "file": "assets/Match-Ff5ZccBG.js",
-      "gzip_bytes": 15646
+      "gzip_bytes": 15610
     },
     {
       "file": "assets/openapi-DdC-9Wgq.js",
-      "gzip_bytes": 14087
+      "gzip_bytes": 14121
     },
     {
-      "file": "assets/admin-CA4Z7xOw.css",
-      "gzip_bytes": 13705
+      "file": "assets/admin-CBID3iYf.css",
+      "gzip_bytes": 13648
     },
     {
-      "file": "assets/admin-DK8sq-jK.js",
-      "gzip_bytes": 9874
+      "file": "assets/store-CsvXJmu-.js",
+      "gzip_bytes": 12401
+    },
+    {
+      "file": "assets/admin-COUJBHZx.js",
+      "gzip_bytes": 9969
     },
     {
       "file": "assets/useStore-DHmv6HF_.js",
-      "gzip_bytes": 6405
+      "gzip_bytes": 6407
     },
     {
-      "file": "assets/useQuery-D5dxX3hm.js",
-      "gzip_bytes": 3382
+      "file": "assets/useQuery-Ch-R-f90.js",
+      "gzip_bytes": 3371
     },
     {
       "file": "assets/jsx-runtime-DRF4vMFQ.js",
-      "gzip_bytes": 3044
+      "gzip_bytes": 3031
     },
     {
       "file": "assets/link-Aodi1_Nm.js",
-      "gzip_bytes": 2410
+      "gzip_bytes": 2429
     },
     {
       "file": "assets/lazyRouteComponent-CRZBQdI4.js",
-      "gzip_bytes": 1417
+      "gzip_bytes": 1413
     },
     {
-      "file": "assets/route-boundaries-RNT1lJDW.js",
-      "gzip_bytes": 1147
+      "file": "assets/route-boundaries--PHv07yj.js",
+      "gzip_bytes": 1137
     },
     {
       "file": "assets/preload-helper-Czpn1I53.js",
-      "gzip_bytes": 676
+      "gzip_bytes": 675
     },
     {
       "file": "assets/shim-C6N66reA.js",
-      "gzip_bytes": 508
+      "gzip_bytes": 504
     },
     {
       "file": "assets/useRouter-DMCq0otE.js",
@@ -161,27 +165,27 @@
     },
     {
       "file": "assets/rolldown-runtime-QTnfLwEv.js",
-      "gzip_bytes": 423
+      "gzip_bytes": 422
     },
     {
       "file": "assets/modulepreload-polyfill-Dezn_h7o.js",
-      "gzip_bytes": 393
+      "gzip_bytes": 392
     },
     {
       "file": "assets/redirect-D3L17tzd.js",
-      "gzip_bytes": 327
+      "gzip_bytes": 326
     },
     {
       "file": "assets/useNavigate-DtzN9e0w.js",
-      "gzip_bytes": 312
+      "gzip_bytes": 311
     },
     {
       "file": "assets/clsx-CjueKrWZ.js",
-      "gzip_bytes": 273
+      "gzip_bytes": 274
     },
     {
       "file": "assets/useParams-BCm33Z2H.js",
-      "gzip_bytes": 232
+      "gzip_bytes": 233
     },
     {
       "file": "assets/useSearch-sbsaFfXn.js",
@@ -189,65 +193,65 @@
     },
     {
       "file": "assets/coerce-C8O1409P.js",
-      "gzip_bytes": 144
+      "gzip_bytes": 145
     }
   ],
   "openapi_initial_files": [
     {
       "file": "assets/add-scalar-classes-ZnMuVRn2.js",
-      "gzip_bytes": 682677
+      "gzip_bytes": 687038
     },
     {
-      "file": "assets/openapi-CRqBWAYM.js",
-      "gzip_bytes": 136749
+      "file": "assets/openapi-CU_Knhix.js",
+      "gzip_bytes": 137477
     },
     {
       "file": "assets/client-YlGoElcT.js",
-      "gzip_bytes": 42279
+      "gzip_bytes": 42454
     },
     {
       "file": "assets/openapi-CxtxGVIo.css",
-      "gzip_bytes": 39234
+      "gzip_bytes": 39294
     },
     {
       "file": "assets/runtime-core.esm-bundler-BJbD5xlI.js",
-      "gzip_bytes": 32668
+      "gzip_bytes": 32685
     },
     {
       "file": "assets/browser-CNXWOmk1.js",
-      "gzip_bytes": 31240
+      "gzip_bytes": 31257
     },
     {
       "file": "assets/schemas-CR69Y3p8.js",
-      "gzip_bytes": 20290
+      "gzip_bytes": 20317
     },
     {
       "file": "assets/openapi-DdC-9Wgq.js",
-      "gzip_bytes": 14087
+      "gzip_bytes": 14121
     },
     {
       "file": "assets/preload-helper-Czpn1I53.js",
-      "gzip_bytes": 676
+      "gzip_bytes": 675
     },
     {
       "file": "assets/interface-content-folder.svg-DE6Q0fan.js",
-      "gzip_bytes": 578
+      "gzip_bytes": 585
     },
     {
       "file": "assets/rolldown-runtime-QTnfLwEv.js",
-      "gzip_bytes": 423
+      "gzip_bytes": 422
     },
     {
       "file": "assets/modulepreload-polyfill-Dezn_h7o.js",
-      "gzip_bytes": 393
+      "gzip_bytes": 392
     },
     {
       "file": "assets/config-DS0Kdncm.js",
-      "gzip_bytes": 310
+      "gzip_bytes": 308
     },
     {
       "file": "assets/clsx-CjueKrWZ.js",
-      "gzip_bytes": 273
+      "gzip_bytes": 274
     }
   ],
   "passed": true,
@@ -255,11 +259,11 @@
   "admin_scalar_keys": [],
   "openapi_docs_only_matches": [
     {
-      "file": "assets/openapi-CRqBWAYM.js",
+      "file": "assets/openapi-CU_Knhix.js",
       "marker": "api_reference.operation.getLiveness"
     },
     {
-      "file": "assets/openapi-CRqBWAYM.js",
+      "file": "assets/openapi-CU_Knhix.js",
       "marker": "OPENAPI_DOCUMENT_VERSION_UNSUPPORTED"
     }
   ],

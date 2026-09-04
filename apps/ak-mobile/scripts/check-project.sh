@@ -15,6 +15,7 @@ python3 "$project_root/scripts/generate-mobile-client.py"
 python3 "$project_root/scripts/check-startup-snapshot.py"
 python3 "$project_root/scripts/test_upgrade_contract.py"
 node --test "$project_root/scripts/mobile-package.test.mjs"
+node --test "$project_root/scripts/login-ui.test.mjs"
 jq -e '."uni-app-x".renderer == "vdom"' "$project_root/manifest.json" >/dev/null
 rg -n --glob '*.uts' --glob '*.uvue' '\bany\b|sslVerify\s*:\s*false|uni\.(setStorage|setStorageSync)\([^\n]*(token|password|otp)' "$project_root" && {
   printf 'mobile source contains a forbidden pattern\n' >&2

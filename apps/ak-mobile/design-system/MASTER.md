@@ -85,11 +85,13 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 ## Authentication and legal surfaces
 
 - Authentication pages use one clear primary action, labelled fields, inline validation and a secondary action hierarchy for password recovery and registration.
-- Password, email OTP and SMS OTP are peer sign-in methods. The full login page and authentication prompt share the same provider-list component and server-confirmed availability model.
+- Authentication prompts use a bounded compact sheet below the hardware safe area; one available sign-in method does not need a selector. Configuration errors keep the form visible and explain blocked actions.
+- Password and verification code are the primary sign-in methods; email/SMS are conditional OTP channels. Login, registration and recovery share server-confirmed availability, while the full login page and authentication prompt share the provider-list component.
 - Third-party provider actions use a 48 px minimum control, localized label and text status in addition to brand colour. Official provider artwork is used only when its distribution terms and platform guidance are satisfied; never redraw a provider mark.
 - Provider binding, replacement and unlinking are server-authorized security mutations. The client must display `can_unbind` and `block_reason`, require fresh step-up proof and never infer that a login method is disposable.
 - Irreversible self-service account actions use a dedicated page with explicit scope, data-retention disclosure, recent verification, an unchecked acknowledgement and a second native confirmation. The destructive submit remains disabled until every prerequisite is satisfied.
 - Legal links remain visible on the login screen, are never preselected as consent, and open static allowlisted routes.
+- Registration embeds legal document names as underlined text links within the consent sentence, not as secondary buttons; preserve wrapping and link semantics.
 - Privacy consent is a dedicated pre-bootstrap surface: bundled text is readable offline, primary consent has a 44 px target, and no sensitive SDK or device capability may initialize before acceptance.
 - Legal CMS content is rendered as text-only, allowlisted Markdown/blocks; raw HTML, URLs, scripts and remote components are never interpreted by a page.
 

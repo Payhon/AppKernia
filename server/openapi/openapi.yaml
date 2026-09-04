@@ -1024,6 +1024,24 @@ paths:
       parameters: [{$ref: "#/components/parameters/AppID"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppRegistrationRequest"}}}}
       responses: {"202": {description: Generic accepted response; does not reveal whether an account already exists., content: {application/json: {schema: {$ref: "#/components/schemas/AppAcceptedResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /api/v1/auth/registration/send-code:
+    post:
+      summary: Send an App-scoped OTP for passwordless registration
+      operationId: sendAppOTPRegistrationCode
+      tags: [mobile-auth]
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}, {$ref: "#/components/parameters/AcceptLanguage"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppIdentifierRequest"}}}}
+      responses: {"202": {description: Registration challenge accepted., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {$ref: "#/components/responses/ServiceUnavailable"}}
+  /api/v1/auth/register/otp:
+    post:
+      summary: Register and sign in with an App-scoped email or SMS OTP
+      operationId: registerAppUserWithOTP
+      tags: [mobile-auth]
+      security: []
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppOTPRegistrationRequest"}}}}
+      responses: {"200": {description: "Account, App membership and mobile session created atomically.", content: {application/json: {schema: {$ref: "#/components/schemas/MobileTokenResponse"}}}}, "409": {description: ACCOUNT_ALREADY_EXISTS., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/auth/registration/verify-email:
     post:
       summary: Verify a registration email OTP for the current App
@@ -1044,16 +1062,16 @@ paths:
       responses: {"202": {description: Generic accepted response with resend cooldown., content: {application/json: {schema: {$ref: "#/components/schemas/AppAcceptedResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/auth/password/forgot:
     post:
-      summary: Start an App-scoped password-reset email OTP flow
+      summary: Start an App-scoped password-reset email or SMS OTP flow
       operationId: forgotAppPassword
       tags: [mobile-auth]
       security: []
       parameters: [{$ref: "#/components/parameters/AppID"}]
-      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppEmailRequest"}}}}
-      responses: {"202": {description: Generic accepted response to prevent account enumeration., content: {application/json: {schema: {$ref: "#/components/schemas/AppAcceptedResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppPasswordForgotRequest"}}}}
+      responses: {"202": {description: Generic challenge response to prevent account enumeration., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {$ref: "#/components/responses/ServiceUnavailable"}}
   /api/v1/auth/password/reset:
     post:
-      summary: Reset an App user's password with a one-time email OTP
+      summary: Reset an App user's password with a one-time email or SMS OTP
       operationId: resetAppPassword
       tags: [mobile-auth]
       security: []
@@ -1147,6 +1165,15 @@ paths:
         "409": {$ref: "#/components/responses/Conflict"}
         "422": {$ref: "#/components/responses/ValidationFailed"}
         "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v1/me/password:
+    put:
+      summary: Set the first password for a passwordless App account
+      operationId: setMobilePassword
+      tags: [mobile-profile]
+      security: [{mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSetPasswordRequest"}}}}
+      responses: {"200": {description: Password created., content: {application/json: {schema: {$ref: "#/components/schemas/BooleanSuccessResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /api/v1/me/login-identifiers/{type}:
     put:
       summary: Bind or replace one verified App-scoped login identifier
@@ -1571,6 +1598,24 @@ paths:
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderBindingBulkRequest"}}}}
       responses: {"200": {description: Entire binding set committed atomically., content: {application/json: {schema: {$ref: "#/components/schemas/LoginProviderBindingListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
+  /admin-api/v1/apps/{app_id}/login-settings:
+    get:
+      summary: Read one App login configuration
+      operationId: getAdminAppLoginSettings
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      x-permission: app.login_settings.read
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      responses: {"200": {description: Login settings; password is always enabled., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppLoginSettingsResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+    put:
+      summary: Update App OTP login settings with optimistic locking
+      operationId: updateAdminAppLoginSettings
+      tags: [admin-app-management]
+      security: [{adminBearer: []}]
+      x-permission: app.login_settings.update
+      parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppLoginSettingsRequest"}}}}
+      responses: {"200": {description: Saved login settings., content: {application/json: {schema: {$ref: "#/components/schemas/AdminAppLoginSettingsResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/apps:
     get:
       summary: List Apps scoped to the authenticated Admin tenant
@@ -2423,8 +2468,8 @@ paths:
       responses: {"200": {description: Public consumption fields only., content: {application/json: {schema: {$ref: "#/components/schemas/ResolvedDictionaryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
   /admin-api/v1/auth/login/captcha:
     post:
-      summary: Create a short-lived image CAPTCHA for an Admin login retry
-      description: Creates a single-use PNG challenge bound to the normalized email, Admin audience, and request source. Creating a new challenge invalidates an earlier active challenge for the same scope.
+      summary: Create a short-lived interactive CAPTCHA for an Admin login retry
+      description: Creates a single-use interactive challenge bound to the normalized email, Admin audience, and request source after the server has required CAPTCHA verification. Creating a new challenge invalidates an earlier active challenge for the same scope.
       operationId: createAdminLoginCaptcha
       tags: [admin-auth-profile]
       security: []
@@ -2438,7 +2483,7 @@ paths:
               $ref: "#/components/schemas/AdminLoginCaptchaRequest"
       responses:
         "200":
-          description: A non-cacheable, short-lived, single-use PNG challenge.
+          description: A non-cacheable, short-lived, single-use interactive challenge.
           headers:
             Cache-Control:
               schema: {type: string, const: no-store}
@@ -2448,6 +2493,17 @@ paths:
                 $ref: "#/components/schemas/AdminLoginCaptchaResponse"
         "422":
           $ref: "#/components/responses/ValidationFailed"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          description: CAPTCHA challenges were refreshed too quickly.
+          headers:
+            Retry-After:
+              schema: {type: integer, minimum: 1}
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /admin-api/v1/auth/public-config:
     get:
       summary: Read public Admin authentication configuration
@@ -4603,7 +4659,8 @@ paths:
       responses: {"201": {description: Created, content: {application/json: {schema: {$ref: "#/components/schemas/AdminConfigResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/configs/{id}:
     patch:
-      summary: Update a tenant configuration item
+      summary: Update a tenant or authorized platform configuration item
+      description: Global items additionally require sys.platform_config.update and a super-admin role in the tenant selected by AK_PLATFORM_TENANT_CODE.
       operationId: updateAdminConfig
       tags: [admin-system-settings]
       security: [{adminBearer: []}]
@@ -5801,7 +5858,7 @@ components:
         message: {type: string}
         data:
           type: object
-          required: [app_id, appid, app_type, name, default_locale, registration_enabled, registration_verification_mode, startup, share, push]
+          required: [app_id, appid, app_type, name, default_locale, registration_enabled, registration_verification_mode, startup, share, push, scanner, login_methods]
           properties:
             download_page_url: {type: string}
             app_id: {type: string, format: uuid}
@@ -5820,6 +5877,7 @@ components:
                 providers: {type: array, items: {$ref: "#/components/schemas/PublicShareProvider"}}
             push: {$ref: "#/components/schemas/PublicPushRuntime"}
             scanner: {$ref: "#/components/schemas/PublicScannerConfig"}
+            login_methods: {$ref: "#/components/schemas/PublicLoginMethods"}
         request_id: {type: string}
     PublicShareProvider:
       oneOf:
@@ -5858,6 +5916,18 @@ components:
       properties:
         enabled: {type: boolean}
         allowed_host_patterns: {type: array, maxItems: 100, uniqueItems: true, items: {type: string, maxLength: 255}}
+    PublicLoginMethods:
+      type: object
+      additionalProperties: false
+      required: [password, otp, oauth]
+      properties:
+        password: {type: object, additionalProperties: false, required: [enabled], properties: {enabled: {type: boolean, const: true}}}
+        otp:
+          type: object
+          additionalProperties: false
+          required: [enabled, email_enabled, sms_enabled]
+          properties: {enabled: {type: boolean}, email_enabled: {type: boolean}, sms_enabled: {type: boolean}}
+        oauth: {type: object, additionalProperties: false, required: [enabled], properties: {enabled: {type: boolean}}}
     AdminPushProviderCatalogItem:
       type: object
       additionalProperties: false
@@ -6355,13 +6425,57 @@ components:
         identifier: {type: string, minLength: 3, maxLength: 320}
         challenge_id: {type: string, format: uuid}
         verification_code: {type: string, pattern: '^[0-9]{6}$'}
+    AppIdentifierRequest:
+      type: object
+      additionalProperties: false
+      required: [identifier_type, identifier]
+      properties:
+        identifier_type: {$ref: "#/components/schemas/LoginIdentifierType"}
+        identifier: {type: string, minLength: 3, maxLength: 320}
+    AppOTPRegistrationRequest:
+      type: object
+      additionalProperties: false
+      required: [identifier_type, identifier, challenge_id, verification_code, display_name, locale, accept_terms]
+      properties:
+        identifier_type: {$ref: "#/components/schemas/LoginIdentifierType"}
+        identifier: {type: string, minLength: 3, maxLength: 320}
+        challenge_id: {type: string, format: uuid}
+        verification_code: {type: string, pattern: '^[0-9]{6}$'}
+        display_name: {type: string, minLength: 1, maxLength: 120}
+        locale: {$ref: "#/components/schemas/SupportedLocale"}
+        accept_terms: {type: boolean, const: true}
+    AppPasswordForgotRequest:
+      allOf:
+        - $ref: "#/components/schemas/AppIdentifierRequest"
+        - type: object
+          properties:
+            email: {type: string, format: email, maxLength: 254, deprecated: true}
+    MobilePasswordResetRequest:
+      type: object
+      additionalProperties: false
+      required: [identifier_type, identifier, challenge_id, verification_code, new_password]
+      properties:
+        identifier_type: {$ref: "#/components/schemas/LoginIdentifierType"}
+        identifier: {type: string, minLength: 3, maxLength: 320}
+        challenge_id: {type: string, format: uuid}
+        verification_code: {type: string, pattern: '^[0-9]{6}$'}
+        new_password: {type: string, format: password, minLength: 12, maxLength: 256}
+        email: {type: string, format: email, maxLength: 254, deprecated: true}
+        code: {type: string, pattern: '^[0-9]{6}$', deprecated: true}
+    MobileSetPasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [new_password, step_up_token]
+      properties:
+        new_password: {type: string, format: password, minLength: 12, maxLength: 256}
+        step_up_token: {type: string, minLength: 32, maxLength: 4096}
     MobileStepUpCodeRequest:
       type: object
       additionalProperties: false
       required: [identifier_id, purpose, resource]
       properties:
         identifier_id: {type: string, format: uuid}
-        purpose: {type: string, enum: [oauth_bind, oauth_unbind, identifier_change, identifier_unbind, account_delete]}
+        purpose: {type: string, enum: [oauth_bind, oauth_unbind, identifier_change, identifier_unbind, account_delete, password_bind]}
         resource: {type: string, minLength: 1, maxLength: 160}
     MobileStepUpRequest:
       type: object
@@ -6369,7 +6483,7 @@ components:
       required: [method, purpose, resource]
       properties:
         method: {type: string, enum: [password, email_otp, mobile_otp]}
-        purpose: {type: string, enum: [oauth_bind, oauth_unbind, identifier_change, identifier_unbind, account_delete]}
+        purpose: {type: string, enum: [oauth_bind, oauth_unbind, identifier_change, identifier_unbind, account_delete, password_bind]}
         resource: {type: string, minLength: 1, maxLength: 160}
         password: {type: string, format: password, maxLength: 256}
         identifier_id: {type: string, format: uuid}
@@ -6508,11 +6622,7 @@ components:
           required: [code]
           properties: {code: {type: string, pattern: '^[0-9]{6}$'}}
     AppPasswordResetRequest:
-      allOf:
-        - $ref: "#/components/schemas/AppEmailOTPRequest"
-        - type: object
-          required: [new_password]
-          properties: {new_password: {type: string, format: password, minLength: 12, maxLength: 256}}
+      $ref: "#/components/schemas/MobilePasswordResetRequest"
     AppAcceptedResponse:
       type: object
       required: [code, message, data, request_id]
@@ -6728,6 +6838,32 @@ components:
       type: object
       required: [code, message, data, request_id]
       properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminAppScannerConfig"}, request_id: {type: string}}
+    AdminAppLoginSettings:
+      type: object
+      additionalProperties: false
+      required: [app_id, password_enabled, otp_enabled, email_otp_enabled, sms_otp_enabled, oauth_enabled, lock_version, updated_at]
+      properties:
+        app_id: {type: string, format: uuid}
+        password_enabled: {type: boolean, const: true}
+        otp_enabled: {type: boolean}
+        email_otp_enabled: {type: boolean}
+        sms_otp_enabled: {type: boolean}
+        oauth_enabled: {type: boolean, readOnly: true}
+        lock_version: {type: integer, format: int32, minimum: 0}
+        updated_at: {type: string, format: date-time}
+    AdminAppLoginSettingsRequest:
+      type: object
+      additionalProperties: false
+      required: [otp_enabled, email_otp_enabled, sms_otp_enabled, lock_version]
+      properties:
+        otp_enabled: {type: boolean}
+        email_otp_enabled: {type: boolean}
+        sms_otp_enabled: {type: boolean}
+        lock_version: {type: integer, format: int32, minimum: 0}
+    AdminAppLoginSettingsResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties: {code: {type: string}, message: {type: string}, data: {$ref: "#/components/schemas/AdminAppLoginSettings"}, request_id: {type: string}}
     AdminAppResponse:
       type: object
       required: [code, message, data, request_id]
@@ -7735,8 +7871,82 @@ components:
       properties:
         email: {type: string, format: email, maxLength: 320}
         password: {type: string, minLength: 12, maxLength: 256, format: password}
-        captcha_id: {type: string, format: uuid, description: Required only after the server returns IAM.AUTH.CAPTCHA_REQUIRED.}
-        captcha_answer: {type: string, pattern: '^[2-9]{6}$', description: Required only after the server returns IAM.AUTH.CAPTCHA_REQUIRED.}
+        captcha:
+          allOf:
+            - $ref: "#/components/schemas/AdminLoginCaptchaSubmission"
+          description: Required only after the server returns IAM.AUTH.CAPTCHA_REQUIRED.
+    AdminLoginCaptchaType:
+      type: string
+      enum: [click, slide, drag, rotate]
+    AdminLoginCaptchaPoint:
+      type: object
+      additionalProperties: false
+      required: [x, y]
+      properties:
+        x: {type: integer, minimum: 0, maximum: 4096}
+        y: {type: integer, minimum: 0, maximum: 4096}
+    AdminLoginCaptchaImage:
+      type: object
+      additionalProperties: false
+      required: [base64, mime_type, width, height]
+      properties:
+        base64: {type: string, contentEncoding: base64, maxLength: 2097152}
+        mime_type: {type: string, enum: [image/jpeg, image/png]}
+        width: {type: integer, minimum: 1, maximum: 4096}
+        height: {type: integer, minimum: 1, maximum: 4096}
+    AdminLoginCaptchaClickAnswer:
+      type: object
+      additionalProperties: false
+      required: [type, points]
+      properties:
+        type: {type: string, const: click}
+        points:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items: {$ref: "#/components/schemas/AdminLoginCaptchaPoint"}
+    AdminLoginCaptchaSlideAnswer:
+      type: object
+      additionalProperties: false
+      required: [type, point]
+      properties:
+        type: {type: string, const: slide}
+        point: {$ref: "#/components/schemas/AdminLoginCaptchaPoint"}
+    AdminLoginCaptchaDragAnswer:
+      type: object
+      additionalProperties: false
+      required: [type, point]
+      properties:
+        type: {type: string, const: drag}
+        point: {$ref: "#/components/schemas/AdminLoginCaptchaPoint"}
+    AdminLoginCaptchaRotateAnswer:
+      type: object
+      additionalProperties: false
+      required: [type, angle]
+      properties:
+        type: {type: string, const: rotate}
+        angle: {type: integer, minimum: 0, maximum: 360}
+    AdminLoginCaptchaAnswer:
+      oneOf:
+        - $ref: "#/components/schemas/AdminLoginCaptchaClickAnswer"
+        - $ref: "#/components/schemas/AdminLoginCaptchaSlideAnswer"
+        - $ref: "#/components/schemas/AdminLoginCaptchaDragAnswer"
+        - $ref: "#/components/schemas/AdminLoginCaptchaRotateAnswer"
+      discriminator:
+        propertyName: type
+        mapping:
+          click: "#/components/schemas/AdminLoginCaptchaClickAnswer"
+          slide: "#/components/schemas/AdminLoginCaptchaSlideAnswer"
+          drag: "#/components/schemas/AdminLoginCaptchaDragAnswer"
+          rotate: "#/components/schemas/AdminLoginCaptchaRotateAnswer"
+    AdminLoginCaptchaSubmission:
+      type: object
+      additionalProperties: false
+      required: [id, token, response]
+      properties:
+        id: {type: string, format: uuid}
+        token: {type: string, minLength: 32, maxLength: 4096}
+        response: {$ref: "#/components/schemas/AdminLoginCaptchaAnswer"}
     AdminLoginCaptchaRequest:
       type: object
       additionalProperties: false
@@ -7750,15 +7960,63 @@ components:
         code: {type: string, const: OK}
         message: {type: string}
         data:
-          type: object
-          additionalProperties: false
-          required: [captcha_id, image_base64, mime_type, expires_in_seconds]
-          properties:
-            captcha_id: {type: string, format: uuid}
-            image_base64: {type: string, contentEncoding: base64, description: Base64-encoded PNG bytes. The answer is never returned as text or vector content.}
-            mime_type: {type: string, const: image/png}
-            expires_in_seconds: {type: integer, format: int64, minimum: 1, maximum: 300}
+          oneOf:
+            - $ref: "#/components/schemas/AdminLoginClickCaptchaChallenge"
+            - $ref: "#/components/schemas/AdminLoginSlideCaptchaChallenge"
+            - $ref: "#/components/schemas/AdminLoginDragCaptchaChallenge"
+            - $ref: "#/components/schemas/AdminLoginRotateCaptchaChallenge"
+          discriminator:
+            propertyName: type
+            mapping:
+              click: "#/components/schemas/AdminLoginClickCaptchaChallenge"
+              slide: "#/components/schemas/AdminLoginSlideCaptchaChallenge"
+              drag: "#/components/schemas/AdminLoginDragCaptchaChallenge"
+              rotate: "#/components/schemas/AdminLoginRotateCaptchaChallenge"
         request_id: {type: string}
+    AdminLoginCaptchaChallengeBase:
+      type: object
+      required: [captcha_id, captcha_token, type, expires_in_seconds, image]
+      properties:
+        captcha_id: {type: string, format: uuid}
+        captcha_token: {type: string, minLength: 32, maxLength: 4096}
+        type: {$ref: "#/components/schemas/AdminLoginCaptchaType"}
+        expires_in_seconds: {type: integer, format: int64, minimum: 1, maximum: 300}
+        image: {$ref: "#/components/schemas/AdminLoginCaptchaImage"}
+    AdminLoginClickCaptchaChallenge:
+      allOf:
+        - $ref: "#/components/schemas/AdminLoginCaptchaChallengeBase"
+        - type: object
+          required: [type, prompt_image, required_points]
+          properties:
+            type: {type: string, const: click}
+            prompt_image: {$ref: "#/components/schemas/AdminLoginCaptchaImage"}
+            required_points: {type: integer, minimum: 1, maximum: 4}
+    AdminLoginSlideCaptchaChallenge:
+      allOf:
+        - $ref: "#/components/schemas/AdminLoginCaptchaChallengeBase"
+        - type: object
+          required: [type, tile_image, initial_point]
+          properties:
+            type: {type: string, const: slide}
+            tile_image: {$ref: "#/components/schemas/AdminLoginCaptchaImage"}
+            initial_point: {$ref: "#/components/schemas/AdminLoginCaptchaPoint"}
+    AdminLoginDragCaptchaChallenge:
+      allOf:
+        - $ref: "#/components/schemas/AdminLoginCaptchaChallengeBase"
+        - type: object
+          required: [type, tile_image, initial_point]
+          properties:
+            type: {type: string, const: drag}
+            tile_image: {$ref: "#/components/schemas/AdminLoginCaptchaImage"}
+            initial_point: {$ref: "#/components/schemas/AdminLoginCaptchaPoint"}
+    AdminLoginRotateCaptchaChallenge:
+      allOf:
+        - $ref: "#/components/schemas/AdminLoginCaptchaChallengeBase"
+        - type: object
+          required: [type, thumb_image]
+          properties:
+            type: {type: string, const: rotate}
+            thumb_image: {$ref: "#/components/schemas/AdminLoginCaptchaImage"}
     AdminRegistrationRequest:
       type: object
       additionalProperties: false

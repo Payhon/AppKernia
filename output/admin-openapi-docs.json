@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-01T17:03:32.214Z",
+  "generated_at": "2026-09-04T06:29:24.461Z",
   "passed": true,
   "checks": {
     "admin_entry_present": true,
@@ -12,17 +12,17 @@
     "no_locale_specific_spec": true
   },
   "canonical": {
-    "bytes": 592841,
+    "bytes": 606452,
     "path": "server/openapi/openapi.yaml",
-    "sha256": "d7328dfcca2cfc30ff0b782efc28e89271a8e65d18fbf0966a07b2350de6222a"
+    "sha256": "50d2d6dcad720524bab2ce7b975ca3d0d055a6b785b8c932dc638026e89de037"
   },
   "emitted": {
-    "bytes": 592841,
+    "bytes": 606452,
     "path": "apps/ak-admin/dist/openapi/openapi.yaml",
-    "sha256": "d7328dfcca2cfc30ff0b782efc28e89271a8e65d18fbf0966a07b2350de6222a"
+    "sha256": "50d2d6dcad720524bab2ce7b975ca3d0d055a6b785b8c932dc638026e89de037"
   },
   "entries": {
-    "admin": "assets/admin-DK8sq-jK.js",
-    "openapi": "assets/openapi-CRqBWAYM.js"
+    "admin": "assets/admin-COUJBHZx.js",
+    "openapi": "assets/openapi-CU_Knhix.js"
   }
 }

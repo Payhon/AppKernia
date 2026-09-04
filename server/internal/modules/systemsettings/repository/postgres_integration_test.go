@@ -63,6 +63,11 @@ func TestPostgresSystemSettingsTenantLocksSecretsAndDictionaries(t *testing.T) {
 	defer func() {
 		cleanupCtx, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cleanupCancel()
+		_, _ = pool.Exec(cleanupCtx, `DELETE FROM audit.operation_logs WHERE request_id = ANY($1::text[])`, []string{
+			"settings-" + suffix,
+			"platform-settings-" + suffix,
+		})
+		_, _ = pool.Exec(cleanupCtx, `DELETE FROM sys.config_items WHERE id=$1 OR tenant_id = ANY($2::uuid[])`, globalConfigID, []uuid.UUID{tenant.ID, otherTenant.ID})
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM sys.dict_types WHERE code = ANY($1::text[])`, []string{
 			"global." + suffix,
 			"registered." + suffix,
@@ -82,6 +87,29 @@ func TestPostgresSystemSettingsTenantLocksSecretsAndDictionaries(t *testing.T) {
 	}
 	if _, err = repository.UpdateConfig(ctx, principal, globalConfigID, settings.ConfigInput{Version: 1}); !errors.Is(err, settings.ErrLocked) {
 		t.Fatalf("global config update error=%v", err)
+	}
+	platformPrincipal := principal
+	platformPrincipal.RequestID = "platform-settings-" + suffix
+	platformPrincipal.CanUpdateGlobalConfigs = true
+	globalInput := settings.ConfigInput{
+		ModuleCode: "core", ConfigGroup: "integration", ConfigKey: "global." + suffix,
+		DisplayName: "Global setting", ValueType: "string", Value: []byte(`"platform"`),
+		ValidationSchema: []byte(`{}`), IsPublic: true, Status: "active", Version: 1,
+	}
+	globalConfig, err := repository.UpdateConfig(ctx, platformPrincipal, globalConfigID, globalInput)
+	if err != nil || globalConfig.Version != 2 || string(globalConfig.Value) != `"platform"` {
+		t.Fatalf("platform global update=%#v error=%v", globalConfig, err)
+	}
+	if _, err = repository.UpdateConfig(ctx, platformPrincipal, globalConfigID, globalInput); !errors.Is(err, settings.ErrConflict) {
+		t.Fatalf("stale platform global update error=%v", err)
+	}
+	globalString, err := repository.GetGlobalString(ctx, "core", "integration", "global."+suffix)
+	if err != nil || globalString != "platform" {
+		t.Fatalf("global runtime string=%q error=%v", globalString, err)
+	}
+	var platformAuditCount int
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM audit.operation_logs WHERE request_id=$1 AND action_name='sys.platform_config.update' AND permission_code='sys.platform_config.update' AND resource_id=$2`, platformPrincipal.RequestID, globalConfigID.String()).Scan(&platformAuditCount); err != nil || platformAuditCount != 1 {
+		t.Fatalf("platform config audit count=%d error=%v", platformAuditCount, err)
 	}
 	if _, err = repository.UpdateConfig(ctx, settings.Principal{TenantID: otherTenant.ID, UserID: otherOwner.ID}, config.ID, settings.ConfigInput{Version: config.Version}); !errors.Is(err, settings.ErrNotFound) {
 		t.Fatalf("cross-tenant config update error=%v", err)
@@ -124,7 +152,7 @@ func TestPostgresSystemSettingsTenantLocksSecretsAndDictionaries(t *testing.T) {
 		t.Fatalf("list public configs: %v", err)
 	}
 	globalKey := "core.integration.global." + suffix
-	if string(publicValues[globalKey]) != `"global"` {
+	if string(publicValues[globalKey]) != `"platform"` {
 		t.Fatalf("global public config missing: key=%s values=%#v", globalKey, publicValues)
 	}
 	if _, exists := publicValues["core.integration."+config.ConfigKey]; exists {

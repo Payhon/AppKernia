@@ -4,9 +4,14 @@
 - Use the system sans-serif defined by the Master; do not introduce external fonts or marketing-style artwork.
 - Form errors are inline text in addition to the field border. Loading disables duplicate submission without changing layout.
 - Terms and privacy actions are visually secondary but remain visible on the login and consent paths.
+- On registration, use one wrapping inline consent sentence containing two independently clickable, underlined legal names. Reuse native text links, 14 px type, semantic colors and 44 px line targets; no filled/bordered legal buttons. Keep the existing legal preflight and navigation unchanged.
 - Legal text uses 16 px body / 28 px line height, restrained callouts, and normal text views only.
 - Keep one full-width primary login action. Place password recovery and account registration in a separate secondary text-link row below it, with at least 8 px between adjacent targets and a 44 px minimum tap height.
-- Place the password, email OTP and SMS OTP method switch above the active fields. Switching clears secret input, retains the identifier only when the identifier kind remains compatible, and exposes its selected state to assistive technology.
+- Place password and verification code in the primary method switch. When verification code is active, show email/SMS as a nested selector only if both are enabled; a single enabled channel needs no redundant choice. Switching clears secret input, retains the identifier only when compatible, and exposes selected state to assistive technology.
+- Registration and password recovery use the same enabled OTP channels as login. A disabled OTP method removes those entry points rather than leaving a server-rejected form reachable.
+- Hide the shared primary method switch when only password is available. Password always validates email even if SMS was the last OTP channel.
+- Limit the login prompt to 75% of the usable window, within the existing top/bottom safe-area bounds; keep form content scrollable and the 44 px close target visible.
+- Show the registration form independently of legal preflight. Both published legal documents must load before sending registration OTP or submitting. An unpublished document produces a localized configuration notice and retry without discarding input; never publish drafts or fabricate legal consent.
 - Place `ak-login-provider-list` below an accessible localized divider. Only providers that are both enabled by the server and compiled for the current platform/build variant are actionable.
 - Provider actions have a 48 px minimum target, localized provider name, progress/denial text and an accessibility label. Apple renders a semantic brand placeholder until an official redistributable logo-only asset is supplied; do not draw an Apple mark.
 - OTP resend controls announce cooldown seconds as text and never rely on disabled colour alone.

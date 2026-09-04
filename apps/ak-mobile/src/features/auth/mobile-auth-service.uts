@@ -2,7 +2,7 @@ import { AkError } from '../../core/errors/ak-error.uts'
 import { HttpCancellation } from '../../core/network/http-port.uts'
 import { SessionRuntime } from '../../core/stores/session-runtime.uts'
 import { SessionCredential } from '../../core/stores/secure-session-storage-port.uts'
-import { AcceptedResult, HttpAuthRepository, MobileAuthContext, MobileAuthToken, OTPChallenge, OTPLoginInput, PasswordLoginInput, RegisterInput, VerificationInput, PasswordResetInput } from './auth-repository.uts'
+import { AcceptedResult, HttpAuthRepository, MobileAuthContext, MobileAuthToken, OTPChallenge, OTPIdentifierType, OTPLoginInput, OTPPasswordResetInput, OTPRegistrationInput, PasswordLoginInput, RegisterInput, VerificationInput } from './auth-repository.uts'
 
 /** Coordinates token rotation with atomic secure-storage replacement. */
 export class MobileAuthService {
@@ -21,12 +21,14 @@ export class MobileAuthService {
   sendEmailOTP(email: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.sendEmailOTP(email, onSuccess, onFailure) }
   sendMobileOTP(mobile: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.sendMobileOTP(mobile, onSuccess, onFailure) }
   loginOTP(input: OTPLoginInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.loginOTP(input, token => this.persist(token, onSuccess, onFailure), onFailure) }
+  sendRegistrationOTP(identifierType: OTPIdentifierType, identifier: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.sendRegistrationOTP(identifierType, identifier, onSuccess, onFailure) }
+  registerOTP(input: OTPRegistrationInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.registerOTP(input, token => this.persist(token, onSuccess, onFailure), onFailure) }
 
   register(input: RegisterInput, onSuccess: (result: AcceptedResult) => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.register(input, onSuccess, onFailure) }
   verifyRegistration(input: VerificationInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.verifyRegistration(input, onSuccess, onFailure) }
   resendRegistration(email: string, onSuccess: (result: AcceptedResult) => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.resendRegistration({ email: email }, onSuccess, onFailure) }
-  forgotPassword(email: string, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.forgotPassword(email, onSuccess, onFailure) }
-  resetPassword(input: PasswordResetInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.resetPassword(input, onSuccess, onFailure) }
+  forgotPassword(identifierType: OTPIdentifierType, identifier: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.forgotPassword(identifierType, identifier, onSuccess, onFailure) }
+  resetPassword(input: OTPPasswordResetInput, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation { return this.repository.resetPassword(input, onSuccess, onFailure) }
 
   refresh(refreshToken: string, onSuccess: () => void, onFailure: (error: AkError) => void): HttpCancellation {
     return this.repository.refresh(refreshToken, (token: MobileAuthToken) => this.persist(token, onSuccess, onFailure), onFailure)

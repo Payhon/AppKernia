@@ -56,7 +56,11 @@
 
 - Push channel administration additionally follows `pages/push-channels.md` for write-only credentials, provider lifecycle labels, registered-device testing and acceptance terminology.
 
-- Third-party sign-in administration additionally follows `pages/login-providers.md` for compiled provider forms, write-only secrets, preflight lifecycle, help guidance, and atomic App bindings.
+- Sign-in administration additionally follows `pages/login-providers.md` for fixed password state, conditional OTP channels, compiled provider forms, write-only secrets, preflight lifecycle, help guidance, and atomic App bindings.
+
+- Authentication surfaces additionally follow `pages/login-auth.md` for progressive interactive CAPTCHA disclosure, keyboard-equivalent controls, responsive coordinate mapping, focus recovery, and reduced-motion behavior.
+
+- System configuration additionally follows `pages/system-configs.md` for the localized fixed CAPTCHA type enum and its permission-gated global edit boundary.
 
 - The information content workbench additionally follows `pages/content-management.md` for its five-tab taxonomy, editor, moderation and report workflow.
 

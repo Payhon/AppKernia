@@ -318,32 +318,24 @@ a,
   color: #166534;
   background: #f0fdf4;
 }
-.ak-login-captcha {
-  display: grid;
-  grid-template-columns: minmax(104px, 1fr) 176px 44px;
-  gap: 8px;
-  align-items: center;
-}
-.ak-login-captcha-image {
-  display: grid;
-  width: 176px;
-  height: 56px;
-  place-items: center;
-  overflow: hidden;
+.ak-captcha-loading,
+.ak-captcha-load-error {
+  padding: 12px;
   border: 1px solid var(--ak-hairline-strong);
-  border-radius: 8px;
-  color: var(--ak-body);
-  background: #f5f8fc;
+  border-radius: 10px;
+  background: var(--ak-canvas-soft);
 }
-.ak-login-captcha-image img {
-  display: block;
-  width: 176px;
-  height: 56px;
+.ak-captcha-loading {
+  color: var(--ak-muted);
 }
-.ak-login-captcha .ant-btn {
-  width: 44px;
-  min-width: 44px;
-  height: 44px;
+.ak-captcha-load-error {
+  display: grid;
+  gap: 10px;
+  color: #991b1b;
+}
+.ak-captcha-load-error .ant-btn {
+  width: fit-content;
+  min-height: 40px;
 }
 .ak-forgot-link {
   display: block;
@@ -2970,13 +2962,6 @@ a,
 }
 
 @media (max-width: 767px) {
-  .ak-login-captcha {
-    grid-template-columns: minmax(96px, 1fr) 132px 44px;
-  }
-  .ak-login-captcha-image,
-  .ak-login-captcha-image img {
-    width: 132px;
-  }
   .ak-auth-layout {
     grid-template-columns: 1fr;
   }

@@ -81,7 +81,8 @@ VALUES($1,$2,$3,$4,$5,$6,$7,nullif($8,''),nullif($9,''),$10,now()) RETURNING id`
 func createAtomicLoginSession(ctx context.Context, tx pgx.Tx, resolved login.ResolvedIdentity, session login.AtomicLoginSession) error {
 	if session.ID == uuid.Nil || len(session.RefreshTokenHash) != 32 || session.AccessTokenVersion != 1 ||
 		!session.AbsoluteExpiresAt.After(time.Now().UTC()) || !session.IdleExpiresAt.After(time.Now().UTC()) ||
-		!session.RefreshExpiresAt.After(time.Now().UTC()) {
+		!session.RefreshExpiresAt.After(time.Now().UTC()) ||
+		(session.AuthMethod != "oauth" && session.AuthMethod != "email_otp" && session.AuthMethod != "sms_otp") {
 		return login.ErrInvalid
 	}
 	var deviceID *uuid.UUID
@@ -110,9 +111,9 @@ VALUES($1,$2,$3,nullif($4,'')::inet)`, session.ID, session.RefreshTokenHash, ses
 	}
 	_, err := tx.Exec(ctx, `INSERT INTO audit.login_events(
 tenant_id,user_id,session_id,app_id,request_id,auth_method,audience,result,client_ip,user_agent,device_info)
-VALUES($1,$2,$3,$4,nullif($5,''),'oauth','ak-mobile','success',nullif($6,'')::inet,nullif($7,''),
-jsonb_build_object('platform','unknown','registered',$8::boolean))`, resolved.TenantID, resolved.UserID,
-		session.ID, resolved.AppID, session.RequestID, session.IPAddress, session.UserAgent, session.DeviceKey != "")
+VALUES($1,$2,$3,$4,nullif($5,''),$6,'ak-mobile','success',nullif($7,'')::inet,nullif($8,''),
+jsonb_build_object('platform','unknown','registered',$9::boolean))`, resolved.TenantID, resolved.UserID,
+		session.ID, resolved.AppID, session.RequestID, session.AuthMethod, session.IPAddress, session.UserAgent, session.DeviceKey != "")
 	return err
 }
 

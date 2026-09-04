@@ -109,8 +109,20 @@ func validTestModule(code string, capabilities json.RawMessage) moduleDefinition
 func TestReadConfigCatalogRejectsSecretPlaintextAndAcceptsRepositoryCatalog(t *testing.T) {
 	catalogPath := filepath.Join("..", "..", "..", "blueprint", "backend", "spec", "core-configs.json")
 	catalog, err := readConfigCatalog(catalogPath)
-	if err != nil || len(catalog.Categories) != 9 || len(catalog.Items) < 50 {
+	if err != nil || len(catalog.Categories) != 10 || len(catalog.Items) < 50 {
 		t.Fatalf("repository catalog categories=%d items=%d err=%v", len(catalog.Categories), len(catalog.Items), err)
+	}
+	foundCaptcha := false
+	for _, item := range catalog.Items {
+		if item.ModuleCode == "iam" && item.ConfigGroup == "security" && item.ConfigKey == "admin.login_captcha.type" {
+			foundCaptcha = item.Scope == "global" && !item.IsPublic && string(item.Value) == `"slide"` && string(item.DefaultValue) == `"slide"` && string(item.ValidationSchema) == `{"enum":["click","slide","drag","rotate"]}`
+		}
+		if item.ConfigKey == "site.name" && item.Scope != "tenant" {
+			t.Fatalf("omitted catalog scope must default to tenant, got %q", item.Scope)
+		}
+	}
+	if !foundCaptcha {
+		t.Fatal("global Admin login CAPTCHA catalog item is missing or invalid")
 	}
 	invalid := `{"version":1,"categories":[{"module_code":"x","config_group":"y","name_key":"n","description_key":"d"}],"items":[{"module_code":"x","config_group":"y","config_key":"secret","display_name":"Secret","value_type":"string","value":"plaintext","is_secret":true,"validation_schema":{},"status":"active"}]}`
 	path := filepath.Join(t.TempDir(), "invalid.json")
@@ -119,6 +131,13 @@ func TestReadConfigCatalogRejectsSecretPlaintextAndAcceptsRepositoryCatalog(t *t
 	}
 	if _, err = readConfigCatalog(path); err == nil {
 		t.Fatal("secret plaintext must be rejected")
+	}
+	invalidScope := `{"version":1,"categories":[{"module_code":"x","config_group":"y","name_key":"n","description_key":"d"}],"items":[{"scope":"application","module_code":"x","config_group":"y","config_key":"key","display_name":"Key","value_type":"string","value":"value","is_secret":false,"validation_schema":{},"status":"active"}]}`
+	if err = os.WriteFile(path, []byte(invalidScope), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = readConfigCatalog(path); err == nil {
+		t.Fatal("unsupported config scope must be rejected")
 	}
 }
 

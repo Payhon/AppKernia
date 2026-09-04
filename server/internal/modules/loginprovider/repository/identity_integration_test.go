@@ -207,6 +207,27 @@ VALUES($1,$2,$3,'mobile',$4,'+15****4567',now(),'active')`, tenantID, appID, use
 WHERE metadata->>'app_id'=$1 AND metadata->>'delivery_status'='failed'`, 2, appID.String())
 }
 
+func TestRegistrationOTPChallengeUsesRegisteredDatabaseType(t *testing.T) {
+	pool := loginProviderTestPool(t)
+	ctx := context.Background()
+	tenantID, appID, _ := createLoginProviderRuntime(t, pool, "registration-otp", "zh-CN")
+	defer cleanupLoginProviderRuntime(pool, tenantID)
+	if _, err := pool.Exec(ctx, `UPDATE app.applications SET registration_enabled=true WHERE id=$1`, appID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO app.application_login_settings(tenant_id,app_id,otp_login_enabled,email_otp_enabled,sms_otp_enabled)
+VALUES($2,$1,true,true,false)
+ON CONFLICT(tenant_id,app_id) DO UPDATE SET otp_login_enabled=true,email_otp_enabled=true,sms_otp_enabled=false`, appID, tenantID); err != nil {
+		t.Fatal(err)
+	}
+	service := loginapp.NewService(nil, NewPostgres(pool, &failingOTPDispatcher{}), nil, nil, "", nil)
+	result, err := service.SendRegistrationCode(ctx, appID, "email", "registration@example.com", "zh-CN", iamapp.ClientMetadata{DeviceKey: uuid.NewString()})
+	if err != nil || !result.Accepted || result.ChallengeID == uuid.Nil {
+		t.Fatalf("registration OTP challenge: %#v err=%v", result, err)
+	}
+	assertLoginProviderCount(t, pool, `SELECT count(*) FROM iam.verification_challenges WHERE id=$1 AND challenge_type='registration_otp'`, 1, result.ChallengeID)
+}
+
 func TestUsableLoginMethodCountIncludesAppIdentifiers(t *testing.T) {
 	pool := loginProviderTestPool(t)
 	ctx := context.Background()
@@ -313,6 +334,7 @@ func atomicSessionFixture(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (log
 		IdleExpiresAt:      now.Add(time.Hour),
 		RefreshExpiresAt:   now.Add(24 * time.Hour),
 		AccessTokenVersion: 1,
+		AuthMethod:         "oauth",
 		RequestID:          "login-provider-integration-" + id.String(),
 	}, nil
 }
@@ -341,6 +363,10 @@ func createLoginProviderRuntime(t *testing.T, pool *pgxpool.Pool, prefix, locale
 	}
 	if err := pool.QueryRow(ctx, `UPDATE app.applications SET default_locale=$2,registration_enabled=true
 WHERE tenant_id=$1 AND is_default RETURNING id`, tenantID, locale).Scan(&appID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `INSERT INTO app.application_login_settings(tenant_id,app_id,otp_login_enabled,email_otp_enabled,sms_otp_enabled)
+VALUES($1,$2,true,true,true)`, tenantID, appID); err != nil {
 		t.Fatal(err)
 	}
 	clientID := "github-client-" + suffix

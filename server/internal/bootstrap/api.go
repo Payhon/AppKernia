@@ -86,6 +86,7 @@ import (
 	storageadminrepo "github.com/appkernia/appkernia/server/internal/modules/storageadmin/repository"
 	storageadminhttp "github.com/appkernia/appkernia/server/internal/modules/storageadmin/transport/http"
 	settingsapp "github.com/appkernia/appkernia/server/internal/modules/systemsettings/application"
+	settingsdomain "github.com/appkernia/appkernia/server/internal/modules/systemsettings/domain"
 	settingsrepo "github.com/appkernia/appkernia/server/internal/modules/systemsettings/repository"
 	settingshttp "github.com/appkernia/appkernia/server/internal/modules/systemsettings/transport/http"
 	tenantadminapp "github.com/appkernia/appkernia/server/internal/modules/tenantadmin/application"
@@ -98,6 +99,7 @@ import (
 	webhookadmindomain "github.com/appkernia/appkernia/server/internal/modules/webhookadmin/domain"
 	webhookadminrepo "github.com/appkernia/appkernia/server/internal/modules/webhookadmin/repository"
 	webhookadminhttp "github.com/appkernia/appkernia/server/internal/modules/webhookadmin/transport/http"
+	platformcaptcha "github.com/appkernia/appkernia/server/internal/platform/captcha"
 	"github.com/appkernia/appkernia/server/internal/platform/config"
 	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
 	platformnotification "github.com/appkernia/appkernia/server/internal/platform/notification"
@@ -145,6 +147,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		return nil, err
 	}
 	iamRepository := iamrepo.NewPostgres(pool)
+	settingsRepository := settingsrepo.NewPostgres(pool)
 	var resetNotifier iamapp.PasswordResetNotifier
 	if cfg.Environment == "development" && cfg.PasswordRecoveryAdapter == "local" {
 		resetNotifier = iamrepo.NewLocalPasswordResetNotifier()
@@ -160,7 +163,11 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		pool.Close()
 		return nil, fmt.Errorf("configure login protection key: %w", err)
 	}
-	authService, err := iamapp.NewAuthService(iamRepository, iamRepository, issuer, iamapp.WithLoginProtectionKey(loginProtectionKey), iamapp.WithAnonymousAuth(
+	resolveLoginCaptchaType := func(ctx context.Context) (platformcaptcha.Type, error) {
+		value, resolveErr := settingsRepository.GetGlobalString(ctx, "iam", "security", iamapp.AdminLoginCaptchaTypeSettingKey)
+		return configuredLoginCaptchaType(value, resolveErr)
+	}
+	authService, err := iamapp.NewAuthService(iamRepository, iamRepository, issuer, iamapp.WithLoginProtectionKey(loginProtectionKey), iamapp.WithLoginCaptchaTypeProvider(resolveLoginCaptchaType), iamapp.WithAnonymousAuth(
 		iamapp.AnonymousAuthConfig{
 			AdminRegistrationEnabled: cfg.AdminRegistrationEnabled,
 			RegistrationTenantCode:   cfg.AdminRegistrationTenantCode,
@@ -192,7 +199,15 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		pool.Close()
 		return nil, fmt.Errorf("create app OTP notifier: %w", err)
 	}
-	loginProviderRepository := loginproviderrepo.NewPostgres(pool, appOTPNotifier)
+	var loginOTPDispatcher loginproviderrepo.OTPDispatcher = appOTPNotifier
+	if cfg.OTPAdapter == "database-capture" {
+		loginOTPDispatcher, err = notificationadminrepo.NewDatabaseCaptureOTP(context.Background(), pool)
+		if err != nil {
+			pool.Close()
+			return nil, fmt.Errorf("create database OTP capture: %w", err)
+		}
+	}
+	loginProviderRepository := loginproviderrepo.NewPostgres(pool, loginOTPDispatcher)
 	stepUpDeriver := hmac.New(sha256.New, loginProtectionKey)
 	_, _ = stepUpDeriver.Write([]byte("appkernia:mobile-login-provider-step-up:v1"))
 	loginProviderAdapter := loginproviderprovider.NewHTTPAdapter(
@@ -297,8 +312,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	sessionAdminRepository := sessionadminrepo.NewPostgres(pool)
 	sessionAdminService := sessionadminapp.NewService(authService, sessionAdminRepository)
 	sessionAdminHandler := sessionadminhttp.NewHandler(sessionAdminService, catalog)
-	settingsRepository := settingsrepo.NewPostgres(pool)
-	settingsService := settingsapp.NewService(authService, settingsRepository, settingsSealer)
+	settingsService := settingsapp.NewService(authService, settingsRepository, settingsSealer, cfg.PlatformTenantCode)
 	settingsHandler := settingshttp.NewHandler(settingsService, catalog)
 	identitySecurityRepository := identitysecurityrepo.NewPostgres(pool)
 	identitySecurityService := identitysecurityapp.NewService(authService, identitySecurityRepository, settingsSealer, identitysecurityapp.Config{
@@ -387,10 +401,12 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/public/content/assets/{file_id}", contentHandler.PublicAsset)
 		group.GET("/regions", settingsHandler.PublicRegions)
 		group.POST("/auth/register", appManagementHandler.Register)
+		group.POST("/auth/registration/send-code", loginProviderHandler.SendRegistrationCode)
+		group.POST("/auth/register/otp", loginProviderHandler.RegisterOTP)
 		group.POST("/auth/registration/verify-email", appManagementHandler.VerifyRegistration)
 		group.POST("/auth/registration/resend-code", appManagementHandler.ResendRegistration)
-		group.POST("/auth/password/forgot", appManagementHandler.ForgotPassword)
-		group.POST("/auth/password/reset", appManagementHandler.ResetPassword)
+		group.POST("/auth/password/forgot", loginProviderHandler.ForgotPassword)
+		group.POST("/auth/password/reset", loginProviderHandler.ResetPassword)
 		group.POST("/auth/login/password", authHandler.MobileLogin)
 		group.GET("/auth/oauth/providers", loginProviderHandler.Providers)
 		group.POST("/auth/oauth/{provider}/authorize", loginProviderHandler.Authorize)
@@ -410,6 +426,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/me", authHandler.MobileMe)
 		group.PATCH("/me", authHandler.MobileUpdateMe)
 		group.GET("/me/login-methods", loginProviderHandler.LoginMethods)
+		group.PUT("/me/password", loginProviderHandler.SetPassword)
 		group.GET("/me/oauth-accounts", loginProviderHandler.OAuthAccounts)
 		group.DELETE("/me/oauth-accounts/{account_id}", loginProviderHandler.DeleteOAuthAccount)
 		group.POST("/me/login-identifiers/{type}/challenge", loginProviderHandler.IdentifierChallenge)
@@ -523,6 +540,8 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 
 		group.GET("/apps/{app_id}/scanner-config", appManagementHandler.AdminScannerConfig)
 		group.PUT("/apps/{app_id}/scanner-config", appManagementHandler.AdminScannerConfig)
+		group.GET("/apps/{app_id}/login-settings", appManagementHandler.AdminLoginSettings)
+		group.PUT("/apps/{app_id}/login-settings", appManagementHandler.AdminLoginSettings)
 		group.POST("/apps/batch-delete", appManagementHandler.AdminBatchDeleteApps)
 		group.POST("/apps/{app_id}/enable", appManagementHandler.AdminEnableApp)
 		group.POST("/apps/{app_id}/disable", appManagementHandler.AdminDisableApp)
@@ -790,6 +809,20 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/ops/runtime-summary", opsAdminHandler.Runtime)
 	})
 	return &API{server: server, pool: pool}, nil
+}
+
+func configuredLoginCaptchaType(value string, resolveErr error) (platformcaptcha.Type, error) {
+	if errors.Is(resolveErr, settingsdomain.ErrNotFound) {
+		return platformcaptcha.TypeSlide, nil
+	}
+	if resolveErr != nil {
+		return "", resolveErr
+	}
+	captchaType, err := platformcaptcha.ParseType(value)
+	if err != nil {
+		return platformcaptcha.TypeSlide, nil
+	}
+	return captchaType, nil
 }
 
 func configSecretSealer(cfg config.Config) (*settingsrepo.AESGCMSealer, error) {

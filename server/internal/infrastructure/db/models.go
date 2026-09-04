@@ -78,6 +78,19 @@ type AppApplicationLoginProviderBinding struct {
 	UpdatedAt             pgtype.Timestamptz `json:"updated_at"`
 }
 
+type AppApplicationLoginSetting struct {
+	TenantID        uuid.UUID          `json:"tenant_id"`
+	AppID           uuid.UUID          `json:"app_id"`
+	OtpLoginEnabled bool               `json:"otp_login_enabled"`
+	EmailOtpEnabled bool               `json:"email_otp_enabled"`
+	SmsOtpEnabled   bool               `json:"sms_otp_enabled"`
+	LockVersion     int32              `json:"lock_version"`
+	CreatedBy       *uuid.UUID         `json:"created_by"`
+	UpdatedBy       *uuid.UUID         `json:"updated_by"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
+}
+
 type AppApplicationOnboardingDraftAsset struct {
 	TenantID           uuid.UUID          `json:"tenant_id"`
 	AppID              uuid.UUID          `json:"app_id"`
@@ -800,12 +813,12 @@ type IamDevice struct {
 type IamLoginCaptchaChallenge struct {
 	ID           uuid.UUID          `json:"id"`
 	ScopeHash    []byte             `json:"scope_hash"`
-	AnswerSalt   []byte             `json:"answer_salt"`
-	AnswerHash   []byte             `json:"answer_hash"`
 	AttemptCount int16              `json:"attempt_count"`
 	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
 	ConsumedAt   pgtype.Timestamptz `json:"consumed_at"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	CaptchaType  string             `json:"captcha_type"`
+	ProofHash    []byte             `json:"proof_hash"`
 }
 
 type IamLoginFailureState struct {

@@ -47,6 +47,28 @@ func (r *Postgres) ListPublicConfigs(ctx context.Context) (map[string]json.RawMe
 	return values, rows.Err()
 }
 
+// GetGlobalString returns the effective value of one active, non-secret global
+// string setting. Runtime consumers use this narrow method instead of loading
+// the administrative configuration model or tenant overlays.
+func (r *Postgres) GetGlobalString(ctx context.Context, moduleCode, group, key string) (string, error) {
+	var value string
+	err := r.pool.QueryRow(ctx, `
+		SELECT COALESCE(value_json, default_value_json) #>> '{}'
+		FROM sys.config_items
+		WHERE tenant_id IS NULL
+		  AND module_code = $1
+		  AND config_group = $2
+		  AND config_key = $3
+		  AND value_type = 'string'
+		  AND is_secret = false
+		  AND status = 'active'
+		  AND jsonb_typeof(COALESCE(value_json, default_value_json)) = 'string'`, moduleCode, group, key).Scan(&value)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", settings.ErrNotFound
+	}
+	return value, err
+}
+
 func (r *Postgres) ListRegions(ctx context.Context, f settings.RegionFilter) ([]settings.Region, error) {
 	where, args := " WHERE r.deleted_at IS NULL", []any{}
 	add := func(fragment string, value any) {
@@ -329,13 +351,18 @@ func (r *Postgres) UpdateConfig(ctx context.Context, p settings.Principal, id uu
 	if err != nil {
 		return settings.ConfigItem{}, err
 	}
-	if before.IsLocked || before.IsSecret != in.IsSecret {
+	isGlobal := before.TenantID == nil
+	if (isGlobal && !p.CanUpdateGlobalConfigs) || (!isGlobal && before.IsLocked) || before.IsSecret != in.IsSecret {
 		return settings.ConfigItem{}, settings.ErrLocked
 	}
 	if catalogConfig(before) && (before.ModuleCode != in.ModuleCode || before.ConfigGroup != in.ConfigGroup || before.ConfigKey != in.ConfigKey || before.DisplayName != in.DisplayName || before.ValueType != in.ValueType || !sameJSON(before.DefaultValue, in.DefaultValue) || before.IsPublic != in.IsPublic || before.Description != in.Description || before.SortOrder != in.SortOrder || before.Status != in.Status || !sameJSON(before.ValidationSchema, in.ValidationSchema)) {
 		return settings.ConfigItem{}, settings.ErrLocked
 	}
-	tag, err := tx.Exec(ctx, `UPDATE sys.config_items SET module_code=$1,config_group=$2,config_key=$3,display_name=$4,value_type=$5,value_json=$6,default_value_json=$7,is_public=$8,validation_schema=$9,description=nullif($10,''),sort_order=$11,status=$12,version=version+1,updated_by=$13 WHERE tenant_id=$14 AND id=$15 AND version=$16`, in.ModuleCode, in.ConfigGroup, in.ConfigKey, in.DisplayName, in.ValueType, nullableJSON(in.Value), nullableJSON(in.DefaultValue), in.IsPublic, []byte(in.ValidationSchema), in.Description, in.SortOrder, in.Status, p.UserID, p.TenantID, id, in.Version)
+	var targetTenant any = p.TenantID
+	if isGlobal {
+		targetTenant = nil
+	}
+	tag, err := tx.Exec(ctx, `UPDATE sys.config_items SET module_code=$1,config_group=$2,config_key=$3,display_name=$4,value_type=$5,value_json=$6,default_value_json=$7,is_public=$8,validation_schema=$9,description=nullif($10,''),sort_order=$11,status=$12,version=version+1,updated_by=$13 WHERE tenant_id IS NOT DISTINCT FROM $14 AND id=$15 AND version=$16`, in.ModuleCode, in.ConfigGroup, in.ConfigKey, in.DisplayName, in.ValueType, nullableJSON(in.Value), nullableJSON(in.DefaultValue), in.IsPublic, []byte(in.ValidationSchema), in.Description, in.SortOrder, in.Status, p.UserID, targetTenant, id, in.Version)
 	if err != nil {
 		return settings.ConfigItem{}, classify(err)
 	}
@@ -346,7 +373,11 @@ func (r *Postgres) UpdateConfig(ctx context.Context, p settings.Principal, id uu
 	if err != nil {
 		return settings.ConfigItem{}, err
 	}
-	if err = audit(ctx, tx, p, "sys.config.update", "sys.config", id, "PATCH", "/admin-api/v1/configs/"+id.String(), before, after); err != nil {
+	action := "sys.config.update"
+	if isGlobal {
+		action = "sys.platform_config.update"
+	}
+	if err = audit(ctx, tx, p, action, "sys.config", id, "PATCH", "/admin-api/v1/configs/"+id.String(), before, after); err != nil {
 		return settings.ConfigItem{}, err
 	}
 	if err = tx.Commit(ctx); err != nil {

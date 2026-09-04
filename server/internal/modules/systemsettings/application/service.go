@@ -16,13 +16,18 @@ type Authenticator interface {
 }
 
 type Service struct {
-	auth   Authenticator
-	repo   settings.Repository
-	sealer settings.SecretSealer
+	auth               Authenticator
+	repo               settings.Repository
+	sealer             settings.SecretSealer
+	platformTenantCode string
 }
 
-func NewService(auth Authenticator, repo settings.Repository, sealer settings.SecretSealer) *Service {
-	return &Service{auth: auth, repo: repo, sealer: sealer}
+func NewService(auth Authenticator, repo settings.Repository, sealer settings.SecretSealer, platformTenantCode ...string) *Service {
+	code := "local"
+	if len(platformTenantCode) > 0 && strings.TrimSpace(platformTenantCode[0]) != "" {
+		code = strings.ToLower(strings.TrimSpace(platformTenantCode[0]))
+	}
+	return &Service{auth: auth, repo: repo, sealer: sealer, platformTenantCode: code}
 }
 
 func (s *Service) authorize(ctx context.Context, token, permission string) (iamdomain.AuthenticatedContext, error) {
@@ -60,6 +65,39 @@ func principal(auth iamdomain.AuthenticatedContext, p settings.Principal) settin
 	return p
 }
 
+func contains(values []string, wanted string) bool {
+	for _, value := range values {
+		if value == wanted {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *Service) canUpdateGlobalConfigs(auth iamdomain.AuthenticatedContext) bool {
+	return strings.EqualFold(strings.TrimSpace(auth.Tenant.Code), s.platformTenantCode) &&
+		contains(auth.Roles, "super-admin") &&
+		contains(auth.Permissions, "sys.config.update") &&
+		contains(auth.Permissions, "sys.platform_config.update")
+}
+
+func (s *Service) configPrincipal(auth iamdomain.AuthenticatedContext, p settings.Principal) settings.Principal {
+	p = principal(auth, p)
+	p.CanUpdateGlobalConfigs = s.canUpdateGlobalConfigs(auth)
+	return p
+}
+
+func unlockGlobalConfigs(page *settings.ConfigPage, allowed bool) {
+	if !allowed {
+		return
+	}
+	for index := range page.Items {
+		if page.Items[index].TenantID == nil {
+			page.Items[index].IsLocked = false
+		}
+	}
+}
+
 func (s *Service) ListConfigs(ctx context.Context, token string, f settings.PageFilter) (settings.ConfigPage, error) {
 	auth, err := s.authorize(ctx, token, "sys.config.read")
 	if err != nil {
@@ -69,7 +107,12 @@ func (s *Service) ListConfigs(ctx context.Context, token string, f settings.Page
 	if err != nil || !oneOf(f.ValueType, "", "string", "integer", "decimal", "boolean", "json", "datetime") {
 		return settings.ConfigPage{}, settings.ErrInvalid
 	}
-	return s.repo.ListConfigs(ctx, auth.Tenant.ID, f)
+	page, err := s.repo.ListConfigs(ctx, auth.Tenant.ID, f)
+	if err != nil {
+		return settings.ConfigPage{}, err
+	}
+	unlockGlobalConfigs(&page, s.canUpdateGlobalConfigs(auth))
+	return page, nil
 }
 
 func normalizeRegionFilter(f settings.RegionFilter) (settings.RegionFilter, error) {
@@ -198,6 +241,12 @@ func normalizeConfig(in settings.ConfigInput, creating bool) (settings.ConfigInp
 	return in, nil
 }
 
+func isPlatformManagedConfig(in settings.ConfigInput) bool {
+	return strings.EqualFold(in.ModuleCode, "iam") &&
+		strings.EqualFold(in.ConfigGroup, "security") &&
+		strings.EqualFold(in.ConfigKey, "admin.login_captcha.type")
+}
+
 func validateValue(kind string, raw json.RawMessage, schemaRaw json.RawMessage) error {
 	if len(raw) == 0 || string(raw) == "null" {
 		return nil
@@ -304,6 +353,9 @@ func (s *Service) CreateConfig(ctx context.Context, token string, p settings.Pri
 	if err != nil {
 		return settings.ConfigItem{}, err
 	}
+	if isPlatformManagedConfig(in) {
+		return settings.ConfigItem{}, settings.ErrInvalid
+	}
 	if err = s.validateDictionaryConfig(ctx, auth.Tenant.ID, in); err != nil {
 		return settings.ConfigItem{}, err
 	}
@@ -337,7 +389,14 @@ func (s *Service) UpdateConfig(ctx context.Context, token string, p settings.Pri
 	if err = s.validateDictionaryConfig(ctx, auth.Tenant.ID, in); err != nil {
 		return settings.ConfigItem{}, err
 	}
-	return s.repo.UpdateConfig(ctx, principal(auth, p), id, in)
+	item, err := s.repo.UpdateConfig(ctx, s.configPrincipal(auth, p), id, in)
+	if err != nil {
+		return settings.ConfigItem{}, err
+	}
+	if item.TenantID == nil && s.canUpdateGlobalConfigs(auth) {
+		item.IsLocked = false
+	}
+	return item, nil
 }
 
 func (s *Service) RotateSecret(ctx context.Context, token string, p settings.Principal, id uuid.UUID, version int32, secret string) (settings.ConfigItem, error) {

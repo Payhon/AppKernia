@@ -70,6 +70,24 @@ type OTPLoginInput struct {
 	VerificationCode string    `json:"verification_code"`
 }
 
+type OTPRegistrationInput struct {
+	IdentifierType   string    `json:"identifier_type"`
+	Identifier       string    `json:"identifier"`
+	ChallengeID      uuid.UUID `json:"challenge_id"`
+	VerificationCode string    `json:"verification_code"`
+	DisplayName      string    `json:"display_name"`
+	Locale           string    `json:"locale"`
+	AcceptTerms      bool      `json:"accept_terms"`
+}
+
+type PasswordResetInput struct {
+	IdentifierType   string    `json:"identifier_type"`
+	Identifier       string    `json:"identifier"`
+	ChallengeID      uuid.UUID `json:"challenge_id"`
+	VerificationCode string    `json:"verification_code"`
+	NewPassword      string    `json:"new_password"`
+}
+
 type IdentifierCodeInput struct {
 	Identifier string `json:"identifier"`
 }
@@ -454,7 +472,7 @@ func (service *Service) Callback(ctx context.Context, token string, appID uuid.U
 				AbsoluteExpiresAt: prepared.AbsoluteExpiresAt, IdleExpiresAt: prepared.IdleExpiresAt,
 				RefreshExpiresAt: prepared.RefreshExpiresAt, IPAddress: ipAddress,
 				UserAgent: prepared.UserAgent, DeviceKey: prepared.DeviceKey, RequestID: prepared.RequestID,
-				AccessTokenVersion: prepared.AccessTokenVersion,
+				AccessTokenVersion: prepared.AccessTokenVersion, AuthMethod: "oauth",
 			}, nil
 		}
 	}
@@ -599,7 +617,15 @@ func (service *Service) sendCode(ctx context.Context, appID uuid.UUID, tenantID 
 }
 
 func (service *Service) SendLoginCode(ctx context.Context, appID uuid.UUID, identifierType, identifier, locale string, client iamapp.ClientMetadata) (CodeChallengeResult, error) {
-	tenantID, defaultLocale, err := service.repository.ResolveApp(ctx, appID)
+	settings, err := service.repository.AppLoginSettings(ctx, appID)
+	if err != nil {
+		return CodeChallengeResult{}, err
+	}
+	if !settings.OTPEnabled || identifierType == "email" && !settings.EmailOTPEnabled || identifierType == "mobile" && !settings.MobileOTPEnabled {
+		return CodeChallengeResult{}, login.ErrProviderUnavailable
+	}
+	tenantID, defaultLocale := settings.TenantID, "zh-CN"
+	_, defaultLocale, err = service.repository.ResolveApp(ctx, appID)
 	if err != nil {
 		return CodeChallengeResult{}, err
 	}
@@ -625,6 +651,10 @@ func (service *Service) SendLoginCode(ctx context.Context, appID uuid.UUID, iden
 }
 
 func (service *Service) OTPLogin(ctx context.Context, appID uuid.UUID, input OTPLoginInput, client iamapp.ClientMetadata) (iamapp.SessionTokens, error) {
+	settings, settingsErr := service.repository.AppLoginSettings(ctx, appID)
+	if settingsErr != nil || !settings.OTPEnabled || input.IdentifierType == "email" && !settings.EmailOTPEnabled || input.IdentifierType == "mobile" && !settings.MobileOTPEnabled {
+		return iamapp.SessionTokens{}, login.ErrProviderUnavailable
+	}
 	value, _, err := normalizeIdentifier(input.IdentifierType, input.Identifier)
 	if err != nil || input.ChallengeID == uuid.Nil || !validCode(input.VerificationCode) {
 		return iamapp.SessionTokens{}, login.ErrOTPInvalid
@@ -643,6 +673,101 @@ func (service *Service) OTPLogin(ctx context.Context, appID uuid.UUID, input OTP
 		authMethod = "sms_otp"
 	}
 	return issuer.IssueMobileSession(ctx, userID, appID, authMethod, client)
+}
+
+func (service *Service) SendRegistrationCode(ctx context.Context, appID uuid.UUID, identifierType, identifier, locale string, client iamapp.ClientMetadata) (CodeChallengeResult, error) {
+	settings, err := service.repository.AppLoginSettings(ctx, appID)
+	if err != nil {
+		return CodeChallengeResult{}, err
+	}
+	if !settings.Registration || !settings.OTPEnabled || identifierType == "email" && !settings.EmailOTPEnabled || identifierType == "mobile" && !settings.MobileOTPEnabled {
+		return CodeChallengeResult{}, login.ErrProviderUnavailable
+	}
+	if locale != "en-US" {
+		locale = "zh-CN"
+	}
+	return service.sendCode(ctx, appID, settings.TenantID, nil, identifierType, identifier, "registration", locale, client)
+}
+
+func (service *Service) RegisterOTP(ctx context.Context, appID uuid.UUID, input OTPRegistrationInput, client iamapp.ClientMetadata) (iamapp.SessionTokens, error) {
+	value, hint, err := normalizeIdentifier(input.IdentifierType, input.Identifier)
+	displayName := strings.Join(strings.Fields(input.DisplayName), " ")
+	if err != nil || input.ChallengeID == uuid.Nil || !validCode(input.VerificationCode) || !input.AcceptTerms || displayName == "" || len([]rune(displayName)) > 120 {
+		return iamapp.SessionTokens{}, login.ErrInvalid
+	}
+	preparer, ok := service.auth.(atomicMobileSessionPreparer)
+	if !ok {
+		return iamapp.SessionTokens{}, login.ErrProviderUnavailable
+	}
+	var prepared iamapp.PreparedMobileSession
+	authMethod := "email_otp"
+	if input.IdentifierType == "mobile" {
+		authMethod = "sms_otp"
+	}
+	_, err = service.repository.RegisterWithOTP(ctx, login.OTPRegistration{
+		AppID: appID, IdentifierType: input.IdentifierType, NormalizedValue: value, DisplayHint: hint,
+		DisplayName: displayName, Locale: input.Locale, ChallengeID: input.ChallengeID,
+		TargetHash: hashString(value), SecretHash: hashString(input.VerificationCode),
+	}, func(_ context.Context, userID, tenantID, scopedAppID uuid.UUID) (login.AtomicLoginSession, error) {
+		created, prepareErr := preparer.PrepareAtomicMobileSession(userID, tenantID, scopedAppID, authMethod, client)
+		if prepareErr != nil {
+			return login.AtomicLoginSession{}, prepareErr
+		}
+		prepared = created
+		ipAddress := ""
+		if created.IPAddress != nil {
+			ipAddress = created.IPAddress.String()
+		}
+		return login.AtomicLoginSession{ID: created.Tokens.SessionID, RefreshTokenHash: created.RefreshTokenHash,
+			AbsoluteExpiresAt: created.AbsoluteExpiresAt, IdleExpiresAt: created.IdleExpiresAt, RefreshExpiresAt: created.RefreshExpiresAt,
+			IPAddress: ipAddress, UserAgent: created.UserAgent, DeviceKey: created.DeviceKey, RequestID: created.RequestID,
+			AccessTokenVersion: created.AccessTokenVersion, AuthMethod: authMethod}, nil
+	})
+	if err != nil {
+		return iamapp.SessionTokens{}, err
+	}
+	return prepared.Tokens, nil
+}
+
+func (service *Service) SendPasswordResetCode(ctx context.Context, appID uuid.UUID, identifierType, identifier, locale string, client iamapp.ClientMetadata) (CodeChallengeResult, error) {
+	settings, err := service.repository.AppLoginSettings(ctx, appID)
+	if err != nil {
+		return CodeChallengeResult{}, err
+	}
+	if !settings.OTPEnabled || identifierType == "email" && !settings.EmailOTPEnabled || identifierType == "mobile" && !settings.MobileOTPEnabled {
+		return CodeChallengeResult{}, login.ErrProviderUnavailable
+	}
+	value, _, err := normalizeIdentifier(identifierType, identifier)
+	if err != nil {
+		return CodeChallengeResult{}, err
+	}
+	userID, tenantID, userLocale, findErr := service.repository.FindOTPLoginUser(ctx, appID, identifierType, value)
+	var challengeUserID *uuid.UUID
+	if findErr == nil && tenantID == settings.TenantID {
+		challengeUserID = &userID
+		if userLocale == "zh-CN" || userLocale == "en-US" {
+			locale = userLocale
+		}
+	}
+	return service.sendCode(ctx, appID, settings.TenantID, challengeUserID, identifierType, identifier, "password_reset", locale, client)
+}
+
+func (service *Service) ResetPassword(ctx context.Context, appID uuid.UUID, input PasswordResetInput) error {
+	settings, err := service.repository.AppLoginSettings(ctx, appID)
+	if err != nil || !settings.OTPEnabled || input.IdentifierType == "email" && !settings.EmailOTPEnabled || input.IdentifierType == "mobile" && !settings.MobileOTPEnabled {
+		return login.ErrProviderUnavailable
+	}
+	value, _, err := normalizeIdentifier(input.IdentifierType, input.Identifier)
+	if err != nil || input.ChallengeID == uuid.Nil || !validCode(input.VerificationCode) {
+		return login.ErrOTPInvalid
+	}
+	hash, err := iamapp.HashPassword(input.NewPassword)
+	if err != nil {
+		return login.ErrInvalid
+	}
+	return service.repository.ResetPasswordWithOTP(ctx, login.OTPConsume{ID: input.ChallengeID, AppID: appID,
+		IdentifierType: input.IdentifierType, NormalizedValue: value, TargetHash: hashString(value),
+		SecretHash: hashString(input.VerificationCode), Purpose: "password_reset"}, hash)
 }
 
 func (service *Service) SendIdentifierCode(ctx context.Context, token string, appID uuid.UUID, identifierType string, input IdentifierCodeInput, client iamapp.ClientMetadata) (CodeChallengeResult, error) {
@@ -693,7 +818,7 @@ func validStepUpScope(purpose, resource string) bool {
 		return false
 	}
 	switch purpose {
-	case "oauth_bind", "oauth_unbind", "identifier_change", "identifier_unbind", "account_delete":
+	case "oauth_bind", "oauth_unbind", "identifier_change", "identifier_unbind", "account_delete", "password_bind":
 		return true
 	default:
 		return false
@@ -800,6 +925,21 @@ func (service *Service) LoginMethods(ctx context.Context, token string, appID uu
 		return login.LoginMethods{}, err
 	}
 	return service.repository.LoginMethods(ctx, appID, authenticated.User.ID)
+}
+
+func (service *Service) SetPassword(ctx context.Context, token string, appID uuid.UUID, newPassword, stepUpToken string, client iamapp.ClientMetadata) error {
+	authenticated, err := service.authenticateMobile(ctx, token, appID)
+	if err != nil {
+		return err
+	}
+	hash, err := iamapp.HashPassword(newPassword)
+	if err != nil {
+		return login.ErrInvalid
+	}
+	if err = service.consumeStepUp(ctx, stepUpToken, authenticated, appID, "password_bind", "password", ""); err != nil {
+		return login.ErrStepUpRequired
+	}
+	return service.repository.SetPassword(ctx, bearerPrincipal(authenticated, client.RequestID, ipString(client), client.UserAgent), appID, hash)
 }
 
 func (service *Service) OAuthAccounts(ctx context.Context, token string, appID uuid.UUID) ([]login.OAuthAccount, error) {

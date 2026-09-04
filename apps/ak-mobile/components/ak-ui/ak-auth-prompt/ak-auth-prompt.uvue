@@ -1,5 +1,5 @@
 <template>
-  <ak-bottom-sheet :open="open" :title="t('auth.sheet.title', null)" expanded @close="close">
+  <ak-bottom-sheet :open="open" :title="t('auth.sheet.title', null)" expanded :height-ratio="0.75" @close="close">
     <view class="auth-sheet">
       <text class="auth-sheet-description">{{t('auth.sheet.description', null)}}</text>
       <ak-login-method-form @authenticated="authenticated" />

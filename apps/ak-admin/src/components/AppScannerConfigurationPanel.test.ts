@@ -38,7 +38,7 @@ describe("client configuration tab registry", () => {
     expect(clientConfigTabs.map((tab) => [tab.readPermission, tab.updatePermission])).toEqual([
       ["app.share_binding.read", "app.share_binding.update"],
       ["app.scanner_config.read", "app.scanner_config.update"],
-      ["app.login_provider_binding.read", "app.login_provider_binding.update"],
+      ["app.login_settings.read", "app.login_settings.update"],
     ]);
   });
 });

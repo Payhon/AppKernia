@@ -263,8 +263,27 @@ func (q *Queries) GetAuthContextUser(ctx context.Context, arg GetAuthContextUser
 	return i, err
 }
 
+const getLoginCaptchaFailureStateForUpdate = `-- name: GetLoginCaptchaFailureStateForUpdate :one
+SELECT failure_count, expires_at
+FROM iam.login_failure_states
+WHERE scope_hash = $1
+FOR UPDATE
+`
+
+type GetLoginCaptchaFailureStateForUpdateRow struct {
+	FailureCount int32              `json:"failure_count"`
+	ExpiresAt    pgtype.Timestamptz `json:"expires_at"`
+}
+
+func (q *Queries) GetLoginCaptchaFailureStateForUpdate(ctx context.Context, scopeHash []byte) (GetLoginCaptchaFailureStateForUpdateRow, error) {
+	row := q.db.QueryRow(ctx, getLoginCaptchaFailureStateForUpdate, scopeHash)
+	var i GetLoginCaptchaFailureStateForUpdateRow
+	err := row.Scan(&i.FailureCount, &i.ExpiresAt)
+	return i, err
+}
+
 const getLoginCaptchaForUpdate = `-- name: GetLoginCaptchaForUpdate :one
-SELECT answer_salt, answer_hash, attempt_count
+SELECT captcha_type, proof_hash, attempt_count
 FROM iam.login_captcha_challenges
 WHERE id = $1
   AND scope_hash = $2
@@ -281,15 +300,15 @@ type GetLoginCaptchaForUpdateParams struct {
 }
 
 type GetLoginCaptchaForUpdateRow struct {
-	AnswerSalt   []byte `json:"answer_salt"`
-	AnswerHash   []byte `json:"answer_hash"`
+	CaptchaType  string `json:"captcha_type"`
+	ProofHash    []byte `json:"proof_hash"`
 	AttemptCount int16  `json:"attempt_count"`
 }
 
 func (q *Queries) GetLoginCaptchaForUpdate(ctx context.Context, arg GetLoginCaptchaForUpdateParams) (GetLoginCaptchaForUpdateRow, error) {
 	row := q.db.QueryRow(ctx, getLoginCaptchaForUpdate, arg.ID, arg.ScopeHash, arg.NowAt)
 	var i GetLoginCaptchaForUpdateRow
-	err := row.Scan(&i.AnswerSalt, &i.AnswerHash, &i.AttemptCount)
+	err := row.Scan(&i.CaptchaType, &i.ProofHash, &i.AttemptCount)
 	return i, err
 }
 
@@ -390,39 +409,36 @@ func (q *Queries) InsertFailedLoginEvent(ctx context.Context, arg InsertFailedLo
 
 const insertLoginCaptchaChallenge = `-- name: InsertLoginCaptchaChallenge :one
 INSERT INTO iam.login_captcha_challenges (
-    scope_hash, answer_salt, answer_hash, expires_at, created_at
+    id, scope_hash, captcha_type, proof_hash, expires_at, created_at
 )
 VALUES (
     $1, $2, $3,
-    $4, $5
+    $4, $5, $6
 )
-RETURNING id, expires_at
+RETURNING id
 `
 
 type InsertLoginCaptchaChallengeParams struct {
-	ScopeHash  []byte             `json:"scope_hash"`
-	AnswerSalt []byte             `json:"answer_salt"`
-	AnswerHash []byte             `json:"answer_hash"`
-	ExpiresAt  pgtype.Timestamptz `json:"expires_at"`
-	CreatedAt  pgtype.Timestamptz `json:"created_at"`
+	ID          uuid.UUID          `json:"id"`
+	ScopeHash   []byte             `json:"scope_hash"`
+	CaptchaType string             `json:"captcha_type"`
+	ProofHash   []byte             `json:"proof_hash"`
+	ExpiresAt   pgtype.Timestamptz `json:"expires_at"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 }
 
-type InsertLoginCaptchaChallengeRow struct {
-	ID        uuid.UUID          `json:"id"`
-	ExpiresAt pgtype.Timestamptz `json:"expires_at"`
-}
-
-func (q *Queries) InsertLoginCaptchaChallenge(ctx context.Context, arg InsertLoginCaptchaChallengeParams) (InsertLoginCaptchaChallengeRow, error) {
+func (q *Queries) InsertLoginCaptchaChallenge(ctx context.Context, arg InsertLoginCaptchaChallengeParams) (uuid.UUID, error) {
 	row := q.db.QueryRow(ctx, insertLoginCaptchaChallenge,
+		arg.ID,
 		arg.ScopeHash,
-		arg.AnswerSalt,
-		arg.AnswerHash,
+		arg.CaptchaType,
+		arg.ProofHash,
 		arg.ExpiresAt,
 		arg.CreatedAt,
 	)
-	var i InsertLoginCaptchaChallengeRow
-	err := row.Scan(&i.ID, &i.ExpiresAt)
-	return i, err
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const insertRefreshReuseSecurityEvent = `-- name: InsertRefreshReuseSecurityEvent :exec
@@ -845,6 +861,27 @@ func (q *Queries) LockSelfSessionForRevoke(ctx context.Context, arg LockSelfSess
 	var i LockSelfSessionForRevokeRow
 	err := row.Scan(&i.ID, &i.Status, &i.RevokedAt)
 	return i, err
+}
+
+const loginCaptchaCoolingDown = `-- name: LoginCaptchaCoolingDown :one
+SELECT EXISTS (
+    SELECT 1
+    FROM iam.login_captcha_challenges
+    WHERE scope_hash = $1
+      AND created_at > $2::timestamptz - interval '2 seconds'
+) AS cooling_down
+`
+
+type LoginCaptchaCoolingDownParams struct {
+	ScopeHash []byte             `json:"scope_hash"`
+	NowAt     pgtype.Timestamptz `json:"now_at"`
+}
+
+func (q *Queries) LoginCaptchaCoolingDown(ctx context.Context, arg LoginCaptchaCoolingDownParams) (bool, error) {
+	row := q.db.QueryRow(ctx, loginCaptchaCoolingDown, arg.ScopeHash, arg.NowAt)
+	var cooling_down bool
+	err := row.Scan(&cooling_down)
+	return cooling_down, err
 }
 
 const markRefreshTokenConsumed = `-- name: MarkRefreshTokenConsumed :exec

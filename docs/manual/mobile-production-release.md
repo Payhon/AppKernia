@@ -276,6 +276,21 @@ go run ./cmd/ak-cli app-login-provider export \
 同名环境变量 `AK_ANDROID_PACKAGE`、`AK_ANDROID_SIGNATURE`、`AK_ANDROID_CERTIFICATE_SHA256`、`AK_IOS_BUNDLE_ID`、`AK_HARMONY_BUNDLE_NAME` 可替代身份参数。导出器会更新 DCloud `uni-oauth`、iOS Entitlements、Android HTTPS App Link、HarmonyOS 受控 Overlay，以及 `config/login-providers.generated.json` 无密钥能力快照；`--check` 用于阻止构建字段或构建 Hash 漂移。Secret 轮换不改变构建 Hash，Client ID、包身份、签名指纹或 Link 变化必须重新导出和打包。
 
 自定义调试基座请阅读 [AppKernia 多端自定义基座编译与打包](./mobile-custom-base-build.md)。
+
+### 8.2 本地验证码闭环
+
+开发或测试环境可设置 `AK_OTP_ADAPTER=database-capture`（development 默认值），让发送接口走完整 Challenge、限流和事务流程，同时把明文验证码写入无日志、非持久的 `test_support.otp_captures`。生产环境会拒绝该 Adapter 启动。
+
+调用发码接口取得 `challenge_id` 后，只按该 ID 查询测试码：
+
+```sql
+SELECT code
+FROM test_support.otp_captures
+WHERE challenge_id = '<challenge-id>' AND app_id = '<app-id>';
+```
+
+随后使用同一 `challenge_id`、标识和验证码调用 OTP 注册、登录或找回接口。不得把验证码写入日志、Fixture、截图、Git 或交付报告；真实邮件/SMS 通道仍需另行验收。
+
 ## 9. 多厂商 Push 发布门禁
 
 Android Push 生产构建必须设置 `AK_REQUIRE_PUSH_CONFIG=1`，并在以下两个变体中选择一个：

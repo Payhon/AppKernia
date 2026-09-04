@@ -5,6 +5,7 @@
 - Destructive sign-out is isolated below the regular groups and requires confirmation.
 - Navigation rows expose a 44 px target and a visible chevron; profile data stays server-confirmed.
 - Security settings include one distinct “Account and sign-in methods” row. Its page groups password, email, mobile and third-party accounts, with a localized status label and explicit bind, replace or unlink action on every row.
+- A passwordless account may add its first password from the password row. The password form validates both entries locally, then obtains a scoped one-time step-up proof before saving.
 - Account-method actions respect the bottom safe area and remain reachable at large Dynamic Type sizes. Rows are at least 44 pt high, announce provider/identifier plus status and action to VoiceOver, and never convey connection state by colour alone.
 - The server-provided `can_unbind`, `block_reason` and `remaining_login_methods` control unlink availability. Bind, replace and unlink require fresh step-up proof; cancellation preserves the current connection.
 - The top-right bell opens the message inbox. The row labelled “Notification settings” opens `settings.notifications`; these destinations must remain distinct because the latter manages in-app, email and push preferences rather than message content.

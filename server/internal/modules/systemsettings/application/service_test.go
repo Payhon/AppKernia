@@ -22,6 +22,8 @@ func (f fakeAuthenticator) Authenticate(context.Context, string, string) (iamdom
 type fakeRepository struct {
 	principal         settings.Principal
 	input             settings.ConfigInput
+	configPage        settings.ConfigPage
+	updatedConfig     settings.ConfigItem
 	regionCreateInput settings.RegionCreateInput
 	regionUpdateInput settings.RegionUpdateInput
 	regionCode        string
@@ -35,6 +37,9 @@ func (f *fakeRepository) ResolveDictionary(_ context.Context, _ *uuid.UUID, code
 
 func (*fakeRepository) ListPublicConfigs(context.Context) (map[string]json.RawMessage, error) {
 	return map[string]json.RawMessage{}, nil
+}
+func (*fakeRepository) GetGlobalString(context.Context, string, string, string) (string, error) {
+	return "", settings.ErrNotFound
 }
 func (*fakeRepository) ListRegions(context.Context, settings.RegionFilter) ([]settings.Region, error) {
 	return nil, nil
@@ -51,15 +56,16 @@ func (f *fakeRepository) DeleteRegion(_ context.Context, p settings.Principal, c
 	f.principal, f.regionCode = p, code
 	return nil
 }
-func (*fakeRepository) ListConfigs(context.Context, uuid.UUID, settings.PageFilter) (settings.ConfigPage, error) {
-	return settings.ConfigPage{}, nil
+func (f *fakeRepository) ListConfigs(context.Context, uuid.UUID, settings.PageFilter) (settings.ConfigPage, error) {
+	return f.configPage, nil
 }
 func (f *fakeRepository) CreateConfig(_ context.Context, p settings.Principal, in settings.ConfigInput, sealed []byte, version int32) (settings.ConfigItem, error) {
 	f.principal, f.input, f.sealed, f.version = p, in, sealed, version
 	return settings.ConfigItem{ID: uuid.New(), IsSecret: in.IsSecret, SecretConfigured: len(sealed) > 0}, nil
 }
-func (*fakeRepository) UpdateConfig(context.Context, settings.Principal, uuid.UUID, settings.ConfigInput) (settings.ConfigItem, error) {
-	return settings.ConfigItem{}, nil
+func (f *fakeRepository) UpdateConfig(_ context.Context, p settings.Principal, _ uuid.UUID, in settings.ConfigInput) (settings.ConfigItem, error) {
+	f.principal, f.input = p, in
+	return f.updatedConfig, nil
 }
 func (*fakeRepository) RotateSecret(context.Context, settings.Principal, uuid.UUID, int32, []byte, int32) (settings.ConfigItem, error) {
 	return settings.ConfigItem{}, nil
@@ -95,6 +101,13 @@ func (f *fakeSealer) Seal(plaintext []byte, aad string) ([]byte, int32, error) {
 
 func authContext(permissions ...string) iamdomain.AuthenticatedContext {
 	return iamdomain.AuthenticatedContext{AuthContext: iamdomain.AuthContext{User: iamdomain.User{ID: uuid.New()}, Tenant: iamdomain.Tenant{ID: uuid.New()}, Permissions: permissions}, SessionID: uuid.New()}
+}
+
+func platformAuthContext(tenantCode string, roles, permissions []string) iamdomain.AuthenticatedContext {
+	return iamdomain.AuthenticatedContext{AuthContext: iamdomain.AuthContext{
+		User: iamdomain.User{ID: uuid.New()}, Tenant: iamdomain.Tenant{ID: uuid.New(), Code: tenantCode},
+		Roles: roles, Permissions: permissions,
+	}, SessionID: uuid.New()}
 }
 
 func TestServiceRequiresExactPermission(t *testing.T) {
@@ -184,8 +197,70 @@ func TestServiceValidatesTypedValuesSecretPolicyAndLocales(t *testing.T) {
 	if _, err := service.CreateConfig(context.Background(), "token", settings.Principal{}, base); !errors.Is(err, settings.ErrInvalid) {
 		t.Fatalf("public secret error=%v", err)
 	}
+	captcha := settings.ConfigInput{
+		ModuleCode: "iam", ConfigGroup: "security", ConfigKey: "admin.login_captcha.type",
+		DisplayName: "Admin login CAPTCHA type", ValueType: "string", Value: []byte(`"puzzle"`),
+		ValidationSchema: []byte(`{"enum":["click","slide","drag","rotate"]}`), Status: "active",
+	}
+	if _, err := normalizeConfig(captcha, true); !errors.Is(err, settings.ErrInvalid) {
+		t.Fatalf("unsupported CAPTCHA type normalization error=%v", err)
+	}
+	captcha.Version = 1
+	service = NewService(fakeAuthenticator{auth: authContext("sys.config.update")}, &fakeRepository{}, &fakeSealer{})
+	if _, err := service.UpdateConfig(context.Background(), "token", settings.Principal{}, uuid.New(), captcha); !errors.Is(err, settings.ErrInvalid) {
+		t.Fatalf("unsupported CAPTCHA type update error=%v", err)
+	}
+	captcha.Value = []byte(`"slide"`)
+	captcha.Version = 0
+	service = NewService(fakeAuthenticator{auth: authContext("sys.config.create")}, &fakeRepository{}, &fakeSealer{})
+	if _, err := service.CreateConfig(context.Background(), "token", settings.Principal{}, captcha); !errors.Is(err, settings.ErrInvalid) {
+		t.Fatalf("tenant CAPTCHA shadow create error=%v", err)
+	}
 	badLocale := "fr-FR"
+	service = NewService(fakeAuthenticator{auth: authContext("sys.config.create", "sys.dictionary.create")}, &fakeRepository{}, &fakeSealer{})
 	if _, err := service.CreateDictItem(context.Background(), "token", settings.Principal{}, uuid.New(), settings.DictItemInput{ItemValue: "ready", Label: "Ready", Locale: &badLocale, Extra: []byte(`{}`), Status: "active"}); !errors.Is(err, settings.ErrInvalid) {
 		t.Fatalf("non-contract locale error=%v", err)
+	}
+}
+
+func TestGlobalConfigUnlockRequiresConfiguredPlatformSuperAdmin(t *testing.T) {
+	globalID := uuid.New()
+	global := settings.ConfigItem{ID: globalID, TenantID: nil, IsLocked: true, Version: 1}
+	input := settings.ConfigInput{
+		ModuleCode: "iam", ConfigGroup: "security", ConfigKey: "admin.login_captcha.type",
+		DisplayName: "Admin login CAPTCHA type", ValueType: "string", Value: []byte(`"rotate"`),
+		DefaultValue: []byte(`"slide"`), ValidationSchema: []byte(`{"enum":["click","slide","drag","rotate"]}`),
+		Status: "active", Version: 1,
+	}
+	cases := []struct {
+		name        string
+		tenantCode  string
+		roles       []string
+		permissions []string
+		wantUnlock  bool
+	}{
+		{name: "platform super admin", tenantCode: "platform", roles: []string{"super-admin"}, permissions: []string{"sys.config.read", "sys.config.update", "sys.platform_config.update"}, wantUnlock: true},
+		{name: "other tenant", tenantCode: "customer", roles: []string{"super-admin"}, permissions: []string{"sys.config.read", "sys.config.update", "sys.platform_config.update"}},
+		{name: "not super admin", tenantCode: "platform", roles: []string{"tenant-admin"}, permissions: []string{"sys.config.read", "sys.config.update", "sys.platform_config.update"}},
+		{name: "missing platform permission", tenantCode: "platform", roles: []string{"super-admin"}, permissions: []string{"sys.config.read", "sys.config.update"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			repository := &fakeRepository{configPage: settings.ConfigPage{Items: []settings.ConfigItem{global}, Total: 1, Page: 1, PageSize: 20}, updatedConfig: global}
+			service := NewService(fakeAuthenticator{auth: platformAuthContext(tc.tenantCode, tc.roles, tc.permissions)}, repository, &fakeSealer{}, "platform")
+			page, err := service.ListConfigs(context.Background(), "token", settings.PageFilter{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := !page.Items[0].IsLocked; got != tc.wantUnlock {
+				t.Fatalf("unlocked=%t want=%t", got, tc.wantUnlock)
+			}
+			if _, err = service.UpdateConfig(context.Background(), "token", settings.Principal{}, globalID, input); err != nil {
+				t.Fatal(err)
+			}
+			if repository.principal.CanUpdateGlobalConfigs != tc.wantUnlock {
+				t.Fatalf("CanUpdateGlobalConfigs=%t want=%t", repository.principal.CanUpdateGlobalConfigs, tc.wantUnlock)
+			}
+		})
 	}
 }

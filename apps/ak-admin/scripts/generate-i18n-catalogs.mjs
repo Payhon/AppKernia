@@ -1,9 +1,10 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 
 const locales = ['zh-CN', 'en-US']
-const namespaces = ['common', 'auth', 'navigation', 'validation', 'errors', 'profile', 'settings', 'system', 'notifications', 'content', 'mobile_releases', 'apps', 'share_configs', 'push_channels', 'login_providers', 'openapi', 'api_reference']
+const namespaces = ['common', 'auth', 'captcha', 'navigation', 'validation', 'errors', 'profile', 'settings', 'system', 'notifications', 'content', 'mobile_releases', 'apps', 'share_configs', 'push_channels', 'login_providers', 'openapi', 'api_reference']
 
 function namespaceFor(key) {
+  if (key.startsWith('auth.login.captcha.')) return 'captcha'
   const prefix = key.split('.', 1)[0]
   if (['app', 'common', 'meta'].includes(prefix)) return 'common'
   if (['menu', 'routes', 'shell', 'dashboard'].includes(prefix)) return 'navigation'

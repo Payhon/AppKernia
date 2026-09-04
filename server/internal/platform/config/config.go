@@ -30,6 +30,7 @@ type Config struct {
 	LoginProtectionKeyBase64    string
 	AdminRegistrationEnabled    bool
 	AdminRegistrationTenantCode string
+	PlatformTenantCode          string
 	PasswordRecoveryEnabled     bool
 	PasswordRecoveryAdapter     string
 	AvatarUploadEnabled         bool
@@ -43,6 +44,7 @@ type Config struct {
 	MFAEnabled                  bool
 	OAuthEnabled                bool
 	OAuthAdapter                string
+	OTPAdapter                  string
 	ConfigMasterKeyBase64       string
 	ConfigMasterKeyVersion      int32
 	ObjectStorageAdapter        string
@@ -62,11 +64,13 @@ func Load() (Config, error) {
 		JWTPrivateKey:               os.Getenv("AK_JWT_PRIVATE_KEY_BASE64"),
 		LoginProtectionKeyBase64:    strings.TrimSpace(os.Getenv("AK_LOGIN_PROTECTION_KEY_BASE64")),
 		AdminRegistrationTenantCode: strings.TrimSpace(os.Getenv("AK_ADMIN_REGISTRATION_TENANT_CODE")),
+		PlatformTenantCode:          strings.ToLower(strings.TrimSpace(os.Getenv("AK_PLATFORM_TENANT_CODE"))),
 		PasswordRecoveryAdapter:     strings.ToLower(strings.TrimSpace(os.Getenv("AK_PASSWORD_RECOVERY_ADAPTER"))),
 		ObjectStorageAdapter:        strings.ToLower(strings.TrimSpace(os.Getenv("AK_OBJECT_STORAGE_ADAPTER"))),
 		WebhookAdapter:              strings.ToLower(strings.TrimSpace(os.Getenv("AK_WEBHOOK_ADAPTER"))),
 		PushAdapter:                 strings.ToLower(strings.TrimSpace(os.Getenv("AK_PUSH_ADAPTER"))),
 		OAuthAdapter:                strings.ToLower(strings.TrimSpace(os.Getenv("AK_OAUTH_ADAPTER"))),
+		OTPAdapter:                  strings.ToLower(strings.TrimSpace(os.Getenv("AK_OTP_ADAPTER"))),
 		LocalObjectStorageDir:       strings.TrimSpace(os.Getenv("AK_LOCAL_OBJECT_STORAGE_DIR")),
 		FeedbackClamdSocket:         strings.TrimSpace(os.Getenv("AK_FEEDBACK_CLAMD_SOCKET")),
 		ConfigMasterKeyBase64:       strings.TrimSpace(os.Getenv("AK_CONFIG_MASTER_KEY_BASE64")),
@@ -139,6 +143,9 @@ func Load() (Config, error) {
 	if cfg.AdminRegistrationTenantCode == "" {
 		cfg.AdminRegistrationTenantCode = "local"
 	}
+	if cfg.PlatformTenantCode == "" {
+		cfg.PlatformTenantCode = "local"
+	}
 	if cfg.PasswordRecoveryAdapter == "" && cfg.Environment == "development" {
 		cfg.PasswordRecoveryAdapter = "local"
 	}
@@ -161,6 +168,13 @@ func Load() (Config, error) {
 	}
 	if cfg.OAuthAdapter == "" && cfg.Environment == "development" {
 		cfg.OAuthAdapter = "local-mock"
+	}
+	if cfg.OTPAdapter == "" {
+		if cfg.Environment == "development" || cfg.Environment == "test" {
+			cfg.OTPAdapter = "database-capture"
+		} else {
+			cfg.OTPAdapter = "notification"
+		}
 	}
 	if cfg.LocalObjectStorageDir == "" && cfg.Environment == "development" {
 		cfg.LocalObjectStorageDir = "./var/object-storage"
@@ -224,6 +238,12 @@ func Load() (Config, error) {
 	}
 	if cfg.OAuthAdapter != "" && cfg.OAuthAdapter != "local-mock" {
 		return Config{}, fmt.Errorf("AK_OAUTH_ADAPTER %q is not configured in this build", cfg.OAuthAdapter)
+	}
+	if cfg.OTPAdapter == "database-capture" && cfg.Environment != "development" && cfg.Environment != "test" {
+		return Config{}, errors.New("AK_OTP_ADAPTER=database-capture is allowed only in development or test")
+	}
+	if cfg.OTPAdapter != "database-capture" && cfg.OTPAdapter != "notification" {
+		return Config{}, fmt.Errorf("AK_OTP_ADAPTER %q is not configured in this build", cfg.OTPAdapter)
 	}
 	rawTimeout := os.Getenv("AK_SHUTDOWN_TIMEOUT")
 	if rawTimeout == "" {

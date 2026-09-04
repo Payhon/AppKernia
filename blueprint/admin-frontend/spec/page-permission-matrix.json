@@ -16,13 +16,15 @@
       "actions": {
         "create": "sys.config.create",
         "update": "sys.config.update",
+        "updatePlatform": "sys.platform_config.update",
         "rotateSecret": "sys.config.rotate_secret"
       },
       "permission_status": {
         "sys.config.create": "existing",
         "sys.config.read": "existing",
         "sys.config.rotate_secret": "existing",
-        "sys.config.update": "existing"
+        "sys.config.update": "existing",
+        "sys.platform_config.update": "existing"
       }
     },
     {

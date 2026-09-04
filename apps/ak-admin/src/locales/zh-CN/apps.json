@@ -298,5 +298,17 @@
   "apps.public_web.preview_frame": "{name} 的手机预览",
   "apps.public_web.preview_loading": "正在加载公开页面…",
   "apps.public_web.preview_timeout": "无法确认页面已加载，请重试或独立打开。",
-  "apps.client_config.tabs.login_providers": "第三方登录"
+  "apps.client_config.tabs.login_providers": "登录配置",
+  "apps.client_config.login.title": "登录方式",
+  "apps.client_config.login.description": "密码登录始终可用；验证码开关同时控制登录、注册和找回密码。第三方入口由下方平台配置控制。",
+  "apps.client_config.login.methods_title": "基础登录方式",
+  "apps.client_config.login.password": "用户密码登录",
+  "apps.client_config.login.password_help": "默认开启，无法关闭。",
+  "apps.client_config.login.otp": "验证码登录",
+  "apps.client_config.login.email_otp": "邮件验证码",
+  "apps.client_config.login.sms_otp": "短信验证码",
+  "apps.client_config.login.channel_required": "启用验证码登录时，请至少开启邮件或短信验证码。",
+  "apps.client_config.login.saved": "登录配置已保存。",
+  "apps.client_config.login.load_error": "无法加载登录配置。",
+  "apps.client_config.login.save_error": "登录配置保存失败，请刷新后重试。"
 }

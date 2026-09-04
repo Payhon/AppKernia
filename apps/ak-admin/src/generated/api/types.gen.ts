@@ -169,7 +169,8 @@ export type AppPublicConfigResponse = {
             providers: Array<PublicShareProvider>;
         };
         push: PublicPushRuntime;
-        scanner?: PublicScannerConfig;
+        scanner: PublicScannerConfig;
+        login_methods: PublicLoginMethods;
     };
     request_id: string;
 };
@@ -197,6 +198,20 @@ export type PublicScannerConfig = {
 export type PublicScannerWebViewConfig = {
     enabled: boolean;
     allowed_host_patterns: Array<string>;
+};
+
+export type PublicLoginMethods = {
+    password: {
+        enabled: true;
+    };
+    otp: {
+        enabled: boolean;
+        email_enabled: boolean;
+        sms_enabled: boolean;
+    };
+    oauth: {
+        enabled: boolean;
+    };
 };
 
 export type AdminPushProviderCatalogItem = {
@@ -670,15 +685,58 @@ export type MobileOtpLoginRequest = {
     verification_code: string;
 };
 
+export type AppIdentifierRequest = {
+    identifier_type: LoginIdentifierType;
+    identifier: string;
+};
+
+export type AppOtpRegistrationRequest = {
+    identifier_type: LoginIdentifierType;
+    identifier: string;
+    challenge_id: string;
+    verification_code: string;
+    display_name: string;
+    locale: SupportedLocale;
+    accept_terms: true;
+};
+
+export type AppPasswordForgotRequest = AppIdentifierRequest & {
+    /**
+     * @deprecated
+     */
+    email?: string;
+};
+
+export type MobilePasswordResetRequest = {
+    identifier_type: LoginIdentifierType;
+    identifier: string;
+    challenge_id: string;
+    verification_code: string;
+    new_password: string;
+    /**
+     * @deprecated
+     */
+    email?: string;
+    /**
+     * @deprecated
+     */
+    code?: string;
+};
+
+export type MobileSetPasswordRequest = {
+    new_password: string;
+    step_up_token: string;
+};
+
 export type MobileStepUpCodeRequest = {
     identifier_id: string;
-    purpose: 'oauth_bind' | 'oauth_unbind' | 'identifier_change' | 'identifier_unbind' | 'account_delete';
+    purpose: 'oauth_bind' | 'oauth_unbind' | 'identifier_change' | 'identifier_unbind' | 'account_delete' | 'password_bind';
     resource: string;
 };
 
 export type MobileStepUpRequest = {
     method: 'password' | 'email_otp' | 'mobile_otp';
-    purpose: 'oauth_bind' | 'oauth_unbind' | 'identifier_change' | 'identifier_unbind' | 'account_delete';
+    purpose: 'oauth_bind' | 'oauth_unbind' | 'identifier_change' | 'identifier_unbind' | 'account_delete' | 'password_bind';
     resource: string;
     password?: string;
     identifier_id?: string;
@@ -824,9 +882,7 @@ export type AppEmailOtpRequest = AppEmailRequest & {
     code: string;
 };
 
-export type AppPasswordResetRequest = AppEmailOtpRequest & {
-    new_password: string;
-};
+export type AppPasswordResetRequest = MobilePasswordResetRequest;
 
 export type AppAcceptedResponse = {
     code: string;
@@ -1042,6 +1098,31 @@ export type AdminAppScannerConfigResponse = {
     code: string;
     message: string;
     data: AdminAppScannerConfig;
+    request_id: string;
+};
+
+export type AdminAppLoginSettings = {
+    app_id: string;
+    password_enabled: true;
+    otp_enabled: boolean;
+    email_otp_enabled: boolean;
+    sms_otp_enabled: boolean;
+    readonly oauth_enabled: boolean;
+    lock_version: number;
+    updated_at: string;
+};
+
+export type AdminAppLoginSettingsRequest = {
+    otp_enabled: boolean;
+    email_otp_enabled: boolean;
+    sms_otp_enabled: boolean;
+    lock_version: number;
+};
+
+export type AdminAppLoginSettingsResponse = {
+    code: string;
+    message: string;
+    data: AdminAppLoginSettings;
     request_id: string;
 };
 
@@ -1860,11 +1941,57 @@ export type AdminLoginRequest = {
     /**
      * Required only after the server returns IAM.AUTH.CAPTCHA_REQUIRED.
      */
-    captcha_id?: string;
-    /**
-     * Required only after the server returns IAM.AUTH.CAPTCHA_REQUIRED.
-     */
-    captcha_answer?: string;
+    captcha?: AdminLoginCaptchaSubmission;
+};
+
+export type AdminLoginCaptchaType = 'click' | 'slide' | 'drag' | 'rotate';
+
+export type AdminLoginCaptchaPoint = {
+    x: number;
+    y: number;
+};
+
+export type AdminLoginCaptchaImage = {
+    base64: string;
+    mime_type: 'image/jpeg' | 'image/png';
+    width: number;
+    height: number;
+};
+
+export type AdminLoginCaptchaClickAnswer = {
+    type: 'click';
+    points: Array<AdminLoginCaptchaPoint>;
+};
+
+export type AdminLoginCaptchaSlideAnswer = {
+    type: 'slide';
+    point: AdminLoginCaptchaPoint;
+};
+
+export type AdminLoginCaptchaDragAnswer = {
+    type: 'drag';
+    point: AdminLoginCaptchaPoint;
+};
+
+export type AdminLoginCaptchaRotateAnswer = {
+    type: 'rotate';
+    angle: number;
+};
+
+export type AdminLoginCaptchaAnswer = ({
+    type: 'click';
+} & AdminLoginCaptchaClickAnswer) | ({
+    type: 'slide';
+} & AdminLoginCaptchaSlideAnswer) | ({
+    type: 'drag';
+} & AdminLoginCaptchaDragAnswer) | ({
+    type: 'rotate';
+} & AdminLoginCaptchaRotateAnswer);
+
+export type AdminLoginCaptchaSubmission = {
+    id: string;
+    token: string;
+    response: AdminLoginCaptchaAnswer;
 };
 
 export type AdminLoginCaptchaRequest = {
@@ -1874,16 +2001,47 @@ export type AdminLoginCaptchaRequest = {
 export type AdminLoginCaptchaResponse = {
     code: 'OK';
     message: string;
-    data: {
-        captcha_id: string;
-        /**
-         * Base64-encoded PNG bytes. The answer is never returned as text or vector content.
-         */
-        image_base64: string;
-        mime_type: 'image/png';
-        expires_in_seconds: number;
-    };
+    data: ({
+        type: 'click';
+    } & AdminLoginClickCaptchaChallenge) | ({
+        type: 'slide';
+    } & AdminLoginSlideCaptchaChallenge) | ({
+        type: 'drag';
+    } & AdminLoginDragCaptchaChallenge) | ({
+        type: 'rotate';
+    } & AdminLoginRotateCaptchaChallenge);
     request_id: string;
+};
+
+export type AdminLoginCaptchaChallengeBase = {
+    captcha_id: string;
+    captcha_token: string;
+    type: AdminLoginCaptchaType;
+    expires_in_seconds: number;
+    image: AdminLoginCaptchaImage;
+};
+
+export type AdminLoginClickCaptchaChallenge = AdminLoginCaptchaChallengeBase & {
+    type: 'click';
+    prompt_image: AdminLoginCaptchaImage;
+    required_points: number;
+};
+
+export type AdminLoginSlideCaptchaChallenge = AdminLoginCaptchaChallengeBase & {
+    type: 'slide';
+    tile_image: AdminLoginCaptchaImage;
+    initial_point: AdminLoginCaptchaPoint;
+};
+
+export type AdminLoginDragCaptchaChallenge = AdminLoginCaptchaChallengeBase & {
+    type: 'drag';
+    tile_image: AdminLoginCaptchaImage;
+    initial_point: AdminLoginCaptchaPoint;
+};
+
+export type AdminLoginRotateCaptchaChallenge = AdminLoginCaptchaChallengeBase & {
+    type: 'rotate';
+    thumb_image: AdminLoginCaptchaImage;
 };
 
 export type AdminRegistrationRequest = {
@@ -4972,6 +5130,23 @@ export type LoginProviderSecretRequestWritable = {
     lock_version: number;
 };
 
+export type AdminAppLoginSettingsWritable = {
+    app_id: string;
+    password_enabled: true;
+    otp_enabled: boolean;
+    email_otp_enabled: boolean;
+    sms_otp_enabled: boolean;
+    lock_version: number;
+    updated_at: string;
+};
+
+export type AdminAppLoginSettingsResponseWritable = {
+    code: string;
+    message: string;
+    data: AdminAppLoginSettingsWritable;
+    request_id: string;
+};
+
 export type AdminUserCreateRequestWritable = {
     email: string;
     display_name: string;
@@ -6696,6 +6871,89 @@ export type RegisterAppUserResponses = {
 
 export type RegisterAppUserResponse = RegisterAppUserResponses[keyof RegisterAppUserResponses];
 
+export type SendAppOtpRegistrationCodeData = {
+    body: AppIdentifierRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/registration/send-code';
+};
+
+export type SendAppOtpRegistrationCodeErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type SendAppOtpRegistrationCodeError = SendAppOtpRegistrationCodeErrors[keyof SendAppOtpRegistrationCodeErrors];
+
+export type SendAppOtpRegistrationCodeResponses = {
+    /**
+     * Registration challenge accepted.
+     */
+    202: OtpChallengeResponse;
+};
+
+export type SendAppOtpRegistrationCodeResponse = SendAppOtpRegistrationCodeResponses[keyof SendAppOtpRegistrationCodeResponses];
+
+export type RegisterAppUserWithOtpData = {
+    body: AppOtpRegistrationRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/register/otp';
+};
+
+export type RegisterAppUserWithOtpErrors = {
+    /**
+     * ACCOUNT_ALREADY_EXISTS.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type RegisterAppUserWithOtpError = RegisterAppUserWithOtpErrors[keyof RegisterAppUserWithOtpErrors];
+
+export type RegisterAppUserWithOtpResponses = {
+    /**
+     * Account, App membership and mobile session created atomically.
+     */
+    200: MobileTokenResponse;
+};
+
+export type RegisterAppUserWithOtpResponse = RegisterAppUserWithOtpResponses[keyof RegisterAppUserWithOtpResponses];
+
 export type VerifyAppRegistrationEmailData = {
     body: AppEmailOtpRequest;
     headers: {
@@ -6759,7 +7017,7 @@ export type ResendAppRegistrationEmailResponses = {
 export type ResendAppRegistrationEmailResponse = ResendAppRegistrationEmailResponses[keyof ResendAppRegistrationEmailResponses];
 
 export type ForgotAppPasswordData = {
-    body: AppEmailRequest;
+    body: AppPasswordForgotRequest;
     headers: {
         /**
          * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
@@ -6776,21 +7034,25 @@ export type ForgotAppPasswordErrors = {
      * Request validation failed.
      */
     422: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
 };
 
 export type ForgotAppPasswordError = ForgotAppPasswordErrors[keyof ForgotAppPasswordErrors];
 
 export type ForgotAppPasswordResponses = {
     /**
-     * Generic accepted response to prevent account enumeration.
+     * Generic challenge response to prevent account enumeration.
      */
-    202: AppAcceptedResponse;
+    202: OtpChallengeResponse;
 };
 
 export type ForgotAppPasswordResponse = ForgotAppPasswordResponses[keyof ForgotAppPasswordResponses];
 
 export type ResetAppPasswordData = {
-    body: AppPasswordResetRequest;
+    body: MobilePasswordResetRequest;
     headers: {
         /**
          * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
@@ -7119,6 +7381,49 @@ export type ChallengeMobileLoginIdentifierResponses = {
 };
 
 export type ChallengeMobileLoginIdentifierResponse = ChallengeMobileLoginIdentifierResponses[keyof ChallengeMobileLoginIdentifierResponses];
+
+export type SetMobilePasswordData = {
+    body: MobileSetPasswordRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/me/password';
+};
+
+export type SetMobilePasswordErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type SetMobilePasswordError = SetMobilePasswordErrors[keyof SetMobilePasswordErrors];
+
+export type SetMobilePasswordResponses = {
+    /**
+     * Password created.
+     */
+    200: BooleanSuccessResponse;
+};
+
+export type SetMobilePasswordResponse = SetMobilePasswordResponses[keyof SetMobilePasswordResponses];
 
 export type DeleteMobileLoginIdentifierData = {
     body: StepUpTokenRequest;
@@ -8808,6 +9113,76 @@ export type ReplaceAdminAppLoginProviderBindingsResponses = {
 };
 
 export type ReplaceAdminAppLoginProviderBindingsResponse = ReplaceAdminAppLoginProviderBindingsResponses[keyof ReplaceAdminAppLoginProviderBindingsResponses];
+
+export type GetAdminAppLoginSettingsData = {
+    body?: never;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/login-settings';
+};
+
+export type GetAdminAppLoginSettingsErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+};
+
+export type GetAdminAppLoginSettingsError = GetAdminAppLoginSettingsErrors[keyof GetAdminAppLoginSettingsErrors];
+
+export type GetAdminAppLoginSettingsResponses = {
+    /**
+     * Login settings; password is always enabled.
+     */
+    200: AdminAppLoginSettingsResponse;
+};
+
+export type GetAdminAppLoginSettingsResponse = GetAdminAppLoginSettingsResponses[keyof GetAdminAppLoginSettingsResponses];
+
+export type UpdateAdminAppLoginSettingsData = {
+    body: AdminAppLoginSettingsRequest;
+    path: {
+        app_id: string;
+    };
+    query?: never;
+    url: '/admin-api/v1/apps/{app_id}/login-settings';
+};
+
+export type UpdateAdminAppLoginSettingsErrors = {
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * The requested resource is outside the authenticated self scope, missing or already revoked.
+     */
+    404: ErrorResponse;
+    /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+};
+
+export type UpdateAdminAppLoginSettingsError = UpdateAdminAppLoginSettingsErrors[keyof UpdateAdminAppLoginSettingsErrors];
+
+export type UpdateAdminAppLoginSettingsResponses = {
+    /**
+     * Saved login settings.
+     */
+    200: AdminAppLoginSettingsResponse;
+};
+
+export type UpdateAdminAppLoginSettingsResponse = UpdateAdminAppLoginSettingsResponses[keyof UpdateAdminAppLoginSettingsResponses];
 
 export type ListAdminAppsData = {
     body?: never;
@@ -11900,16 +12275,24 @@ export type CreateAdminLoginCaptchaData = {
 
 export type CreateAdminLoginCaptchaErrors = {
     /**
+     * The resource changed or cannot transition in its current state.
+     */
+    409: ErrorResponse;
+    /**
      * Request validation failed.
      */
     422: ErrorResponse;
+    /**
+     * CAPTCHA challenges were refreshed too quickly.
+     */
+    429: ErrorResponse;
 };
 
 export type CreateAdminLoginCaptchaError = CreateAdminLoginCaptchaErrors[keyof CreateAdminLoginCaptchaErrors];
 
 export type CreateAdminLoginCaptchaResponses = {
     /**
-     * A non-cacheable, short-lived, single-use PNG challenge.
+     * A non-cacheable, short-lived, single-use interactive challenge.
      */
     200: AdminLoginCaptchaResponse;
 };

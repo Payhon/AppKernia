@@ -1,7 +1,7 @@
 import { AkError } from '../../core/errors/ak-error.uts'
 import { akI18n } from '../../core/i18n/ak-i18n.uts'
 import { AkHttpPort, HttpCancellation, HttpRequest } from '../../core/network/http-port.uts'
-import { PublicConfigWire, PublicPushRuntimeWire, PublicScannerRuntimeWire, PublicScannerWebViewWire, PublicShareProviderWire, PublicShareRuntimeWire, PublicStartupSlideWire } from '../../generated/api/mobile-public-config.uts'
+import { PublicConfigWire, PublicLoginMethodsWire, PublicPushRuntimeWire, PublicScannerRuntimeWire, PublicScannerWebViewWire, PublicShareProviderWire, PublicShareRuntimeWire, PublicStartupSlideWire } from '../../generated/api/mobile-public-config.uts'
 
 export type AppPublicConfig = {
   readonly appId: string
@@ -18,6 +18,10 @@ export type AppPublicConfig = {
   readonly pushBuildVariants: Array<string>
   readonly scannerWebViewEnabled: boolean
   readonly scannerAllowedHostPatterns: Array<string>
+  readonly otpEnabled: boolean
+  readonly emailOTPEnabled: boolean
+  readonly smsOTPEnabled: boolean
+  readonly oauthEnabled: boolean
 }
 
 export type AppPublicShareProvider = {
@@ -93,7 +97,8 @@ class HttpPublicConfigRepository {
           }
         }
       }
-      ok({ appId: response.data.app_id, appid: response.data.appid, appType: response.data.app_type, name: response.data.name, defaultLocale: response.data.default_locale, registrationEnabled: response.data.registration_enabled, registrationVerificationMode: response.data.registration_verification_mode, shareProviders: shareProviders, pushEnabled: pushEnabled, pushProviders: pushProviders, pushBuildVariants: pushBuildVariants, scannerWebViewEnabled: scannerWebViewEnabled, scannerAllowedHostPatterns: scannerAllowedHostPatterns, startup: { displayName: response.data.startup.display_name, subtitle: response.data.startup.subtitle, iconUrl: this.assetURL(response.data.startup.icon_url), onboardingEnabled: response.data.startup.onboarding_enabled, publishedVersion: response.data.startup.published_version, slides: slides } })
+      const loginMethods = response.data.login_methods as PublicLoginMethodsWire
+      ok({ appId: response.data.app_id, appid: response.data.appid, appType: response.data.app_type, name: response.data.name, defaultLocale: response.data.default_locale, registrationEnabled: response.data.registration_enabled, registrationVerificationMode: response.data.registration_verification_mode, shareProviders: shareProviders, pushEnabled: pushEnabled, pushProviders: pushProviders, pushBuildVariants: pushBuildVariants, scannerWebViewEnabled: scannerWebViewEnabled, scannerAllowedHostPatterns: scannerAllowedHostPatterns, otpEnabled: loginMethods.otp.enabled, emailOTPEnabled: loginMethods.otp.email_enabled, smsOTPEnabled: loginMethods.otp.sms_enabled, oauthEnabled: loginMethods.oauth.enabled, startup: { displayName: response.data.startup.display_name, subtitle: response.data.startup.subtitle, iconUrl: this.assetURL(response.data.startup.icon_url), onboardingEnabled: response.data.startup.onboarding_enabled, publishedVersion: response.data.startup.published_version, slides: slides } })
     }, fail)
   }
 }
@@ -113,6 +118,10 @@ export class AppPublicConfigRuntime {
   }
   get(): AppPublicConfig | null { return this.current }
   registrationEnabled(): boolean { return this.current != null && this.current.registrationEnabled }
+  otpEnabled(): boolean { return this.current != null && this.current.otpEnabled }
+  emailOTPEnabled(): boolean { return this.current != null && this.current.otpEnabled && this.current.emailOTPEnabled }
+  smsOTPEnabled(): boolean { return this.current != null && this.current.otpEnabled && this.current.smsOTPEnabled }
+  oauthEnabled(): boolean { return this.current != null && this.current.oauthEnabled }
   pushEnabled(provider: string, buildVariant: string): boolean { return this.current != null && this.current.pushEnabled && this.current.pushProviders.indexOf(provider) >= 0 && this.current.pushBuildVariants.indexOf(buildVariant) >= 0 }
   shareEnabled(providerCode: string, scene: string): boolean {
     if (this.current == null) return false

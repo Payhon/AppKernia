@@ -1,25 +1,31 @@
-import { ReloadOutlined } from '@ant-design/icons'
-import { Button, Form, Input, Space, Tooltip, Typography } from 'antd'
+import { Button, Form, Input, Space, Typography } from 'antd'
 import { useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { lazy, Suspense, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 
 import { isSafeInternalRedirect } from '../app/route-registry'
 import { AuthFrame } from '../components/AuthFrame'
+import type {
+  AkInteractiveCaptchaHandle,
+  AkInteractiveCaptchaResponse,
+} from '../components/AkInteractiveCaptcha'
 import { authSession, useAuthStore } from '../features/auth/store'
+import type { AdminLoginCaptchaResponse } from '../generated/api/types.gen'
 import { ApiError } from '../shared/api/error'
 import { useLocale } from '../shared/i18n'
 
-interface LoginValues { email: string; password: string; captcha_answer: string }
+const loadInteractiveCaptcha = () => import('../components/AkInteractiveCaptcha')
+const AkInteractiveCaptcha = lazy(async () =>
+  loadInteractiveCaptcha().then((module) => ({
+    default: module.AkInteractiveCaptcha,
+  })),
+)
 
-interface LoginCaptchaChallenge {
-  captcha_id: string
-  image_base64: string
-  mime_type: string
-}
+interface LoginValues { email: string; password: string }
+type LoginCaptchaChallenge = AdminLoginCaptchaResponse['data']
 
 const loginSchema = z.object({
   email: z.email(),
@@ -36,8 +42,11 @@ export function LoginPage() {
   const [captchaRequired, setCaptchaRequired] = useState(false)
   const [captchaLoading, setCaptchaLoading] = useState(false)
   const [captcha, setCaptcha] = useState<LoginCaptchaChallenge | null>(null)
-  const { clearErrors, control, getValues, handleSubmit, resetField, setError, setFocus } = useForm<LoginValues>({
-    defaultValues: { email: '', password: '', captcha_answer: '' },
+  const [captchaResponse, setCaptchaResponse] = useState<AkInteractiveCaptchaResponse | null>(null)
+  const [captchaErrorKey, setCaptchaErrorKey] = useState<string | null>(null)
+  const captchaRef = useRef<AkInteractiveCaptchaHandle>(null)
+  const { control, getValues, handleSubmit, setError } = useForm<LoginValues>({
+    defaultValues: { email: '', password: '' },
   })
   const publicConfig = useQuery({
     queryKey: ['auth', 'public-config', locale],
@@ -49,15 +58,24 @@ export function LoginPage() {
   const loadCaptcha = async (email: string, fieldErrorKey?: string) => {
     setCaptchaLoading(true)
     setCaptcha(null)
-    resetField('captcha_answer')
-    clearErrors('captcha_answer')
+    setCaptchaResponse(null)
+    setCaptchaErrorKey(null)
+    const componentRequest = loadInteractiveCaptcha()
     try {
-      const next = await authSession.createLoginCaptcha({ email })
+      const [next] = await Promise.all([
+        authSession.createLoginCaptcha({ email }),
+        componentRequest,
+      ])
       setCaptcha(next)
-      if (fieldErrorKey) setError('captcha_answer', { message: fieldErrorKey })
-      window.requestAnimationFrame(() => { setFocus('captcha_answer') })
+      if (fieldErrorKey) setCaptchaErrorKey(fieldErrorKey)
     } catch {
-      setSubmitErrorKey('auth.login.captcha.error.load')
+      const componentLoaded = await componentRequest.then(
+        () => true,
+        () => false,
+      )
+      setCaptchaErrorKey(componentLoaded
+        ? 'auth.login.captcha.error.load'
+        : 'auth.login.error.service')
     } finally {
       setCaptchaLoading(false)
     }
@@ -73,12 +91,12 @@ export function LoginPage() {
       }
       return
     }
-    if (captchaRequired && (!captcha || !/^[2-9]{6}$/.test(values.captcha_answer))) {
+    if (captchaRequired && (!captcha || !captchaResponse)) {
       if (!captcha) {
         await loadCaptcha(parsed.data.email)
       } else {
-        setError('captcha_answer', { message: 'auth.login.captcha.error.invalid' })
-        setFocus('captcha_answer')
+        setCaptchaErrorKey('auth.login.captcha.error.required')
+        captchaRef.current?.focus()
       }
       return
     }
@@ -86,7 +104,13 @@ export function LoginPage() {
       const context = await login({
         email: parsed.data.email,
         password: parsed.data.password,
-        ...(captcha ? { captcha_id: captcha.captcha_id, captcha_answer: values.captcha_answer } : {}),
+        ...(captcha && captchaResponse ? {
+          captcha: {
+            id: captcha.captcha_id,
+            response: captchaResponse,
+            token: captcha.captcha_token,
+          },
+        } : {}),
       })
       await setLocale(context.user.locale)
       const redirect = new URLSearchParams(window.location.search).get('redirect')
@@ -120,7 +144,9 @@ export function LoginPage() {
                   field.onChange(event)
                   if (captchaRequired) {
                     setCaptcha(null)
-                    resetField('captcha_answer')
+                    setCaptchaResponse(null)
+                    setCaptchaErrorKey(null)
+                    setCaptchaRequired(false)
                   }
                 }} />
               </Form.Item>
@@ -131,42 +157,34 @@ export function LoginPage() {
               </Form.Item>
             )} />
             {captchaRequired ? (
-              <Controller control={control} name="captcha_answer" render={({ field, fieldState }) => (
-                <Form.Item
-                  htmlFor="login-captcha"
-                  label={t('auth.login.captcha.label')}
-                  extra={t('auth.login.captcha.description')}
-                  {...(fieldState.error ? { help: <span role="alert">{t(fieldState.error.message ?? 'auth.login.captcha.error.invalid')}</span>, validateStatus: 'error' as const } : {})}
-                >
-                  <div className="ak-login-captcha">
-                    <Input
-                      {...field}
-                      aria-describedby="login-captcha-status"
-                      autoComplete="one-time-code"
-                      disabled={captchaLoading}
-                      id="login-captcha"
-                      inputMode="numeric"
-                      maxLength={6}
-                      placeholder={t('auth.login.captcha.placeholder')}
-                      size="large"
+              <Form.Item>
+                {captcha ? (
+                  <Suspense fallback={<div className="ak-captcha-loading" role="status">{t('common.states.loading')}</div>}>
+                    <AkInteractiveCaptcha
+                      autoFocus
+                      challenge={captcha}
+                      disabled={captchaLoading || status === 'authenticating'}
+                      error={captchaErrorKey ? t(captchaErrorKey) : undefined}
+                      ref={captchaRef}
+                      value={captchaResponse}
+                      onChange={(response) => {
+                        setCaptchaResponse(response)
+                        if (response) setCaptchaErrorKey(null)
+                      }}
+                      onRefresh={() => { void loadCaptcha(getValues('email')) }}
                     />
-                    <div className="ak-login-captcha-image" aria-live="polite" id="login-captcha-status">
-                      {captcha ? <img alt={t('auth.login.captcha.alt')} height="56" src={`data:${captcha.mime_type};base64,${captcha.image_base64}`} width="176" /> : <span role="status">{t('auth.login.captcha.loading')}</span>}
-                    </div>
-                    <Tooltip title={t('auth.login.captcha.refresh')}>
-                      <Button
-                        aria-label={t('auth.login.captcha.refresh')}
-                        disabled={captchaLoading}
-                        icon={<ReloadOutlined />}
-                        loading={captchaLoading}
-                        onClick={() => { void loadCaptcha(getValues('email')) }}
-                        size="large"
-                        type="default"
-                      />
-                    </Tooltip>
+                  </Suspense>
+                ) : captchaLoading ? (
+                  <div className="ak-captcha-loading" role="status">{t('common.states.loading')}</div>
+                ) : captchaErrorKey ? (
+                  <div className="ak-captcha-load-error">
+                    <div role="alert">{t(captchaErrorKey)}</div>
+                    <Button onClick={() => { void loadCaptcha(getValues('email')) }}>
+                      {t('common.actions.retry')}
+                    </Button>
                   </div>
-                </Form.Item>
-              )} />
+                ) : null}
+              </Form.Item>
             ) : null}
             {publicConfig.data?.feature_flags['password_recovery'] === true
               ? <a className="ak-forgot-link" href="/forgot-password">{t('auth.login.forgot')}</a>

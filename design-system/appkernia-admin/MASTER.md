@@ -26,6 +26,7 @@
 - 表头使用 `#F7F7F7`、12px 技术标签；行 hover 使用 `#FAFAFA`，窄屏受控横向滚动。
 - 表单控件最小 40px，必须有可访问名称、明显 focus ring、字段级错误与提交反馈。
 - Drawer/Modal/Popover 使用白色 elevated surface、hairline 和 Level-5 式层叠阴影；Modal 仅用于确认或短表单。
+- 安全交互不能只依赖拖拽；验证码等 Pointer 操作必须提供等价键盘控件、状态播报与焦点恢复。
 - Loading、Empty、Error、Forbidden、Offline/Stale、409 conflict 状态遵循同一 surface 与文本层级。
 
 ## Layout and behavior

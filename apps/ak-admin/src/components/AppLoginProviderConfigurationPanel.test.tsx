@@ -5,6 +5,8 @@ import { I18nextProvider } from "react-i18next";
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../features/login-providers/hooks", () => ({
+  useAppLoginSettings: vi.fn(),
+  useAppLoginSettingsMutation: vi.fn(),
   useAppLoginProviderBindingMutation: vi.fn(),
   useAppLoginProviderBindings: vi.fn(),
   useLoginProviderCatalog: vi.fn(),
@@ -12,6 +14,8 @@ vi.mock("../features/login-providers/hooks", () => ({
 }));
 
 import {
+  useAppLoginSettings,
+  useAppLoginSettingsMutation,
   useAppLoginProviderBindingMutation,
   useAppLoginProviderBindings,
   useLoginProviderCatalog,
@@ -65,6 +69,7 @@ const bindings: AppLoginProviderBinding[] = loginProviderCodes.map((providerCode
 }));
 
 const mutation = { isPending: false, mutateAsync: vi.fn() };
+const settingsMutation = { isPending: false, mutateAsync: vi.fn() };
 const bindingRefetch = vi.fn();
 
 beforeAll(() => {
@@ -93,7 +98,10 @@ beforeAll(() => {
 beforeEach(async () => {
   await i18n.changeLanguage("zh-CN");
   mutation.mutateAsync.mockReset();
+  settingsMutation.mutateAsync.mockReset();
   bindingRefetch.mockReset();
+  vi.mocked(useAppLoginSettings).mockReturnValue({ data: { password_enabled: true, otp_enabled: false, email_otp_enabled: true, sms_otp_enabled: false, lock_version: 1, updated_at: null }, isPending: false, isError: false, refetch: vi.fn() } as never);
+  vi.mocked(useAppLoginSettingsMutation).mockReturnValue(settingsMutation as never);
   vi.mocked(useLoginProviderCatalog).mockReturnValue({ data: catalog, isPending: false, isError: false, refetch: vi.fn() } as never);
   vi.mocked(useLoginProviderConfigs).mockReturnValue({ data: { items: [], page: 1, page_size: 100, total: 0 }, isPending: false, isError: false, refetch: vi.fn() } as never);
   vi.mocked(useAppLoginProviderBindings).mockReturnValue({ data: bindings, isPending: false, isError: false, refetch: bindingRefetch } as never);
@@ -103,6 +111,16 @@ beforeEach(async () => {
 afterEach(() => { cleanup(); vi.clearAllMocks(); });
 
 describe("AppLoginProviderConfigurationPanel", () => {
+  it("keeps password enabled and saves OTP channels independently", async () => {
+    settingsMutation.mutateAsync.mockResolvedValue({ password_enabled: true, otp_enabled: true, email_otp_enabled: true, sms_otp_enabled: true, lock_version: 2, updated_at: null });
+    render(<I18nextProvider i18n={i18n}><AppLoginProviderConfigurationPanel appId={appId} canOpenConfigurationPage={false} canUpdate canReadLoginSettings canReadProviders={false} onDirtyChange={vi.fn()} /></I18nextProvider>);
+    expect(screen.getByRole("switch", { name: "用户密码登录" }).hasAttribute("disabled")).toBe(true);
+    fireEvent.click(screen.getByRole("switch", { name: "验证码登录" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "短信验证码" }));
+    fireEvent.click(screen.getByRole("button", { name: /保\s*存/ }));
+    await waitFor(() => { expect(settingsMutation.mutateAsync).toHaveBeenCalledWith({ otp_enabled: true, email_otp_enabled: true, sms_otp_enabled: true, lock_version: 1 }); });
+  });
+
   it("lets an unavailable current binding be disabled and then cleared", async () => {
     const onDirtyChange = vi.fn();
     const { container } = render(<I18nextProvider i18n={i18n}><AppLoginProviderConfigurationPanel appId={appId} canOpenConfigurationPage canUpdate onDirtyChange={onDirtyChange} /></I18nextProvider>);

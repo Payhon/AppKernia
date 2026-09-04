@@ -298,5 +298,17 @@
   "apps.public_web.preview_frame": "Mobile preview of {name}",
   "apps.public_web.preview_loading": "Loading public page…",
   "apps.public_web.preview_timeout": "Unable to confirm page loading. Retry or open it separately.",
-  "apps.client_config.tabs.login_providers": "Third-party sign-in"
+  "apps.client_config.tabs.login_providers": "Sign-in",
+  "apps.client_config.login.title": "Sign-in methods",
+  "apps.client_config.login.description": "Password sign-in is always available. OTP settings apply to sign-in, registration, and password recovery. Provider access is configured below.",
+  "apps.client_config.login.methods_title": "Basic sign-in methods",
+  "apps.client_config.login.password": "Password sign-in",
+  "apps.client_config.login.password_help": "Enabled by default and cannot be turned off.",
+  "apps.client_config.login.otp": "Verification code sign-in",
+  "apps.client_config.login.email_otp": "Email code",
+  "apps.client_config.login.sms_otp": "SMS code",
+  "apps.client_config.login.channel_required": "Enable at least email or SMS when verification code sign-in is on.",
+  "apps.client_config.login.saved": "Sign-in configuration saved.",
+  "apps.client_config.login.load_error": "Sign-in configuration could not be loaded.",
+  "apps.client_config.login.save_error": "Sign-in configuration could not be saved. Refresh and try again."
 }

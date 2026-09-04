@@ -92,16 +92,12 @@ WHERE app_id=$1 AND identifier_type='email' AND normalized_value=$2`, appID, ema
 	}
 	n.err = errors.New("queue failed")
 	failedEmail := "rollback-" + suffix + "@example.test"
-	var usersBefore int
-	if err = pool.QueryRow(ctx, `SELECT count(*) FROM iam.users`).Scan(&usersBefore); err != nil {
-		t.Fatal(err)
-	}
 	if err = service.RegisterMobile(ctx, app, failedEmail, "Rollback User", "otp integration password 2026!", "en-US"); err == nil {
 		t.Fatal("notifier failure must fail registration")
 	}
 	var usersAfter, identifiers int
-	if err = pool.QueryRow(ctx, `SELECT count(*) FROM iam.users`).Scan(&usersAfter); err != nil || usersAfter != usersBefore {
-		t.Fatalf("notifier failure changed user count before=%d after=%d err=%v", usersBefore, usersAfter, err)
+	if err = pool.QueryRow(ctx, `SELECT count(*) FROM iam.users WHERE email=$1`, failedEmail).Scan(&usersAfter); err != nil || usersAfter != 0 {
+		t.Fatalf("notifier failure leaked user count=%d err=%v", usersAfter, err)
 	}
 	if err = pool.QueryRow(ctx, `SELECT count(*) FROM app.user_login_identifiers WHERE app_id=$1 AND identifier_type='email' AND normalized_value=$2`, appID, failedEmail).Scan(&identifiers); err != nil || identifiers != 0 {
 		t.Fatalf("notifier failure leaked identifier count=%d err=%v", identifiers, err)

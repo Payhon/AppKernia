@@ -4,12 +4,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import {
+  useAppLoginSettings,
+  useAppLoginSettingsMutation,
   useAppLoginProviderBindingMutation,
   useAppLoginProviderBindings,
   useLoginProviderCatalog,
   useLoginProviderConfigs,
 } from "../features/login-providers/hooks";
 import {
+  appLoginSettingsInputSchema,
   appLoginProviderBindingsWriteSchema,
   catalogMatchesDefinition,
   loginProviderCodes,
@@ -24,7 +27,17 @@ interface Props {
   appId: string;
   canOpenConfigurationPage: boolean;
   canUpdate: boolean;
+  canReadLoginSettings?: boolean;
+  canReadProviders?: boolean;
+  canUpdateProviders?: boolean;
   onDirtyChange: (dirty: boolean) => void;
+}
+
+interface LoginSettingsFormValues {
+  otp_enabled: boolean;
+  email_otp_enabled: boolean;
+  sms_otp_enabled: boolean;
+  lock_version: number;
 }
 
 export interface BindingFormValues {
@@ -70,20 +83,26 @@ export function mergeLoginProviderBindingConflictValues(
   };
 }
 
-export function AppLoginProviderConfigurationPanel({ appId, canOpenConfigurationPage, canUpdate, onDirtyChange }: Props) {
+export function AppLoginProviderConfigurationPanel({ appId, canOpenConfigurationPage, canUpdate, canReadLoginSettings = false, canReadProviders = true, canUpdateProviders = canUpdate, onDirtyChange }: Props) {
   const { t } = useTranslation();
   const [messageApi, holder] = message.useMessage();
   const [conflict, setConflict] = useState(false);
   const [conflictRefreshing, setConflictRefreshing] = useState(false);
   const lastAppliedAppId = useRef<string | null>(null);
-  const catalog = useLoginProviderCatalog();
-  const configs = useLoginProviderConfigs({ q: "", status: "active", page: 1, page_size: 100 });
-  const bindings = useAppLoginProviderBindings(appId);
+  const catalog = useLoginProviderCatalog(canReadProviders);
+  const configs = useLoginProviderConfigs({ q: "", status: "active", page: 1, page_size: 100 }, canReadProviders);
+  const bindings = useAppLoginProviderBindings(appId, canReadProviders);
   const mutation = useAppLoginProviderBindingMutation(appId);
+  const settings = useAppLoginSettings(appId, canReadLoginSettings);
+  const settingsMutation = useAppLoginSettingsMutation(appId);
   const form = useForm<BindingFormValues>({ defaultValues: loginProviderBindingFormValues([]) });
+  const settingsForm = useForm<LoginSettingsFormValues>({ defaultValues: { otp_enabled: false, email_otp_enabled: true, sms_otp_enabled: false, lock_version: 0 } });
   const dirty = form.formState.isDirty;
 
-  useEffect(() => { onDirtyChange(dirty); }, [dirty, onDirtyChange]);
+  useEffect(() => { onDirtyChange(dirty || settingsForm.formState.isDirty); }, [dirty, onDirtyChange, settingsForm.formState.isDirty]);
+  useEffect(() => {
+    if (settings.data && !settingsForm.formState.isDirty) settingsForm.reset(settings.data);
+  }, [settings.data, settingsForm, settingsForm.formState.isDirty]);
   useEffect(() => {
     if (bindings.data) {
       const appChanged = lastAppliedAppId.current !== appId;
@@ -109,7 +128,7 @@ export function AppLoginProviderConfigurationPanel({ appId, canOpenConfiguration
   });
 
   const save = form.handleSubmit(async (formValues) => {
-    if (!canUpdate) return;
+    if (!canUpdateProviders) return;
     const input = buildLoginProviderBindingInput(formValues);
     const parsed = appLoginProviderBindingsWriteSchema.safeParse(input);
     if (!parsed.success) {
@@ -127,6 +146,23 @@ export function AppLoginProviderConfigurationPanel({ appId, canOpenConfiguration
         return;
       }
       messageApi.error(t("login_providers.feedback.error"));
+    }
+  });
+
+  const saveSettings = settingsForm.handleSubmit(async (values) => {
+    if (!canUpdate) return;
+    const parsed = appLoginSettingsInputSchema.safeParse(values);
+    if (!parsed.success) {
+      messageApi.error(t("apps.client_config.login.channel_required"));
+      return;
+    }
+    try {
+      const saved = await settingsMutation.mutateAsync(parsed.data);
+      settingsForm.reset(saved);
+      messageApi.success(t("apps.client_config.login.saved"));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) void settings.refetch();
+      messageApi.error(t("apps.client_config.login.save_error"));
     }
   });
 
@@ -153,11 +189,25 @@ export function AppLoginProviderConfigurationPanel({ appId, canOpenConfiguration
   const loadError = catalog.isError || configs.isError || bindings.isError;
   return <Space className="ak-client-config-panel ak-login-provider-binding-panel" orientation="vertical" size="large">
     {holder}
-    <Alert description={t("login_providers.binding.description")} showIcon title={t("login_providers.binding.title")} type="info" />
-    {loadError ? <Alert action={<Button onClick={() => { void catalog.refetch(); void configs.refetch(); void bindings.refetch(); }}>{t("common.actions.retry")}</Button>} role="alert" showIcon title={t("login_providers.binding.load_error")} type="error" /> : null}
-    {catalogMismatch && !catalog.isPending ? <Alert role="alert" showIcon title={t("login_providers.feedback.catalog_mismatch")} type="error" /> : null}
+    <Alert description={t("apps.client_config.login.description")} showIcon title={t("apps.client_config.login.title")} type="info" />
+    {canReadLoginSettings ? <Card size="small" title={t("apps.client_config.login.methods_title")}>
+      {settings.isError ? <Alert action={<Button onClick={() => { void settings.refetch(); }}>{t("common.actions.retry")}</Button>} role="alert" showIcon title={t("apps.client_config.login.load_error")} type="error" /> : <Form layout="vertical">
+        <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+          <Form.Item extra={t("apps.client_config.login.password_help")} label={t("apps.client_config.login.password")}><Switch aria-label={t("apps.client_config.login.password")} checked disabled /></Form.Item>
+          <Controller control={settingsForm.control} name="otp_enabled" render={({ field }) => <Form.Item label={t("apps.client_config.login.otp")}><Switch aria-label={t("apps.client_config.login.otp")} checked={field.value} disabled={!canUpdate || settings.isPending} onChange={field.onChange} /></Form.Item>} />
+          {settingsForm.watch("otp_enabled") ? <Space wrap>
+            <Controller control={settingsForm.control} name="email_otp_enabled" render={({ field }) => <Switch aria-label={t("apps.client_config.login.email_otp")} checked={field.value} checkedChildren={t("apps.client_config.login.email_otp")} disabled={!canUpdate} onChange={field.onChange} unCheckedChildren={t("apps.client_config.login.email_otp")} />} />
+            <Controller control={settingsForm.control} name="sms_otp_enabled" render={({ field }) => <Switch aria-label={t("apps.client_config.login.sms_otp")} checked={field.value} checkedChildren={t("apps.client_config.login.sms_otp")} disabled={!canUpdate} onChange={field.onChange} unCheckedChildren={t("apps.client_config.login.sms_otp")} />} />
+          </Space> : null}
+          {canUpdate ? <Button disabled={!settingsForm.formState.isDirty} loading={settingsMutation.isPending} onClick={() => { void saveSettings(); }} type="primary">{t("common.actions.save")}</Button> : null}
+        </Space>
+      </Form>}
+    </Card> : null}
+    {canReadProviders ? <Alert description={t("login_providers.binding.description")} showIcon title={t("login_providers.binding.title")} type="info" /> : null}
+    {canReadProviders && loadError ? <Alert action={<Button onClick={() => { void catalog.refetch(); void configs.refetch(); void bindings.refetch(); }}>{t("common.actions.retry")}</Button>} role="alert" showIcon title={t("login_providers.binding.load_error")} type="error" /> : null}
+    {canReadProviders && catalogMismatch && !catalog.isPending ? <Alert role="alert" showIcon title={t("login_providers.feedback.catalog_mismatch")} type="error" /> : null}
     {conflict ? <Alert action={<Button loading={conflictRefreshing} onClick={() => { void refreshConflict(); }}>{t("common.actions.refresh")}</Button>} description={t("login_providers.binding.conflict_description")} role="alert" showIcon title={t("login_providers.binding.conflict")} type="warning" /> : null}
-    <Form layout="vertical">
+    {canReadProviders ? <Form layout="vertical">
       <Space className="ak-login-provider-binding-list" orientation="vertical" size="middle">
         {loginProviderCodes.map((providerCode, index) => {
           const definition = loginProviderDefinitions[providerCode];
@@ -173,7 +223,7 @@ export function AppLoginProviderConfigurationPanel({ appId, canOpenConfiguration
           const selectedConfig = options.find((item) => item.id === selectedId);
           return <Card
             className="ak-login-provider-binding-card"
-            extra={<Controller control={form.control} name={`bindings.${String(index)}.enabled` as `bindings.${number}.enabled`} render={({ field }) => <Switch aria-label={t("login_providers.binding.enable_provider", { provider: t(`login_providers.provider.${providerCode}`) })} checked={field.value} disabled={!canUpdate || loading || !catalogReady || (options.length === 0 && !field.value)} onChange={field.onChange} />} />}
+            extra={<Controller control={form.control} name={`bindings.${String(index)}.enabled` as `bindings.${number}.enabled`} render={({ field }) => <Switch aria-label={t("login_providers.binding.enable_provider", { provider: t(`login_providers.provider.${providerCode}`) })} checked={field.value} disabled={!canUpdateProviders || loading || !catalogReady || (options.length === 0 && !field.value)} onChange={field.onChange} />} />}
             key={providerCode}
             size="small"
             title={<Space><LoginProviderIcon provider={providerCode} /><span>{t(`login_providers.provider.${providerCode}`)}</span></Space>}
@@ -184,7 +234,7 @@ export function AppLoginProviderConfigurationPanel({ appId, canOpenConfiguration
                 <Select
                   aria-label={t("login_providers.binding.config_for_provider", { provider: t(`login_providers.provider.${providerCode}`) })}
                   allowClear={!row.enabled}
-                  disabled={!canUpdate || loading || !catalogReady}
+                  disabled={!canUpdateProviders || loading || !catalogReady}
                   loading={configs.isPending}
                   onBlur={field.onBlur}
                   onChange={(value) => { field.onChange(value); }}
@@ -206,7 +256,7 @@ export function AppLoginProviderConfigurationPanel({ appId, canOpenConfiguration
           </Card>;
         })}
       </Space>
-    </Form>
-    <div className="ak-client-config-actions"><span />{canUpdate ? <Button disabled={!dirty || invalid || loadError || catalogMismatch} loading={mutation.isPending} onClick={() => { void save(); }} type="primary">{t("common.actions.save")}</Button> : null}</div>
+    </Form> : null}
+    {canReadProviders ? <div className="ak-client-config-actions"><span />{canUpdateProviders ? <Button disabled={!dirty || invalid || loadError || catalogMismatch} loading={mutation.isPending} onClick={() => { void save(); }} type="primary">{t("common.actions.save")}</Button> : null}</div> : null}
   </Space>;
 }

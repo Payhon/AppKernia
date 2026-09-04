@@ -28,6 +28,7 @@ export type PublicConfigWire = {
   readonly share: PublicShareRuntimeWire
   readonly push: PublicPushRuntimeWire
   readonly scanner: PublicScannerRuntimeWire | null
+  readonly login_methods: PublicLoginMethodsWire
 }
 
 export type PublicShareProviderWire = {
@@ -55,4 +56,10 @@ export type PublicScannerWebViewWire = {
 
 export type PublicScannerRuntimeWire = {
   readonly webview: PublicScannerWebViewWire | null
+}
+
+export type PublicLoginMethodsWire = {
+  readonly password: { readonly enabled: true }
+  readonly otp: { readonly enabled: boolean; readonly email_enabled: boolean; readonly sms_enabled: boolean }
+  readonly oauth: { readonly enabled: boolean }
 }

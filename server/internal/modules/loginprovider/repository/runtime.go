@@ -21,6 +21,20 @@ WHERE id=$1 AND status='active' AND deleted_at IS NULL`, appID).Scan(&tenantID, 
 	return tenantID, locale, err
 }
 
+func (r *Postgres) AppLoginSettings(ctx context.Context, appID uuid.UUID) (login.AppLoginSettings, error) {
+	var out login.AppLoginSettings
+	err := r.pool.QueryRow(ctx, `SELECT a.tenant_id,a.registration_enabled,
+COALESCE(s.otp_login_enabled,false),COALESCE(s.email_otp_enabled,true),COALESCE(s.sms_otp_enabled,false)
+FROM app.applications a
+LEFT JOIN app.application_login_settings s ON s.tenant_id=a.tenant_id AND s.app_id=a.id
+WHERE a.id=$1 AND a.status='active' AND a.deleted_at IS NULL`, appID).Scan(
+		&out.TenantID, &out.Registration, &out.OTPEnabled, &out.EmailOTPEnabled, &out.MobileOTPEnabled)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return out, login.ErrNotFound
+	}
+	return out, err
+}
+
 const runtimeSelect = `SELECT a.tenant_id,a.id,c.id,a.default_locale,b.provider_code,c.external_client_id,c.public_config,
 c.secret_ciphertext,c.secret_key_version,c.secret_field_names,a.registration_enabled,b.enabled,b.sort_order
 FROM app.application_login_provider_bindings b

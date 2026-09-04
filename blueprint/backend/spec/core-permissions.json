@@ -489,6 +489,15 @@
       "status": "active"
     },
     {
+      "code": "sys.platform_config.update",
+      "name": "更新平台全局配置",
+      "module_code": "sys",
+      "resource_name": "platform_config",
+      "action_name": "update",
+      "permission_kind": "api",
+      "status": "active"
+    },
+    {
       "code": "sys.config.rotate_secret",
       "name": "轮换秘密配置",
       "module_code": "sys",

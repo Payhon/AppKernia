@@ -12,6 +12,9 @@ interface ClientConfigTabRenderProps {
   appId: string;
   canOpenConfigurationPage: boolean;
   canUpdate: boolean;
+  canReadLoginSettings: boolean;
+  canReadProviders: boolean;
+  canUpdateProviders: boolean;
   onDirtyChange: (dirty: boolean) => void;
 }
 
@@ -40,7 +43,7 @@ interface Props {
 export function AppClientConfigurationModal({ app, permissions, onClose }: Props) {
   const { t } = useTranslation();
   const screens = Grid.useBreakpoint();
-  const availableTabs = useMemo(() => clientConfigTabs.filter((tab) => permissions.has(tab.readPermission)), [permissions]);
+  const availableTabs = useMemo(() => clientConfigTabs.filter((tab) => permissions.has(tab.readPermission) || tab.id === "login-providers" && permissions.has("app.login_provider_binding.read")), [permissions]);
   const [activeTab, setActiveTab] = useState<ClientConfigTabId>("share");
   const [dirty, setDirty] = useState<Record<ClientConfigTabId, boolean>>(cleanDirtyState);
 
@@ -75,7 +78,7 @@ export function AppClientConfigurationModal({ app, permissions, onClose }: Props
   const items = app ? availableTabs.map((tab) => ({
     key: tab.id,
     label: t(tab.labelKey),
-    children: tab.render({ appId: app.id, canOpenConfigurationPage: permissions.has("sys.login_provider_config.read"), canUpdate: permissions.has(tab.updatePermission), onDirtyChange: (value) => { markDirty(tab.id, value); } }),
+    children: tab.render({ appId: app.id, canOpenConfigurationPage: permissions.has("sys.login_provider_config.read"), canUpdate: permissions.has(tab.updatePermission), canReadLoginSettings: permissions.has("app.login_settings.read"), canReadProviders: permissions.has("app.login_provider_binding.read"), canUpdateProviders: permissions.has("app.login_provider_binding.update"), onDirtyChange: (value) => { markDirty(tab.id, value); } }),
   })) : [];
 
   return <Modal

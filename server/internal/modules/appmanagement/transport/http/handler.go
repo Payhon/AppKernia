@@ -109,6 +109,11 @@ func (h *Handler) PublicConfig(r *ghttp.Request) {
 		h.fail(r, http.StatusServiceUnavailable, "APP.SCANNER_CONFIG.UNAVAILABLE", "errors.common.unknown")
 		return
 	}
+	loginSettings, err := h.service.PublicLoginSettings(r.Context(), a.ID)
+	if err != nil {
+		h.fail(r, http.StatusServiceUnavailable, "APP.LOGIN_CONFIG.UNAVAILABLE", "errors.common.unknown")
+		return
+	}
 	downloadURL, err := h.service.PublicDownloadPageURL(r.Context(), a, string(httpx.Locale(r)))
 	if err != nil {
 		h.fail(r, http.StatusServiceUnavailable, "APP.PUBLIC_WEB.UNAVAILABLE", "errors.common.unknown")
@@ -120,6 +125,11 @@ func (h *Handler) PublicConfig(r *ghttp.Request) {
 		"app_id":            a.ID.String(), "appid": a.AppID, "app_type": a.AppType, "name": a.Name, "default_locale": a.DefaultLocale,
 		"registration_enabled": a.RegistrationEnabled, "registration_verification_mode": a.RegistrationVerification,
 		"startup": startup, "share": map[string]any{"providers": shareProviders}, "push": pushRuntime, "scanner": scanner,
+		"login_methods": map[string]any{
+			"password": map[string]bool{"enabled": true},
+			"otp":      map[string]bool{"enabled": loginSettings.OTPEnabled, "email_enabled": loginSettings.EmailOTPEnabled, "sms_enabled": loginSettings.SMSOTPEnabled},
+			"oauth":    map[string]bool{"enabled": loginSettings.OAuthEnabled},
+		},
 	}})
 }
 
@@ -164,6 +174,42 @@ func (h *Handler) AdminScannerConfig(r *ghttp.Request) {
 		return
 	}
 	r.Response.WriteJsonExit(httpx.Success[app.ScannerConfig]{Code: "OK", Message: "OK", Data: item, RequestID: httpx.RequestID(r)})
+}
+
+type adminLoginSettingsRequest struct {
+	OTPEnabled      bool  `json:"otp_enabled"`
+	EmailOTPEnabled bool  `json:"email_otp_enabled"`
+	SMSOTPEnabled   bool  `json:"sms_otp_enabled"`
+	LockVersion     int32 `json:"lock_version"`
+}
+
+func (h *Handler) AdminLoginSettings(r *ghttp.Request) {
+	appID, err := uuid.Parse(r.GetRouter("app_id").String())
+	if err != nil {
+		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	if r.Method == http.MethodGet {
+		item, getErr := h.service.GetAdminLoginSettings(r.Context(), bearer(r), appID)
+		if h.adminFailure(r, getErr) {
+			return
+		}
+		r.Response.WriteJsonExit(httpx.Success[app.LoginSettings]{Code: "OK", Message: "OK", Data: item, RequestID: httpx.RequestID(r)})
+		return
+	}
+	var body adminLoginSettingsRequest
+	if !decode(r, &body) {
+		h.fail(r, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
+		return
+	}
+	item, updateErr := h.service.UpdateAdminLoginSettings(r.Context(), bearer(r), appID, app.LoginSettingsInput{
+		OTPEnabled: body.OTPEnabled, EmailOTPEnabled: body.EmailOTPEnabled,
+		SMSOTPEnabled: body.SMSOTPEnabled, LockVersion: body.LockVersion,
+	}, httpx.RequestID(r))
+	if h.adminFailure(r, updateErr) {
+		return
+	}
+	r.Response.WriteJsonExit(httpx.Success[app.LoginSettings]{Code: "OK", Message: "OK", Data: item, RequestID: httpx.RequestID(r)})
 }
 
 func (h *Handler) StartupAsset(r *ghttp.Request) {

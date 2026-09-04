@@ -122,6 +122,8 @@ func (handler *Handler) fail(request *ghttp.Request, err error) bool {
 		status, code, key = 409, "AUTH.LAST_LOGIN_METHOD", "errors.iam.login_method.last"
 	case errors.Is(err, login.ErrIdentifierConflict):
 		status, code, key = 409, "AUTH.IDENTIFIER.CONFLICT", "errors.common.conflict"
+	case errors.Is(err, login.ErrAccountExists):
+		status, code, key = 409, "ACCOUNT_ALREADY_EXISTS", "errors.common.conflict"
 	case errors.Is(err, login.ErrOTPInvalid):
 		status, code, key = 401, "IAM.OTP.INVALID", "errors.iam.otp.invalid"
 	case errors.Is(err, login.ErrDeliveryUnavailable):
@@ -388,6 +390,22 @@ func (handler *Handler) LoginMethods(request *ghttp.Request) {
 	}
 }
 
+func (handler *Handler) SetPassword(request *ghttp.Request) {
+	id, ok := appID(request)
+	var body struct {
+		NewPassword string `json:"new_password"`
+		StepUpToken string `json:"step_up_token"`
+	}
+	if !ok || !decode(request, &body) {
+		handler.fail(request, login.ErrInvalid)
+		return
+	}
+	err := handler.service.SetPassword(request.Context(), token(request), id, body.NewPassword, body.StepUpToken, client(request))
+	if !handler.fail(request, err) {
+		handler.ok(request, stdhttp.StatusOK, map[string]bool{"password_set": true})
+	}
+}
+
 func (handler *Handler) OAuthAccounts(request *ghttp.Request) {
 	id, ok := appID(request)
 	if !ok {
@@ -457,6 +475,78 @@ func (handler *Handler) OTPLogin(request *ghttp.Request) {
 	out, err := handler.service.OTPLogin(request.Context(), id, body, client(request))
 	if !handler.fail(request, err) {
 		handler.ok(request, stdhttp.StatusOK, sessionResponse(out))
+	}
+}
+
+func (handler *Handler) SendRegistrationCode(request *ghttp.Request) {
+	id, ok := appID(request)
+	var body struct {
+		IdentifierType string `json:"identifier_type"`
+		Identifier     string `json:"identifier"`
+	}
+	if !ok || !decode(request, &body) {
+		handler.fail(request, login.ErrInvalid)
+		return
+	}
+	out, err := handler.service.SendRegistrationCode(request.Context(), id, body.IdentifierType, body.Identifier, string(httpx.Locale(request)), client(request))
+	if !handler.fail(request, err) {
+		handler.ok(request, stdhttp.StatusAccepted, out)
+	}
+}
+
+func (handler *Handler) RegisterOTP(request *ghttp.Request) {
+	id, ok := appID(request)
+	var body loginapp.OTPRegistrationInput
+	if !ok || !decode(request, &body) {
+		handler.fail(request, login.ErrInvalid)
+		return
+	}
+	out, err := handler.service.RegisterOTP(request.Context(), id, body, client(request))
+	if !handler.fail(request, err) {
+		handler.ok(request, stdhttp.StatusOK, sessionResponse(out))
+	}
+}
+
+func (handler *Handler) ForgotPassword(request *ghttp.Request) {
+	id, ok := appID(request)
+	var body struct {
+		IdentifierType string `json:"identifier_type"`
+		Identifier     string `json:"identifier"`
+		Email          string `json:"email"`
+	}
+	if !ok || !decode(request, &body) {
+		handler.fail(request, login.ErrInvalid)
+		return
+	}
+	if body.Identifier == "" {
+		body.Identifier, body.IdentifierType = body.Email, "email"
+	}
+	out, err := handler.service.SendPasswordResetCode(request.Context(), id, body.IdentifierType, body.Identifier, string(httpx.Locale(request)), client(request))
+	if !handler.fail(request, err) {
+		handler.ok(request, stdhttp.StatusAccepted, out)
+	}
+}
+
+func (handler *Handler) ResetPassword(request *ghttp.Request) {
+	id, ok := appID(request)
+	var body struct {
+		loginapp.PasswordResetInput
+		Email string `json:"email"`
+		Code  string `json:"code"`
+	}
+	if !ok || !decode(request, &body) {
+		handler.fail(request, login.ErrInvalid)
+		return
+	}
+	if body.Identifier == "" {
+		body.Identifier, body.IdentifierType = body.Email, "email"
+	}
+	if body.VerificationCode == "" {
+		body.VerificationCode = body.Code
+	}
+	err := handler.service.ResetPassword(request.Context(), id, body.PasswordResetInput)
+	if !handler.fail(request, err) {
+		handler.ok(request, stdhttp.StatusOK, map[string]bool{"reset": true})
 	}
 }
 

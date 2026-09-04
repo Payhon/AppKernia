@@ -192,7 +192,14 @@ describe('AuthSession', () => {
       expect(init?.body).toBe(JSON.stringify({ email: 'admin@example.test' }))
       return Promise.resolve(Response.json({
         code: 'OK', message: 'OK', request_id: 'captcha-request',
-        data: { captcha_id: captchaId, image_base64: 'iVBORw0KGgo=', mime_type: 'image/png', expires_in_seconds: 300 },
+        data: {
+          captcha_id: captchaId,
+          captcha_token: 'signed-captcha-token',
+          type: 'rotate',
+          expires_in_seconds: 300,
+          image: { base64: 'iVBORw0KGgo=', mime_type: 'image/png', width: 320, height: 180 },
+          thumb_image: { base64: 'iVBORw0KGgo=', mime_type: 'image/png', width: 72, height: 72 },
+        },
       }))
     })
     const session = new AuthSession({
@@ -203,7 +210,9 @@ describe('AuthSession', () => {
     const captcha = await session.createLoginCaptcha({ email: 'admin@example.test' })
 
     expect(captcha.captcha_id).toBe(captchaId)
-    expect(captcha.mime_type).toBe('image/png')
+    expect(captcha.captcha_token).toBe('signed-captcha-token')
+    expect(captcha.type).toBe('rotate')
+    expect(captcha.image.mime_type).toBe('image/png')
     expect(fetchMock).toHaveBeenCalledOnce()
   })
 

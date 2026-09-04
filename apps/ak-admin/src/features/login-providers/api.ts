@@ -3,11 +3,13 @@ import { z } from "zod";
 import { toApiError } from "../../shared/api/error";
 import { authSession } from "../auth/store";
 import {
+  appLoginSettingsSchema,
   appLoginProviderBindingsSchema,
   loginProviderCatalogItemSchema,
   loginProviderConfigPageSchema,
   loginProviderConfigSchema,
   type AppLoginProviderBindingsWriteInput,
+  type AppLoginSettingsInput,
   type LoginProviderConfigFilters,
   type LoginProviderConfigWriteInput,
   type LoginProviderSecretRotationInput,
@@ -17,6 +19,7 @@ const catalogResponseSchema = z.object({ data: z.object({ items: z.array(loginPr
 const configPageResponseSchema = z.object({ data: loginProviderConfigPageSchema });
 const configResponseSchema = z.object({ data: loginProviderConfigSchema });
 const bindingsResponseSchema = z.object({ data: appLoginProviderBindingsSchema });
+const loginSettingsResponseSchema = z.object({ data: appLoginSettingsSchema });
 
 async function request<T>(path: `/${string}`, schema: z.ZodType<T>, init?: RequestInit): Promise<T> {
   const response = await authSession.adminRequest(path, init);
@@ -95,4 +98,12 @@ export async function putAppLoginProviderBindings(appId: string, input: AppLogin
     bindingsResponseSchema,
     write("PUT", input),
   )).data.items;
+}
+
+export async function getAppLoginSettings(appId: string) {
+  return (await request(`/apps/${encodeURIComponent(appId)}/login-settings`, loginSettingsResponseSchema)).data;
+}
+
+export async function putAppLoginSettings(appId: string, input: AppLoginSettingsInput) {
+  return (await request(`/apps/${encodeURIComponent(appId)}/login-settings`, loginSettingsResponseSchema, write("PUT", input))).data;
 }

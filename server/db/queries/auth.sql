@@ -76,6 +76,20 @@ RETURNING failure_count;
 DELETE FROM iam.login_failure_states
 WHERE scope_hash = sqlc.arg('scope_hash');
 
+-- name: GetLoginCaptchaFailureStateForUpdate :one
+SELECT failure_count, expires_at
+FROM iam.login_failure_states
+WHERE scope_hash = sqlc.arg('scope_hash')
+FOR UPDATE;
+
+-- name: LoginCaptchaCoolingDown :one
+SELECT EXISTS (
+    SELECT 1
+    FROM iam.login_captcha_challenges
+    WHERE scope_hash = sqlc.arg('scope_hash')
+      AND created_at > sqlc.arg('now_at')::timestamptz - interval '2 seconds'
+) AS cooling_down;
+
 -- name: InvalidateActiveLoginCaptchas :exec
 UPDATE iam.login_captcha_challenges
 SET consumed_at = COALESCE(consumed_at, sqlc.arg('now_at'))
@@ -84,16 +98,16 @@ WHERE scope_hash = sqlc.arg('scope_hash')
 
 -- name: InsertLoginCaptchaChallenge :one
 INSERT INTO iam.login_captcha_challenges (
-    scope_hash, answer_salt, answer_hash, expires_at, created_at
+    id, scope_hash, captcha_type, proof_hash, expires_at, created_at
 )
 VALUES (
-    sqlc.arg('scope_hash'), sqlc.arg('answer_salt'), sqlc.arg('answer_hash'),
-    sqlc.arg('expires_at'), sqlc.arg('created_at')
+    sqlc.arg('id'), sqlc.arg('scope_hash'), sqlc.arg('captcha_type'),
+    sqlc.arg('proof_hash'), sqlc.arg('expires_at'), sqlc.arg('created_at')
 )
-RETURNING id, expires_at;
+RETURNING id;
 
 -- name: GetLoginCaptchaForUpdate :one
-SELECT answer_salt, answer_hash, attempt_count
+SELECT captcha_type, proof_hash, attempt_count
 FROM iam.login_captcha_challenges
 WHERE id = sqlc.arg('id')
   AND scope_hash = sqlc.arg('scope_hash')

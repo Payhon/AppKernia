@@ -17,6 +17,9 @@ import { Controller, useForm } from "react-hook-form";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
+
+import "../shared/i18n/settings-catalog";
+
 import type {
   AdminSmsTemplateBindingRequest,
   AdminNotificationTemplate,

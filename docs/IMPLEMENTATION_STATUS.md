@@ -1,18 +1,40 @@
 # AppKernia 实施状态
 
-更新时间：2026-09-02（Asia/Shanghai）
+更新时间：2026-09-03（Asia/Shanghai）
+
+## 2026-09-03 注册协议内联文字链接
+
+- 按用户要求将注册页两个协议按钮替换为“请先阅读并同意隐私政策和用户协议”的内联文字，协议名为独立可点击、带下划线的链接。复用首次隐私提示页的文字换行方式与主题 Token，保留 44px 行高点击区域、原跳转和协议校验。
+- 已同步中英文文案、生成 Catalog、Design System 和 UI Skill 产物。新增双语句子/跳转回归，登录 UI 测试共 6 项通过；Mobile project check、Blueprint/i18n、diff 检查通过。
+- iOS 模拟器增量编译与两条链接跳转已确认，保存中文截图；英文运行截图和其他平台/物理设备未验收。后台协议草稿不变，未执行注册或数据库写入。
+
+## 2026-09-03 Mobile 登录弹框与注册入口修复
+
+- 登录弹框限制为当前窗口高度的 75%，同时保留顶部安全区间距和滚动/键盘避让；其他 Bottom Sheet 保持默认比例。共享登录方式切换器仅在存在两种方式时展示，登录页、弹框和注册页统一生效。
+- 修复密码模式错误沿用短信 OTP 标识类型的问题：密码登录和密码注册始终验证当前邮箱，避免 OTP 关闭或切回密码后校验隐藏手机号。
+- 已确认演示库隐私政策与用户协议均为草稿，公开接口返回 `404 CONTENT.PAGE.NOT_FOUND`，导致注册页过去只显示整页加载失败。现在保留表单并显示双语具体原因，支持保值重试；协议未就绪时仍禁止注册与注册发码，未发布草稿或改写演示数据。
+- 五项新增 UI/行为回归、十二项 OAuth 契约测试、Mobile project check、Blueprint/i18n 校验通过。HBuilderX 5.24 完成 iOS 43 页面编译并同步到 iPhone 16 Pro / iOS 18.6 模拟器，已查看缩短弹框、注册表单与软件键盘状态，保存三张中文截图。
+- 当前后台已开启邮件/短信 OTP，因此模拟器保留两种登录 Tab；仅密码分支使用自动化验证，未改后台开关。英文运行截图受既有游客语言偏好流程阻塞；深色、最大字号、VoiceOver、Android/Harmony 和物理设备未验收。实际注册仍需管理员先发布两份协议。本轮未修改 Backend/Admin/数据库、未 commit、未 push。
+
+## 2026-09-03 登录功能切回 4174 演示环境
+
+- 按用户要求停止整个 `appkernia-login-dev` 测试栈；14174、18080、55433 已无监听，容器与数据卷保留，可恢复启动。
+- 当前代码已部署到原 `appkernia-news-demo`：Admin `http://localhost:4174`、API `http://localhost:8080`、PostgreSQL `localhost:55432`。API/Admin/PostgreSQL healthy，Worker running，应用容器 restart count=0，运行镜像与构建镜像一致。
+- 演示库从 `29|false` 升级为 `31|false`，Core Seed 未创建或重置管理员；51 张原业务表的升级前后内容指纹一致，保留 1 App、2 账号、1 App Membership、3 篇文章、5 个页面、6 个文件，新增回填 1 个已验证 App 邮箱标识。原 PostgreSQL 容器及对象存储卷未重建。
+- 部署前数据库备份位于 `/Users/payhon/project/AppKernia/.secrets/local-login-4174-20260903-960eoS/database-before-29.dump`，并保存旧镜像 `before-login-20260903` 标签。未复制测试库内容或开关：密码固定开启，OTP 和 OAuth 保持默认关闭，可在 4174 后台按 App 配置。
+- Docker 构建、迁移、Seed、四套 Blueprint/i18n 校验和 13 项 HTTP/端口/数据卷冒烟均通过。本轮仅部署与保数据验证，未重跑全量功能测试、移动端打包、浏览器交互截图或真实第三方授权；未 commit、未 push。
 
 ## 2026-09-02 App 级第三方登录与账号绑定
 
-- Backend 已新增 30 号双向迁移和编译期 Provider Registry，首期固定支持微信、GitHub、Apple、Google；租户级加密配置、App 原子绑定、App 级第三方身份、App 级邮箱/手机号、OAuth Flow/State/Nonce/PKCE、GitHub 一次性浏览器票据、OTP、Step-up、Apple/Google OIDC/JWKS 与 Apple 撤销均已接入。既有 Admin 自身 `iam.oauth_accounts` 保持不变，第三方 Token/授权码不落库。
+- Backend 已新增 30—31 号双向迁移和编译期 Provider Registry，首期固定支持微信、GitHub、Apple、Google；租户级加密配置、App 原子绑定、App 级第三方身份、App 级邮箱/手机号、App 登录方式配置、OAuth Flow/State/Nonce/PKCE、GitHub 一次性浏览器票据、OTP、Step-up、Apple/Google OIDC/JWKS 与 Apple 撤销均已接入。既有 Admin 自身 `iam.oauth_accounts` 保持不变，第三方 Token/授权码不落库。
 - Mobile 首登在 Serializable 事务内原子创建 User、Membership、App 身份、Session、Refresh Token 与审计；未知身份仅在 App 允许注册时创建，Provider 邮箱冲突返回 `ACCOUNT_LINK_REQUIRED`，不按邮箱自动合并。邮箱、手机号和第三方账号均由服务端返回 `login_capable/can_bind/can_change/can_unbind/block_reason`，并以最后可用登录方式保护约束为准。
-- Admin 新增“系统设置 > 第三方登录配置”和 App 客户端配置第三个 Tab，覆盖强类型公开字段、独立只写 Secret 轮换、预检、启停、删除、409 保值重载、固定官方帮助链接及四 Provider 原子 Bulk PUT。普通读取不返回 Secret；已选择但停用的配置保留，运行入口 fail-closed。
-- Mobile 新增统一 `ak-oauth`、登录页/认证 Sheet 图标入口和“账号与登录方式”页面。微信三端、GitHub 系统浏览器回跳、Apple AuthenticationServices、Google Credential Manager 的编译期 Adapter 已接线；安装级设备键保存在独立安全存储，退出登录不会清除。当前无后台导出快照时 Provider 集合为空，移动端不展示入口。
+- Admin 新增“系统设置 > 第三方登录配置”和 App 客户端配置“登录配置”Tab，除四 Provider 原子 Bulk PUT 外，还提供不可关闭的密码登录、验证码登录总开关及邮件/短信通道开关；读取与更新权限独立，409 保值重载和服务端原子校验已完成。
+- Mobile 登录页按后台开关显示“账号密码 / 验证码 / 第三方授权”三类方式；验证码模式在邮件与短信间切换，并同步用于注册和找回密码。第三方入口继续复用统一 `ak-oauth` 与图标列表；无后台导出快照或 OAuth 开关关闭时不展示入口。“账号与登录方式”支持密码首绑及邮箱、手机号、第三方账号绑定管理。
 - CLI 新增 `ak-cli app-login-provider export --app-id ... --output ... [--check]`，只导出无 Secret 的 Manifest/Entitlement/App Link/Harmony Overlay 和构建 Hash；Secret 轮换不触发重建，Client ID、包名、Bundle ID、签名指纹或 Link 变化会产生漂移。iOS 启用其他消费级社交登录时强制同时包含 Apple 能力。
-- OpenAPI、sqlc、权限/菜单 Seed、Admin/Mobile 生成 Client、`zh-CN/en-US`、Blueprint、Design System、UI Skill 产物和发布手册已同步。PostgreSQL 18 完成 `30 → 29 → 30` 往返与回填，Backend 294 项普通测试、全包 race、真实数据库集成、Admin 56 文件/242 项测试、三端 43 页面静态构建及受控 Chromium 双语/响应式/axe 证据均通过。
+- OpenAPI、sqlc、权限/菜单 Seed、Admin/Mobile 生成 Client、`zh-CN/en-US`、Blueprint、Design System、UI Skill 产物和发布手册已同步。PostgreSQL 18 完成 `31 → 30 → 31` 往返，Backend 普通测试、全包 race、真实数据库集成、Admin 56 文件/243 项测试、Mobile 静态门禁及既有三端 43 页面构建证据均通过。
 - 外部门禁仍未完成：四平台真实凭据、Provider 控制台配置、签名安装包、物理设备首次登录/绑定/解绑/撤销/冷启动回跳及读屏/最大字号。`android_google` 的固定 Credential Manager 依赖原生 AAR 已编译通过，但完整 HBuilder 云自定义基座仍在免费队列；不得将这些静态、Mock 或 fixture 证据表述为真实平台登录验收。
 - 初始上线状态保持全部配置为草稿、App 绑定关闭。下一批建议为华为账号、QQ、受 Issuer Allowlist 与 SSRF 防护约束的通用 OIDC，以及按企业客户需求增加企业微信、钉钉、飞书；支付宝、GitLab、自定义在线 Provider 和动态插件不在首期范围。
-- 已启动隔离的本机测试栈 `appkernia-login-dev`：Admin `http://localhost:14174`、API `http://localhost:18080`、PostgreSQL `localhost:55433`，迁移为 `30:false`，API/Admin/PostgreSQL 均 healthy。Core Seed 已创建 `admin@appkernia.local`，密码沿用 Git 忽略的 `.secrets/seed-admin-password`；真实 Nginx 代理登录验证通过。既有 `appkernia-news-demo` 未修改。首次部署暴露 Dockerfile 复制 `0600` 蓝图文件后运行用户无法读取的问题，已通过 `COPY --chown=appkernia:appkernia` 根治并完成镜像重建。
+- 已启动隔离的本机测试栈 `appkernia-login-dev`：Admin `http://localhost:14174`、API `http://localhost:18080`、PostgreSQL `localhost:55433`，迁移为 `31:false`，API/Admin/PostgreSQL 均 healthy；演示 App 已开启邮件和短信验证码登录、OAuth 保持关闭。开发期数据库 Capture Adapter 已真实完成“注册发码 → 数据库取码 → OTP 注册 → 再次发码 → OTP 登录 → 鉴权上下文”，两次会话审计均为 `email_otp`。既有 `appkernia-news-demo` 未修改。
 
 ## 2026-09-01 App 用户操作菜单
 
@@ -1222,3 +1244,21 @@
 - 本地 `appkernia-news-demo` 已更新：数据库 28→29、dirty=false；API/Admin/PostgreSQL healthy，Worker running，restart 均为 0。原 1 App、3 资讯、5 单页保留；发行页/APK/推广三个开关最终均为 true，下载页 HTTP 200。
 - `make check` 退出 0：Admin 50 文件/215 项、H5 JS 14 项；Go JSON 为 279 passed/1 skipped/0 failed。全后端 race、浏览器 14 组验证、375/390/768/1440、深色/200%、可信 iframe、后台开关保存/恢复及 axe WCAG A/AA 均通过。
 - 14 张截图和结构化证据位于 `output/playwright/public-web-controls/`；部署证据位于 `output/local-deploy-public-web-promotion/evidence.json`。未执行移动端真机视频、微信、商店或 APK 安装验收；未提交、未推送、未部署生产。
+
+## 2026-09-04 — 后台管理交互式登录验证码
+
+- Admin 原六位数字图片验证码已由 `AkInteractiveCaptcha` 替换为 `click | slide | drag | rotate` 四种交互挑战，默认 `slide`。组件保持受控且不发网络请求，登录页仅在服务端返回 `IAM.AUTH.CAPTCHA_REQUIRED` 后动态加载；Pointer、触控、原生 Range 与键盘均可操作，包含焦点恢复、ARIA 状态/错误播报、44px 目标、过期重置和 reduced-motion。
+- Backend 直接集成 `go-captcha/v2@v2.0.5` 与 `go-captcha-assets@v1.0.7`，启动时复用资源。AES-GCM 不透明 Token 绑定版本、Challenge ID、Scope、类型、目标与有效期，数据库只保存 SHA-256；继续执行三次失败触发、五分钟有效、最多五次、单次消费、邮箱/Audience/IP 绑定，并增加同 Scope 两秒刷新冷却。点击库偶发生成超出画布数像素的旋转图形目标已按实际可见画布裁剪，连续生成与 race 压测通过。
+- 新迁移固定为 `000032_interactive_login_captcha`：升级时消费旧数字挑战，列替换为 `captcha_type + proof_hash`，同 Scope 只允许一个未消费 Challenge；真实 PostgreSQL 18 已完成 `up → down → up`，最终 `32/false`。sqlc、OpenAPI、Admin/Mobile Client、双语 Catalog、权限 Seed、蓝图、ADR 与第三方许可均已同步。
+- 新增全局配置 `iam/security/admin.login_captcha.type` 与 `sys.platform_config.update`。只有 `AK_PLATFORM_TENANT_CODE`（默认 `local`）租户中的 `super-admin` 且同时具备配置更新权限才可修改；非法或缺失值回退 `slide`，数据库读取失败拒绝生成。Mobile 登录不会读取或要求 Admin CAPTCHA 状态。
+- Backend race 共 338 个命名测试/子测试通过；PostgreSQL 18 集成串行包执行共 123 个命名测试/子测试通过。Admin 全量为 57 个文件、251 项，通过 lint、strict typecheck、构建与 Bundle 预算；初始 gzip 299105 bytes，交互组件保持独立懒加载 chunk。
+- 真实 Chromium 已覆盖 375/768/1440、四种交互、中文/英文、键盘、Pointer 与触控模拟、过期/刷新、无横向溢出及 axe WCAG 2 A/AA 零违规；系统配置按 `click → slide → drag → rotate` 保存并最终恢复 `slide`，审计动作 `sys.platform_config.update` 成功落库。截图与 axe 结果位于 `output/playwright/interactive-captcha/`。
+- 全仓 `make check`、后端 `make test-race`、四套 Blueprint/i18n、UI Skill 与补丁格式校验均退出 0。未执行 commit、push、生产部署或物理触屏/人工读屏验收；Chromium 触控模拟不冒充真机。
+
+## 2026-09-04 — 交互式验证码更新到本地测试环境
+
+- 已从当前未提交工作区构建并更新既有 Compose 项目 `appkernia-news-demo` 的 Admin、API 与 Worker；沿用 Admin `4174`、API `8080`、PostgreSQL `55432`，没有重建 PostgreSQL 或对象存储卷。
+- 数据库迁移由 `31/false` 升至 `32/false`，core seed 为 191 权限、50 菜单；原 6 个用户和 5 个租户保持不变，全局验证码类型为 `slide`，`super-admin` 已获得 `sys.platform_config.update`。
+- API/Admin 健康检查、验证码 JS/CSS 静态资源、Admin 反向代理均返回预期状态；真实 HTTP 冒烟确认第三次失败触发 `IAM.AUTH.CAPTCHA_REQUIRED`、生成 300×220 的五分钟 slide Challenge，并在连续刷新时返回 `429` 与 `Retry-After: 2`。冒烟产生的 1 条失败状态、4 条 Challenge 和 3 条登录审计已精确删除。
+- API、Admin、PostgreSQL healthy，Worker running，全部 restart count 为 0；启动后日志未发现 panic、fatal 或 error。迁移前 PostgreSQL 自定义格式备份已通过 `pg_restore --list` 校验，旧三套镜像保留 `pre-interactive-captcha-20260904` 标签。
+- 本次只部署本地测试环境，未提交、推送或部署生产；当前 Server/Admin 工作区中的其他未提交变更也随镜像一并构建。备份与结构化证据位于 `output/local-deploy-interactive-captcha-20260904/`。

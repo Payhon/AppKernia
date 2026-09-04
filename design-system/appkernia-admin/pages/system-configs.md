@@ -5,6 +5,7 @@
 - The form/table mode is URL-addressable. The default form mode is omitted from the query string; table mode uses `mode=table` so reload and sharing preserve the selected workspace.
 - Changing category or mode with dirty form values requires an explicit discard confirmation. Browser unload also warns while unsaved values exist.
 - Dynamic form controls are controlled and type-matched: boolean switch, enum select, numeric input, datetime input, JSON textarea, secret password input, and string input/textarea.
+- `iam/security/admin.login_captcha.type` uses the fixed `click | slide | drag | rotate` enum with localized labels. It is read-only unless the current account is a `super-admin` in the configured platform tenant and has `sys.platform_config.update`.
 - Each control has a persistent label, definition key, permission/lock state, validation feedback, and keyboard-visible focus. Async save feedback is announced through status/alert regions.
 - Secret values always start empty and use “leave blank to keep unchanged”; only non-empty dirty secret inputs call the isolated secret replacement API.
 - Unified save is a single UI action over existing versioned update/secret endpoints. Partial success must be reported; failed draft values remain dirty for correction or retry.

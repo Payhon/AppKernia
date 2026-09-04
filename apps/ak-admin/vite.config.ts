@@ -6,6 +6,7 @@ import { resolve } from 'node:path'
 import { defineConfig, type Plugin } from 'vite'
 
 const canonicalOpenApiPath = resolve(import.meta.dirname, '../../server/openapi/openapi.yaml')
+const apiProxyTarget = process.env['AK_API_PROXY_TARGET'] ?? 'http://127.0.0.1:8080'
 
 function canonicalOpenApiPlugin(): Plugin {
   let command: 'build' | 'serve' = 'serve'
@@ -68,9 +69,9 @@ export default defineConfig({
   server: {
     port: 4173,
     proxy: {
-      '/admin-api': 'http://127.0.0.1:8080',
-      '/api': 'http://127.0.0.1:8080',
-      '^/internal/v1/health/(live|ready)$': 'http://127.0.0.1:8080',
+      '/admin-api': apiProxyTarget,
+      '/api': apiProxyTarget,
+      '^/internal/v1/health/(live|ready)$': apiProxyTarget,
     },
     strictPort: true,
   },
