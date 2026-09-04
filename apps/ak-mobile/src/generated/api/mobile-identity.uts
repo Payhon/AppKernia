@@ -126,21 +126,45 @@ export type MobileLoginMethodsWire = {
   readonly remaining_login_methods: number
 }
 
-export type MobileIdentifierChallengeRequestWire = { readonly identifier: string }
+export type MobileCaptchaTypeWire = 'click' | 'slide' | 'drag' | 'rotate'
+export type MobileCaptchaPointWire = { readonly x: number; readonly y: number }
+export type MobileCaptchaImageWire = { readonly base64: string; readonly mime_type: string; readonly width: number; readonly height: number }
+export type MobileCaptchaClickResponseWire = { readonly type: 'click'; readonly points: Array<MobileCaptchaPointWire> }
+export type MobileCaptchaPointResponseWire = { readonly type: 'slide' | 'drag'; readonly point: MobileCaptchaPointWire }
+export type MobileCaptchaRotateResponseWire = { readonly type: 'rotate'; readonly angle: number }
+export type MobileCaptchaResponseWire = MobileCaptchaClickResponseWire | MobileCaptchaPointResponseWire | MobileCaptchaRotateResponseWire
+export type MobileCaptchaSubmissionWire = { readonly id: string; readonly token: string; readonly response: MobileCaptchaResponseWire }
+export type MobileCaptchaChallengeWire = {
+  readonly captcha_id: string
+  readonly captcha_token: string
+  readonly type: MobileCaptchaTypeWire
+  readonly expires_in_seconds: number
+  readonly image: MobileCaptchaImageWire
+  readonly prompt_image: MobileCaptchaImageWire | null
+  readonly required_points: number | null
+  readonly tile_image: MobileCaptchaImageWire | null
+  readonly initial_point: MobileCaptchaPointWire | null
+  readonly thumb_image: MobileCaptchaImageWire | null
+}
+export type MobileSMSCaptchaPublicRequestWire = { readonly scene: 'login' | 'registration' | 'password_reset' | 'identifier_verify'; readonly mobile: string }
+export type MobileSMSCaptchaStepUpRequestWire = { readonly scene: 'step_up'; readonly identifier_id: string; readonly purpose: string; readonly resource: string }
+export type MobileSMSCaptchaRequestWire = MobileSMSCaptchaPublicRequestWire | MobileSMSCaptchaStepUpRequestWire
+
+export type MobileIdentifierChallengeRequestWire = { readonly identifier: string; readonly captcha: MobileCaptchaSubmissionWire | null }
 export type MobileIdentifierBindWire = { readonly identifier: string; readonly challenge_id: string; readonly verification_code: string }
 export type MobileIdentifierChangeWire = { readonly identifier: string; readonly challenge_id: string; readonly verification_code: string; readonly step_up_token: string }
 export type MobileIdentifierMutationWire = { readonly identifier: MobileLoginIdentifierWire }
-export type MobileStepUpCodeWire = { readonly identifier_id: string; readonly purpose: string; readonly resource: string }
+export type MobileStepUpCodeWire = { readonly identifier_id: string; readonly purpose: string; readonly resource: string; readonly captcha: MobileCaptchaSubmissionWire | null }
 export type MobileStepUpPasswordWire = { readonly method: string; readonly purpose: string; readonly resource: string; readonly password: string }
 export type MobileStepUpOTPWire = { readonly method: string; readonly purpose: string; readonly resource: string; readonly identifier_id: string; readonly challenge_id: string; readonly verification_code: string }
 export type MobileOTPChallengeWire = { readonly challenge_id: string; readonly accepted: boolean; readonly retry_after_seconds: number; readonly expires_at: string }
 export type MobileStepUpProofWire = { readonly step_up_token: string; readonly expires_at: string }
 
 export type MobileEmailOTPSendWire = { readonly email: string }
-export type MobileSMSOTPSendWire = { readonly mobile: string }
+export type MobileSMSOTPSendWire = { readonly mobile: string; readonly captcha: MobileCaptchaSubmissionWire }
 export type MobileOTPLoginWire = { readonly identifier_type: string; readonly identifier: string; readonly challenge_id: string; readonly verification_code: string }
-export type MobileOTPRegistrationCodeWire = { readonly identifier_type: string; readonly identifier: string }
+export type MobileOTPRegistrationCodeWire = { readonly identifier_type: string; readonly identifier: string; readonly captcha: MobileCaptchaSubmissionWire | null }
 export type MobileOTPRegistrationWire = { readonly identifier_type: string; readonly identifier: string; readonly challenge_id: string; readonly verification_code: string; readonly display_name: string; readonly locale: string; readonly accept_terms: boolean }
-export type MobilePasswordForgotWire = { readonly identifier_type: string; readonly identifier: string }
+export type MobilePasswordForgotWire = { readonly identifier_type: string; readonly identifier: string; readonly captcha: MobileCaptchaSubmissionWire | null }
 export type MobilePasswordResetWire = { readonly identifier_type: string; readonly identifier: string; readonly challenge_id: string; readonly verification_code: string; readonly new_password: string }
 export type MobileSetPasswordWire = { readonly new_password: string; readonly step_up_token: string }

@@ -14,7 +14,7 @@ import (
 )
 
 const completeLoginCaptchaAttempt = `-- name: CompleteLoginCaptchaAttempt :exec
-UPDATE iam.login_captcha_challenges
+UPDATE iam.interactive_captcha_challenges
 SET attempt_count = attempt_count + 1,
     consumed_at = CASE
         WHEN $1::boolean OR attempt_count + 1 >= 5 THEN $2
@@ -284,7 +284,7 @@ func (q *Queries) GetLoginCaptchaFailureStateForUpdate(ctx context.Context, scop
 
 const getLoginCaptchaForUpdate = `-- name: GetLoginCaptchaForUpdate :one
 SELECT captcha_type, proof_hash, attempt_count
-FROM iam.login_captcha_challenges
+FROM iam.interactive_captcha_challenges
 WHERE id = $1
   AND scope_hash = $2
   AND consumed_at IS NULL
@@ -408,7 +408,7 @@ func (q *Queries) InsertFailedLoginEvent(ctx context.Context, arg InsertFailedLo
 }
 
 const insertLoginCaptchaChallenge = `-- name: InsertLoginCaptchaChallenge :one
-INSERT INTO iam.login_captcha_challenges (
+INSERT INTO iam.interactive_captcha_challenges (
     id, scope_hash, captcha_type, proof_hash, expires_at, created_at
 )
 VALUES (
@@ -591,7 +591,7 @@ func (q *Queries) InsertSuccessfulLoginEvent(ctx context.Context, arg InsertSucc
 }
 
 const invalidateActiveLoginCaptchas = `-- name: InvalidateActiveLoginCaptchas :exec
-UPDATE iam.login_captcha_challenges
+UPDATE iam.interactive_captcha_challenges
 SET consumed_at = COALESCE(consumed_at, $1)
 WHERE scope_hash = $2
   AND consumed_at IS NULL
@@ -866,7 +866,7 @@ func (q *Queries) LockSelfSessionForRevoke(ctx context.Context, arg LockSelfSess
 const loginCaptchaCoolingDown = `-- name: LoginCaptchaCoolingDown :one
 SELECT EXISTS (
     SELECT 1
-    FROM iam.login_captcha_challenges
+    FROM iam.interactive_captcha_challenges
     WHERE scope_hash = $1
       AND created_at > $2::timestamptz - interval '2 seconds'
 ) AS cooling_down

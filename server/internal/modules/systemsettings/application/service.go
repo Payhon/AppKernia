@@ -244,7 +244,7 @@ func normalizeConfig(in settings.ConfigInput, creating bool) (settings.ConfigInp
 func isPlatformManagedConfig(in settings.ConfigInput) bool {
 	return strings.EqualFold(in.ModuleCode, "iam") &&
 		strings.EqualFold(in.ConfigGroup, "security") &&
-		strings.EqualFold(in.ConfigKey, "admin.login_captcha.type")
+		strings.EqualFold(in.ConfigKey, "interactive_captcha.type")
 }
 
 func validateValue(kind string, raw json.RawMessage, schemaRaw json.RawMessage) error {

@@ -79,4 +79,11 @@ Push Token
 OAuth code/verifier
 ```
 
+## 7. 短信交互式验证码
+
+- `POST /auth/sms-captcha` 创建 `login | registration | password_reset | identifier_verify | step_up` 挑战；后两类要求当前 Mobile Session。
+- `ak-interactive-captcha` 只输出交互答案，不发起网络。Repository 将 OpenAPI Wire 映射为强类型组件模型，Runtime 统一供登录、注册、找回密码及账号连接页调用。
+- 每次短信发送和重发都提交新的 `{ id, token, response }`。证明只可消费一次，并绑定 App、场景、规范化手机号、IP 和设备键；登录态场景额外绑定用户、Session、用途和资源。
+- 缺少证明、证明无效或验证码刷新冷却分别按稳定错误码处理；只有验证成功后才创建 OTP Challenge。邮箱 OTP 保持原流程。
+
 错误上报只发送稳定业务码、平台、版本、Request ID 和脱敏上下文。遥测 SDK 必须在隐私同意后初始化，并可通过配置完全关闭。

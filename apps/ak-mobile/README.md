@@ -43,3 +43,21 @@ Android/iOS 运行入口固定使用 custom playground；HarmonyOS 直接生成�
 ### Feedback client generation
 
 The feedback DTO generator reads the canonical OpenAPI schemas. Install its pinned parser with `python3 -m pip install -r scripts/requirements.txt`, then run `python3 scripts/generate-mobile-client.py --write`. `check-project.sh` verifies the generated client is current.
+
+### Interactive CAPTCHA for SMS
+
+`uni_modules/ak-interactive-captcha` is a uni-app x UTS/UVue component for Android, iOS and HarmonyOS. It supports `click`, `slide`, `drag` and `rotate` without owning network state:
+
+```uvue
+<ak-interactive-captcha
+  :open="captchaOpen"
+  :challenge="captchaChallenge"
+  :loading="captchaLoading"
+  :error-text="captchaError"
+  @confirm="confirmCaptcha"
+  @refresh="refreshCaptcha"
+  @close="closeCaptcha"
+/>
+```
+
+The caller validates its business context, obtains a challenge through `captchaRuntime`, opens the modal, and passes the confirmed `{ id, token, response }` to the original SMS endpoint. A successful send closes the modal and starts the server-provided OTP cooldown. Every resend requires a fresh challenge; email OTP bypasses this flow. See `uni_modules/ak-interactive-captcha/README.md` for the four response shapes and reuse contract.

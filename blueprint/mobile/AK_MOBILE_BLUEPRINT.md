@@ -46,6 +46,7 @@ Core 1.0 交付以下闭环：
 | API 契约 | Backend OpenAPI 3.1 → UTS DTO/Endpoint 生成 |
 | 普通存储 | `uni.*Storage`，只放非敏感偏好 |
 | 安全存储 | `uni_modules/ak-secure-storage`：Android Keystore、iOS Keychain、Harmony Keystore |
+| 短信验证码门禁 | `uni_modules/ak-interactive-captcha`：原生 UTS/UVue `click | slide | drag | rotate`，网络由 Feature Repository/Runtime 管理 |
 | 国际化 | `AkI18n` 适配层，首发 `zh-CN`/`en-US`，默认及最终回退 `zh-CN` |
 | 任务测试 | 纯函数测试 + uni-automator + 三端真机 Smoke |
 | UI 流程 | ui-ux-pro-max → Design Token → AK UI → 页面 |

@@ -14,6 +14,7 @@ import (
 	iamapp "github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	loginapp "github.com/appkernia/appkernia/server/internal/modules/loginprovider/application"
 	login "github.com/appkernia/appkernia/server/internal/modules/loginprovider/domain"
+	platformcaptcha "github.com/appkernia/appkernia/server/internal/platform/captcha"
 	"github.com/appkernia/appkernia/server/internal/shared/httpx"
 	"github.com/appkernia/appkernia/server/internal/shared/i18n"
 	"github.com/gogf/gf/v2/net/ghttp"
@@ -126,6 +127,15 @@ func (handler *Handler) fail(request *ghttp.Request, err error) bool {
 		status, code, key = 409, "ACCOUNT_ALREADY_EXISTS", "errors.common.conflict"
 	case errors.Is(err, login.ErrOTPInvalid):
 		status, code, key = 401, "IAM.OTP.INVALID", "errors.iam.otp.invalid"
+	case errors.Is(err, login.ErrCaptchaRequired):
+		status, code, key = 428, "IAM.CAPTCHA.REQUIRED", "errors.iam.captcha.required"
+	case errors.Is(err, login.ErrCaptchaInvalid):
+		status, code, key = 422, "IAM.CAPTCHA.INVALID", "errors.iam.captcha.invalid"
+	case errors.Is(err, login.ErrCaptchaCooldown):
+		request.Response.Header().Set("Retry-After", "2")
+		status, code, key = 429, "IAM.CAPTCHA.COOLDOWN", "errors.iam.captcha.cooldown"
+	case errors.Is(err, login.ErrCaptchaUnavailable):
+		status, code, key = 503, "IAM.CAPTCHA.UNAVAILABLE", "errors.iam.captcha.unavailable"
 	case errors.Is(err, login.ErrDeliveryUnavailable):
 		status, code, key = 503, "IAM.OTP.DELIVERY_UNAVAILABLE", "errors.iam.otp.delivery_unavailable"
 	case errors.Is(err, login.ErrStepUpRequired):
@@ -437,8 +447,41 @@ func (handler *Handler) DeleteOAuthAccount(request *ghttp.Request) {
 }
 
 type loginCodeInput struct {
-	Email  string `json:"email"`
-	Mobile string `json:"mobile"`
+	Email   string                    `json:"email"`
+	Mobile  string                    `json:"mobile"`
+	Captcha *iamapp.LoginCaptchaInput `json:"captcha,omitempty"`
+}
+
+type interactiveCaptchaResponse struct {
+	CaptchaID      string                 `json:"captcha_id"`
+	CaptchaToken   string                 `json:"captcha_token"`
+	Type           platformcaptcha.Type   `json:"type"`
+	ExpiresInSec   int64                  `json:"expires_in_seconds"`
+	Image          platformcaptcha.Image  `json:"image"`
+	PromptImage    *platformcaptcha.Image `json:"prompt_image,omitempty"`
+	RequiredPoints int                    `json:"required_points,omitempty"`
+	TileImage      *platformcaptcha.Image `json:"tile_image,omitempty"`
+	InitialPoint   *platformcaptcha.Point `json:"initial_point,omitempty"`
+	ThumbImage     *platformcaptcha.Image `json:"thumb_image,omitempty"`
+}
+
+func captchaResponse(value iamapp.LoginCaptcha) interactiveCaptchaResponse {
+	return interactiveCaptchaResponse{CaptchaID: value.ID.String(), CaptchaToken: value.Token, Type: value.Type,
+		ExpiresInSec: value.ExpiresInSec, Image: value.Image, PromptImage: value.PromptImage, RequiredPoints: value.RequiredPoints,
+		TileImage: value.TileImage, InitialPoint: value.InitialPoint, ThumbImage: value.ThumbImage}
+}
+
+func (handler *Handler) SMSCaptcha(request *ghttp.Request) {
+	id, ok := appID(request)
+	var body loginapp.SMSCaptchaInput
+	if !ok || !decode(request, &body) {
+		handler.fail(request, login.ErrInvalid)
+		return
+	}
+	out, err := handler.service.CreateSMSCaptcha(request.Context(), token(request), id, body, client(request))
+	if !handler.fail(request, err) {
+		handler.ok(request, stdhttp.StatusOK, captchaResponse(out))
+	}
 }
 
 func (handler *Handler) SendEmailCode(request *ghttp.Request) {
@@ -459,7 +502,7 @@ func (handler *Handler) sendLoginCode(request *ghttp.Request, identifierType str
 	if identifierType == "mobile" {
 		identifier = body.Mobile
 	}
-	out, err := handler.service.SendLoginCode(request.Context(), id, identifierType, identifier, string(httpx.Locale(request)), client(request))
+	out, err := handler.service.SendLoginCode(request.Context(), id, identifierType, identifier, string(httpx.Locale(request)), client(request), body.Captcha)
 	if !handler.fail(request, err) {
 		handler.ok(request, stdhttp.StatusAccepted, out)
 	}
@@ -481,14 +524,15 @@ func (handler *Handler) OTPLogin(request *ghttp.Request) {
 func (handler *Handler) SendRegistrationCode(request *ghttp.Request) {
 	id, ok := appID(request)
 	var body struct {
-		IdentifierType string `json:"identifier_type"`
-		Identifier     string `json:"identifier"`
+		IdentifierType string                    `json:"identifier_type"`
+		Identifier     string                    `json:"identifier"`
+		Captcha        *iamapp.LoginCaptchaInput `json:"captcha,omitempty"`
 	}
 	if !ok || !decode(request, &body) {
 		handler.fail(request, login.ErrInvalid)
 		return
 	}
-	out, err := handler.service.SendRegistrationCode(request.Context(), id, body.IdentifierType, body.Identifier, string(httpx.Locale(request)), client(request))
+	out, err := handler.service.SendRegistrationCode(request.Context(), id, body.IdentifierType, body.Identifier, string(httpx.Locale(request)), client(request), body.Captcha)
 	if !handler.fail(request, err) {
 		handler.ok(request, stdhttp.StatusAccepted, out)
 	}
@@ -510,9 +554,10 @@ func (handler *Handler) RegisterOTP(request *ghttp.Request) {
 func (handler *Handler) ForgotPassword(request *ghttp.Request) {
 	id, ok := appID(request)
 	var body struct {
-		IdentifierType string `json:"identifier_type"`
-		Identifier     string `json:"identifier"`
-		Email          string `json:"email"`
+		IdentifierType string                    `json:"identifier_type"`
+		Identifier     string                    `json:"identifier"`
+		Email          string                    `json:"email"`
+		Captcha        *iamapp.LoginCaptchaInput `json:"captcha,omitempty"`
 	}
 	if !ok || !decode(request, &body) {
 		handler.fail(request, login.ErrInvalid)
@@ -521,7 +566,7 @@ func (handler *Handler) ForgotPassword(request *ghttp.Request) {
 	if body.Identifier == "" {
 		body.Identifier, body.IdentifierType = body.Email, "email"
 	}
-	out, err := handler.service.SendPasswordResetCode(request.Context(), id, body.IdentifierType, body.Identifier, string(httpx.Locale(request)), client(request))
+	out, err := handler.service.SendPasswordResetCode(request.Context(), id, body.IdentifierType, body.Identifier, string(httpx.Locale(request)), client(request), body.Captcha)
 	if !handler.fail(request, err) {
 		handler.ok(request, stdhttp.StatusAccepted, out)
 	}

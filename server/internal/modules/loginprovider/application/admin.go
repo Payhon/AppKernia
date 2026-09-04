@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	iamapp "github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	iam "github.com/appkernia/appkernia/server/internal/modules/iam/domain"
 	login "github.com/appkernia/appkernia/server/internal/modules/loginprovider/domain"
 	"github.com/golang-jwt/jwt/v5"
@@ -49,6 +50,8 @@ func validAppleCredential(raw string, public login.ApplePublicConfig, clientID s
 
 type Authenticator interface {
 	Authenticate(context.Context, string, string) (iam.AuthenticatedContext, error)
+	CreateInteractiveCaptcha(context.Context, iamapp.InteractiveCaptchaScope) (iamapp.LoginCaptcha, error)
+	VerifyInteractiveCaptcha(context.Context, *iamapp.LoginCaptchaInput, iamapp.InteractiveCaptchaScope) error
 }
 
 type Service struct {

@@ -178,7 +178,7 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 
 **主要动作**：选择配置分类, 新建配置, 编辑当前值, 轮换 Secret, 配置 Admin 登录验证码类型, 使用字典选择存储/短信驱动, 使用当前云存储策略测试上传
 
-**UX 规范**：左侧分类 + 配置表；目录元数据只读，当前值可编辑；`iam/security/admin.login_captcha.type` 使用固定枚举 Select，不创建字典；全局项仅平台租户 `super-admin` 且具备 `sys.platform_config.update` 时可写；Secret 永不回显明文，使用保持不变/替换/轮换语义；分类选择写入 URL。
+**UX 规范**：左侧分类 + 配置表；目录元数据只读，当前值可编辑；`iam/security/interactive_captcha.type` 使用固定枚举 Select，不创建字典；全局项仅平台租户 `super-admin` 且具备 `sys.platform_config.update` 时可写；Secret 永不回显明文，使用保持不变/替换/轮换语义；分类选择写入 URL。
 
 **API**
 
@@ -1150,7 +1150,7 @@ Coding Agent 一次只实现一个 feature，并同时读取本文件和机器�
 |---|---|
 | 阶段 | P0 |
 | Route Policy | `anonymous-only` |
-| Schema | `iam.sessions`, `iam.refresh_tokens`, `iam.login_failure_states`, `iam.login_captcha_challenges`, `audit.login_events` |
+| Schema | `iam.sessions`, `iam.refresh_tokens`, `iam.login_failure_states`, `iam.interactive_captcha_challenges`, `audit.login_events` |
 | 后端状态 | `existing` |
 
 **筛选**：无

@@ -81,6 +81,8 @@ type Repository interface {
 	ResetLoginFailures(context.Context, []byte) error
 	CreateLoginCaptcha(context.Context, LoginCaptchaChallenge) (uuid.UUID, error)
 	VerifyLoginCaptcha(context.Context, LoginCaptchaAttempt) error
+	CreateInteractiveCaptcha(context.Context, LoginCaptchaChallenge) (uuid.UUID, error)
+	VerifyInteractiveCaptcha(context.Context, LoginCaptchaAttempt) error
 	PreparePasswordReset(context.Context, PreparePasswordReset) (*PasswordResetRecipient, error)
 	GetPasswordResetState(context.Context, []byte) (PasswordResetState, error)
 	ResetPassword(context.Context, ResetPassword) error

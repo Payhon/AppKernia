@@ -810,7 +810,7 @@ type IamDevice struct {
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
-type IamLoginCaptchaChallenge struct {
+type IamInteractiveCaptchaChallenge struct {
 	ID           uuid.UUID          `json:"id"`
 	ScopeHash    []byte             `json:"scope_hash"`
 	AttemptCount int16              `json:"attempt_count"`

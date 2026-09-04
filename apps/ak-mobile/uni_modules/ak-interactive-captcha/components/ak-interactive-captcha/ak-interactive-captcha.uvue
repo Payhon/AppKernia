@@ -1,0 +1,98 @@
+<template>
+  <view v-if="open" class="ak-captcha-modal" role="presentation" :style="modalStyle" @click.stop>
+    <view class="ak-captcha-card" role="dialog" :aria-label="t('captcha.title', null)">
+      <view class="ak-captcha-header">
+        <text class="ak-captcha-title">{{t('captcha.title', null)}}</text>
+        <view class="ak-captcha-header-actions">
+          <view class="ak-captcha-icon-button" role="button" :aria-label="t('captcha.refresh', null)" @click="refresh"><text class="ak-captcha-icon">↻</text></view>
+          <view class="ak-captcha-icon-button" role="button" :aria-label="t('captcha.close', null)" @click="close"><text class="ak-captcha-icon">×</text></view>
+        </view>
+      </view>
+      <text class="ak-captcha-instruction">{{instruction}}</text>
+      <view v-if="loading" class="ak-captcha-loading" role="status"><text class="ak-captcha-muted">{{t('captcha.loading', null)}}</text></view>
+      <view v-else-if="activeChallenge!=null" class="ak-captcha-content">
+        <view v-if="activeChallenge!.type==='click'&&activeChallenge!.promptImage!=null" class="ak-captcha-prompt"><image class="ak-captcha-prompt-image" mode="aspectFit" :src="activeChallenge!.promptImage!.source()" /></view>
+        <view id="ak-captcha-stage" class="ak-captcha-stage" :style="stageStyle" @touchend="clickStage">
+          <image class="ak-captcha-image" mode="scaleToFill" :src="activeChallenge!.image.source()" />
+          <view v-if="activeChallenge!.type==='slide'||activeChallenge!.type==='drag'" class="ak-captcha-tile" :style="tileStyle" @touchstart.stop.prevent="dragStart" @touchmove.stop.prevent="dragMove" @touchend.stop.prevent="dragEnd"><image v-if="activeChallenge!.tileImage!=null" class="ak-captcha-image" mode="scaleToFill" :src="activeChallenge!.tileImage!.source()" /></view>
+          <view v-if="activeChallenge!.type==='rotate'&&activeChallenge!.thumbImage!=null" class="ak-captcha-rotate-thumb" :style="rotateStyle"><image class="ak-captcha-image" mode="scaleToFill" :src="activeChallenge!.thumbImage!.source()" /></view>
+          <view v-for="(point,index) in points" :key="index" class="ak-captcha-marker" :style="markerStyle(point)"><text class="ak-captcha-marker-text">{{index+1}}</text></view>
+        </view>
+        <slider v-if="activeChallenge!.type==='slide'" class="ak-captcha-slider" :value="sliderValue" min="0" max="100" step="1" activeColor="#2563eb" block-size="28" :aria-label="t('captcha.slideInstruction', null)" @changing="slide" @change="slide" />
+        <slider v-if="activeChallenge!.type==='rotate'" class="ak-captcha-slider" :value="angle" min="0" max="360" step="1" activeColor="#2563eb" block-size="28" :aria-label="t('captcha.rotateInstruction', null)" @changing="rotate" @change="rotate" />
+        <view v-if="activeChallenge!.type==='click'" class="ak-captcha-undo" role="button" :aria-label="t('captcha.undo', null)" @click="undo"><text class="ak-captcha-muted">{{t('captcha.undo', null)}}</text></view>
+      </view>
+      <text v-if="localError.length>0" class="ak-captcha-error" role="alert" aria-live="assertive">{{localError}}</text>
+      <view :class="canConfirm&&!loading?'ak-captcha-confirm':'ak-captcha-confirm ak-captcha-confirm--disabled'" role="button" :aria-disabled="!canConfirm||loading" @click="confirm"><text class="ak-captcha-confirm-text">{{t('captcha.confirm', null)}}</text></view>
+    </view>
+  </view>
+</template>
+
+<script lang="uts">
+import { akI18n } from '../../../../src/core/i18n/ak-i18n.uts'
+import { AkCaptchaPoint, AkInteractiveCaptchaChallenge, AkInteractiveCaptchaResponse } from '../../model.uts'
+
+export default {
+  name: 'AkInteractiveCaptcha',
+  props: {
+    open: { type: Boolean, default: false },
+    challenge: { type: Object, default: null },
+    loading: { type: Boolean, default: false },
+    errorText: { type: String, default: '' },
+  },
+  emits: ['confirm', 'refresh', 'close'],
+  data() { return { points: [] as Array<AkCaptchaPoint>, sliderValue: 0, angle: 0, dragX: 0, dragY: 0, dragging: false, dragStartX: 0, dragStartY: 0, dragOriginX: 0, dragOriginY: 0, stageLeft: 0, stageTop: 0, stageWidth: 1, stageHeight: 1, interacted: false, expired: false, expiryTimer: 0, localError: '' } },
+  computed: {
+    t() { return akI18n.t },
+    activeChallenge(): AkInteractiveCaptchaChallenge | null { return this.challenge as AkInteractiveCaptchaChallenge | null },
+    modalStyle(): string { const info=uni.getWindowInfo();return 'padding-top:'+Math.max(24,info.safeAreaInsets.top+16).toString()+'px;padding-bottom:'+Math.max(24,info.safeAreaInsets.bottom+16).toString()+'px' },
+    instruction(): string {
+      const value=this.activeChallenge
+      if(value==null)return akI18n.t('captcha.loading',null)
+      if(value.type==='click')return akI18n.t('captcha.clickInstruction',new Map<string,string>([['count',value.requiredPoints.toString()]]))
+      if(value.type==='slide')return akI18n.t('captcha.slideInstruction',null)
+      if(value.type==='drag')return akI18n.t('captcha.dragInstruction',null)
+      return akI18n.t('captcha.rotateInstruction',null)
+    },
+    stageDisplayWidth(): number { const value=this.activeChallenge;if(value==null)return 280;return Math.min(value.image.width,Math.max(240,uni.getSystemInfoSync().windowWidth-80)) },
+    stageDisplayHeight(): number { const value=this.activeChallenge;if(value==null)return 180;return Math.round(this.stageDisplayWidth*value.image.height/Math.max(1,value.image.width)) },
+    stageStyle(): string { return 'width:'+this.stageDisplayWidth.toString()+'px;height:'+this.stageDisplayHeight.toString()+'px' },
+    canConfirm(): boolean { const value=this.activeChallenge;if(value==null||this.expired)return false;if(value.type==='click')return this.points.length===value.requiredPoints;return this.interacted },
+    tileStyle(): string {
+      const value=this.activeChallenge;if(value==null||value.tileImage==null)return ''
+      const scale=this.stageDisplayWidth/Math.max(1,value.image.width)
+      return 'left:'+(this.dragX*scale).toString()+'px;top:'+(this.dragY*scale).toString()+'px;width:'+(value.tileImage!.width*scale).toString()+'px;height:'+(value.tileImage!.height*scale).toString()+'px'
+    },
+    rotateStyle(): string { const value=this.activeChallenge;if(value==null||value.thumbImage==null)return '';const scale=this.stageDisplayWidth/Math.max(1,value.image.width);const width=value.thumbImage!.width*scale;const height=value.thumbImage!.height*scale;return 'width:'+width.toString()+'px;height:'+height.toString()+'px;margin-left:'+(-width/2).toString()+'px;margin-top:'+(-height/2).toString()+'px;transform:rotate('+this.angle.toString()+'deg)' },
+  },
+  watch: {
+    challenge: { handler(){this.reset()}, deep:true },
+    open(value:boolean){if(!value)this.reset()},
+    errorText(value:string){this.localError=value},
+  },
+  methods: {
+    clamp(value:number,minimum:number,maximum:number):number{return Math.min(Math.max(value,minimum),maximum)},
+    clearExpiry(){if(this.expiryTimer!=0){clearTimeout(this.expiryTimer);this.expiryTimer=0}},
+    reset(){this.clearExpiry();this.points=[];this.sliderValue=0;this.angle=0;this.dragging=false;this.interacted=false;this.expired=false;this.localError=this.errorText;const value=this.activeChallenge;if(value!=null&&value.initialPoint!=null){this.dragX=value.initialPoint!.x;this.dragY=value.initialPoint!.y}else{this.dragX=0;this.dragY=0};if(this.open&&value!=null&&value.expiresInSeconds>0)this.expiryTimer=setTimeout(()=>this.expire(),value.expiresInSeconds*1000)},
+    expire(){this.expiryTimer=0;this.expired=true;this.localError=akI18n.t('captcha.expired',null)},
+    captureStage(done:(left:number,top:number,width:number,height:number)=>void){const element=uni.getElementById('ak-captcha-stage');if(element==null)return;const rect=element.getBoundingClientRect();done(rect.left,rect.top,rect.width,rect.height)},
+    touchPoint(event:UniTouchEvent):AkCaptchaPoint|null{const list=event.changedTouches.length>0?event.changedTouches:event.touches;if(list.length==0)return null;return new AkCaptchaPoint(list[0].clientX,list[0].clientY)},
+    clickStage(event:UniTouchEvent){const value=this.activeChallenge;if(value==null||value.type!=='click'||this.points.length>=value.requiredPoints)return;const touch=this.touchPoint(event);if(touch==null)return;this.captureStage((left,top,width,height)=>{const x=this.clamp(Math.round((touch!.x-left)*value.image.width/Math.max(1,width)),0,value.image.width-1);const y=this.clamp(Math.round((touch!.y-top)*value.image.height/Math.max(1,height)),0,value.image.height-1);this.points.push(new AkCaptchaPoint(x,y));this.interacted=true;this.localError=''})},
+    markerStyle(point:AkCaptchaPoint):string{const value=this.activeChallenge;if(value==null)return '';return 'left:'+((point.x/value.image.width)*this.stageDisplayWidth-14).toString()+'px;top:'+((point.y/value.image.height)*this.stageDisplayHeight-14).toString()+'px'},
+    undo(){if(this.points.length>0)this.points.pop();this.localError=''},
+    slide(event:UniSliderChangeEvent){const value=this.activeChallenge;if(value==null||value.type!=='slide'||value.tileImage==null||value.initialPoint==null)return;this.sliderValue=event.detail.value;this.dragX=Math.round((value.image.width-value.tileImage!.width)*this.sliderValue/100);this.dragY=this.clamp(value.initialPoint!.y,0,value.image.height-value.tileImage!.height);this.interacted=true;this.localError=''},
+    rotate(event:UniSliderChangeEvent){this.angle=Math.round(event.detail.value);this.interacted=true;this.localError=''},
+    dragStart(event:UniTouchEvent){const value=this.activeChallenge;if(value==null||value.type!=='drag')return;const touch=this.touchPoint(event);if(touch==null)return;this.dragging=true;this.dragStartX=touch.x;this.dragStartY=touch.y;this.dragOriginX=this.dragX;this.dragOriginY=this.dragY;this.captureStage((left,top,width,height)=>{this.stageLeft=left;this.stageTop=top;this.stageWidth=width;this.stageHeight=height})},
+    dragMove(event:UniTouchEvent){const value=this.activeChallenge;if(!this.dragging||value==null||value.tileImage==null)return;const touch=this.touchPoint(event);if(touch==null)return;const scale=value.image.width/Math.max(1,this.stageWidth);this.dragX=this.clamp(Math.round(this.dragOriginX+(touch.x-this.dragStartX)*scale),0,value.image.width-value.tileImage!.width);this.dragY=this.clamp(Math.round(this.dragOriginY+(touch.y-this.dragStartY)*scale),0,value.image.height-value.tileImage!.height);this.interacted=true;this.localError=''},
+    dragEnd(_event:UniTouchEvent){this.dragging=false},
+    refresh(){if(this.loading)return;this.reset();this.$emit('refresh')},
+    close(){if(this.loading)return;this.reset();this.$emit('close')},
+    confirm(){const value=this.activeChallenge;if(value==null||this.loading)return;if(!this.canConfirm){this.localError=akI18n.t('captcha.incomplete',null);return};let response:AkInteractiveCaptchaResponse;if(value.type==='click')response=new AkInteractiveCaptchaResponse('click',this.points.slice(),null,0);else if(value.type==='rotate')response=new AkInteractiveCaptchaResponse('rotate',[],null,this.angle);else response=new AkInteractiveCaptchaResponse(value.type,[],new AkCaptchaPoint(this.dragX,this.dragY),0);this.$emit('confirm',response)},
+  },
+  mounted(){this.reset()},beforeUnmount(){this.clearExpiry()},
+}
+</script>
+
+<style lang="scss">
+.ak-captcha-modal{position:fixed;z-index:9999;left:0;right:0;top:0;bottom:0;padding:48px 24px;box-sizing:border-box;background:rgba(15,23,42,.58);align-items:center;justify-content:center}.ak-captcha-card{width:100%;max-width:440px;padding:20px;background:var(--ak-surface);border:1px solid var(--ak-border);border-radius:20px;box-sizing:border-box}.ak-captcha-header{flex-direction:row;align-items:center;justify-content:space-between}.ak-captcha-title{font-size:20px;line-height:28px;font-weight:600;color:var(--ak-text)}.ak-captcha-header-actions{flex-direction:row}.ak-captcha-icon-button{width:44px;height:44px;align-items:center;justify-content:center}.ak-captcha-icon{font-size:28px;line-height:32px;color:var(--ak-text)}.ak-captcha-instruction{font-size:14px;line-height:20px;color:var(--ak-muted);margin:8px 0 12px}.ak-captcha-loading{height:180px;align-items:center;justify-content:center}.ak-captcha-muted{font-size:14px;line-height:20px;color:var(--ak-muted)}.ak-captcha-content{align-items:center}.ak-captcha-prompt{height:44px;align-items:center;justify-content:center;margin-bottom:8px}.ak-captcha-prompt-image{max-width:180px;height:40px}.ak-captcha-stage{position:relative;overflow:hidden;border-radius:12px;background:#e2e8f0}.ak-captcha-image{width:100%;height:100%}.ak-captcha-tile{position:absolute;z-index:2}.ak-captcha-rotate-thumb{position:absolute;z-index:2;left:50%;top:50%}.ak-captcha-slider{width:100%;min-height:44px}.ak-captcha-marker{position:absolute;z-index:3;width:28px;height:28px;border-radius:14px;background:#2563eb;border:2px solid #fff;align-items:center;justify-content:center}.ak-captcha-marker-text{font-size:13px;color:#fff;font-weight:700}.ak-captcha-undo{min-width:88px;min-height:44px;align-items:center;justify-content:center;margin-top:4px}.ak-captcha-error{font-size:14px;line-height:20px;color:var(--ak-danger);margin-top:10px}.ak-captcha-confirm{min-height:48px;border-radius:12px;background:var(--ak-brand);align-items:center;justify-content:center;margin-top:16px}.ak-captcha-confirm--disabled{opacity:.45}.ak-captcha-confirm-text{font-size:16px;line-height:22px;color:#fff;font-weight:600}
+</style>

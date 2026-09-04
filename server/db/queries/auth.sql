@@ -85,19 +85,19 @@ FOR UPDATE;
 -- name: LoginCaptchaCoolingDown :one
 SELECT EXISTS (
     SELECT 1
-    FROM iam.login_captcha_challenges
+    FROM iam.interactive_captcha_challenges
     WHERE scope_hash = sqlc.arg('scope_hash')
       AND created_at > sqlc.arg('now_at')::timestamptz - interval '2 seconds'
 ) AS cooling_down;
 
 -- name: InvalidateActiveLoginCaptchas :exec
-UPDATE iam.login_captcha_challenges
+UPDATE iam.interactive_captcha_challenges
 SET consumed_at = COALESCE(consumed_at, sqlc.arg('now_at'))
 WHERE scope_hash = sqlc.arg('scope_hash')
   AND consumed_at IS NULL;
 
 -- name: InsertLoginCaptchaChallenge :one
-INSERT INTO iam.login_captcha_challenges (
+INSERT INTO iam.interactive_captcha_challenges (
     id, scope_hash, captcha_type, proof_hash, expires_at, created_at
 )
 VALUES (
@@ -108,7 +108,7 @@ RETURNING id;
 
 -- name: GetLoginCaptchaForUpdate :one
 SELECT captcha_type, proof_hash, attempt_count
-FROM iam.login_captcha_challenges
+FROM iam.interactive_captcha_challenges
 WHERE id = sqlc.arg('id')
   AND scope_hash = sqlc.arg('scope_hash')
   AND consumed_at IS NULL
@@ -117,7 +117,7 @@ WHERE id = sqlc.arg('id')
 FOR UPDATE;
 
 -- name: CompleteLoginCaptchaAttempt :exec
-UPDATE iam.login_captcha_challenges
+UPDATE iam.interactive_captcha_challenges
 SET attempt_count = attempt_count + 1,
     consumed_at = CASE
         WHEN sqlc.arg('consume')::boolean OR attempt_count + 1 >= 5 THEN sqlc.arg('now_at')

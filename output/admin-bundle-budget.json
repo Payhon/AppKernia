@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-04T06:29:24.201Z",
+  "generated_at": "2026-09-04T14:34:53.128Z",
   "budgets": {
     "initial_gzip_bytes": 307200,
     "chunk_gzip_bytes": 184320,
@@ -7,7 +7,7 @@
     "openapi_chunk_gzip_bytes": 768000
   },
   "actual": {
-    "initial_gzip_bytes": 299105,
+    "initial_gzip_bytes": 299108,
     "largest_chunks": [
       {
         "file": "assets/installCanvasRenderer-Da_Pk-O4.js",
@@ -50,15 +50,15 @@
         "gzip_bytes": 26439
       }
     ],
-    "openapi_initial_gzip_bytes": 1007299,
+    "openapi_initial_gzip_bytes": 1007352,
     "openapi_largest_chunks": [
       {
         "file": "assets/add-scalar-classes-ZnMuVRn2.js",
         "gzip_bytes": 687038
       },
       {
-        "file": "assets/openapi-CU_Knhix.js",
-        "gzip_bytes": 137477
+        "file": "assets/openapi-C1T22nr4.js",
+        "gzip_bytes": 137530
       },
       {
         "file": "assets/AgentScalarChatInterface.vue-BHoYZ-zx.js",
@@ -124,8 +124,8 @@
       "gzip_bytes": 12401
     },
     {
-      "file": "assets/admin-COUJBHZx.js",
-      "gzip_bytes": 9969
+      "file": "assets/admin-ExmhCWGi.js",
+      "gzip_bytes": 9972
     },
     {
       "file": "assets/useStore-DHmv6HF_.js",
@@ -202,8 +202,8 @@
       "gzip_bytes": 687038
     },
     {
-      "file": "assets/openapi-CU_Knhix.js",
-      "gzip_bytes": 137477
+      "file": "assets/openapi-C1T22nr4.js",
+      "gzip_bytes": 137530
     },
     {
       "file": "assets/client-YlGoElcT.js",
@@ -259,11 +259,11 @@
   "admin_scalar_keys": [],
   "openapi_docs_only_matches": [
     {
-      "file": "assets/openapi-CU_Knhix.js",
+      "file": "assets/openapi-C1T22nr4.js",
       "marker": "api_reference.operation.getLiveness"
     },
     {
-      "file": "assets/openapi-CU_Knhix.js",
+      "file": "assets/openapi-C1T22nr4.js",
       "marker": "OPENAPI_DOCUMENT_VERSION_UNSUPPORTED"
     }
   ],

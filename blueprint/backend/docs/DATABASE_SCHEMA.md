@@ -138,7 +138,7 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 | `iam.role_permissions` | 租户 | 角色权限授权 | 角色同租户；权限为全局目录 |
 | `iam.devices` | 全局 | 用户设备指纹和信任状态 | `(user_id,device_key)` 唯一 |
 | `iam.login_failure_states` | HMAC 保护范围 | Admin 登录失败滑动窗口 | 只存 32 字节 HMAC 范围与有界次数，30 分钟后失效 |
-| `iam.login_captcha_challenges` | HMAC 保护范围 | Admin 短时交互式验证码 | 保存固定 `captcha_type` 与不透明证明 Token 的 SHA-256；5 分钟过期、最多 5 次尝试、成功后一次性消费，同一范围仅一个活动挑战 |
+| `iam.interactive_captcha_challenges` | HMAC 保护范围 | Admin 登录及 Mobile 短信发送前的短时交互式验证码 | 保存固定 `captcha_type` 与不透明证明 Token 的 SHA-256；5 分钟过期、最多 5 次尝试、成功后一次性消费，同一范围仅一个活动挑战 |
 | `iam.sessions` | 可选租户 | 可撤销登录会话 | audience、绝对过期、租户成员约束 |
 | `iam.refresh_tokens` | 会话 | Refresh Token 轮换链 | 只存 32 字节哈希；哈希唯一 |
 | `iam.verification_challenges` | 全局/App | OTP、邮箱/手机验证、密码重置和账号删除 | 目标存哈希/Hint，验证码存哈希、尝试次数和过期时间；`account_delete` 元数据绑定 App 与用户 |

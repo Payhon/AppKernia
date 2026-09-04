@@ -49,6 +49,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
+## go-captcha-uni reference
+
+The Mobile `ak-interactive-captcha` component independently implements a typed UTS/UVue adaptation after reviewing interaction and coordinate ideas from `go-captcha-uni` version `1.0.7`, available from https://github.com/wenlng/go-captcha-uni. No upstream JavaScript, CSS, fonts or package runtime is bundled. The upstream project is distributed under the MIT License; its attribution text is retained in `apps/ak-mobile/uni_modules/ak-interactive-captcha/LICENSE.go-captcha-uni`.
+
 ## Scalar API Reference
 
 The Admin OpenAPI page includes `@scalar/api-reference` version `1.64.1` and

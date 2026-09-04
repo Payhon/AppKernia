@@ -54,7 +54,7 @@
       "reason": "由一个或多个页面直接读取、管理或聚合展示。"
     },
     {
-      "table": "iam.login_captcha_challenges",
+      "table": "iam.interactive_captcha_challenges",
       "coverage": "indirect_aggregate",
       "pages": [
         "auth.login"

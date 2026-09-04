@@ -681,7 +681,7 @@
         "iam.sessions",
         "iam.refresh_tokens",
         "iam.login_failure_states",
-        "iam.login_captcha_challenges",
+        "iam.interactive_captcha_challenges",
         "audit.login_events"
       ],
       "endpoints": [

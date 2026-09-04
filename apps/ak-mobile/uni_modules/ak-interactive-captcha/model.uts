@@ -1,0 +1,54 @@
+export type AkCaptchaType = 'click' | 'slide' | 'drag' | 'rotate'
+
+export class AkCaptchaPoint {
+  x: number
+  y: number
+  constructor(x: number, y: number) { this.x = x; this.y = y }
+}
+
+export class AkCaptchaImage {
+  base64: string
+  mimeType: string
+  width: number
+  height: number
+  constructor(base64: string, mimeType: string, width: number, height: number) {
+    this.base64 = base64; this.mimeType = mimeType; this.width = width; this.height = height
+  }
+  source(): string { return 'data:' + this.mimeType + ';base64,' + this.base64 }
+}
+
+export class AkInteractiveCaptchaChallenge {
+  id: string
+  token: string
+  type: AkCaptchaType
+  expiresInSeconds: number
+  image: AkCaptchaImage
+  promptImage: AkCaptchaImage | null
+  requiredPoints: number
+  tileImage: AkCaptchaImage | null
+  initialPoint: AkCaptchaPoint | null
+  thumbImage: AkCaptchaImage | null
+  constructor(id: string, token: string, type: AkCaptchaType, expiresInSeconds: number, image: AkCaptchaImage,
+    promptImage: AkCaptchaImage | null, requiredPoints: number, tileImage: AkCaptchaImage | null,
+    initialPoint: AkCaptchaPoint | null, thumbImage: AkCaptchaImage | null) {
+    this.id=id;this.token=token;this.type=type;this.expiresInSeconds=expiresInSeconds;this.image=image
+    this.promptImage=promptImage;this.requiredPoints=requiredPoints;this.tileImage=tileImage;this.initialPoint=initialPoint;this.thumbImage=thumbImage
+  }
+}
+
+export class AkInteractiveCaptchaResponse {
+  type: AkCaptchaType
+  points: Array<AkCaptchaPoint>
+  point: AkCaptchaPoint | null
+  angle: number
+  constructor(type: AkCaptchaType, points: Array<AkCaptchaPoint>, point: AkCaptchaPoint | null, angle: number) {
+    this.type=type;this.points=points;this.point=point;this.angle=angle
+  }
+}
+
+export class AkInteractiveCaptchaSubmission {
+  id: string
+  token: string
+  response: AkInteractiveCaptchaResponse
+  constructor(id: string, token: string, response: AkInteractiveCaptchaResponse) { this.id=id;this.token=token;this.response=response }
+}

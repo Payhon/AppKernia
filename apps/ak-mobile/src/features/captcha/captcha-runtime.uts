@@ -1,0 +1,10 @@
+import { AkHttpClient } from '../../core/network/ak-http-client.uts'
+import { HttpCaptchaRepository } from './captcha-repository.uts'
+
+export class CaptchaRuntime {
+  private repository:HttpCaptchaRepository|null=null
+  configure(client:AkHttpClient):void{this.repository=new HttpCaptchaRepository(client)}
+  getRepository():HttpCaptchaRepository|null{return this.repository}
+}
+
+export const captchaRuntime=new CaptchaRuntime()

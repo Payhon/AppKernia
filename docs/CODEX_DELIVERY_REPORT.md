@@ -3443,7 +3443,7 @@ Compose 原本未向 API 注入 `AK_PUBLIC_WEB_BASE_URL`，即使上线新代码
 - 登录保护协议从 `captcha_id + captcha_answer` 升级为 `captcha: { id, token, response }`。`click` 回传有序坐标，`slide/drag` 回传一点，`rotate` 回传角度；服务端只信任已认证 Token 与数据库类型，不信任客户端 discriminator，配置切换不影响已签发 Challenge。
 - `go-captcha/v2@v2.0.5` 与按需 assets 在具体 `captcha.Service` 内初始化复用，没有新增 Redis、独立微服务、运行时插件、单实现接口或 React 第三方验证码包。Token 使用 AES-GCM，Scope 使用密钥 HMAC；Token 明文不落库，数据库只保存 32-byte SHA-256。
 - `000032_interactive_login_captcha` 消费升级前活动数字挑战，替换答案列并建立同 Scope 单活动 Challenge 唯一索引。生成前和入库事务内都检查失败阈值/冷却，刷新原子消费旧 Challenge；验证在行锁内递增尝试并在正确答案或第 5 次后消费。Create/Verify 使用 Read Committed 配合行锁，避免 Serializable 等待者在合法竞争中返回 `40001`。
-- `iam/security/admin.login_captcha.type` 是固定四值全局 Catalog 项，默认 `slide`，没有创建字典。更新同时要求 `sys.config.update`、`sys.platform_config.update`、平台租户代码和 `super-admin`，继续保留版本锁与 `sys.platform_config.update` 审计。
+- `iam/security/interactive_captcha.type` 是固定四值全局 Catalog 项，默认 `slide`，没有创建字典。更新同时要求 `sys.config.update`、`sys.platform_config.update`、平台租户代码和 `super-admin`，继续保留版本锁与 `sys.platform_config.update` 审计；Migration 33 将原 Admin 专用键无损迁移为共享键。
 - `AkInteractiveCaptcha` 只负责呈现受控 Challenge/Answer；登录页沿用匿名请求封装并动态导入。四模式使用原生 Pointer/Range/键盘，按图片原始尺寸归一化坐标，覆盖过期、刷新、错误播报、焦点恢复和 reduced-motion。系统设置页沿用既有配置表单与固定枚举本地化。
 - Admin 专用保护由 Audience 硬边界控制；Mobile 即使写入自己的失败统计，也不会进入 CAPTCHA 校验路径或返回 CAPTCHA_REQUIRED。旧数字协议未保留兼容，符合前后端协调发布约束。
 
@@ -3511,3 +3511,59 @@ Admin 测试仍输出 happy-dom 对 pseudo-element/canvas 的既有 “Not imple
 - `000032` Down 会消费活动交互 Challenge，回滚时必须同步回退 Admin 与 Backend。当前无需回滚，服务与数据校验正常。
 - 本轮部署的是当前 Server/Admin 完整工作区，因此包含其中既有未提交 OTP/Login Settings/OpenAPI 等改动；Mobile 未构建或安装。
 - 未执行生产部署、提交、推送、Safari/Firefox、物理设备或人工读屏验收。
+
+## 2026-09-04 — Mobile 短信交互式验证码
+
+### 交付内容
+
+- 新增无网络职责的 `ak-interactive-captcha` uni_modules 组件，强类型 UTS/UVue 覆盖 click、slide、drag、rotate；Challenge 切换、关闭、刷新和过期均清空旧答案，Modal 不响应背景误触，使用安全区、44px 控件、可见状态和双语错误。
+- Admin 登录与 Mobile 短信复用同一验证码生成、AES-GCM Token、Scope、存储、刷新和单次消费路径；Admin 三次失败规则仍留在 IAM 登录用例。Mobile 五类 scene 均由服务端重算并校验真实 Scope，错误或缺失证明在 OTP 创建和投递前终止。
+- 新增 `/api/v1/auth/sms-captcha` 及短信请求 `captcha` Proof；登录、注册、找回、手机号标识验证与 Step-up 已接入统一 Runtime。邮件 OTP 未增加验证码，也未修改现有供应商、60 秒冷却、防枚举或限流逻辑。
+- Migration 33 重命名共享 Challenge 表及索引/约束，并原值迁移 `iam/security/interactive_captcha.type`；Down 先消费活动 Challenge 再恢复旧名。OpenAPI、sqlc、Admin/Mobile 生成 Client、双语 Catalog、蓝图、数据库文档、ADR-0032、第三方 MIT 归属，以及文档站中英文组件/API 使用说明同步完成。
+
+### 实际验证
+
+| 命令/阶段 | 退出码 | 结果 |
+|---|---:|---|
+| PostgreSQL 18 migration `up → down → up` | 0 | `33/false → 32/false → 33/false`，临时数据库随后删除 |
+| `make test-integration`（独立 PostgreSQL 18 + core seed） | 0 | 13 个集成包通过；191 权限、50 菜单、8 模块、1 全局配置、3663 地区、71 字典 |
+| `make test-race`（server） | 0 | 后端全模块 race 通过，无竞争报告 |
+| `apps/ak-mobile/scripts/check-project.sh` | 0 | Mobile Blueprint/i18n/生成 Client/静态契约通过；验证码 3 项测试通过 |
+| `pnpm --filter @appkernia/docs check` | 0 | 158 个 API 路径引用、lint、类型、格式、中英文一致性及文档站构建通过 |
+| `PATH=/Users/payhon/.nvm/versions/node/v24.18.1/bin:$PATH make check` | 0 | Backend/Admin/Mobile/Docs 与四套 Blueprint/i18n 全仓门禁通过；Admin 57 文件/251 项 |
+| `apps/ak-mobile/scripts/build-platform.sh android` | 0 | HBuilderX 5.24 完成最终 43 页面 Android class 编译 |
+| `apps/ak-mobile/scripts/build-platform.sh ios` | 0 | HBuilderX 5.24 完成最终 43 页面 iOS/UTS 编译 |
+| `apps/ak-mobile/scripts/build-platform.sh harmony` | 0 | HBuilderX 5.24 完成 43 页面编译、依赖安装及未签名 HAP 制作 |
+| HBuilderX `launch app-ios` + iPhone 16 Pro / iOS 18.6 | 0 | 当前源码、自定义基座和程序文件安装/同步成功，App 正常启动 |
+| `make sqlc-generate`（server）、`git diff --check` | 0 | sqlc 无漂移，补丁无空白错误 |
+
+验证码自动化覆盖四种响应归一化、Token/Scope 篡改、过期、五次上限、并发单次消费、刷新失效/冷却、配置切换，以及五类 Mobile 短信门禁；缺失与错误 Proof 均不会创建 OTP，邮件路径保持直达。UI Skill 记录位于 `apps/ak-mobile/artifacts/ui-ux-pro-max/AKMOB-sms-interactive-captcha/`。
+
+### 边界
+
+- iOS 模拟器已验证最终 App 安装与启动，但当前本地 API 未为本轮部署/注入短信验证码 fixture，因此没有把首页运行截图冒充验证码 Modal E2E。
+- 最终设备盘点中 Redmi 未出现在 `adb devices -l`；Harmony HAP 无签名且没有可用签名设备。Android/Harmony 真机验证码交互、三端物理触控、最大字号和 VoiceOver/TalkBack 均为 blocked/未验证。
+- 本轮按固定边界未提交、未推送、未更新本地测试环境或生产环境；未改动用户既有 `docs/plan/`。
+
+## 2026-09-04 — Mobile 短信验证码 Backend 本地更新
+
+### 更新结果
+
+- 目标仍为 `/Users/payhon/project/AppKernia/compose.yaml` 的 `appkernia-news-demo`；仅重建并替换 API、Worker、Migration 和 Seed 镜像，Admin、PostgreSQL 18 容器及持久卷未重建。
+- 数据库从 `32/false` 更新为 `33/false`；Seed 为 191 permissions、50 menus、8 modules、316 tenant configs、3663 regions、71 dictionaries。更新前后均为 6 users、5 tenants、5 apps，活动 Challenge 最终为 0。
+- 全局 `iam/security/interactive_captcha.type` 保留现有值 `drag`、version 2。真实 Challenge 冒烟返回 HTTP 200、300×220 JPEG、300 秒有效期，ID/Token 均存在；该测试记录随后精确删除。
+
+| 命令/阶段 | 退出码 | 结果 |
+|---|---:|---|
+| PostgreSQL `pg_dump -Fc` | 0 | 备份 763889 bytes，SHA-256 `8bec1312f22dce7765d5e45df53b1dabac3bd561b5a0ca46c391307e3904ff52` |
+| 宿主机 `pg_restore --list` | 127 | 宿主机未安装该命令；流程在迁移前中止，未改数据库。随后使用 PostgreSQL 18 容器验证同一备份通过 |
+| 容器内 `pg_restore --list`、旧镜像标签 | 0 | 备份可读；保留 `api/worker:pre-mobile-sms-captcha-20260904` |
+| `docker compose ... build api worker migrate seed` | 0 | 当前工作区四个 Backend 镜像构建成功 |
+| `stop api worker`、`run migrate`、`run seed` | 0 | Migration 33 clean，Seed 完成；持久卷未重建 |
+| `up -d --no-deps --force-recreate --wait api`、替换 Worker | 0 | API healthy、Worker running，restart count 均为 0 |
+| live/ready 与 SMS CAPTCHA HTTP 冒烟 | 0 | health 均 200；新路由已注册并返回有效 drag Challenge，测试记录清理成功 |
+| `git diff --check` | 0 | 部署前补丁无空白错误 |
+
+新 API 镜像为 `sha256:6016351be5fa…`，Worker 为 `sha256:73117277cdf8…`；最近启动日志未发现 panic、fatal 或 error。备份位于 `output/local-deploy-mobile-sms-captcha-api-20260904/appkernia-pre-mobile-sms-captcha.dump`。
+
+本次未重建 Admin 或 Mobile，也未执行生产部署、提交或推送。iOS 模拟器可直接在原错误 Modal 点击刷新重新获取 Challenge；该 HTTP 冒烟不替代完整短信投递、真机触控或三端 UI 验收。

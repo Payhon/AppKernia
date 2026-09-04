@@ -114,7 +114,7 @@ func TestReadConfigCatalogRejectsSecretPlaintextAndAcceptsRepositoryCatalog(t *t
 	}
 	foundCaptcha := false
 	for _, item := range catalog.Items {
-		if item.ModuleCode == "iam" && item.ConfigGroup == "security" && item.ConfigKey == "admin.login_captcha.type" {
+		if item.ModuleCode == "iam" && item.ConfigGroup == "security" && item.ConfigKey == "interactive_captcha.type" {
 			foundCaptcha = item.Scope == "global" && !item.IsPublic && string(item.Value) == `"slide"` && string(item.DefaultValue) == `"slide"` && string(item.ValidationSchema) == `{"enum":["click","slide","drag","rotate"]}`
 		}
 		if item.ConfigKey == "site.name" && item.Scope != "tenant" {

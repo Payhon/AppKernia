@@ -58,8 +58,12 @@ export type PublicScannerRuntimeWire = {
   readonly webview: PublicScannerWebViewWire | null
 }
 
+export type PublicPasswordLoginWire = { readonly enabled: true }
+export type PublicOTPLoginWire = { readonly enabled: boolean; readonly email_enabled: boolean; readonly sms_enabled: boolean }
+export type PublicOAuthLoginWire = { readonly enabled: boolean }
+
 export type PublicLoginMethodsWire = {
-  readonly password: { readonly enabled: true }
-  readonly otp: { readonly enabled: boolean; readonly email_enabled: boolean; readonly sms_enabled: boolean }
-  readonly oauth: { readonly enabled: boolean }
+  readonly password: PublicPasswordLoginWire
+  readonly otp: PublicOTPLoginWire
+  readonly oauth: PublicOAuthLoginWire
 }

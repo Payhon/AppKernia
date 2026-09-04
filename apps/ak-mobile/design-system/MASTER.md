@@ -50,6 +50,7 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 - Grouped rows use a leading icon well, 16–17 px label, optional secondary value and trailing chevron/switch. Adjacent rows are separated by a hairline inset from the leading content.
 - Empty/loading/error states live in a bounded content area and use the shared `ak-empty` presentation: a muted semantic icon, concise muted title, optional explanation and at most one compact recovery control. The recovery control has a 32 px visual surface inside a 44 × 44 px minimum target, a 14 px leading icon and an 8 px icon/label gap. States must never be clipped by the TabBar or action bar.
 - Modals use a dim backdrop, rounded surface and horizontally balanced actions with at least 8 px separation.
+- Interactive CAPTCHA uses a centered safe-area modal that cannot be dismissed by touching the backdrop. Close, refresh, undo and confirmation remain at least 44 px; loading and errors are announced as text, and no decorative motion is added.
 
 ## Icons
 
@@ -87,6 +88,7 @@ Spacing uses 4, 8, 12, 16, 20, 24, 32 and 40 px. Root gutters are 20 px on iOS-s
 - Authentication pages use one clear primary action, labelled fields, inline validation and a secondary action hierarchy for password recovery and registration.
 - Authentication prompts use a bounded compact sheet below the hardware safe area; one available sign-in method does not need a selector. Configuration errors keep the form visible and explain blocked actions.
 - Password and verification code are the primary sign-in methods; email/SMS are conditional OTP channels. Login, registration and recovery share server-confirmed availability, while the full login page and authentication prompt share the provider-list component.
+- Every SMS send or resend opens `ak-interactive-captcha` first. Email OTP remains direct. Challenge replacement, refresh and close clear old points, offsets and angles before another proof can be submitted.
 - Third-party provider actions use a 48 px minimum control, localized label and text status in addition to brand colour. Official provider artwork is used only when its distribution terms and platform guidance are satisfied; never redraw a provider mark.
 - Provider binding, replacement and unlinking are server-authorized security mutations. The client must display `can_unbind` and `block_reason`, require fresh step-up proof and never infer that a login method is disposable.
 - Irreversible self-service account actions use a dedicated page with explicit scope, data-retention disclosure, recent verification, an unchecked acknowledgement and a second native confirmation. The destructive submit remains disabled until every prerequisite is satisfied.

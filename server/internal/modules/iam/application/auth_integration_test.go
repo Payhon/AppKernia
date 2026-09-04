@@ -122,7 +122,7 @@ func TestAdminLoginRequiresCaptchaAfterThirdFailureAndResetsAfterSuccess(t *test
 	}
 	createChallenge := func() application.LoginCaptchaInput {
 		t.Helper()
-		if _, updateErr := pool.Exec(ctx, `UPDATE iam.login_captcha_challenges SET created_at = created_at - interval '3 seconds' WHERE scope_hash = $1`, scopeHash); updateErr != nil {
+		if _, updateErr := pool.Exec(ctx, `UPDATE iam.interactive_captcha_challenges SET created_at = created_at - interval '3 seconds' WHERE scope_hash = $1`, scopeHash); updateErr != nil {
 			t.Fatalf("age prior captcha for cooldown: %v", updateErr)
 		}
 		now := time.Now().UTC()
@@ -161,7 +161,7 @@ func TestAdminLoginRequiresCaptchaAfterThirdFailureAndResetsAfterSuccess(t *test
 		t.Fatalf("wrong captcha must be rejected before password authentication, got %v", loginErr)
 	}
 	mismatchedCaptcha := createChallenge()
-	if _, err = pool.Exec(ctx, `UPDATE iam.login_captcha_challenges SET captcha_type = 'drag' WHERE id = $1`, mismatchedCaptcha.ID); err != nil {
+	if _, err = pool.Exec(ctx, `UPDATE iam.interactive_captcha_challenges SET captcha_type = 'drag' WHERE id = $1`, mismatchedCaptcha.ID); err != nil {
 		t.Fatalf("change stored captcha type: %v", err)
 	}
 	if _, loginErr := service.Login(ctx, application.LoginInput{
@@ -183,7 +183,7 @@ func TestAdminLoginRequiresCaptchaAfterThirdFailureAndResetsAfterSuccess(t *test
 	}
 
 	expiredCaptcha := createChallenge()
-	if _, err = pool.Exec(ctx, `UPDATE iam.login_captcha_challenges SET created_at = now() - interval '2 minutes', expires_at = now() - interval '1 minute' WHERE id = $1`, expiredCaptcha.ID); err != nil {
+	if _, err = pool.Exec(ctx, `UPDATE iam.interactive_captcha_challenges SET created_at = now() - interval '2 minutes', expires_at = now() - interval '1 minute' WHERE id = $1`, expiredCaptcha.ID); err != nil {
 		t.Fatalf("expire known captcha: %v", err)
 	}
 	if _, loginErr := service.Login(ctx, application.LoginInput{
@@ -232,7 +232,7 @@ func TestAdminLoginRequiresCaptchaAfterThirdFailureAndResetsAfterSuccess(t *test
 	}
 	var attemptCount int32
 	var consumed bool
-	if err = pool.QueryRow(ctx, `SELECT attempt_count, consumed_at IS NOT NULL FROM iam.login_captcha_challenges WHERE id=$1`, limitedCaptcha.ID).Scan(&attemptCount, &consumed); err != nil {
+	if err = pool.QueryRow(ctx, `SELECT attempt_count, consumed_at IS NOT NULL FROM iam.interactive_captcha_challenges WHERE id=$1`, limitedCaptcha.ID).Scan(&attemptCount, &consumed); err != nil {
 		t.Fatalf("read attempt-limited captcha: %v", err)
 	}
 	if attemptCount != 5 || !consumed {

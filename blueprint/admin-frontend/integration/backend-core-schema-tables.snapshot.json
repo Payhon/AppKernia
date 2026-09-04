@@ -25,7 +25,7 @@
     "content.pages",
     "iam.block_rules",
     "iam.devices",
-    "iam.login_captcha_challenges",
+    "iam.interactive_captcha_challenges",
     "iam.login_failure_states",
     "iam.mfa_factors",
     "iam.mfa_recovery_codes",

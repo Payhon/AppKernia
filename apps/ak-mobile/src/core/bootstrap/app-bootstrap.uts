@@ -25,6 +25,7 @@ import { pushCoordinator } from '../../features/push/application/push-coordinato
 import { accountDeletionRuntime } from '../../features/account-deletion/infrastructure/account-deletion-runtime.uts'
 import { oauthCoordinator } from '../../features/auth/oauth-coordinator.uts'
 import { loginMethodsRuntime } from '../../features/auth/login-methods-runtime.uts'
+import { captchaRuntime } from '../../features/captcha/captcha-runtime.uts'
 
 /**
  * Reads only the packaged, approved manifest configuration. No production URL,
@@ -56,6 +57,7 @@ export function initializeAppRuntime(): boolean {
 /** No OAuth callback or authenticated request starts before the persisted installation key is ready. */
 function continueAfterDeviceKey(config: AkConfig, client: AkHttpClient, sessionRuntime: SessionRuntime): void {
   loginMethodsRuntime.configure(client)
+  captchaRuntime.configure(client)
   const auth = authRuntime.getService()
   if (auth != null) {
     articleRuntime.configure(config, appSessionStore, auth, new RefreshCoordinator(sessionRuntime, auth))

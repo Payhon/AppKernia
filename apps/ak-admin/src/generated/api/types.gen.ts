@@ -662,6 +662,44 @@ export type EmailLoginCodeRequest = {
 
 export type MobileLoginCodeRequest = {
     mobile: string;
+    captcha: MobileInteractiveCaptchaSubmission;
+};
+
+export type MobileSmsCaptchaScene = 'login' | 'registration' | 'password_reset' | 'identifier_verify' | 'step_up';
+
+export type MobileSmsCaptchaRequest = MobileSmsCaptchaTargetRequest | MobileSmsCaptchaStepUpRequest;
+
+export type MobileSmsCaptchaTargetRequest = {
+    scene: 'login' | 'registration' | 'password_reset' | 'identifier_verify';
+    mobile: string;
+};
+
+export type MobileSmsCaptchaStepUpRequest = {
+    scene: 'step_up';
+    identifier_id: string;
+    purpose: 'oauth_bind' | 'oauth_unbind' | 'identifier_change' | 'identifier_unbind' | 'account_delete' | 'password_bind';
+    resource: string;
+};
+
+export type MobileInteractiveCaptchaSubmission = {
+    id: string;
+    token: string;
+    response: AdminLoginCaptchaAnswer;
+};
+
+export type MobileInteractiveCaptchaResponse = {
+    code: 'OK';
+    message: string;
+    data: ({
+        type: 'click';
+    } & AdminLoginClickCaptchaChallenge) | ({
+        type: 'slide';
+    } & AdminLoginSlideCaptchaChallenge) | ({
+        type: 'drag';
+    } & AdminLoginDragCaptchaChallenge) | ({
+        type: 'rotate';
+    } & AdminLoginRotateCaptchaChallenge);
+    request_id: string;
 };
 
 export type OtpChallenge = {
@@ -688,6 +726,7 @@ export type MobileOtpLoginRequest = {
 export type AppIdentifierRequest = {
     identifier_type: LoginIdentifierType;
     identifier: string;
+    captcha?: MobileInteractiveCaptchaSubmission;
 };
 
 export type AppOtpRegistrationRequest = {
@@ -732,6 +771,7 @@ export type MobileStepUpCodeRequest = {
     identifier_id: string;
     purpose: 'oauth_bind' | 'oauth_unbind' | 'identifier_change' | 'identifier_unbind' | 'account_delete' | 'password_bind';
     resource: string;
+    captcha?: MobileInteractiveCaptchaSubmission;
 };
 
 export type MobileStepUpRequest = {
@@ -824,6 +864,7 @@ export type MobileOAuthAccountListResponse = {
 
 export type LoginIdentifierChallengeRequest = {
     identifier: string;
+    captcha?: MobileInteractiveCaptchaSubmission;
 };
 
 export type LoginIdentifierVerifyRequest = {
@@ -6655,6 +6696,10 @@ export type SendMobileSmsLoginCodeErrors = {
      */
     422: ErrorResponse;
     /**
+     * Interactive CAPTCHA proof is required.
+     */
+    428: ErrorResponse;
+    /**
      * The requested feature is enabled but its required local or external service is unavailable.
      */
     503: ErrorResponse;
@@ -6670,6 +6715,58 @@ export type SendMobileSmsLoginCodeResponses = {
 };
 
 export type SendMobileSmsLoginCodeResponse = SendMobileSmsLoginCodeResponses[keyof SendMobileSmsLoginCodeResponses];
+
+export type CreateMobileSmsCaptchaData = {
+    body: MobileSmsCaptchaRequest;
+    headers: {
+        /**
+         * Public immutable App UUID. It selects an active App only; authenticated tenant and user scope are derived from the verified session.
+         */
+        'X-AppID': string;
+        /**
+         * Random installation identifier used only as a hashed authorization-flow and rate-limit binding. It is not an authentication factor.
+         */
+        'X-AK-Device-Key': string;
+        'Accept-Language'?: string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/auth/sms-captcha';
+};
+
+export type CreateMobileSmsCaptchaErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
+     * Request validation failed.
+     */
+    422: ErrorResponse;
+    /**
+     * A challenge was refreshed during the two-second scope cooldown.
+     */
+    429: ErrorResponse;
+    /**
+     * The requested feature is enabled but its required local or external service is unavailable.
+     */
+    503: ErrorResponse;
+};
+
+export type CreateMobileSmsCaptchaError = CreateMobileSmsCaptchaErrors[keyof CreateMobileSmsCaptchaErrors];
+
+export type CreateMobileSmsCaptchaResponses = {
+    /**
+     * Five-minute interactive challenge. Responses are never cacheable.
+     */
+    200: MobileInteractiveCaptchaResponse;
+};
+
+export type CreateMobileSmsCaptchaResponse = CreateMobileSmsCaptchaResponses[keyof CreateMobileSmsCaptchaResponses];
 
 export type MobileOtpLoginData = {
     body: MobileOtpLoginRequest;
@@ -6740,6 +6837,10 @@ export type SendMobileStepUpCodeErrors = {
      * Request validation failed.
      */
     422: ErrorResponse;
+    /**
+     * Interactive CAPTCHA proof is required when the resolved identifier is mobile.
+     */
+    428: ErrorResponse;
     /**
      * The requested feature is enabled but its required local or external service is unavailable.
      */
@@ -6899,6 +7000,10 @@ export type SendAppOtpRegistrationCodeErrors = {
      */
     422: ErrorResponse;
     /**
+     * Interactive CAPTCHA proof is required for mobile.
+     */
+    428: ErrorResponse;
+    /**
      * The requested feature is enabled but its required local or external service is unavailable.
      */
     503: ErrorResponse;
@@ -7034,6 +7139,10 @@ export type ForgotAppPasswordErrors = {
      * Request validation failed.
      */
     422: ErrorResponse;
+    /**
+     * Interactive CAPTCHA proof is required for mobile.
+     */
+    428: ErrorResponse;
     /**
      * The requested feature is enabled but its required local or external service is unavailable.
      */
@@ -7365,6 +7474,10 @@ export type ChallengeMobileLoginIdentifierErrors = {
      * Request validation failed.
      */
     422: ErrorResponse;
+    /**
+     * Interactive CAPTCHA proof is required for a mobile identifier.
+     */
+    428: ErrorResponse;
     /**
      * The requested feature is enabled but its required local or external service is unavailable.
      */

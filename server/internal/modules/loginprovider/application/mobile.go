@@ -89,7 +89,8 @@ type PasswordResetInput struct {
 }
 
 type IdentifierCodeInput struct {
-	Identifier string `json:"identifier"`
+	Identifier string                    `json:"identifier"`
+	Captcha    *iamapp.LoginCaptchaInput `json:"captcha,omitempty"`
 }
 
 type IdentifierVerifyInput struct {
@@ -100,9 +101,23 @@ type IdentifierVerifyInput struct {
 }
 
 type StepUpCodeInput struct {
-	IdentifierID uuid.UUID `json:"identifier_id"`
-	Purpose      string    `json:"purpose"`
-	Resource     string    `json:"resource"`
+	IdentifierID uuid.UUID                 `json:"identifier_id"`
+	Purpose      string                    `json:"purpose"`
+	Resource     string                    `json:"resource"`
+	Captcha      *iamapp.LoginCaptchaInput `json:"captcha,omitempty"`
+}
+
+type SMSCaptchaInput struct {
+	Scene        string    `json:"scene"`
+	Mobile       string    `json:"mobile,omitempty"`
+	IdentifierID uuid.UUID `json:"identifier_id,omitempty"`
+	Purpose      string    `json:"purpose,omitempty"`
+	Resource     string    `json:"resource,omitempty"`
+}
+
+type smsCaptchaBinding struct {
+	Scene, Target, Purpose, Resource string
+	UserID, SessionID                uuid.UUID
 }
 
 type StepUpInput struct {
@@ -589,10 +604,89 @@ func validCode(value string) bool {
 	return true
 }
 
-func (service *Service) sendCode(ctx context.Context, appID uuid.UUID, tenantID uuid.UUID, userID *uuid.UUID, identifierType, raw, purpose, locale string, client iamapp.ClientMetadata) (CodeChallengeResult, error) {
+func captchaScope(appID uuid.UUID, binding smsCaptchaBinding, client iamapp.ClientMetadata) iamapp.InteractiveCaptchaScope {
+	return iamapp.InteractiveCaptchaScope{
+		Audience: "ak-mobile", AppID: appID, Scene: binding.Scene, Target: binding.Target,
+		UserID: binding.UserID, SessionID: binding.SessionID, Purpose: binding.Purpose, Resource: binding.Resource, Client: client,
+	}
+}
+
+func mapCaptchaError(err error) error {
+	switch {
+	case errors.Is(err, iamapp.ErrCaptchaRequired):
+		return login.ErrCaptchaRequired
+	case errors.Is(err, iamapp.ErrCaptchaInvalid), errors.Is(err, iamapp.ErrProfileValidation):
+		return login.ErrCaptchaInvalid
+	case errors.Is(err, iamapp.ErrCaptchaCooldown):
+		return login.ErrCaptchaCooldown
+	default:
+		return login.ErrCaptchaUnavailable
+	}
+}
+
+func (service *Service) CreateSMSCaptcha(ctx context.Context, token string, appID uuid.UUID, input SMSCaptchaInput, client iamapp.ClientMetadata) (iamapp.LoginCaptcha, error) {
+	input.Scene = strings.TrimSpace(input.Scene)
+	input.Purpose = strings.TrimSpace(input.Purpose)
+	input.Resource = strings.TrimSpace(input.Resource)
+	var binding smsCaptchaBinding
+	switch input.Scene {
+	case "login", "registration", "password_reset":
+		settings, err := service.repository.AppLoginSettings(ctx, appID)
+		if err != nil || !settings.OTPEnabled || !settings.MobileOTPEnabled || input.Scene == "registration" && !settings.Registration {
+			return iamapp.LoginCaptcha{}, login.ErrProviderUnavailable
+		}
+		mobile, _, err := normalizeIdentifier("mobile", input.Mobile)
+		if err != nil {
+			return iamapp.LoginCaptcha{}, err
+		}
+		binding = smsCaptchaBinding{Scene: input.Scene, Target: mobile}
+	case "identifier_verify":
+		authenticated, err := service.authenticateMobile(ctx, token, appID)
+		if err != nil {
+			return iamapp.LoginCaptcha{}, err
+		}
+		mobile, _, err := normalizeIdentifier("mobile", input.Mobile)
+		if err != nil {
+			return iamapp.LoginCaptcha{}, err
+		}
+		binding = smsCaptchaBinding{Scene: input.Scene, Target: mobile, UserID: authenticated.User.ID, SessionID: authenticated.SessionID}
+	case "step_up":
+		authenticated, err := service.authenticateMobile(ctx, token, appID)
+		if err != nil || !validStepUpScope(input.Purpose, input.Resource) {
+			return iamapp.LoginCaptcha{}, login.ErrInvalid
+		}
+		target, err := service.repository.IdentifierTarget(ctx, appID, authenticated.User.ID, input.IdentifierID)
+		if err != nil || target.TenantID != authenticated.Tenant.ID || target.IdentifierType != "mobile" {
+			return iamapp.LoginCaptcha{}, login.ErrForbidden
+		}
+		binding = smsCaptchaBinding{Scene: input.Scene, Target: target.NormalizedValue, UserID: authenticated.User.ID,
+			SessionID: authenticated.SessionID, Purpose: input.Purpose, Resource: input.Resource}
+	default:
+		return iamapp.LoginCaptcha{}, login.ErrInvalid
+	}
+	if service.auth == nil {
+		return iamapp.LoginCaptcha{}, login.ErrCaptchaUnavailable
+	}
+	challenge, err := service.auth.CreateInteractiveCaptcha(ctx, captchaScope(appID, binding, client))
+	if err != nil {
+		return iamapp.LoginCaptcha{}, mapCaptchaError(err)
+	}
+	return challenge, nil
+}
+
+func (service *Service) sendCode(ctx context.Context, appID uuid.UUID, tenantID uuid.UUID, userID *uuid.UUID, identifierType, raw, purpose, locale string, client iamapp.ClientMetadata, captchaInput *iamapp.LoginCaptchaInput, binding smsCaptchaBinding) (CodeChallengeResult, error) {
 	value, hint, err := normalizeIdentifier(identifierType, raw)
 	if err != nil {
 		return CodeChallengeResult{}, err
+	}
+	if identifierType == "mobile" {
+		if service.auth == nil {
+			return CodeChallengeResult{}, login.ErrCaptchaUnavailable
+		}
+		binding.Target = value
+		if captchaErr := service.auth.VerifyInteractiveCaptcha(ctx, captchaInput, captchaScope(appID, binding, client)); captchaErr != nil {
+			return CodeChallengeResult{}, mapCaptchaError(captchaErr)
+		}
 	}
 	code, err := newVerificationCode()
 	if err != nil {
@@ -616,7 +710,7 @@ func (service *Service) sendCode(ctx context.Context, appID uuid.UUID, tenantID 
 	return CodeChallengeResult{ChallengeID: challenge.ID, Accepted: true, RetryAfterSeconds: int(otpRetryAfter.Seconds()), ExpiresAt: challenge.ExpiresAt}, nil
 }
 
-func (service *Service) SendLoginCode(ctx context.Context, appID uuid.UUID, identifierType, identifier, locale string, client iamapp.ClientMetadata) (CodeChallengeResult, error) {
+func (service *Service) SendLoginCode(ctx context.Context, appID uuid.UUID, identifierType, identifier, locale string, client iamapp.ClientMetadata, captcha *iamapp.LoginCaptchaInput) (CodeChallengeResult, error) {
 	settings, err := service.repository.AppLoginSettings(ctx, appID)
 	if err != nil {
 		return CodeChallengeResult{}, err
@@ -647,7 +741,7 @@ func (service *Service) SendLoginCode(ctx context.Context, appID uuid.UUID, iden
 	// Unknown identifiers deliberately use the same persisted cooldown and
 	// App/IP/device rate-limit path. The nil user marks a non-delivery dummy;
 	// ConsumeOTPChallenge still fails closed because no active identifier joins.
-	return service.sendCode(ctx, appID, tenantID, challengeUserID, identifierType, identifier, "login", locale, client)
+	return service.sendCode(ctx, appID, tenantID, challengeUserID, identifierType, identifier, "login", locale, client, captcha, smsCaptchaBinding{Scene: "login"})
 }
 
 func (service *Service) OTPLogin(ctx context.Context, appID uuid.UUID, input OTPLoginInput, client iamapp.ClientMetadata) (iamapp.SessionTokens, error) {
@@ -675,7 +769,7 @@ func (service *Service) OTPLogin(ctx context.Context, appID uuid.UUID, input OTP
 	return issuer.IssueMobileSession(ctx, userID, appID, authMethod, client)
 }
 
-func (service *Service) SendRegistrationCode(ctx context.Context, appID uuid.UUID, identifierType, identifier, locale string, client iamapp.ClientMetadata) (CodeChallengeResult, error) {
+func (service *Service) SendRegistrationCode(ctx context.Context, appID uuid.UUID, identifierType, identifier, locale string, client iamapp.ClientMetadata, captcha *iamapp.LoginCaptchaInput) (CodeChallengeResult, error) {
 	settings, err := service.repository.AppLoginSettings(ctx, appID)
 	if err != nil {
 		return CodeChallengeResult{}, err
@@ -686,7 +780,7 @@ func (service *Service) SendRegistrationCode(ctx context.Context, appID uuid.UUI
 	if locale != "en-US" {
 		locale = "zh-CN"
 	}
-	return service.sendCode(ctx, appID, settings.TenantID, nil, identifierType, identifier, "registration", locale, client)
+	return service.sendCode(ctx, appID, settings.TenantID, nil, identifierType, identifier, "registration", locale, client, captcha, smsCaptchaBinding{Scene: "registration"})
 }
 
 func (service *Service) RegisterOTP(ctx context.Context, appID uuid.UUID, input OTPRegistrationInput, client iamapp.ClientMetadata) (iamapp.SessionTokens, error) {
@@ -729,7 +823,7 @@ func (service *Service) RegisterOTP(ctx context.Context, appID uuid.UUID, input 
 	return prepared.Tokens, nil
 }
 
-func (service *Service) SendPasswordResetCode(ctx context.Context, appID uuid.UUID, identifierType, identifier, locale string, client iamapp.ClientMetadata) (CodeChallengeResult, error) {
+func (service *Service) SendPasswordResetCode(ctx context.Context, appID uuid.UUID, identifierType, identifier, locale string, client iamapp.ClientMetadata, captcha *iamapp.LoginCaptchaInput) (CodeChallengeResult, error) {
 	settings, err := service.repository.AppLoginSettings(ctx, appID)
 	if err != nil {
 		return CodeChallengeResult{}, err
@@ -749,7 +843,7 @@ func (service *Service) SendPasswordResetCode(ctx context.Context, appID uuid.UU
 			locale = userLocale
 		}
 	}
-	return service.sendCode(ctx, appID, settings.TenantID, challengeUserID, identifierType, identifier, "password_reset", locale, client)
+	return service.sendCode(ctx, appID, settings.TenantID, challengeUserID, identifierType, identifier, "password_reset", locale, client, captcha, smsCaptchaBinding{Scene: "password_reset"})
 }
 
 func (service *Service) ResetPassword(ctx context.Context, appID uuid.UUID, input PasswordResetInput) error {
@@ -775,7 +869,8 @@ func (service *Service) SendIdentifierCode(ctx context.Context, token string, ap
 	if err != nil {
 		return CodeChallengeResult{}, err
 	}
-	return service.sendCode(ctx, appID, authenticated.Tenant.ID, &authenticated.User.ID, identifierType, input.Identifier, "bind", authenticated.User.Locale, client)
+	return service.sendCode(ctx, appID, authenticated.Tenant.ID, &authenticated.User.ID, identifierType, input.Identifier, "bind", authenticated.User.Locale, client, input.Captcha,
+		smsCaptchaBinding{Scene: "identifier_verify", UserID: authenticated.User.ID, SessionID: authenticated.SessionID})
 }
 
 func (service *Service) VerifyIdentifier(ctx context.Context, token string, appID uuid.UUID, identifierType string, input IdentifierVerifyInput, client iamapp.ClientMetadata) (login.Identifier, error) {
@@ -826,6 +921,8 @@ func validStepUpScope(purpose, resource string) bool {
 }
 
 func (service *Service) SendStepUpCode(ctx context.Context, token string, appID uuid.UUID, input StepUpCodeInput, client iamapp.ClientMetadata) (CodeChallengeResult, error) {
+	input.Purpose = strings.TrimSpace(input.Purpose)
+	input.Resource = strings.TrimSpace(input.Resource)
 	authenticated, err := service.authenticateMobile(ctx, token, appID)
 	if err != nil || !validStepUpScope(input.Purpose, input.Resource) {
 		return CodeChallengeResult{}, login.ErrInvalid
@@ -834,7 +931,8 @@ func (service *Service) SendStepUpCode(ctx context.Context, token string, appID 
 	if err != nil || target.TenantID != authenticated.Tenant.ID {
 		return CodeChallengeResult{}, login.ErrForbidden
 	}
-	return service.sendCode(ctx, appID, target.TenantID, &target.UserID, target.IdentifierType, target.NormalizedValue, "step_up", target.Locale, client)
+	return service.sendCode(ctx, appID, target.TenantID, &target.UserID, target.IdentifierType, target.NormalizedValue, "step_up", target.Locale, client, input.Captcha,
+		smsCaptchaBinding{Scene: "step_up", UserID: authenticated.User.ID, SessionID: authenticated.SessionID, Purpose: input.Purpose, Resource: input.Resource})
 }
 
 func (service *Service) StepUp(ctx context.Context, token string, appID uuid.UUID, input StepUpInput, client iamapp.ClientMetadata) (StepUpResult, error) {

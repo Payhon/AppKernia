@@ -966,6 +966,26 @@ paths:
       responses:
         "202": {description: Same accepted shape and persisted cooldown for known and unknown identifiers., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}
         "422": {$ref: "#/components/responses/ValidationFailed"}
+        "428": {description: Interactive CAPTCHA proof is required., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
+        "503": {$ref: "#/components/responses/ServiceUnavailable"}
+  /api/v1/auth/sms-captcha:
+    post:
+      summary: Create a single-use interactive CAPTCHA before an App-scoped SMS request
+      operationId: createMobileSMSCaptcha
+      tags: [mobile-auth]
+      security: [{}, {mobileBearer: []}]
+      parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}, {$ref: "#/components/parameters/AcceptLanguage"}]
+      description: login, registration and password_reset are anonymous; identifier_verify and step_up require the current ak-mobile session. The server binds the proof to the App, scene, normalized mobile, IP and installation key, plus authenticated user/session and step-up scope when applicable.
+      requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/MobileSMSCaptchaRequest"}}}}
+      responses:
+        "200":
+          description: Five-minute interactive challenge. Responses are never cacheable.
+          headers: {Cache-Control: {schema: {type: string, const: no-store}}}
+          content: {application/json: {schema: {$ref: "#/components/schemas/MobileInteractiveCaptchaResponse"}}}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "422": {$ref: "#/components/responses/ValidationFailed"}
+        "429": {description: A challenge was refreshed during the two-second scope cooldown., headers: {Retry-After: {schema: {type: integer, const: 2}}}, content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
         "503": {$ref: "#/components/responses/ServiceUnavailable"}
   /api/v1/auth/login/otp:
     post:
@@ -992,6 +1012,7 @@ paths:
         "401": {$ref: "#/components/responses/Unauthorized"}
         "403": {$ref: "#/components/responses/Forbidden"}
         "422": {$ref: "#/components/responses/ValidationFailed"}
+        "428": {description: Interactive CAPTCHA proof is required when the resolved identifier is mobile., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
         "503": {$ref: "#/components/responses/ServiceUnavailable"}
   /api/v1/auth/step-up:
     post:
@@ -1032,7 +1053,7 @@ paths:
       security: []
       parameters: [{$ref: "#/components/parameters/AppID"}, {$ref: "#/components/parameters/LoginProviderDeviceKey"}, {$ref: "#/components/parameters/AcceptLanguage"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppIdentifierRequest"}}}}
-      responses: {"202": {description: Registration challenge accepted., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {$ref: "#/components/responses/ServiceUnavailable"}}
+      responses: {"202": {description: Registration challenge accepted., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "428": {description: Interactive CAPTCHA proof is required for mobile., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "503": {$ref: "#/components/responses/ServiceUnavailable"}}
   /api/v1/auth/register/otp:
     post:
       summary: Register and sign in with an App-scoped email or SMS OTP
@@ -1068,7 +1089,7 @@ paths:
       security: []
       parameters: [{$ref: "#/components/parameters/AppID"}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AppPasswordForgotRequest"}}}}
-      responses: {"202": {description: Generic challenge response to prevent account enumeration., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "503": {$ref: "#/components/responses/ServiceUnavailable"}}
+      responses: {"202": {description: Generic challenge response to prevent account enumeration., content: {application/json: {schema: {$ref: "#/components/schemas/OTPChallengeResponse"}}}}, "422": {$ref: "#/components/responses/ValidationFailed"}, "428": {description: Interactive CAPTCHA proof is required for mobile., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}, "503": {$ref: "#/components/responses/ServiceUnavailable"}}
   /api/v1/auth/password/reset:
     post:
       summary: Reset an App user's password with a one-time email or SMS OTP
@@ -1164,6 +1185,7 @@ paths:
         "403": {$ref: "#/components/responses/Forbidden"}
         "409": {$ref: "#/components/responses/Conflict"}
         "422": {$ref: "#/components/responses/ValidationFailed"}
+        "428": {description: Interactive CAPTCHA proof is required for a mobile identifier., content: {application/json: {schema: {$ref: "#/components/schemas/ErrorResponse"}}}}
         "503": {$ref: "#/components/responses/ServiceUnavailable"}
   /api/v1/me/password:
     put:
@@ -6401,8 +6423,61 @@ components:
     MobileLoginCodeRequest:
       type: object
       additionalProperties: false
-      required: [mobile]
-      properties: {mobile: {type: string, pattern: '^\\+[1-9][0-9]{7,14}$'}}
+      required: [mobile, captcha]
+      properties:
+        mobile: {type: string, pattern: '^\\+[1-9][0-9]{7,14}$'}
+        captcha: {$ref: "#/components/schemas/MobileInteractiveCaptchaSubmission"}
+    MobileSMSCaptchaScene:
+      type: string
+      enum: [login, registration, password_reset, identifier_verify, step_up]
+    MobileSMSCaptchaRequest:
+      oneOf:
+        - $ref: "#/components/schemas/MobileSMSCaptchaTargetRequest"
+        - $ref: "#/components/schemas/MobileSMSCaptchaStepUpRequest"
+    MobileSMSCaptchaTargetRequest:
+      type: object
+      additionalProperties: false
+      required: [scene, mobile]
+      properties:
+        scene: {type: string, enum: [login, registration, password_reset, identifier_verify]}
+        mobile: {type: string, pattern: '^\\+[1-9][0-9]{7,14}$'}
+    MobileSMSCaptchaStepUpRequest:
+      type: object
+      additionalProperties: false
+      required: [scene, identifier_id, purpose, resource]
+      properties:
+        scene: {type: string, const: step_up}
+        identifier_id: {type: string, format: uuid}
+        purpose: {type: string, enum: [oauth_bind, oauth_unbind, identifier_change, identifier_unbind, account_delete, password_bind]}
+        resource: {type: string, minLength: 1, maxLength: 160}
+    MobileInteractiveCaptchaSubmission:
+      type: object
+      additionalProperties: false
+      required: [id, token, response]
+      properties:
+        id: {type: string, format: uuid}
+        token: {type: string, minLength: 32, maxLength: 4096}
+        response: {$ref: "#/components/schemas/AdminLoginCaptchaAnswer"}
+    MobileInteractiveCaptchaResponse:
+      type: object
+      required: [code, message, data, request_id]
+      properties:
+        code: {type: string, const: OK}
+        message: {type: string}
+        data:
+          oneOf:
+            - $ref: "#/components/schemas/AdminLoginClickCaptchaChallenge"
+            - $ref: "#/components/schemas/AdminLoginSlideCaptchaChallenge"
+            - $ref: "#/components/schemas/AdminLoginDragCaptchaChallenge"
+            - $ref: "#/components/schemas/AdminLoginRotateCaptchaChallenge"
+          discriminator:
+            propertyName: type
+            mapping:
+              click: "#/components/schemas/AdminLoginClickCaptchaChallenge"
+              slide: "#/components/schemas/AdminLoginSlideCaptchaChallenge"
+              drag: "#/components/schemas/AdminLoginDragCaptchaChallenge"
+              rotate: "#/components/schemas/AdminLoginRotateCaptchaChallenge"
+        request_id: {type: string}
     OTPChallenge:
       type: object
       additionalProperties: false
@@ -6432,6 +6507,7 @@ components:
       properties:
         identifier_type: {$ref: "#/components/schemas/LoginIdentifierType"}
         identifier: {type: string, minLength: 3, maxLength: 320}
+        captcha: {$ref: "#/components/schemas/MobileInteractiveCaptchaSubmission"}
     AppOTPRegistrationRequest:
       type: object
       additionalProperties: false
@@ -6477,6 +6553,7 @@ components:
         identifier_id: {type: string, format: uuid}
         purpose: {type: string, enum: [oauth_bind, oauth_unbind, identifier_change, identifier_unbind, account_delete, password_bind]}
         resource: {type: string, minLength: 1, maxLength: 160}
+        captcha: {$ref: "#/components/schemas/MobileInteractiveCaptchaSubmission"}
     MobileStepUpRequest:
       type: object
       additionalProperties: false
@@ -6568,7 +6645,9 @@ components:
       type: object
       additionalProperties: false
       required: [identifier]
-      properties: {identifier: {type: string, minLength: 3, maxLength: 320}}
+      properties:
+        identifier: {type: string, minLength: 3, maxLength: 320}
+        captcha: {$ref: "#/components/schemas/MobileInteractiveCaptchaSubmission"}
     LoginIdentifierVerifyRequest:
       type: object
       additionalProperties: false

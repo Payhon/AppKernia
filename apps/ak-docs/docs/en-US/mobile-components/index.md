@@ -5,7 +5,7 @@ description: Real ak-* components currently available in AppKernia Mobile.
 
 # AK Mobile components
 
-Business pages use components exported by `apps/ak-mobile/components/ak-ui`. AK UI isolates tokens, platform compatibility, touch sizing, event types, and the underlying uView or native implementation.
+Business pages use `ak-*` components exported by `apps/ak-mobile/components/ak-ui` or approved `uni_modules`. AK UI isolates tokens, platform compatibility, touch sizing, event types, and the underlying uView or native implementation.
 
 <div className="ak-diagram" role="group" aria-label="AK Mobile component adapter layer">
 
@@ -50,21 +50,22 @@ flowchart TD
 
 The Props/Event/Slot tables on component pages reflect current source. A new field updates implementation, example, bilingual reference, platform evidence, and validation together.
 
-| Component                           | Purpose                                 | Status      |
-| ----------------------------------- | --------------------------------------- | ----------- |
-| [`ak-scanner`](./scanner)           | QR/barcode events and trusted web flow  | Implemented |
-| [`ak-button`](./button)             | Primary, secondary, danger, loading     | Implemented |
-| [`ak-text-field`](./text-field)     | Label, input, password, disabled, error | Implemented |
-| [`ak-card`](./layout-status)        | Content container                       | Implemented |
-| [`ak-cell-list`](./layout-status)   | Settings/profile list container         | Implemented |
-| [`ak-empty-state`](./layout-status) | Empty state and next action             | Implemented |
-| [`ak-loading`](./layout-status)     | Local loading label                     | Implemented |
-| [`ak-status-view`](./layout-status) | Loading/empty/error state composition   | Implemented |
-| [`ak-modal`](./modal-switch)        | High-risk confirmation                  | Implemented |
-| [`ak-switch`](./modal-switch)       | Boolean settings                        | Implemented |
-| [`ak-icon`](./icons-theme)          | Controlled semantic icons               | Implemented |
-| [`ak-back-button`](./icons-theme)   | Safe back with fallback                 | Implemented |
-| [`ak-theme-root`](./icons-theme)    | Theme root                              | Implemented |
+| Component                                         | Purpose                                 | Status      |
+| ------------------------------------------------- | --------------------------------------- | ----------- |
+| [`ak-scanner`](./scanner)                         | QR/barcode events and trusted web flow  | Implemented |
+| [`ak-button`](./button)                           | Primary, secondary, danger, loading     | Implemented |
+| [`ak-text-field`](./text-field)                   | Label, input, password, disabled, error | Implemented |
+| [`ak-card`](./layout-status)                      | Content container                       | Implemented |
+| [`ak-cell-list`](./layout-status)                 | Settings/profile list container         | Implemented |
+| [`ak-empty-state`](./layout-status)               | Empty state and next action             | Implemented |
+| [`ak-loading`](./layout-status)                   | Local loading label                     | Implemented |
+| [`ak-status-view`](./layout-status)               | Loading/empty/error state composition   | Implemented |
+| [`ak-modal`](./modal-switch)                      | High-risk confirmation                  | Implemented |
+| [`ak-switch`](./modal-switch)                     | Boolean settings                        | Implemented |
+| [`ak-icon`](./icons-theme)                        | Controlled semantic icons               | Implemented |
+| [`ak-back-button`](./icons-theme)                 | Safe back with fallback                 | Implemented |
+| [`ak-theme-root`](./icons-theme)                  | Theme root                              | Implemented |
+| [`ak-interactive-captcha`](./interactive-captcha) | Four-mode CAPTCHA before SMS delivery   | Implemented |
 
 Visible strings are translated by the page through AkI18n and passed in. Touch targets are at least 44×44. Loading/disabled states prevent repeated submission. Business pages never use `up-*` directly. Platform availability still requires matching Android, iOS, and HarmonyOS build/device evidence.
 

@@ -151,7 +151,7 @@ func TestFirstOAuthLoginRollsBackWhenSessionPreparationFails(t *testing.T) {
 	assertLoginProviderCount(t, pool, `SELECT count(*) FROM iam.sessions WHERE app_id=$1 AND audience='ak-mobile'`, 0, appID)
 }
 
-func TestOTPDeliveryFailureDoesNotEnumerateKnownIdentifiers(t *testing.T) {
+func TestMobileOTPRequiresCaptchaBeforeKnownIdentifierLookupOrDelivery(t *testing.T) {
 	pool := loginProviderTestPool(t)
 	ctx := context.Background()
 	tenantID, appID, _ := createLoginProviderRuntime(t, pool, "otp-enumeration", "zh-CN")
@@ -178,33 +178,20 @@ VALUES($1,$2,$3,'mobile',$4,'+15****4567',now(),'active')`, tenantID, appID, use
 	service := loginapp.NewService(nil, NewPostgres(pool, dispatcher), nil, nil, "", nil)
 	ipAddress := netip.MustParseAddr("192.0.2.42")
 	client := iamapp.ClientMetadata{IPAddress: &ipAddress, DeviceKey: uuid.NewString(), RequestID: "otp-enumeration"}
-	type targetResult struct {
-		first  loginapp.CodeChallengeResult
-		second loginapp.CodeChallengeResult
-	}
-	results := make([]targetResult, 0, 2)
 	for _, mobile := range []string{knownMobile, "+15557654321"} {
-		first, err := service.SendLoginCode(ctx, appID, "mobile", mobile, "zh-CN", client)
-		if err != nil || !first.Accepted {
-			t.Fatalf("first accepted response for %s: %#v err=%v", mobile, first, err)
+		_, err := service.SendLoginCode(ctx, appID, "mobile", mobile, "zh-CN", client, nil)
+		if !errors.Is(err, login.ErrCaptchaUnavailable) {
+			t.Fatalf("captcha gate for %s: err=%v", mobile, err)
 		}
-		second, err := service.SendLoginCode(ctx, appID, "mobile", mobile, "zh-CN", client)
-		if err != nil || !second.Accepted || second.ChallengeID != first.ChallengeID || second.RetryAfterSeconds != first.RetryAfterSeconds {
-			t.Fatalf("cooldown response for %s: first=%#v second=%#v err=%v", mobile, first, second, err)
-		}
-		results = append(results, targetResult{first: first, second: second})
-	}
-	if results[0].first.ChallengeID == uuid.Nil || results[1].first.ChallengeID == uuid.Nil {
-		t.Fatal("known and unknown responses must both contain persisted challenge IDs")
 	}
 	dispatcher.mu.Lock()
 	knownTargets := append([]bool(nil), dispatcher.knownTarget...)
 	dispatcher.mu.Unlock()
-	if len(knownTargets) != 2 || !knownTargets[0] || knownTargets[1] {
-		t.Fatalf("delivery readiness path calls=%v, want one known and one dummy call", knownTargets)
+	if len(knownTargets) != 0 {
+		t.Fatalf("delivery was reached before captcha: %v", knownTargets)
 	}
 	assertLoginProviderCount(t, pool, `SELECT count(*) FROM iam.verification_challenges
-WHERE metadata->>'app_id'=$1 AND metadata->>'delivery_status'='failed'`, 2, appID.String())
+WHERE metadata->>'app_id'=$1 AND metadata->>'delivery_status'='failed'`, 0, appID.String())
 }
 
 func TestRegistrationOTPChallengeUsesRegisteredDatabaseType(t *testing.T) {
@@ -221,7 +208,7 @@ ON CONFLICT(tenant_id,app_id) DO UPDATE SET otp_login_enabled=true,email_otp_ena
 		t.Fatal(err)
 	}
 	service := loginapp.NewService(nil, NewPostgres(pool, &failingOTPDispatcher{}), nil, nil, "", nil)
-	result, err := service.SendRegistrationCode(ctx, appID, "email", "registration@example.com", "zh-CN", iamapp.ClientMetadata{DeviceKey: uuid.NewString()})
+	result, err := service.SendRegistrationCode(ctx, appID, "email", "registration@example.com", "zh-CN", iamapp.ClientMetadata{DeviceKey: uuid.NewString()}, nil)
 	if err != nil || !result.Accepted || result.ChallengeID == uuid.Nil {
 		t.Fatalf("registration OTP challenge: %#v err=%v", result, err)
 	}

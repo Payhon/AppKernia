@@ -15,6 +15,7 @@
 - Place `ak-login-provider-list` below an accessible localized divider. Only providers that are both enabled by the server and compiled for the current platform/build variant are actionable.
 - Provider actions have a 48 px minimum target, localized provider name, progress/denial text and an accessibility label. Apple renders a semantic brand placeholder until an official redistributable logo-only asset is supplied; do not draw an Apple mark.
 - OTP resend controls announce cooldown seconds as text and never rely on disabled colour alone.
+- SMS OTP actions open a non-networked interactive CAPTCHA modal before the send request. Click markers preserve order, slide/rotate use native sliders, drag uses touch coordinates scaled to the source image, and all four modes keep explicit loading/error text and 44 px controls.
 - Primary authentication labels are explicitly white in the AK button component; never depend on text-color inheritance through a slot.
 - Authentication hero, navigation and legal content start below the status-bar safe area on every supported device.
 - Custom navigation bars must use an explicit AK back action that invokes platform navigation history; when no prior page exists, guest/legal surfaces fall back to the login route instead of becoming a dead end.

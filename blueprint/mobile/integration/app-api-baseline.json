@@ -77,6 +77,18 @@
     },
     {
       "method": "POST",
+      "path": "/api/v1/auth/sms-captcha",
+      "purpose": "创建短信发送前的交互式验证码挑战",
+      "auth": "anonymous_or_mobile_session"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/auth/registration/send-code",
+      "purpose": "发送 App 注册邮箱或手机验证码",
+      "auth": "rate_limited"
+    },
+    {
+      "method": "POST",
       "path": "/api/v1/auth/mobile/verify",
       "purpose": "验证手机号",
       "auth": "challenge"

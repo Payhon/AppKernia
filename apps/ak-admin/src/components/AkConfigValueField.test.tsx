@@ -161,7 +161,7 @@ describe("AkConfigValueField", () => {
       ...item("string", "slide", {
         enum: ["click", "slide", "drag", "rotate"],
       }),
-      config_key: "admin.login_captcha.type",
+      config_key: "interactive_captcha.type",
     };
     render(
       <LocaleProvider>

@@ -188,6 +188,7 @@
   "api_reference.operation.adminLogin": "Sign in to the Admin application with a password",
   "api_reference.operation.getPublicDictionary": "Resolve an active public dictionary using tenant-neutral locale fallback",
   "api_reference.operation.createAdminLoginCaptcha": "Create a short-lived interactive CAPTCHA for an Admin login retry",
+  "api_reference.operation.createMobileSMSCaptcha": "Create a single-use interactive CAPTCHA before an App-scoped SMS request",
   "api_reference.operation.getAdminPublicConfig": "Read public Admin authentication configuration",
   "api_reference.operation.registerAdminAccount": "Request self-service registration in the configured Admin tenant",
   "api_reference.operation.requestAdminPasswordReset": "Request an Admin password reset without revealing account existence",

@@ -149,6 +149,16 @@
       "harmony": "test_required"
     },
     {
+      "wrapper": "AkInteractiveCaptcha",
+      "implementation": "native uni_modules UTS/UVue view, image and slider",
+      "status": "approved",
+      "phase": "P0",
+      "notes": "短信发送前的 click/slide/drag/rotate 单次交互挑战；组件不负责网络",
+      "android": "test_required",
+      "ios": "test_required",
+      "harmony": "test_required"
+    },
+    {
       "wrapper": "AkSwitch",
       "implementation": "up-switch",
       "status": "approved",

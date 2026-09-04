@@ -1,0 +1,40 @@
+import { AkError } from '../../core/errors/ak-error.uts'
+import { AkHttpPort, HttpCancellation, HttpRequest } from '../../core/network/http-port.uts'
+import { akI18n } from '../../core/i18n/ak-i18n.uts'
+import { MobileCaptchaChallengeWire, MobileCaptchaImageWire, MobileCaptchaPointWire, MobileCaptchaResponseWire, MobileCaptchaSubmissionWire, MobileSMSCaptchaPublicRequestWire, MobileSMSCaptchaStepUpRequestWire } from '../../generated/api/mobile-identity.uts'
+import { AkCaptchaImage, AkCaptchaPoint, AkInteractiveCaptchaChallenge, AkInteractiveCaptchaResponse, AkInteractiveCaptchaSubmission } from '../../../uni_modules/ak-interactive-captcha/model.uts'
+
+export type SMSCaptchaScene = 'login' | 'registration' | 'password_reset' | 'identifier_verify' | 'step_up'
+export type SMSCaptchaIntent = { readonly scene: SMSCaptchaScene; readonly mobile: string; readonly identifierId: string; readonly purpose: string; readonly resource: string }
+
+function image(value:MobileCaptchaImageWire|null):AkCaptchaImage|null{return value==null?null:new AkCaptchaImage(value.base64,value.mime_type,value.width,value.height)}
+
+export function captchaSubmissionWire(value:AkInteractiveCaptchaSubmission):MobileCaptchaSubmissionWire{
+  const answer=value.response
+  let response:MobileCaptchaResponseWire
+  if(answer.type==='click'){
+    const points:Array<MobileCaptchaPointWire>=[]
+    answer.points.forEach(point=>{const item:MobileCaptchaPointWire={x:point.x,y:point.y};points.push(item)})
+    response={type:'click',points:points}
+  }
+  else if(answer.type==='rotate')response={type:'rotate',angle:answer.angle}
+  else response={type:answer.type,point:{x:answer.point!.x,y:answer.point!.y}}
+  return {id:value.id,token:value.token,response:response}
+}
+
+export class HttpCaptchaRepository {
+  private readonly http:AkHttpPort
+  constructor(http:AkHttpPort){this.http=http}
+  create(input:SMSCaptchaIntent,onSuccess:(challenge:AkInteractiveCaptchaChallenge)=>void,onFailure:(error:AkError)=>void):HttpCancellation{
+    if(input.scene==='step_up'){
+      const body:MobileSMSCaptchaStepUpRequestWire={scene:'step_up',identifier_id:input.identifierId,purpose:input.purpose,resource:input.resource}
+      const request:HttpRequest<MobileSMSCaptchaStepUpRequestWire>={method:'POST',path:'/auth/sms-captcha',query:new Map<string,string>(),headers:new Map<string,string>(),retryOnUnauthorized:true,body:body,locale:akI18n.getLocale()}
+      return this.http.execute<MobileSMSCaptchaStepUpRequestWire,MobileCaptchaChallengeWire>(request,response=>this.accept(response.data,onSuccess,onFailure),onFailure)
+    }
+    const body:MobileSMSCaptchaPublicRequestWire={scene:input.scene,mobile:input.mobile}
+    const request:HttpRequest<MobileSMSCaptchaPublicRequestWire>={method:'POST',path:'/auth/sms-captcha',query:new Map<string,string>(),headers:new Map<string,string>(),retryOnUnauthorized:input.scene==='identifier_verify',body:body,locale:akI18n.getLocale()}
+    return this.http.execute<MobileSMSCaptchaPublicRequestWire,MobileCaptchaChallengeWire>(request,response=>this.accept(response.data,onSuccess,onFailure),onFailure)
+  }
+  private accept(wire:MobileCaptchaChallengeWire,onSuccess:(challenge:AkInteractiveCaptchaChallenge)=>void,onFailure:(error:AkError)=>void):void{const main=image(wire.image);if(main==null||wire.captcha_id.length==0||wire.captcha_token.length==0){onFailure(new AkError('unknown','response.invalid_captcha','errors.unknown',null));return};const initial=wire.initial_point==null?null:new AkCaptchaPoint(wire.initial_point!.x,wire.initial_point!.y);onSuccess(new AkInteractiveCaptchaChallenge(wire.captcha_id,wire.captcha_token,wire.type,wire.expires_in_seconds,main!,image(wire.prompt_image),wire.required_points==null?0:wire.required_points!,image(wire.tile_image),initial,image(wire.thumb_image)))}
+  submission(challenge:AkInteractiveCaptchaChallenge,response:AkInteractiveCaptchaResponse):AkInteractiveCaptchaSubmission{return new AkInteractiveCaptchaSubmission(challenge.id,challenge.token,response)}
+}

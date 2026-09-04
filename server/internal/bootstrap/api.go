@@ -164,7 +164,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		return nil, fmt.Errorf("configure login protection key: %w", err)
 	}
 	resolveLoginCaptchaType := func(ctx context.Context) (platformcaptcha.Type, error) {
-		value, resolveErr := settingsRepository.GetGlobalString(ctx, "iam", "security", iamapp.AdminLoginCaptchaTypeSettingKey)
+		value, resolveErr := settingsRepository.GetGlobalString(ctx, "iam", "security", iamapp.InteractiveCaptchaTypeSettingKey)
 		return configuredLoginCaptchaType(value, resolveErr)
 	}
 	authService, err := iamapp.NewAuthService(iamRepository, iamRepository, issuer, iamapp.WithLoginProtectionKey(loginProtectionKey), iamapp.WithLoginCaptchaTypeProvider(resolveLoginCaptchaType), iamapp.WithAnonymousAuth(
@@ -401,6 +401,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/public/content/assets/{file_id}", contentHandler.PublicAsset)
 		group.GET("/regions", settingsHandler.PublicRegions)
 		group.POST("/auth/register", appManagementHandler.Register)
+		group.POST("/auth/sms-captcha", loginProviderHandler.SMSCaptcha)
 		group.POST("/auth/registration/send-code", loginProviderHandler.SendRegistrationCode)
 		group.POST("/auth/register/otp", loginProviderHandler.RegisterOTP)
 		group.POST("/auth/registration/verify-email", appManagementHandler.VerifyRegistration)

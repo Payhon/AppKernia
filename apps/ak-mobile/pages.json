@@ -2,6 +2,7 @@
   "easycom": {
     "autoscan": true,
     "custom": {
+      "^ak-interactive-captcha$": "@/uni_modules/ak-interactive-captcha/components/ak-interactive-captcha/ak-interactive-captcha.uvue",
       "^ak-(.*)": "@/components/ak-ui/ak-$1/ak-$1.uvue",
       "^section-list$": "@/components/section-list/section-list.uvue"
     }

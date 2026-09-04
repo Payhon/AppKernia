@@ -5,7 +5,7 @@ description: AppKernia 移动端真实可用的 ak-* 组件与使用规则。
 
 # AK Mobile 组件
 
-业务页面只能使用 `apps/ak-mobile/components/ak-ui` 暴露的 `ak-*` 组件。AK UI 隔离视觉 Token、平台兼容、触控尺寸、事件类型和底层 uView / uni 原生实现。
+业务页面只能使用 `apps/ak-mobile/components/ak-ui` 或已批准 `uni_modules` 暴露的 `ak-*` 组件。AK UI 隔离视觉 Token、平台兼容、触控尺寸、事件类型和底层 uView / uni 原生实现。
 
 <div className="ak-diagram" role="group" aria-label="AK Mobile 组件适配层">
 
@@ -52,21 +52,22 @@ flowchart TD
 
 ## 当前实现
 
-| 组件                                | 用途                               | 状态   |
-| ----------------------------------- | ---------------------------------- | ------ |
-| [`ak-scanner`](./scanner)           | 二维码、条形码、事件与可信网页处理 | 已实现 |
-| [`ak-button`](./button)             | 主、次、危险操作与加载态           | 已实现 |
-| [`ak-text-field`](./text-field)     | 标签、输入、密码、禁用与错误       | 已实现 |
-| [`ak-card`](./layout-status)        | 通用内容容器                       | 已实现 |
-| [`ak-cell-list`](./layout-status)   | 设置/个人中心列表容器              | 已实现 |
-| [`ak-empty-state`](./layout-status) | 空状态与下一步动作                 | 已实现 |
-| [`ak-loading`](./layout-status)     | 局部加载提示                       | 已实现 |
-| [`ak-status-view`](./layout-status) | Loading / Empty / Error 等状态编排 | 已实现 |
-| [`ak-modal`](./modal-switch)        | 高风险确认                         | 已实现 |
-| [`ak-switch`](./modal-switch)       | 布尔设置                           | 已实现 |
-| [`ak-icon`](./icons-theme)          | 受控语义图标                       | 已实现 |
-| [`ak-back-button`](./icons-theme)   | 安全返回与 fallback                | 已实现 |
-| [`ak-theme-root`](./icons-theme)    | 主题根容器                         | 已实现 |
+| 组件                                              | 用途                               | 状态   |
+| ------------------------------------------------- | ---------------------------------- | ------ |
+| [`ak-scanner`](./scanner)                         | 二维码、条形码、事件与可信网页处理 | 已实现 |
+| [`ak-button`](./button)                           | 主、次、危险操作与加载态           | 已实现 |
+| [`ak-text-field`](./text-field)                   | 标签、输入、密码、禁用与错误       | 已实现 |
+| [`ak-card`](./layout-status)                      | 通用内容容器                       | 已实现 |
+| [`ak-cell-list`](./layout-status)                 | 设置/个人中心列表容器              | 已实现 |
+| [`ak-empty-state`](./layout-status)               | 空状态与下一步动作                 | 已实现 |
+| [`ak-loading`](./layout-status)                   | 局部加载提示                       | 已实现 |
+| [`ak-status-view`](./layout-status)               | Loading / Empty / Error 等状态编排 | 已实现 |
+| [`ak-modal`](./modal-switch)                      | 高风险确认                         | 已实现 |
+| [`ak-switch`](./modal-switch)                     | 布尔设置                           | 已实现 |
+| [`ak-icon`](./icons-theme)                        | 受控语义图标                       | 已实现 |
+| [`ak-back-button`](./icons-theme)                 | 安全返回与 fallback                | 已实现 |
+| [`ak-theme-root`](./icons-theme)                  | 主题根容器                         | 已实现 |
+| [`ak-interactive-captcha`](./interactive-captcha) | 短信发送前的四类交互式验证码       | 已实现 |
 
 ## 通用规则
 

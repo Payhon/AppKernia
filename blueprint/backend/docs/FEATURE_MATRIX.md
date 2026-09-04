@@ -141,8 +141,9 @@ GET  /admin-api/v1/auth/context
 - 用户名/邮箱/手机号规范化。
 - Argon2id 密码哈希。
 - 登录失败统一文案，防账号枚举。
-- Admin 同一 HMAC 保护范围在 30 分钟内第三次失败后强制 `click | slide | drag | rotate` 交互式验证码（默认 `slide`）；Mobile 不触发。挑战 5 分钟有效、最多尝试 5 次、成功后单次消费，刷新旧挑战受 2 秒冷却且客户端刷新不能绕过失败状态。
-- 验证码类型来自全局 `iam/security/admin.login_captcha.type`；仅平台租户 `super-admin` 且具备 `sys.platform_config.update` 可修改。缺失/非法值回退 `slide`，配置读取失败时拒绝签发。
+- Admin 同一 HMAC 保护范围在 30 分钟内第三次失败后强制 `click | slide | drag | rotate` 交互式验证码（默认 `slide`）；Mobile 登录失败不触发该阈值。挑战 5 分钟有效、最多尝试 5 次、成功后单次消费，刷新旧挑战受 2 秒冷却且客户端刷新不能绕过失败状态。
+- Mobile 每次短信登录、短信注册、手机找回密码、手机号绑定/变更及手机 Step-up 发码前都必须创建并单次消费交互式验证码；邮箱 OTP 不受影响。Scope 绑定 Audience、App、场景、手机号、IP、设备键，登录态场景再绑定用户、Session、用途与资源。
+- 验证码类型来自全局 `iam/security/interactive_captcha.type`；仅平台租户 `super-admin` 且具备 `sys.platform_config.update` 可修改。缺失/非法值回退 `slide`，配置读取失败时拒绝签发。
 - Access Token + 旋转 Refresh Token。
 - Audience 隔离：`ak-mobile`、`ak-admin`、`ak-api`。
 - 登录风控、失败次数和临时锁定。
@@ -173,6 +174,7 @@ POST /api/v1/auth/password/reset
 POST /api/v1/auth/password/change
 POST /api/v1/auth/email/send-code
 POST /api/v1/auth/email/verify
+POST /api/v1/auth/sms-captcha
 POST /api/v1/auth/mobile/send-code
 POST /api/v1/auth/mobile/verify
 ```
@@ -184,6 +186,7 @@ POST /api/v1/auth/mobile/verify
 - 修改密码后可选撤销其他会话。
 - 密码历史和强度策略。
 - 发送限流和目标级冷却。
+- 手机短信缺少交互证明返回 `428 IAM.CAPTCHA.REQUIRED`；无效、过期、跨范围或已消费证明返回 `IAM.CAPTCHA.INVALID`，验证码刷新冷却返回 `429 IAM.CAPTCHA.COOLDOWN`。
 
 **验收**
 

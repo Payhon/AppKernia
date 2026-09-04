@@ -1250,7 +1250,7 @@
 - Admin 原六位数字图片验证码已由 `AkInteractiveCaptcha` 替换为 `click | slide | drag | rotate` 四种交互挑战，默认 `slide`。组件保持受控且不发网络请求，登录页仅在服务端返回 `IAM.AUTH.CAPTCHA_REQUIRED` 后动态加载；Pointer、触控、原生 Range 与键盘均可操作，包含焦点恢复、ARIA 状态/错误播报、44px 目标、过期重置和 reduced-motion。
 - Backend 直接集成 `go-captcha/v2@v2.0.5` 与 `go-captcha-assets@v1.0.7`，启动时复用资源。AES-GCM 不透明 Token 绑定版本、Challenge ID、Scope、类型、目标与有效期，数据库只保存 SHA-256；继续执行三次失败触发、五分钟有效、最多五次、单次消费、邮箱/Audience/IP 绑定，并增加同 Scope 两秒刷新冷却。点击库偶发生成超出画布数像素的旋转图形目标已按实际可见画布裁剪，连续生成与 race 压测通过。
 - 新迁移固定为 `000032_interactive_login_captcha`：升级时消费旧数字挑战，列替换为 `captcha_type + proof_hash`，同 Scope 只允许一个未消费 Challenge；真实 PostgreSQL 18 已完成 `up → down → up`，最终 `32/false`。sqlc、OpenAPI、Admin/Mobile Client、双语 Catalog、权限 Seed、蓝图、ADR 与第三方许可均已同步。
-- 新增全局配置 `iam/security/admin.login_captcha.type` 与 `sys.platform_config.update`。只有 `AK_PLATFORM_TENANT_CODE`（默认 `local`）租户中的 `super-admin` 且同时具备配置更新权限才可修改；非法或缺失值回退 `slide`，数据库读取失败拒绝生成。Mobile 登录不会读取或要求 Admin CAPTCHA 状态。
+- 新增全局配置 `iam/security/interactive_captcha.type` 与 `sys.platform_config.update`。只有 `AK_PLATFORM_TENANT_CODE`（默认 `local`）租户中的 `super-admin` 且同时具备配置更新权限才可修改；非法或缺失值回退 `slide`，数据库读取失败拒绝生成。Migration 33 将原 Admin 专用配置键无损迁移为全平台共享键。
 - Backend race 共 338 个命名测试/子测试通过；PostgreSQL 18 集成串行包执行共 123 个命名测试/子测试通过。Admin 全量为 57 个文件、251 项，通过 lint、strict typecheck、构建与 Bundle 预算；初始 gzip 299105 bytes，交互组件保持独立懒加载 chunk。
 - 真实 Chromium 已覆盖 375/768/1440、四种交互、中文/英文、键盘、Pointer 与触控模拟、过期/刷新、无横向溢出及 axe WCAG 2 A/AA 零违规；系统配置按 `click → slide → drag → rotate` 保存并最终恢复 `slide`，审计动作 `sys.platform_config.update` 成功落库。截图与 axe 结果位于 `output/playwright/interactive-captcha/`。
 - 全仓 `make check`、后端 `make test-race`、四套 Blueprint/i18n、UI Skill 与补丁格式校验均退出 0。未执行 commit、push、生产部署或物理触屏/人工读屏验收；Chromium 触控模拟不冒充真机。
@@ -1262,3 +1262,19 @@
 - API/Admin 健康检查、验证码 JS/CSS 静态资源、Admin 反向代理均返回预期状态；真实 HTTP 冒烟确认第三次失败触发 `IAM.AUTH.CAPTCHA_REQUIRED`、生成 300×220 的五分钟 slide Challenge，并在连续刷新时返回 `429` 与 `Retry-After: 2`。冒烟产生的 1 条失败状态、4 条 Challenge 和 3 条登录审计已精确删除。
 - API、Admin、PostgreSQL healthy，Worker running，全部 restart count 为 0；启动后日志未发现 panic、fatal 或 error。迁移前 PostgreSQL 自定义格式备份已通过 `pg_restore --list` 校验，旧三套镜像保留 `pre-interactive-captcha-20260904` 标签。
 - 本次只部署本地测试环境，未提交、推送或部署生产；当前 Server/Admin 工作区中的其他未提交变更也随镜像一并构建。备份与结构化证据位于 `output/local-deploy-interactive-captcha-20260904/`。
+
+## 2026-09-04 — Mobile 短信交互式验证码
+
+- 新增 uni-app x `ak-interactive-captcha`，以强类型 UTS/UVue 独立实现 `click | slide | drag | rotate`；组件无网络职责，支持原图坐标归一化、撤销、过期、错误播报、安全区和 44px 操作目标。
+- 验证码生命周期已下沉为 Admin/Mobile 共用服务；新增 `/api/v1/auth/sms-captcha`。登录、注册、找回密码、手机号绑定/变更及 Mobile OTP Step-up 的每次短信发送与重发均先消费新的交互证明，邮箱 OTP 保持原行为。
+- `000033_mobile_sms_interactive_captcha` 无损迁移共享 Challenge 表与全平台配置键；Scope 绑定 Audience、App、场景、手机号、IP、设备键，并在登录态场景绑定用户、Session、资源和 purpose。缺失/错误证明不会创建 OTP 或进入短信队列。
+- OpenAPI、sqlc、Mobile Client、双语 Catalog、Backend/Mobile/Admin 蓝图、ADR-0032、Design System、第三方声明、组件 README、文档站中英文组件/API 使用说明与 UI Skill 证据已同步；PostgreSQL 18 `up → down → up` 与带 seed 集成测试通过。
+- 最终全仓 `make check`、Mobile 静态检查、后端 race 及 HBuilderX 5.24 Android/iOS/Harmony 43 页面编译通过；iOS 18.6 模拟器安装、同步和启动成功，Harmony 仅生成未签名 HAP。Redmi 最终未连接、Harmony 无签名设备，三端验证码 Modal 真机交互和读屏/最大字号仍为 blocked/未验证。
+- 本轮未提交、推送、更新测试环境或部署生产；用户既有 `docs/plan/` 保持未跟踪且未修改。
+
+## 2026-09-04 — Mobile 短信验证码 Backend 本地更新
+
+- 已从当前工作区重建并替换 `appkernia-news-demo` 的 API 与 Worker，Admin、PostgreSQL 和对象存储卷未重建；API 继续使用 `localhost:8080`。
+- 数据库由 `32/false` 更新至 `33/false`，Seed 完成；原 6 个用户、5 个租户、5 个应用保持不变。全局验证码类型保留环境现值 `drag`（version 2），未覆盖用户配置。
+- API live/ready 均为 HTTP 200；`POST /api/v1/auth/sms-captcha` 实际生成 300×220、有效期 300 秒的 drag Challenge，测试 Challenge 已精确删除，活动 Challenge 最终为 0。
+- 迁移前 PostgreSQL 18 备份已通过容器内 `pg_restore --list` 校验，旧 API/Worker 镜像已保存回滚标签。未重建 Admin/Mobile、未提交、未推送或部署生产。

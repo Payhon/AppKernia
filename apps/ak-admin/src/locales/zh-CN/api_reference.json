@@ -188,6 +188,7 @@
   "api_reference.operation.adminLogin": "使用密码登录管理端",
   "api_reference.operation.getPublicDictionary": "获取公共字典",
   "api_reference.operation.createAdminLoginCaptcha": "创建管理端登录验证码",
+  "api_reference.operation.createMobileSMSCaptcha": "创建发送 App 短信前的一次性交互验证码",
   "api_reference.operation.getAdminPublicConfig": "获取管理端公共配置",
   "api_reference.operation.registerAdminAccount": "注册管理端账号",
   "api_reference.operation.requestAdminPasswordReset": "申请管理端密码重置",

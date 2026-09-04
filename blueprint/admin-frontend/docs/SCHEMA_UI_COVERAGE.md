@@ -15,7 +15,7 @@
 
 | 表 | 分类 | 前端处理 |
 |---|---|---|
-| `iam.login_captcha_challenges` | `indirect_aggregate` | 登录页仅消费一次性交互挑战，不读取证明 Token Hash、目标或挑战记录。 关联：`auth.login`。 |
+| `iam.interactive_captcha_challenges` | `indirect_aggregate` | Admin 登录与 Mobile 短信流程仅消费一次性交互挑战，不向 Admin 页面读取证明 Token Hash、目标或挑战记录。 关联：`auth.login`。 |
 | `iam.login_failure_states` | `indirect_aggregate` | 登录页只按稳定错误码展示渐进式验证码，不暴露失败状态原始记录。 关联：`auth.login`。 |
 | `jobs.inbox_events` | `backend_only` | 消息消费幂等与去重基础设施；仅通过运行指标/告警间接观测，不提供逐行管理页面。 关联：无直接页面。 |
 | `notify.push_devices` | `indirect_aggregate` | 仅展示推送设备数量、平台、最近活跃与投递状态；Push Token 不进入通用列表或前端日志，也不提供直接 CRUD。 关联：`system.users.accounts`、`system.notifications.deliveries`、`system.notifications.push-channels`。 |

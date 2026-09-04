@@ -1,0 +1,9 @@
+{
+  "id": "ak-interactive-captcha",
+  "displayName": "AK Interactive CAPTCHA",
+  "version": "1.0.0",
+  "description": "Typed network-free click, slide, drag and rotate CAPTCHA for AppKernia uni-app x.",
+  "engines": {"HBuilderX": "^5.24", "uni-app-x": "^5.24"},
+  "dcloudext": {"type": "component-vue", "declaration": {"ads": "none", "data": "Renders an opaque server challenge and emits only the user interaction response.", "permissions": "none"}},
+  "uni_modules": {"dependencies": [], "encrypt": [], "platforms": {"client": {"uni-app-x": {"app": {"android": "√", "ios": "√", "harmony": "√"}}}}}
+}

@@ -35,6 +35,11 @@ func (repository *captchaRepositoryStub) CreateLoginCaptcha(_ context.Context, i
 	return input.ID, nil
 }
 
+func (repository *captchaRepositoryStub) CreateInteractiveCaptcha(_ context.Context, input domain.LoginCaptchaChallenge) (uuid.UUID, error) {
+	repository.created = input
+	return input.ID, nil
+}
+
 func (repository *captchaRepositoryStub) LoginCaptchaRequired(context.Context, []byte, time.Time) (bool, error) {
 	repository.requiredCalls++
 	return repository.required, nil
@@ -47,6 +52,10 @@ func (repository *captchaRepositoryStub) VerifyLoginCaptcha(_ context.Context, i
 		return domain.ErrLoginCaptchaInvalid
 	}
 	return nil
+}
+
+func (repository *captchaRepositoryStub) VerifyInteractiveCaptcha(ctx context.Context, input domain.LoginCaptchaAttempt) error {
+	return repository.VerifyLoginCaptcha(ctx, input)
 }
 
 func (repository *captchaRepositoryStub) FindCredentialByEmail(context.Context, string) (domain.Credential, error) {
@@ -205,6 +214,52 @@ func TestLoginProtectionIsAdminOnly(t *testing.T) {
 	}
 	if repository.requiredCalls != 0 {
 		t.Fatal("mobile login must not enter CAPTCHA protection")
+	}
+}
+
+func TestInteractiveCaptchaBindsMobileSMSContext(t *testing.T) {
+	repository := &captchaRepositoryStub{}
+	service := newCaptchaTestService(t, repository, platformcaptcha.TypeSlide)
+	now := time.Unix(1_800_000_000, 0).UTC()
+	service.clock = func() time.Time { return now }
+	ip := netip.MustParseAddr("192.0.2.10")
+	scope := InteractiveCaptchaScope{Audience: "ak-mobile", AppID: uuid.New(), Scene: "login", Target: "+15551234567", Client: ClientMetadata{IPAddress: &ip, DeviceKey: uuid.NewString()}}
+	challenge, err := service.CreateInteractiveCaptcha(context.Background(), scope)
+	if err != nil || repository.checkCalls != 0 || repository.created.ID != challenge.ID {
+		t.Fatalf("create shared challenge: challenge=%+v err=%v checks=%d", challenge, err, repository.checkCalls)
+	}
+	proof, err := service.loginCaptchaCodec.Open(challenge.Token)
+	if err != nil || proof.Solution.Point == nil {
+		t.Fatalf("open generated proof: %v", err)
+	}
+	responsePoint := *proof.Solution.Point
+	input := &LoginCaptchaInput{ID: challenge.ID, Token: challenge.Token, Response: platformcaptcha.Response{Type: platformcaptcha.TypeSlide, Point: &responsePoint}}
+	if err = service.VerifyInteractiveCaptcha(context.Background(), input, scope); err != nil || !repository.attempt.Valid {
+		t.Fatalf("verify shared challenge: err=%v attempt=%+v", err, repository.attempt)
+	}
+	for name, mutate := range map[string]func(*InteractiveCaptchaScope){
+		"audience": func(value *InteractiveCaptchaScope) { value.Audience = "ak-admin" },
+		"app":      func(value *InteractiveCaptchaScope) { value.AppID = uuid.New() },
+		"target":   func(value *InteractiveCaptchaScope) { value.Target = "+15557654321" },
+		"scene":    func(value *InteractiveCaptchaScope) { value.Scene = "registration" },
+		"ip": func(value *InteractiveCaptchaScope) {
+			changed := netip.MustParseAddr("192.0.2.11")
+			value.Client.IPAddress = &changed
+		},
+		"device":   func(value *InteractiveCaptchaScope) { value.Client.DeviceKey = uuid.NewString() },
+		"user":     func(value *InteractiveCaptchaScope) { value.UserID = uuid.New() },
+		"session":  func(value *InteractiveCaptchaScope) { value.SessionID = uuid.New() },
+		"purpose":  func(value *InteractiveCaptchaScope) { value.Purpose = "identifier_change" },
+		"resource": func(value *InteractiveCaptchaScope) { value.Resource = "mobile" },
+	} {
+		t.Run(name, func(t *testing.T) {
+			changed := scope
+			mutate(&changed)
+			before := repository.verifyCalls
+			if verifyErr := service.VerifyInteractiveCaptcha(context.Background(), input, changed); !errors.Is(verifyErr, ErrCaptchaInvalid) || repository.verifyCalls != before {
+				t.Fatalf("cross-scope proof must fail before persistence: err=%v calls=%d", verifyErr, repository.verifyCalls)
+			}
+		})
 	}
 }
 

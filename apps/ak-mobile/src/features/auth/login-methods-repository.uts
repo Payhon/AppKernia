@@ -20,6 +20,8 @@ import {
 } from '../../generated/api/mobile-identity.uts'
 import { OTPChallenge } from './auth-repository.uts'
 import { LoginIdentifier, LoginMethods, OAuthAccount, StepUpProof } from './oauth-models.uts'
+import { AkInteractiveCaptchaSubmission } from '../../../uni_modules/ak-interactive-captcha/model.uts'
+import { captchaSubmissionWire } from '../captcha/captcha-repository.uts'
 
 export class HttpLoginMethodsRepository {
   private readonly http: AkHttpPort
@@ -30,8 +32,8 @@ export class HttpLoginMethodsRepository {
     return this.http.execute<UTSJSONObject, LoginMethodsWire>(request, response => onSuccess(this.methods(response.data)), onFailure)
   }
 
-  sendIdentifierCode(identifierType: 'email' | 'mobile', value: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation {
-    const body: IdentifierCodeWire = { identifier: value }
+  sendIdentifierCode(identifierType: 'email' | 'mobile', value: string, captcha: AkInteractiveCaptchaSubmission | null, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: IdentifierCodeWire = { identifier: value, captcha: captcha==null?null:captchaSubmissionWire(captcha!) }
     const request: HttpRequest<IdentifierCodeWire> = { method: 'POST', path: '/me/login-identifiers/' + identifierType + '/challenge', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
     return this.http.execute<IdentifierCodeWire, ChallengeWire>(request, response => this.challenge(response.data, onSuccess, onFailure), onFailure)
   }
@@ -57,8 +59,8 @@ export class HttpLoginMethodsRepository {
     return this.http.execute<SetPasswordWire, UTSJSONObject>(request, () => onSuccess(), onFailure)
   }
 
-  sendStepUpCode(identifierId: string, purpose: string, resource: string, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation {
-    const body: StepUpCodeWire = { identifier_id: identifierId, purpose: purpose, resource: resource }
+  sendStepUpCode(identifierId: string, purpose: string, resource: string, captcha: AkInteractiveCaptchaSubmission | null, onSuccess: (challenge: OTPChallenge) => void, onFailure: (error: AkError) => void): HttpCancellation {
+    const body: StepUpCodeWire = { identifier_id: identifierId, purpose: purpose, resource: resource, captcha: captcha==null?null:captchaSubmissionWire(captcha!) }
     const request: HttpRequest<StepUpCodeWire> = { method: 'POST', path: '/auth/step-up/verification-code', query: new Map<string, string>(), headers: new Map<string, string>(), retryOnUnauthorized: false, body: body, locale: akI18n.getLocale() }
     return this.http.execute<StepUpCodeWire, ChallengeWire>(request, response => this.challenge(response.data, onSuccess, onFailure), onFailure)
   }

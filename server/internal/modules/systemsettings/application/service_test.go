@@ -198,7 +198,7 @@ func TestServiceValidatesTypedValuesSecretPolicyAndLocales(t *testing.T) {
 		t.Fatalf("public secret error=%v", err)
 	}
 	captcha := settings.ConfigInput{
-		ModuleCode: "iam", ConfigGroup: "security", ConfigKey: "admin.login_captcha.type",
+		ModuleCode: "iam", ConfigGroup: "security", ConfigKey: "interactive_captcha.type",
 		DisplayName: "Admin login CAPTCHA type", ValueType: "string", Value: []byte(`"puzzle"`),
 		ValidationSchema: []byte(`{"enum":["click","slide","drag","rotate"]}`), Status: "active",
 	}
@@ -227,7 +227,7 @@ func TestGlobalConfigUnlockRequiresConfiguredPlatformSuperAdmin(t *testing.T) {
 	globalID := uuid.New()
 	global := settings.ConfigItem{ID: globalID, TenantID: nil, IsLocked: true, Version: 1}
 	input := settings.ConfigInput{
-		ModuleCode: "iam", ConfigGroup: "security", ConfigKey: "admin.login_captcha.type",
+		ModuleCode: "iam", ConfigGroup: "security", ConfigKey: "interactive_captcha.type",
 		DisplayName: "Admin login CAPTCHA type", ValueType: "string", Value: []byte(`"rotate"`),
 		DefaultValue: []byte(`"slide"`), ValidationSchema: []byte(`{"enum":["click","slide","drag","rotate"]}`),
 		Status: "active", Version: 1,

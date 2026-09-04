@@ -102,6 +102,7 @@
         <ak-button :loading="mutating" :loading-text="t('common.loading', null)" :label="t('connections.stepUp.verify', null)" @click="verifyStepUp" />
       </view>
     </ak-bottom-sheet>
+    <ak-interactive-captcha :open="captchaOpen" :challenge="captchaChallenge" :loading="captchaLoading" :error-text="captchaError" @confirm="confirmCaptcha" @refresh="refreshCaptcha" @close="closeCaptcha" />
   </ak-theme-root>
 </template>
 
@@ -115,6 +116,9 @@ import { loginMethodsRuntime } from '../../../src/features/auth/login-methods-ru
 import { oauthCoordinator } from '../../../src/features/auth/oauth-coordinator.uts'
 import { LoginIdentifier, LoginMethods, OAuthAccount, OAuthProviderCode, StepUpProof } from '../../../src/features/auth/oauth-models.uts'
 import { oauthProviderIcon } from '../../../src/features/auth/oauth-provider-assets.uts'
+import { captchaRuntime } from '../../../src/features/captcha/captcha-runtime.uts'
+import { SMSCaptchaIntent } from '../../../src/features/captcha/captcha-repository.uts'
+import { AkInteractiveCaptchaChallenge, AkInteractiveCaptchaResponse } from '../../../uni_modules/ak-interactive-captcha/model.uts'
 
 let activeTask: HttpCancellation | null = null
 let identifierTimer: number = 0
@@ -128,6 +132,7 @@ export default {
       passwordOpen: false, newPassword: '', confirmPassword: '', passwordError: '', confirmPasswordError: '',
       stepUpOpen: false, stepUpMethod: 'password', stepUpSecret: '', stepUpChallengeId: '', stepUpError: '', stepUpCountdown: 0,
       pendingAction: '', pendingAccountId: '', pendingProvider: '', mutating: false, oauthWaiting: false,
+      captchaOpen: false, captchaLoading: false, captchaError: '', captchaContext: '', captchaChallenge: null as AkInteractiveCaptchaChallenge | null,
     }
   },
   computed: {
@@ -242,11 +247,13 @@ export default {
       const repository = loginMethodsRuntime.getRepository()
       if (repository == null) return
       this.identifierValueError = ''
-      activeTask = repository.sendIdentifierCode(this.pendingIdentifier as 'email' | 'mobile', value, (challenge: OTPChallenge) => {
+      if (this.pendingIdentifier == 'mobile') { this.openIdentifierCaptcha(); return }
+      activeTask = repository.sendIdentifierCode('email', value, null, (challenge: OTPChallenge) => this.identifierCodeSent(challenge), error => { activeTask = null; this.identifierCodeError = akI18n.t(error.messageKey, null) })
+    },
+    identifierCodeSent(challenge: OTPChallenge): void {
         activeTask = null; this.identifierChallengeId = challenge.challengeId; this.identifierCountdown = challenge.retryAfterSeconds > 0 ? challenge.retryAfterSeconds : 60
         if (identifierTimer != 0) clearInterval(identifierTimer)
         identifierTimer = setInterval(() => { if (this.identifierCountdown <= 1) { this.identifierCountdown = 0; clearInterval(identifierTimer); identifierTimer = 0 } else this.identifierCountdown -= 1 }, 1000)
-      }, error => { activeTask = null; this.identifierCodeError = akI18n.t(error.messageKey, null) })
     },
     validIdentifier(value: string): boolean { return this.pendingIdentifier == 'email' ? value.indexOf('@') > 0 && !value.endsWith('@') : /^\+[1-9][0-9]{7,14}$/.test(value) },
     continueIdentifier(): void {
@@ -291,11 +298,33 @@ export default {
       if (this.stepUpCountdown > 0 || this.stepUpMethod == 'password') return
       const repository = loginMethodsRuntime.getRepository(); const identifier = this.stepUpIdentifier()
       if (repository == null || identifier == null || identifier!.id.length == 0) { this.stepUpError = akI18n.t('connections.stepUp.methodUnavailable', null); return }
-      activeTask = repository.sendStepUpCode(identifier!.id, this.stepUpPurpose(), this.stepUpResource(), (challenge: OTPChallenge) => {
+      if (this.stepUpMethod == 'mobile_otp') { this.openStepUpCaptcha(); return }
+      activeTask = repository.sendStepUpCode(identifier!.id, this.stepUpPurpose(), this.stepUpResource(), null, (challenge: OTPChallenge) => this.stepUpCodeSent(challenge), error => { activeTask = null; this.stepUpError = akI18n.t(error.messageKey, null) })
+    },
+    stepUpCodeSent(challenge: OTPChallenge): void {
         activeTask = null; this.stepUpChallengeId = challenge.challengeId; this.stepUpCountdown = challenge.retryAfterSeconds > 0 ? challenge.retryAfterSeconds : 60
         if (stepUpTimer != 0) clearInterval(stepUpTimer)
         stepUpTimer = setInterval(() => { if (this.stepUpCountdown <= 1) { this.stepUpCountdown = 0; clearInterval(stepUpTimer); stepUpTimer = 0 } else this.stepUpCountdown -= 1 }, 1000)
-      }, error => { activeTask = null; this.stepUpError = akI18n.t(error.messageKey, null) })
+    },
+    openIdentifierCaptcha(): void { this.captchaContext='identifier';this.requestCaptcha() },
+    openStepUpCaptcha(): void { this.captchaContext='step_up';this.requestCaptcha() },
+    refreshCaptcha(): void { this.requestCaptcha() },
+    requestCaptcha(): void {
+      const repository=captchaRuntime.getRepository();if(repository==null)return
+      this.captchaOpen=true;this.captchaLoading=true;this.captchaError=''
+      const identifier=this.stepUpIdentifier()
+      let intent:SMSCaptchaIntent
+      if(this.captchaContext=='identifier')intent={scene:'identifier_verify',mobile:this.identifierValue.trim(),identifierId:'',purpose:'',resource:''}
+      else intent={scene:'step_up',mobile:'',identifierId:identifier==null?'':identifier!.id,purpose:this.stepUpPurpose(),resource:this.stepUpResource()}
+      activeTask=repository.create(intent,challenge=>{this.captchaChallenge=challenge;this.captchaLoading=false},error=>{this.captchaLoading=false;this.captchaError=akI18n.t(error.messageKey,null)})
+    },
+    closeCaptcha(): void { this.captchaOpen=false;this.captchaLoading=false;this.captchaError='';this.captchaChallenge=null },
+    confirmCaptcha(response:AkInteractiveCaptchaResponse): void {
+      const captcha=captchaRuntime.getRepository();const repository=loginMethodsRuntime.getRepository();const challenge=this.captchaChallenge;if(captcha==null||repository==null||challenge==null)return
+      const proof=captcha.submission(challenge,response);this.captchaLoading=true
+      if(this.captchaContext=='identifier'){activeTask=repository.sendIdentifierCode('mobile',this.identifierValue.trim(),proof,value=>{this.closeCaptcha();this.identifierCodeSent(value)},error=>{this.captchaLoading=false;this.captchaError=akI18n.t(error.messageKey,null)});return}
+      const identifier=this.stepUpIdentifier();if(identifier==null)return
+      activeTask=repository.sendStepUpCode(identifier!.id,this.stepUpPurpose(),this.stepUpResource(),proof,value=>{this.closeCaptcha();this.stepUpCodeSent(value)},error=>{this.captchaLoading=false;this.captchaError=akI18n.t(error.messageKey,null)})
     },
     verifyStepUp(): void {
       this.stepUpError = ''
