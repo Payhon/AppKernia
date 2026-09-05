@@ -22,8 +22,8 @@ sh install.sh
 固定版本或安装目录：
 
 ```bash
-sh install.sh --version 0.5.0-preview.1 --install-dir "$HOME/.local/bin"
-sh install.sh --version 0.5.0-preview.1 --prefix "$HOME/.local"
+sh install.sh --version 0.5.0-preview.2 --install-dir "$HOME/.local/bin"
+sh install.sh --version 0.5.0-preview.2 --prefix "$HOME/.local"
 ```
 
 安装器支持 macOS/Linux 的 amd64、arm64。它从同一 Release 下载 `checksums.txt` 和平台归档，验证 SHA-256、归档版本及二进制内置版本一致后原子替换 `akone`；不会 sudo、修改 PATH 或启动服务。
@@ -58,15 +58,15 @@ brew install payhon/tap/akone
 两个入口调用同一个 Node 标准库编排器。默认只做完整预检，不创建 tag、不推送、不发布：
 
 ```bash
-make release VERSION=0.5.0-preview.1
-npm run release -- --version 0.5.0-preview.1
+make release VERSION=0.5.0-preview.2
+npm run release -- --version 0.5.0-preview.2
 ```
 
 确认所有输出后，显式启用发布：
 
 ```bash
-make release VERSION=0.5.0-preview.1 PUBLISH=1
-npm run release -- --version 0.5.0-preview.1 --publish
+make release VERSION=0.5.0-preview.2 PUBLISH=1
+npm run release -- --version 0.5.0-preview.2 --publish
 ```
 
 编排器会执行以下不可跳过的检查：
@@ -98,7 +98,7 @@ Homebrew 稳定发布需要只对 `Payhon/homebrew-tap` 有写权限的 fine-gra
 
 ## 稳定版签名门禁
 
-当前流程只允许带 prerelease 后缀的 Preview，例如首发 `v0.5.0-preview.1`。无后缀稳定 tag 会同时被本地编排器、主发布 workflow 和可人工重跑的渠道 workflow 拒绝；两个 workflow 还会复核签名 tag、检出 commit 与 `origin/main` 的可达关系。
+当前流程只允许带 prerelease 后缀的 Preview，例如 `v0.5.0-preview.2`。无后缀稳定 tag 会同时被本地编排器、主发布 workflow 和可人工重跑的渠道 workflow 拒绝；两个 workflow 还会复核签名 tag、检出 commit 与 `origin/main` 的可达关系。
 
 只有在以下原生签名链实现并通过真实安装验收后，才能移除门禁：
 
