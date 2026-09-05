@@ -1,13 +1,13 @@
 # AppKernia Codex 交付报告
 
 日期：2026-09-05
-范围：AppKernia 全仓交付记录；本轮追加 `akone` 安装部署文档与首页快速开始，并延续单二进制、Agent CLI 与多渠道发行首期，明确排除 Plugin 开发；既有未提交更改保留，未提交、未推送、未发布、未部署生产。
+范围：AppKernia 全仓交付记录；本轮发布 `akone` `0.5.0-preview.3`，同步安装部署文档与首页快速开始，明确排除 Plugin 开发并保留稳定版签名门禁。
 
 ## 2026-09-05 文档站 `akone` 安装与部署
 
 ### 已交付
 
-- 首页中英文快速开始改为复用同一个五项安装 Tab：源码构建、Shell、npm、Homebrew、GitHub Release。当前仅源码路径标记为可用；其余渠道展示真实目标平台、发布阶段和命令，但明确提示尚无公开制品。
+- 首页中英文快速开始复用同一个五项安装 Tab：源码构建、Shell、npm、Homebrew、GitHub Release。Shell、npm 和 Release 展示已验证的 `0.5.0-preview.3`；Homebrew 继续明确等待签名稳定版。
 - 新增中英文安装部署页并加入 Guide 导航，覆盖首次管理员初始化、默认 SQLite、固定数据位置、YAML/环境变量、长期进程托管、反向代理与 TLS、Secret、备份升级及 SQLite/PostgreSQL 边界；源码和 Docker 指南保持各自入口。
 - Tab 使用现有 React/CSS，无新增依赖；具备 tablist/tab/tabpanel 语义、唯一关联、单一选中面板、roving tabindex、Arrow/Home/End 操作和不低于 44 px 的点击目标。SSG Markdown 输出会展开五种方式，避免隐藏内容缺失于搜索与 LLM 文本。
 - `ui-ux-pro-max` request、输出、决策、检查清单和截图索引已保存；浏览器检查发现并修复状态标签对比度、可滚动代码区和焦点环问题。
@@ -18,7 +18,9 @@
 |---|---:|---|
 | `pnpm --filter @appkernia/docs check` | 0 | 校验 158 个 API 文档路径；13 个主题文件 lint 为 0 error/0 warning，TypeScript 与 Prettier 通过；Rspress 2.0.19 完成 Web/Node/Markdown 双语构建与语言一致性检查，sitemap 为 88 页。 |
 | `AK_DOCS_EVIDENCE_ID=AKDOCS-007 AK_DOCS_PREVIEW_URL=http://127.0.0.1:4175 /Users/payhon/.venv/3.12/bin/python apps/ak-docs/scripts/visual-check.py` | 0 | Chromium 139、Darwin arm64 共 24 个样本；8 个变更页状态均为 5 Tab/5 Panel，Arrow/Home/End、单一选中/可见面板通过，最小目标 47.19 px；无页面级横向溢出、资源/控制台错误，Axe serious/critical 为 0。 |
-| `node --test scripts/release.test.mjs` | 0 | 12/12，复核文档引用的版本、制品、安装器和发布渠道契约。 |
+| `node --test scripts/release.test.mjs` | 0 | 13/13，复核文档引用的版本、制品、安装器和发布渠道契约。 |
+| GitHub Actions `33948674361` / `33953280452` | 0 / 0 | 前者发布签名 `v0.5.0-preview.3` Preview、五平台归档、checksums、SBOM 与来源证明；后者在新令牌就绪后发布 6 个 npm 包。Homebrew 按 Preview 规则跳过。 |
+| Release Shell 安装 / npm 官方 Registry 全局安装 | 0 / 0 | 两条真实安装路径均运行 `akone version --json`，返回 `0.5.0-preview.3`、Commit `6268ba96aab9f66adef52fb0c41c2e071cecc950`。 |
 | `sh -n scripts/install-akone.sh` / `python3 -m py_compile apps/ak-docs/scripts/visual-check.py` | 0 / 0 | Shell 安装器与视觉检查脚本语法通过。 |
 | `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` / `python3 blueprint/scripts/validate_i18n_contract.py` | 0 / 0 | Mobile Blueprint 与全仓 `zh-CN`/`en-US` 契约通过。 |
 | `git diff --check` | 0 | 当前补丁无空白错误。 |
@@ -27,9 +29,9 @@
 
 ### 明确边界
 
-- GitHub Release、npm 包和 Homebrew Tap 仍未公开，文档因此以源码构建为默认 Tab，并要求 Preview 发布后从 Release 页取得真实版本；未执行任何对外发布。
+- GitHub Preview Release 与 npm 6 包已公开；源码仍为默认 Tab，Shell/npm/Release 显示真实 Preview，Homebrew 仍因稳定版签名门禁不可用。
 - 文档构建宿主 Node 26.5.0 触发仓库要求 Node `>=24 <25` 的 engine warning，但所有门禁退出 0；正式 CI 和发行继续使用 Node 24。
-- 本轮未运行 macOS/Linux/Windows 安装包原生验收，未部署文档站，未 commit、push 或创建 Tag。公开文档必须与当前工作树中的 `akone` 源码和发行配置原子交付，不能在对应代码合入前单独上线。
+- Shell 与 npm 已在 macOS arm64 实际安装运行；Linux、Windows 及 macOS amd64 仍只有交叉编译制品，没有对应原生运行验收。未部署生产服务。
 
 ## 2026-09-05 `akone` 单二进制、Agent CLI 与发行首期
 
@@ -65,10 +67,10 @@
 
 - SQLite 首期并非 PostgreSQL 全功能等价层：API Client、App、内容、通知、推送与任务队列等仍只在 PostgreSQL 模式注册；SQLite 不启动空 Worker。后续模块必须有独立 Repository、迁移及并发/恢复验证后再加入。
 - 当前 Agent CLI 是经过审计的 17/424 操作首批，不等于“已支持大部分 OpenAPI”。应按真实 Agent 场景和权限模型逐模块扩展白名单，而不是默认开放全部写接口。
-- Stable 与 Homebrew 发布被 macOS Developer ID + notarization、Windows Authenticode/Trusted Signing 硬阻断；GitHub Actions、npm OIDC 首次 bootstrap、Homebrew Tap 写入及五平台真实安装运行均未执行。本轮只验证了本机产物和流水线静态/单元门禁。
+- Stable 与 Homebrew 发布仍被 macOS Developer ID + notarization、Windows Authenticode/Trusted Signing 硬阻断。GitHub Preview、Shell 与 npm 已发布并在 macOS arm64 运行；npm 目前使用 90 天、仅限 `@appkernia` 的发布令牌，后续应迁移 Trusted Publishing OIDC。
 - SQLite 已完成真实二进制、数据库和账号下的 HTTP 登录/身份上下文/Dashboard/重启持久化验收；真实浏览器的刷新/退出/OAuth/密码重置、Linux/Windows 原生运行仍未验收。
 - Plugin 创建命令、项目脚手架、热插拔运行时和市场均未开发；既有 `docs/plan/PLUGIN_ARCHITECTURE_AND_MARKETPLACE.md` 未修改，也未嵌入二进制。
-- 未 commit、未 push、未创建 Tag、未发布外部渠道、未部署任何环境。
+- 已创建 GitHub 验证签名 Tag `v0.5.0-preview.3` 并推送 `origin`、`gitee`；外部 Preview Release 与 npm 已发布。未发布 Homebrew 或部署生产服务。
 
 ## 2026-09-03 注册协议内联文字链接
 

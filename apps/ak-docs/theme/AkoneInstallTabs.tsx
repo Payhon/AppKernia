@@ -39,24 +39,24 @@ akone version --json`,
       {
         id: 'shell',
         label: 'Shell',
-        status: '首个 Preview 后',
-        available: false,
+        status: 'Preview 可用',
+        available: true,
         description: '适用于 macOS 和 Linux 的 amd64、arm64；安装器会校验 SHA-256。',
-        command: `VERSION='X.Y.Z-preview.N'
+        command: `VERSION='0.5.0-preview.3'
 curl -fsSL "https://github.com/Payhon/AppKernia/releases/download/v\${VERSION}/install.sh" | sh -s -- --version "\${VERSION}"
 export PATH="$HOME/.local/bin:$PATH"
 akone version --json`,
-        note: '当前下载地址尚未发布。发布后请先从 Release 页复制真实 Preview 版本替换占位值。',
+        note: '安装器会校验归档 SHA-256、归档版本和二进制内置版本。',
       },
       {
         id: 'npm',
         label: 'npm',
-        status: '首个 Preview 后',
-        available: false,
+        status: 'Preview 可用',
+        available: true,
         description: '支持 macOS、Linux 和 Windows，通过平台包安装原生 akone 可执行文件。',
         command: `npm install --global @appkernia/akone@preview
 akone version --json`,
-        note: '当前 npm registry 尚无此包；稳定版发布后可省略 @preview。',
+        note: '当前 Preview 为 0.5.0-preview.3；稳定版发布后可省略 @preview。',
       },
       {
         id: 'homebrew',
@@ -70,17 +70,17 @@ akone version --json`,
       {
         id: 'release',
         label: 'Release',
-        status: '首个 Preview 后',
-        available: false,
+        status: 'Preview 可用',
+        available: true,
         description: '从 GitHub Releases 选择与操作系统和架构匹配的归档，并核对 checksums.txt。',
-        command: `akone_<VERSION>_darwin_amd64.tar.gz
-akone_<VERSION>_darwin_arm64.tar.gz
-akone_<VERSION>_linux_amd64.tar.gz
-akone_<VERSION>_linux_arm64.tar.gz
-akone_<VERSION>_windows_amd64.zip`,
-        href: 'https://github.com/Payhon/AppKernia/releases',
-        linkLabel: '查看 GitHub Releases',
-        note: '当前还没有公开 Release，因此不提供虚构的版本下载命令。',
+        command: `akone_0.5.0-preview.3_darwin_amd64.tar.gz
+akone_0.5.0-preview.3_darwin_arm64.tar.gz
+akone_0.5.0-preview.3_linux_amd64.tar.gz
+akone_0.5.0-preview.3_linux_arm64.tar.gz
+akone_0.5.0-preview.3_windows_amd64.zip`,
+        href: 'https://github.com/Payhon/AppKernia/releases/tag/v0.5.0-preview.3',
+        linkLabel: '查看 v0.5.0-preview.3',
+        note: 'Release 同时提供 checksums.txt、各平台 SBOM 和构建来源证明。',
       },
     ],
   },
@@ -108,24 +108,24 @@ akone version --json`,
       {
         id: 'shell',
         label: 'Shell',
-        status: 'After the first Preview',
-        available: false,
+        status: 'Preview available',
+        available: true,
         description: 'For macOS and Linux on amd64 or arm64; the installer verifies SHA-256.',
-        command: `VERSION='X.Y.Z-preview.N'
+        command: `VERSION='0.5.0-preview.3'
 curl -fsSL "https://github.com/Payhon/AppKernia/releases/download/v\${VERSION}/install.sh" | sh -s -- --version "\${VERSION}"
 export PATH="$HOME/.local/bin:$PATH"
 akone version --json`,
-        note: 'The download is not published yet. Copy the real Preview version from Releases before running it.',
+        note: 'The installer verifies the archive checksum, archive version, and embedded binary version.',
       },
       {
         id: 'npm',
         label: 'npm',
-        status: 'After the first Preview',
-        available: false,
+        status: 'Preview available',
+        available: true,
         description: 'Installs the native akone executable on macOS, Linux, and Windows.',
         command: `npm install --global @appkernia/akone@preview
 akone version --json`,
-        note: 'The package is not on the npm registry yet. Omit @preview after a stable release.',
+        note: 'The current Preview is 0.5.0-preview.3. Omit @preview after a stable release.',
       },
       {
         id: 'homebrew',
@@ -139,18 +139,18 @@ akone version --json`,
       {
         id: 'release',
         label: 'Release',
-        status: 'After the first Preview',
-        available: false,
+        status: 'Preview available',
+        available: true,
         description:
           'Choose the archive matching your operating system and architecture on GitHub Releases, then verify checksums.txt.',
-        command: `akone_<VERSION>_darwin_amd64.tar.gz
-akone_<VERSION>_darwin_arm64.tar.gz
-akone_<VERSION>_linux_amd64.tar.gz
-akone_<VERSION>_linux_arm64.tar.gz
-akone_<VERSION>_windows_amd64.zip`,
-        href: 'https://github.com/Payhon/AppKernia/releases',
-        linkLabel: 'View GitHub Releases',
-        note: 'There is no public Release yet, so no made-up versioned download command is shown.',
+        command: `akone_0.5.0-preview.3_darwin_amd64.tar.gz
+akone_0.5.0-preview.3_darwin_arm64.tar.gz
+akone_0.5.0-preview.3_linux_amd64.tar.gz
+akone_0.5.0-preview.3_linux_arm64.tar.gz
+akone_0.5.0-preview.3_windows_amd64.zip`,
+        href: 'https://github.com/Payhon/AppKernia/releases/tag/v0.5.0-preview.3',
+        linkLabel: 'View v0.5.0-preview.3',
+        note: 'The Release also includes checksums.txt, per-platform SBOMs, and build provenance.',
       },
     ],
   },

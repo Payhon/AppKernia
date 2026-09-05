@@ -12,9 +12,9 @@
 
 - Use the shared `AkoneInstallTabs` component so homepage and guide commands do
   not drift.
-- Source build is the default and only live channel before the first public
-  Preview. Future Shell, npm, Homebrew, and manual Release options remain
-  visible with explicit availability text.
+- Source build remains the default. Shell, npm, and manual Release are live for
+  `0.5.0-preview.3`; Homebrew remains visibly unavailable until a signed stable
+  release.
 - Tab labels must remain usable at 375 px without page-level overflow. Every tab
   is a 44 px button with visible keyboard focus and complete ARIA relationships.
 

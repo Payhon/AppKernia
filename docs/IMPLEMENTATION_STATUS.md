@@ -4,10 +4,10 @@
 
 ## 2026-09-05 文档站 `akone` 安装与部署
 
-- 中英文首页快速开始已统一使用五项 Tab 展示源码、Shell、npm、Homebrew 与 GitHub Release 安装方式，并直接衔接管理员初始化和 `akone serve`。源码构建是当前默认且唯一可用路径；尚未发布的渠道均显示生效阶段和占位版本说明，不把未来命令伪装成可用下载。
+- 中英文首页快速开始统一使用五项 Tab 展示源码、Shell、npm、Homebrew 与 GitHub Release 安装方式，并直接衔接管理员初始化和 `akone serve`。源码构建保持默认；Shell、npm 和 Release 已切换为真实 `0.5.0-preview.3`，Homebrew 明确保留到签名稳定版。
 - 新增双语“安装与部署 akone”指南及导航入口，覆盖平台矩阵、版本确认、SQLite 稳定数据路径、YAML/`AK_*` 配置、systemd 托管边界、TLS、Secret、备份升级和 PostgreSQL 能力边界；Docker 快速开始继续作为完整开发栈独立入口。
 - Tab 使用原生按钮、ARIA 关联和 roving tabindex，支持左右方向键、Home、End，并在 Markdown/LLM 构建中展开全部渠道内容。Darwin arm64 上的 Rspress 双语构建生成 88 页；Chromium 139 的 24 个样本覆盖首页与安装页中英文、明暗主题和 375—1920 px，页面错误为 0，变更页 Axe serious/critical 为 0，Tab 目标最小高度为 47.19 px。
-- 本轮没有发布 GitHub Release、npm 包或 Homebrew Tap，没有部署文档站，也没有 commit 或 push；公开文档必须与本工作树中的 `akone` 源码和发行配置同一版本发布，不能先行上线。Node 26.5.0 超出仓库声明的 Node 24 engine 范围但最终文档门禁通过，正式 CI 仍应使用 Node 24。
+- `v0.5.0-preview.3` GitHub Preview Release、五个平台 npm 包与 `@appkernia/akone` 元包已公开；Homebrew 按稳定版门禁跳过。Shell 安装和强制官方 Registry 的 npm 全局安装均实际返回版本、Commit 与构建时间；本机配置的 npmmirror 在首发后短暂返回 404，属于镜像同步延迟，不影响 npm 官方 Registry。
 
 ## 2026-09-05 `akone` 单二进制与发行首期
 
@@ -16,7 +16,7 @@
 - Agent CLI 新增 `auth configure` 与 `api list/describe/call`，直接读取内嵌 OpenAPI，并兼容 path/query/header/body 参数。首期只开放 17 个显式审计操作，不开放任意 424 个接口；管理端 API Client 可绑定真实用户，有效权限取 Client 权限、用户权限及 App 范围交集，身份状态在每次请求时重新校验，token 交换及委托调用均留审计且不持久化 Secret/Token 明文。
 - 新增 macOS/Linux Shell 安装、五平台 npm 包（macOS amd64/arm64、Linux amd64/arm64、Windows amd64）和 Homebrew Tap 发行结构；`make release VERSION=...` / `npm run release -- --version ...` 默认只做本地预检，只有显式 `PUBLISH=1` / `--publish` 才推送签名 Tag。稳定版与 Homebrew 被 macOS notarization 和 Windows Authenticode 硬门禁阻断，Preview 可先验收流水线。
 - 全仓 `make check` 已在 Node 24.18.1、Go 1.26.5 和临时安装的固定 Python 依赖下退出 0：Backend 426 个通过测试事件、Admin 58 文件/253 项测试、Mobile 静态检查、Docs 86 页构建、四套 Blueprint/i18n 均通过；移动端依赖清单补齐实际使用的 Pillow。GoReleaser snapshot 实际交叉编译出 5 个目标制品；PostgreSQL 18 已完成 34 号迁移 up/down/up 与委托身份 Repository 集成测试。SQLite 新增模块测试及真实 `akone` 启动验证通过：默认/指定路径建库、内嵌 Admin、健康检查、管理员登录、身份上下文、Dashboard 和重启持久化均已检查。真实 Chrome 152 对内嵌构建执行双语、多视口和 Axe 验收，无 serious/critical 问题；其 API 使用受控 fixture，不冒充 SQLite 浏览器交互验收。
-- Plugin 项目创建、运行时加载和市场能力均未实现；既有 `docs/plan/` 内容未修改。尚未执行真实 GitHub/npm/Homebrew 发布、五平台原生安装验收、真实二进制连接真实后端的浏览器认证、生产部署、commit 或 push。
+- Plugin 项目创建、运行时加载和市场能力均未实现；既有 `docs/plan/` 内容未修改。GitHub Preview 与 npm 已真实发布；Homebrew、稳定版签名、Linux/Windows 原生运行、真实二进制连接真实后端的浏览器认证和生产服务部署仍未执行。
 
 ## 2026-09-03 注册协议内联文字链接
 
