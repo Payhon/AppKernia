@@ -11,7 +11,8 @@ description: 选择最适合你的 AppKernia 启动路径。
 
 | 你的目标                       | 推荐入口                                    | 大约需要                          |
 | ------------------------------ | ------------------------------------------- | --------------------------------- |
-| 只想最快看到完整系统           | [Docker 一键运行](./quick-start)            | Docker Desktop、Git               |
+| 体验 akone 单二进制与 SQLite   | [akone 安装与部署](./akone)                 | 当前从源码构建；公开发行后可安装  |
+| 通过源码看到完整系统           | [Docker 一键运行](./quick-start)            | Docker Desktop、Git               |
 | 准备修改 Go 或 React 源码      | [源码开发模式](./source-development)        | Go 1.26、Node 24、pnpm 11、Docker |
 | 开发 Android / iOS / HarmonyOS | [移动端开发](./mobile-development)          | HBuilderX 与目标平台工具链        |
 | 构建自定义基座或正式发布包     | [移动端打包](./mobile-packaging)            | HBuilderX、DevEco 与平台签名      |
@@ -22,11 +23,11 @@ description: 选择最适合你的 AppKernia 启动路径。
 | 先理解整个项目                 | [仓库结构](./project-structure)             | 5–10 分钟                         |
 | 先判断项目是否适合自己         | [什么是 AppKernia？](./what-is-appkernia)   | 8–12 分钟                         |
 
-<div class="ak-doc-callout"><strong>当前阶段</strong>AppKernia 尚未发布稳定版本。接口、迁移和组件 API 仍可能调整；用于生产前，请完成与你的部署环境和目标设备一致的安全、性能与平台验收。</div>
+<div class="ak-doc-callout"><strong>当前阶段</strong>AppKernia 尚未发布公开的 akone Release、npm 包或 Homebrew Formula，也未发布稳定版本。接口、迁移和组件 API 仍可能调整；用于生产前，请完成与你的部署环境和目标设备一致的安全、性能与平台验收。</div>
 
 ## 第一次运行的成功判定
 
-不要只以“命令没有报错”作为成功。完整的本机启动至少应满足：
+不要只以“命令没有报错”作为成功。下面是 Docker 源码路径的判定；单二进制路径请按 [akone 安装与部署](./akone)验证版本、Readiness、登录、数据路径和备份。完整的 Docker 本机启动至少应满足：
 
 1. `docker compose ps` 中 PostgreSQL、API、Admin 的健康检查通过，Migration 与 Seed 以 `0` 退出。
 2. `http://localhost:4173/healthz` 返回成功，Admin 登录页可以加载且浏览器控制台没有阻断性错误。
@@ -53,12 +54,13 @@ description: 选择最适合你的 AppKernia 启动路径。
 
 ## 推荐阅读顺序
 
-1. [从源码仓库运行](./quick-start)
-2. [什么是 AppKernia？](./what-is-appkernia)
-3. [总体架构](../concepts/architecture)
-4. [认证与会话](../concepts/authentication)
-5. [消息推送架构](../concepts/notification-architecture)
-6. [服务端 API](../api/)
-7. [移动组件](../mobile-components/)
-8. [移动端打包](./mobile-packaging)
-9. [参与贡献](../community/contributing)
+1. [安装与部署 akone](./akone)
+2. [从源码仓库运行](./quick-start)
+3. [什么是 AppKernia？](./what-is-appkernia)
+4. [总体架构](../concepts/architecture)
+5. [认证与会话](../concepts/authentication)
+6. [消息推送架构](../concepts/notification-architecture)
+7. [服务端 API](../api/)
+8. [移动组件](../mobile-components/)
+9. [移动端打包](./mobile-packaging)
+10. [参与贡献](../community/contributing)

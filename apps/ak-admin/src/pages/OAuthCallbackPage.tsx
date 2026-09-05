@@ -3,6 +3,7 @@ import { Link, useParams } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { withAdminBasePath } from '../app/base-path'
 import { useOAuthMutations } from '../features/identity-security/hooks'
 
 export function OAuthCallbackPage() {
@@ -18,7 +19,7 @@ export function OAuthCallbackPage() {
     const url = new URL(window.location.href)
     const code = url.searchParams.get('code') ?? ''
     const state = url.searchParams.get('state') ?? ''
-    window.history.replaceState(window.history.state, '', `/auth/callback/${encodeURIComponent(provider)}`)
+    window.history.replaceState(window.history.state, '', withAdminBasePath(`/auth/callback/${encodeURIComponent(provider)}`))
     if (!code || !state) {
       setMissingParameters(true)
       return

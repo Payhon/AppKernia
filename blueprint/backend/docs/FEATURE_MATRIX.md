@@ -14,6 +14,8 @@
 
 ## 1. 总览
 
+本矩阵描述 PostgreSQL 完整模式。ADR-0034 的 SQLite standalone 首期只覆盖内嵌 Admin、健康检查、管理员认证/个人会话与 Dashboard；其余模块在完成独立 Repository 和验收前不得标记为 SQLite 支持。
+
 | 模块 | 优先级 | App API | Admin API | Worker | 核心表 |
 |---|---:|---:|---:|---:|---|
 | 工程底座 | P0 | ✓ | ✓ | ✓ | — |
@@ -33,7 +35,7 @@
 | 邮件/SMS/Push | P2 | OTP | ✓ | 投递 | `notify.templates/deliveries/push_devices` |
 | 定时任务 | P2 |  | ✓ | ✓ | `jobs.schedules/runs` + River |
 | Outbox/Webhook | P2 |  | ✓ | ✓ | `outbox_events`、`webhook_*` |
-| API Client | P2 | Machine | ✓ |  | `api_clients*` |
+| API Client | P2 | Machine | ✓/显式 Agent 白名单 |  | `api_clients*` |
 | 审计与安全事件 | P0/P1 | 我的登录记录可选 | ✓ | 归档 | `audit.*` |
 | 地区数据 | P2 | ✓ | ✓/管理 | 导入 | `sys.regions` |
 | MFA/OAuth | P3 | ✓ | ✓ |  | `mfa_*`、`oauth_accounts` |
@@ -50,7 +52,7 @@
 
 - `ak-api`、`ak-worker`、`ak-cli` 三个可执行程序。
 - 环境分层配置、秘密注入、配置校验。
-- PostgreSQL 连接池和健康检查。
+- PostgreSQL 连接池和健康检查；`akone` SQLite standalone 的独立打开、迁移和健康检查。
 - Redis/MinIO 可选依赖探活。
 - SIGTERM 优雅关闭。
 - Request ID、Trace ID、结构化日志。
@@ -66,7 +68,7 @@ GET /internal/v1/metrics
 
 **验收**
 
-- PostgreSQL 不可用时 readiness 失败，liveness 不误判进程死亡。
+- 当前选择的 PostgreSQL 或 SQLite 不可用时 readiness 失败，liveness 不误判进程死亡。
 - SIGTERM 后停止接收新请求并等待在途请求。
 - 配置缺少必填秘密时启动失败且不打印秘密。
 - 每个响应包含 Request ID。
@@ -799,6 +801,7 @@ PATCH  /admin-api/v1/api-clients/{id}
 POST   /admin-api/v1/api-clients/{id}/secrets
 DELETE /admin-api/v1/api-clients/{id}/secrets/{secret_id}
 PUT    /admin-api/v1/api-clients/{id}/permissions
+PUT    /admin-api/v1/api-clients/{id}/applications
 ```
 
 **权限码**
@@ -818,6 +821,9 @@ sys.api_client.assign_permission
 - 数据库只存 Secret Hash 和 Prefix。
 - CIDR Allowlist、过期时间和禁用状态生效。
 - Machine Token 使用 `ak-api` Audience，不能登录 Admin。
+- API Client 可选绑定同租户活跃成员；Agent 调用的有效权限始终为“Client 权限 ∩ 绑定用户当前权限”，用户、成员或角色状态变化立即生效。
+- 只有 OpenAPI 标记 `x-appkernia-agent-callable: true` 且服务端注册的操作可接受委托调用；未绑定 Client 仅保留原有 Machine-safe API，未标记和安全敏感操作默认拒绝。
+- 委托身份解析审计同时记录 `api_client_id` 和有效 `user_id`，且不伪造尚未完成的 HTTP 结果；业务写入另由模块事务审计。调用继续使用 `ak-api` Audience，不创建或伪造 Admin Session。
 
 ---
 

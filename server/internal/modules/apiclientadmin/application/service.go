@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"net/netip"
 	"regexp"
 	"slices"
@@ -26,6 +27,59 @@ type TokenIssuer interface {
 type TokenVerifier interface {
 	Verify(string, string) (iamapp.AccessClaims, error)
 }
+
+type DelegatedIdentityResolver interface {
+	ResolveDelegatedContext(context.Context, uuid.UUID, uuid.UUID) (iamdomain.AuthenticatedContext, error)
+}
+
+type machineRepository interface {
+	Get(context.Context, uuid.UUID, uuid.UUID) (clients.Client, error)
+	AuditAgentAuthentication(context.Context, clients.AgentAudit) error
+}
+
+type AgentCall struct {
+	OperationID string
+	Method      string
+	Path        string
+	RequestID   string
+	IPAddress   string
+	UserAgent   string
+	AppID       *uuid.UUID
+}
+
+type agentCallContextKey struct{}
+
+func WithAgentCall(ctx context.Context, call AgentCall) context.Context {
+	return context.WithValue(ctx, agentCallContextKey{}, call)
+}
+
+func agentCallFromContext(ctx context.Context) (AgentCall, bool) {
+	call, ok := ctx.Value(agentCallContextKey{}).(AgentCall)
+	return call, ok
+}
+
+var agentCallableOperations = map[string]struct{}{
+	"getAdminDashboardSummary":         {},
+	"getAdminDashboardTrends":          {},
+	"getAdminDashboardActivity":        {},
+	"listAdminAppContentCategories":    {},
+	"createAdminAppContentCategory":    {},
+	"getAdminAppContentCategory":       {},
+	"updateAdminAppContentCategory":    {},
+	"deleteAdminAppContentCategory":    {},
+	"listAdminAppContentArticles":      {},
+	"createAdminAppContentArticle":     {},
+	"getAdminAppContentArticle":        {},
+	"updateAdminAppContentArticle":     {},
+	"deleteAdminAppContentArticle":     {},
+	"transitionAdminAppContentArticle": {},
+}
+
+func IsAgentCallable(operationID string) bool {
+	_, ok := agentCallableOperations[operationID]
+	return ok
+}
+
 type Service struct {
 	auth   Authenticator
 	repo   clients.Repository
@@ -229,28 +283,52 @@ func (s *Service) Applications(ctx context.Context, t string, p clients.Principa
 	appIDs = slices.Compact(appIDs)
 	return s.repo.ReplaceApps(ctx, principal(a, p), id, appIDs)
 }
-func (s *Service) Token(ctx context.Context, clientID, secret, ip string) (string, time.Time, error) {
+func (s *Service) Token(ctx context.Context, clientID, secret string, metadata clients.TokenMetadata) (string, time.Time, error) {
 	clientID = strings.TrimSpace(clientID)
 	secret = strings.TrimSpace(secret)
+	identifierHash := sha256.Sum256([]byte(clientID))
+	audit := clients.TokenExchangeAudit{
+		ClientID: clientID, IdentifierHash: identifierHash[:], RequestID: strings.TrimSpace(metadata.RequestID),
+		IPAddress: strings.TrimSpace(metadata.IPAddress), UserAgent: strings.TrimSpace(metadata.UserAgent),
+	}
 	if clientID == "" || len(secret) < 32 {
+		audit.Result, audit.FailureReason = "failure", "invalid_credentials"
+		_ = s.repo.AuditTokenExchange(ctx, audit)
 		return "", time.Time{}, clients.ErrCredential
 	}
 	digest := iamapp.HashOpaqueToken(secret)
-	c, e := s.repo.Authenticate(ctx, clients.Credential{ClientID: clientID, SecretHash: digest, IPAddress: ip})
+	c, e := s.repo.Authenticate(ctx, clients.Credential{ClientID: clientID, SecretHash: digest, IPAddress: audit.IPAddress})
+	if e != nil {
+		if errors.Is(e, clients.ErrCredential) {
+			audit.Result, audit.FailureReason = "failure", "invalid_credentials"
+			_ = s.repo.AuditTokenExchange(ctx, audit)
+		}
+		return "", time.Time{}, e
+	}
+	accessToken, expiresAt, e := s.issuer.Issue(c.ID, c.TenantID, c.ID, "ak-api", 1)
 	if e != nil {
 		return "", time.Time{}, e
 	}
-	return s.issuer.Issue(c.ID, c.TenantID, c.ID, "ak-api", 1)
+	audit.TenantID, audit.Result = &c.TenantID, "success"
+	if e = s.repo.AuditTokenExchange(ctx, audit); e != nil {
+		return "", time.Time{}, e
+	}
+	return accessToken, expiresAt, nil
 }
 
 type MachineAuthenticator struct {
-	repo     clients.Repository
+	repo     machineRepository
 	verifier TokenVerifier
+	resolver DelegatedIdentityResolver
 	clock    func() time.Time
 }
 
-func NewMachineAuthenticator(repo clients.Repository, verifier TokenVerifier) *MachineAuthenticator {
-	return &MachineAuthenticator{repo: repo, verifier: verifier, clock: time.Now}
+func NewMachineAuthenticator(repo machineRepository, verifier TokenVerifier, resolver ...DelegatedIdentityResolver) *MachineAuthenticator {
+	authenticator := &MachineAuthenticator{repo: repo, verifier: verifier, clock: time.Now}
+	if len(resolver) > 0 {
+		authenticator.resolver = resolver[0]
+	}
+	return authenticator
 }
 
 func (a *MachineAuthenticator) Authenticate(ctx context.Context, rawToken string, appID uuid.UUID, permission, ipAddress string) (clients.MachinePrincipal, error) {
@@ -276,6 +354,87 @@ func (a *MachineAuthenticator) Authenticate(ctx context.Context, rawToken string
 		return clients.MachinePrincipal{}, clients.ErrCredential
 	}
 	return clients.MachinePrincipal{TenantID: claims.TenantID, ClientID: clientID, AppID: appID, Permissions: client.Permissions}, nil
+}
+
+func (a *MachineAuthenticator) AuthenticateDelegated(ctx context.Context, rawToken string, call AgentCall) (iamdomain.AuthenticatedContext, error) {
+	if strings.TrimSpace(rawToken) == "" || !IsAgentCallable(call.OperationID) || a.resolver == nil {
+		return iamdomain.AuthenticatedContext{}, clients.ErrCredential
+	}
+	claims, err := a.verifier.Verify(rawToken, "ak-api")
+	if err != nil {
+		return iamdomain.AuthenticatedContext{}, clients.ErrCredential
+	}
+	clientID, err := uuid.Parse(claims.Subject)
+	if err != nil || clientID == uuid.Nil || claims.TenantID == uuid.Nil || claims.SessionID != clientID {
+		return iamdomain.AuthenticatedContext{}, clients.ErrCredential
+	}
+	client, err := a.repo.Get(ctx, claims.TenantID, clientID)
+	if err != nil || client.Status != "active" || client.BoundUserID == nil || *client.BoundUserID == uuid.Nil || (client.ExpiresAt != nil && !client.ExpiresAt.After(a.clock().UTC())) {
+		return iamdomain.AuthenticatedContext{}, clients.ErrCredential
+	}
+	if !allowsIP(client.AllowedCIDRs, call.IPAddress) {
+		return iamdomain.AuthenticatedContext{}, clients.ErrCredential
+	}
+	if call.AppID != nil && !slices.Contains(client.AppIDs, *call.AppID) {
+		return iamdomain.AuthenticatedContext{}, clients.ErrForbidden
+	}
+	authenticated, err := a.resolver.ResolveDelegatedContext(ctx, *client.BoundUserID, claims.TenantID)
+	if err != nil {
+		return iamdomain.AuthenticatedContext{}, err
+	}
+	clientPermissions := make(map[string]struct{}, len(client.Permissions))
+	for _, permission := range client.Permissions {
+		clientPermissions[strings.ToLower(permission)] = struct{}{}
+	}
+	effective := make([]string, 0, len(authenticated.Permissions))
+	for _, permission := range authenticated.Permissions {
+		if _, ok := clientPermissions[strings.ToLower(permission)]; ok {
+			effective = append(effective, permission)
+		}
+	}
+	authenticated.Permissions = effective
+	authenticated.SessionID = uuid.Nil
+	authenticated.APIClientID = &clientID
+	method := strings.ToUpper(strings.TrimSpace(call.Method))
+	if err = a.repo.AuditAgentAuthentication(ctx, clients.AgentAudit{
+		TenantID: claims.TenantID, UserID: *client.BoundUserID, ClientID: clientID,
+		RequestID: call.RequestID, Operation: call.OperationID, Method: method,
+		Path: call.Path, IPAddress: call.IPAddress, UserAgent: call.UserAgent,
+	}); err != nil {
+		return iamdomain.AuthenticatedContext{}, err
+	}
+	return authenticated, nil
+}
+
+type DelegatedAuthenticator struct {
+	user    Authenticator
+	machine *MachineAuthenticator
+}
+
+func NewDelegatedAuthenticator(user Authenticator, machine *MachineAuthenticator) *DelegatedAuthenticator {
+	return &DelegatedAuthenticator{user: user, machine: machine}
+}
+
+func (a *DelegatedAuthenticator) Authenticate(ctx context.Context, rawToken, audience string) (iamdomain.AuthenticatedContext, error) {
+	authenticated, userErr := a.user.Authenticate(ctx, rawToken, audience)
+	if userErr == nil || audience != "ak-admin" {
+		return authenticated, userErr
+	}
+	call, ok := agentCallFromContext(ctx)
+	if !ok {
+		return iamdomain.AuthenticatedContext{}, userErr
+	}
+	authenticated, err := a.machine.AuthenticateDelegated(ctx, rawToken, call)
+	switch {
+	case err == nil:
+		return authenticated, nil
+	case errors.Is(err, clients.ErrForbidden):
+		return iamdomain.AuthenticatedContext{}, iamapp.ErrAccessDenied
+	case errors.Is(err, clients.ErrCredential), errors.Is(err, clients.ErrNotFound):
+		return iamdomain.AuthenticatedContext{}, iamapp.ErrInvalidAccessToken
+	default:
+		return iamdomain.AuthenticatedContext{}, err
+	}
 }
 
 func allowsIP(cidrs []string, rawIP string) bool {

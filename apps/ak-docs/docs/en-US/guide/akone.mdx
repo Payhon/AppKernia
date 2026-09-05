@@ -1,0 +1,153 @@
+---
+title: Install and deploy akone
+description: Install the AppKernia single binary, start it with SQLite, and deploy it as a long-running service.
+---
+
+import { AkoneInstallTabs } from '../../../theme/AkoneInstallTabs';
+
+# Install and deploy akone
+
+`akone` puts the Go service, embedded Admin assets, operational commands, and OpenAPI CLI in one executable. When you run the native binary directly, its smallest setup uses local SQLite and does not require PostgreSQL, Node.js, or Docker. The npm installation method requires Node.js 18 or later.
+
+<div className="ak-doc-callout">
+  <strong>Current release status</strong>AppKernia has not published a public GitHub Release, npm
+  package, or Homebrew Formula. The channel commands below document the implemented release paths; a
+  source build is the only path available today. Use the matching preview command after the first
+  Preview is published.
+</div>
+
+## Choose an installation method
+
+<AkoneInstallTabs locale="en-US" />
+
+The Shell installer supports macOS and Linux on amd64 and arm64. npm also supports Windows amd64. Homebrew will be available only after macOS notarization, Windows signing, and stable releases are enabled. The installer never invokes `sudo`, edits PATH, or registers a system service.
+
+Whichever method you use, first confirm that the expected version is running:
+
+```bash
+akone version --json
+```
+
+## First start
+
+Create a local administrator first. The command reads a password of at least 12 characters from the interactive terminal without putting it in command arguments or shell history:
+
+```shell
+akone bootstrap-admin --email admin@example.com --tenant-code local --tenant-name "Local Workspace" --display-name Administrator
+akone serve
+```
+
+The service listens on `127.0.0.1:8080` by default. Open:
+
+- Admin: [http://127.0.0.1:8080/admin/](http://127.0.0.1:8080/admin/)
+- Readiness: [http://127.0.0.1:8080/internal/v1/health/ready](http://127.0.0.1:8080/internal/v1/health/ready)
+
+Without database configuration, `akone` creates `data/appkernia.db` next to the actual native executable. That is convenient for a manually placed binary and local evaluation. npm, Homebrew, and automated upgrades may move the executable directory, so a long-running deployment should use a separate stable data path.
+
+## Keep SQLite data in a stable location
+
+On Unix and macOS, set a user data path for the current terminal session:
+
+```bash
+export AK_SQLITE_PATH="$HOME/.local/share/appkernia/appkernia.db"
+akone bootstrap-admin \
+  --email admin@example.com \
+  --tenant-code local \
+  --tenant-name "Local Workspace" \
+  --display-name Administrator
+akone serve
+```
+
+In Windows PowerShell, use the current user's local application-data directory:
+
+```powershell
+$env:AK_SQLITE_PATH = "$env:LOCALAPPDATA\AppKernia\data\appkernia.db"
+akone bootstrap-admin `
+  --email admin@example.com `
+  --tenant-code local `
+  --tenant-name "Local Workspace" `
+  --display-name Administrator
+akone serve
+```
+
+These variables affect only the current terminal. Persist the same variable in the service manager or use YAML when deploying a service.
+
+## Use YAML configuration
+
+Keep the configuration file in a location that does not change when the binary is upgraded:
+
+```bash
+akone config init --output ./akone.yml
+```
+
+At minimum, review the generated environment, listen address, public address, absolute SQLite path, and security keys. Production must not use development-time ephemeral keys. Fill the matching `auth.*` fields in an access-controlled configuration file, or supply `AK_JWT_PRIVATE_KEY_BASE64`, `AK_LOGIN_PROTECTION_KEY_BASE64`, and `AK_CONFIG_MASTER_KEY_BASE64` through the service environment.
+
+Validate the edited file, then use that same configuration for initialization and startup:
+
+```bash
+akone config validate --file ./akone.yml
+akone --config ./akone.yml bootstrap-admin \
+  --email admin@example.com \
+  --tenant-code local \
+  --tenant-name "Local Workspace" \
+  --display-name Administrator
+akone --config ./akone.yml serve
+```
+
+Precedence is: non-secret command-line flags > `AK_*` environment variables > YAML > defaults. Keep the configuration file at mode `0600` on Unix and macOS. On Windows, place it in a directory readable only by the current user or service account.
+
+## Run as a managed service
+
+The installer installs only the executable; it does not create an operating-system user, service, or reverse proxy. A production deployment should at least:
+
+1. Run under a dedicated, low-privilege service account that owns only the configuration, data, and required log directories.
+2. Use a stable absolute SQLite path and run only one `akone` instance that writes to that database.
+3. Keep `akone` bound to loopback and terminate TLS in Caddy, Nginx, or the existing gateway.
+4. Put secrets in access-controlled configuration or service environment—not command arguments, the repository, or logs.
+5. Configure graceful `SIGTERM` shutdown, restart on failure, and a reasonable stop timeout.
+6. Verify configuration, administrator sign-in, Readiness, logs, backup, and recovery before launch.
+
+This minimal Linux unit is a starting point. An operator must first create the `appkernia` account, directories, and `/etc/appkernia/akone.yml`, then adjust paths for the host:
+
+```ini title="/etc/systemd/system/appkernia.service"
+[Unit]
+Description=AppKernia akone
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=appkernia
+Group=appkernia
+ExecStart=/usr/local/bin/akone --config /etc/appkernia/akone.yml serve
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/appkernia
+
+[Install]
+WantedBy=multi-user.target
+```
+
+This is only a process-supervision example. It does not create users, certificates, network policy, or backups. Use `launchd` on macOS or your organization's Windows Service manager on Windows, while passing the same YAML file or stable `AK_*` environment variables.
+
+## Back up and upgrade
+
+SQLite runs in WAL mode. For a dependable file-level backup, stop the service, copy the entire dedicated data directory, and then start the service again. Do not copy only the `.db` file while the process is running. Before an upgrade, also retain the current binary, configuration, and a restorable database backup.
+
+Upgrade in this order:
+
+1. Record `akone version --json`, run `akone config validate --file /etc/appkernia/akone.yml`, and take an offline backup. Substitute the actual configuration path when it differs.
+2. Replace the executable through the same installation channel without moving configuration or data.
+3. Start the service and check Readiness, sign-in, and logs.
+4. SQLite schema migrations are forward-only. To roll back, restore both the old binary and the pre-upgrade backup instead of running an old binary against the new schema.
+
+## SQLite and PostgreSQL boundaries
+
+SQLite currently covers health checks, embedded Admin, administrator authentication and personal sessions, and Dashboard. It fits single-host evaluation and lightweight deployment. API Clients, Apps, content, notifications, push, and job queues do not yet have SQLite-equivalent implementations; enabling unsupported features fails at startup.
+
+Use PostgreSQL for the complete business modules, workers, multiple instances, or higher concurrency. Follow [source development](./source-development) or the [Docker development stack](./docker) to apply migrations and core seed data. Changing database mode does not change the Admin or OpenAPI authorization boundaries.

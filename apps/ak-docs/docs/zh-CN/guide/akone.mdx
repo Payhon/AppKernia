@@ -1,0 +1,152 @@
+---
+title: 安装与部署 akone
+description: 安装 AppKernia 单二进制，使用 SQLite 完成第一次启动，并部署为长期运行的服务。
+---
+
+import { AkoneInstallTabs } from '../../../theme/AkoneInstallTabs';
+
+# 安装与部署 akone
+
+`akone` 把 Go 服务、管理端静态资源、运维命令和 OpenAPI CLI 放进同一个可执行文件。直接运行原生二进制时，最小方式使用本地 SQLite，不要求另外安装 PostgreSQL、Node.js 或 Docker；npm 安装方式需要 Node.js 18 或更高版本。
+
+<div className="ak-doc-callout">
+  <strong>当前发布状态</strong>AppKernia 尚未发布公开的 GitHub Release、npm 包或 Homebrew
+  Formula。下面的渠道命令用于说明已经实现的发行方式，当前可实际使用的是从源码构建；首个 Preview
+  发布后再使用对应的预览版命令。
+</div>
+
+## 选择安装方式
+
+<AkoneInstallTabs locale="zh-CN" />
+
+Shell 安装器支持 macOS、Linux 的 amd64 与 arm64；npm 还支持 Windows amd64。Homebrew 只会在完成 macOS 公证与 Windows 签名、开放稳定版后提供。安装脚本不会调用 `sudo`、修改 PATH 或注册系统服务。
+
+无论使用哪种方式，先确认实际运行的是预期版本：
+
+```bash
+akone version --json
+```
+
+## 第一次启动
+
+先创建本地管理员。命令会从交互终端隐藏读取至少 12 位的密码，不会把密码写入参数或 Shell 历史：
+
+```shell
+akone bootstrap-admin --email admin@example.com --tenant-code local --tenant-name "Local Workspace" --display-name Administrator
+akone serve
+```
+
+默认监听 `127.0.0.1:8080`。启动后访问：
+
+- Admin：[http://127.0.0.1:8080/admin/](http://127.0.0.1:8080/admin/)
+- Readiness：[http://127.0.0.1:8080/internal/v1/health/ready](http://127.0.0.1:8080/internal/v1/health/ready)
+
+未指定数据库时，`akone` 会在实际二进制旁创建 `data/appkernia.db`。这适合手动放置的二进制和本地体验；npm、Homebrew 或自动升级可能更换二进制所在目录，长期运行时应固定独立的数据路径。
+
+## 固定 SQLite 数据位置
+
+Unix/macOS 可以在当前终端会话中指定用户数据目录：
+
+```bash
+export AK_SQLITE_PATH="$HOME/.local/share/appkernia/appkernia.db"
+akone bootstrap-admin \
+  --email admin@example.com \
+  --tenant-code local \
+  --tenant-name "Local Workspace" \
+  --display-name Administrator
+akone serve
+```
+
+Windows PowerShell 使用当前用户的本地应用数据目录：
+
+```powershell
+$env:AK_SQLITE_PATH = "$env:LOCALAPPDATA\AppKernia\data\appkernia.db"
+akone bootstrap-admin `
+  --email admin@example.com `
+  --tenant-code local `
+  --tenant-name "Local Workspace" `
+  --display-name Administrator
+akone serve
+```
+
+这些环境变量只影响当前终端。部署为服务时，应在服务管理器中持久化同一个变量，或者使用 YAML 配置。
+
+## 使用 YAML 配置
+
+将配置文件放在不会随二进制升级而变化的位置：
+
+```bash
+akone config init --output ./akone.yml
+```
+
+至少检查并修改生成文件中的环境、监听地址、公开地址、SQLite 绝对路径和安全密钥。生产环境不得继续使用开发期临时密钥；应在权限受控的配置文件中填写对应的 `auth.*` 字段，或通过服务环境变量提供 `AK_JWT_PRIVATE_KEY_BASE64`、`AK_LOGIN_PROTECTION_KEY_BASE64` 与 `AK_CONFIG_MASTER_KEY_BASE64`。
+
+修改后先验证，再用同一份配置完成初始化和启动：
+
+```bash
+akone config validate --file ./akone.yml
+akone --config ./akone.yml bootstrap-admin \
+  --email admin@example.com \
+  --tenant-code local \
+  --tenant-name "Local Workspace" \
+  --display-name Administrator
+akone --config ./akone.yml serve
+```
+
+配置优先级为：命令行非敏感参数 > `AK_*` 环境变量 > YAML > 默认值。Unix/macOS 下配置文件应保持 `0600`；Windows 下应放在仅当前用户或服务账号可读的目录中。
+
+## 部署为常驻服务
+
+安装器只安装二进制，不会替你创建系统用户、服务或反向代理。正式部署至少完成以下事项：
+
+1. 使用专用的低权限服务账号，并让它独占配置、数据和必要的日志目录。
+2. 使用固定的 SQLite 绝对路径；只运行一个写入该数据库的 `akone` 实例。
+3. 保持 `akone` 监听 loopback，由 Caddy、Nginx 或现有网关终止 TLS 并转发请求。
+4. 将 Secret 放入权限受控的配置或服务环境，不写入命令参数、仓库和日志。
+5. 设置 `SIGTERM` 优雅停止、失败重启和合理的停止超时。
+6. 上线前验证配置、管理员登录、Readiness、日志、备份与恢复流程。
+
+Linux 可将下面的最小单元作为起点；先由运维人员创建 `appkernia` 账号、目录和 `/etc/appkernia/akone.yml`，再按实际路径调整：
+
+```ini title="/etc/systemd/system/appkernia.service"
+[Unit]
+Description=AppKernia akone
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=appkernia
+Group=appkernia
+ExecStart=/usr/local/bin/akone --config /etc/appkernia/akone.yml serve
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/appkernia
+
+[Install]
+WantedBy=multi-user.target
+```
+
+这只是进程托管示例，不会自动创建用户、证书、网络策略或备份。macOS 可用 `launchd`，Windows 可用组织现有的 Windows Service 管理器；二者仍应传入同一份 YAML 或稳定的 `AK_*` 环境变量。
+
+## 备份与升级
+
+SQLite 使用 WAL。最稳妥的文件级备份流程是先停止服务，再复制整个专用数据目录，最后重新启动；不要只在进程运行时复制一个 `.db` 文件。升级前还应保存当前二进制、配置和可恢复的数据库备份。
+
+升级顺序：
+
+1. 记录 `akone version --json`，执行 `akone config validate --file /etc/appkernia/akone.yml` 并完成离线备份；使用其他位置时替换为实际配置路径。
+2. 通过同一安装渠道替换二进制，不移动配置与数据目录。
+3. 启动服务，检查 Readiness、登录和日志。
+4. SQLite schema 只向前迁移；需要回退时，同时恢复旧二进制和升级前备份，不要尝试在新 schema 上直接运行旧版本。
+
+## SQLite 与 PostgreSQL 的边界
+
+当前 SQLite 模式覆盖健康检查、内嵌 Admin、管理员认证与个人会话、Dashboard，适合单机体验和轻量部署。API Client、App、内容、通知、推送与任务队列等模块尚不提供 SQLite 等价实现；启用不支持的功能会在启动时直接报错。
+
+需要完整业务模块、Worker、多实例或更高并发时，使用 PostgreSQL，并按[源码开发模式](./source-development)或[Docker 开发栈](./docker)完成迁移与核心种子。数据库模式变化不会改变 Admin 与 OpenAPI 的授权边界。

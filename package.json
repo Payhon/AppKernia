@@ -44,6 +44,10 @@
     "lint:admin": "npm --prefix apps/ak-admin run lint",
     "generate:admin": "npm --prefix apps/ak-admin run generate",
     "check:docs": "pnpm --filter @appkernia/docs check",
-    "check": "npm --prefix apps/ak-admin run check && pnpm check:docs"
+    "check": "npm --prefix apps/ak-admin run check && pnpm check:docs",
+    "release": "node scripts/release.mjs",
+    "release:stage-admin": "node scripts/stage-admin.mjs",
+    "release:stage-channels": "node scripts/stage-release-channels.mjs",
+    "test:release": "node --test scripts/release.test.mjs"
   }
 }

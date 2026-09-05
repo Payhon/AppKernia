@@ -133,7 +133,9 @@ func (h *Handler) Token(r *ghttp.Request) {
 		h.fail(r, clients.ErrCredential)
 		return
 	}
-	access, expires, e := h.service.Token(r.Context(), body.ClientID, body.Secret, remoteIP(r))
+	access, expires, e := h.service.Token(r.Context(), body.ClientID, body.Secret, clients.TokenMetadata{
+		RequestID: httpx.RequestID(r), IPAddress: remoteIP(r), UserAgent: r.UserAgent(),
+	})
 	if !h.fail(r, e) {
 		h.ok(r, 200, map[string]any{"access_token": access, "token_type": "Bearer", "audience": "ak-api", "expires_at": expires})
 	}

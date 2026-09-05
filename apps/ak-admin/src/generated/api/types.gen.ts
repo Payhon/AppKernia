@@ -3514,6 +3514,15 @@ export type AdminApiClientSecret = {
     last_used_at?: string;
 };
 
+export type AdminApiClientBoundUser = {
+    id: string;
+    display_name: string;
+    /**
+     * Empty when the bound account has no email address.
+     */
+    email: string;
+};
+
 export type AdminApiClient = {
     id: string;
     client_id: string;
@@ -3522,6 +3531,14 @@ export type AdminApiClient = {
     allowed_cidrs: Array<string>;
     status: 'active' | 'disabled';
     expires_at?: string;
+    /**
+     * Optional active user in the same tenant. Agent-callable permissions are intersected with this user's current permissions.
+     */
+    bound_user_id: string | null;
+    /**
+     * Read-only display data for the bound user.
+     */
+    bound_user: AdminApiClientBoundUser | null;
     created_at: string;
     updated_at: string;
     secrets: Array<AdminApiClientSecret>;
@@ -3538,6 +3555,10 @@ export type AdminApiClientRequest = {
     allowed_cidrs: Array<string>;
     status: 'active' | 'disabled';
     expires_at?: string;
+    /**
+     * Optional same-tenant active user UUID. Omitted or null creates an unbound client and clears an existing binding on update.
+     */
+    bound_user_id?: string | null;
 };
 
 export type AdminApiClientSecretRequest = {
@@ -10994,6 +11015,10 @@ export type ListAdminAppContentCategoriesData = {
 
 export type ListAdminAppContentCategoriesErrors = {
     /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
      * The request is authenticated but not permitted, or CSRF validation failed.
      */
     403: ErrorResponse;
@@ -11024,6 +11049,10 @@ export type CreateAdminAppContentCategoryData = {
 };
 
 export type CreateAdminAppContentCategoryErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
     /**
      * The request is authenticated but not permitted, or CSRF validation failed.
      */
@@ -11063,6 +11092,14 @@ export type DeleteAdminAppContentCategoryData = {
 
 export type DeleteAdminAppContentCategoryErrors = {
     /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
      * The requested resource is outside the authenticated self scope, missing or already revoked.
      */
     404: ErrorResponse;
@@ -11095,6 +11132,14 @@ export type GetAdminAppContentCategoryData = {
 
 export type GetAdminAppContentCategoryErrors = {
     /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
      * The requested resource is outside the authenticated self scope, missing or already revoked.
      */
     404: ErrorResponse;
@@ -11122,6 +11167,14 @@ export type UpdateAdminAppContentCategoryData = {
 };
 
 export type UpdateAdminAppContentCategoryErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
     /**
      * The requested resource is outside the authenticated self scope, missing or already revoked.
      */
@@ -11161,6 +11214,10 @@ export type ListAdminAppContentArticlesData = {
 
 export type ListAdminAppContentArticlesErrors = {
     /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
      * The request is authenticated but not permitted, or CSRF validation failed.
      */
     403: ErrorResponse;
@@ -11191,6 +11248,10 @@ export type CreateAdminAppContentArticleData = {
 };
 
 export type CreateAdminAppContentArticleErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
     /**
      * The request is authenticated but not permitted, or CSRF validation failed.
      */
@@ -11230,6 +11291,14 @@ export type DeleteAdminAppContentArticleData = {
 
 export type DeleteAdminAppContentArticleErrors = {
     /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
      * The requested resource is outside the authenticated self scope, missing or already revoked.
      */
     404: ErrorResponse;
@@ -11262,6 +11331,14 @@ export type GetAdminAppContentArticleData = {
 
 export type GetAdminAppContentArticleErrors = {
     /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
+    /**
      * The requested resource is outside the authenticated self scope, missing or already revoked.
      */
     404: ErrorResponse;
@@ -11289,6 +11366,14 @@ export type UpdateAdminAppContentArticleData = {
 };
 
 export type UpdateAdminAppContentArticleErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
     /**
      * The requested resource is outside the authenticated self scope, missing or already revoked.
      */
@@ -11322,6 +11407,14 @@ export type TransitionAdminAppContentArticleData = {
 };
 
 export type TransitionAdminAppContentArticleErrors = {
+    /**
+     * Authentication is missing, expired or invalid.
+     */
+    401: ErrorResponse;
+    /**
+     * The request is authenticated but not permitted, or CSRF validation failed.
+     */
+    403: ErrorResponse;
     /**
      * The requested resource is outside the authenticated self scope, missing or already revoked.
      */

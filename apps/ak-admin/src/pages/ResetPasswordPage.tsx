@@ -1,9 +1,11 @@
 import { Button, Form, Input, Typography } from 'antd'
+import { Link } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { z } from 'zod'
 
+import { withAdminBasePath } from '../app/base-path'
 import { AuthFrame } from '../components/AuthFrame'
 import { authSession } from '../features/auth/store'
 import { ApiError } from '../shared/api/error'
@@ -19,7 +21,7 @@ export function ResetPasswordPage() {
   const [completed, setCompleted] = useState(false)
   const { control, handleSubmit, setError } = useForm<ResetValues>({ defaultValues: { confirmPassword: '', newPassword: '' } })
   useEffect(() => {
-    if (window.location.search) window.history.replaceState(window.history.state, '', '/reset-password')
+    if (window.location.search) window.history.replaceState(window.history.state, '', withAdminBasePath('/reset-password'))
   }, [])
   const submit = handleSubmit(async (values) => {
     setSubmitError(null)
@@ -39,8 +41,8 @@ export function ResetPasswordPage() {
       setSubmitting(false)
     }
   })
-  if (!token) return <AuthFrame headingKey="auth.reset.heading" descriptionKey="auth.reset.invalid"><a href="/forgot-password">{t('auth.forgot.heading')}</a></AuthFrame>
-  if (completed) return <AuthFrame headingKey="auth.reset.success" descriptionKey="auth.reset.success_description"><a href="/login">{t('auth.common.back_to_login')}</a></AuthFrame>
+  if (!token) return <AuthFrame headingKey="auth.reset.heading" descriptionKey="auth.reset.invalid"><Link to="/forgot-password">{t('auth.forgot.heading')}</Link></AuthFrame>
+  if (completed) return <AuthFrame headingKey="auth.reset.success" descriptionKey="auth.reset.success_description"><Link to="/login">{t('auth.common.back_to_login')}</Link></AuthFrame>
   return (
     <AuthFrame headingKey="auth.reset.heading" descriptionKey="auth.reset.description">
       {submitError ? <div className="ak-form-error" role="alert">{submitError}</div> : null}
@@ -49,7 +51,7 @@ export function ResetPasswordPage() {
         <Controller control={control} name="confirmPassword" render={({ field, fieldState }) => <Form.Item htmlFor="reset-confirm-password" label={t('auth.reset.confirm_password')} {...(fieldState.error ? { help: fieldState.error.message, validateStatus: 'error' as const } : {})}><Input.Password {...field} autoComplete="new-password" id="reset-confirm-password" size="large" /></Form.Item>} />
         <Button block htmlType="submit" loading={submitting} size="large" type="primary">{t('auth.reset.submit')}</Button>
       </Form>
-      <Typography.Paragraph className="ak-auth-back-link"><a href="/login">{t('auth.common.back_to_login')}</a></Typography.Paragraph>
+      <Typography.Paragraph className="ak-auth-back-link"><Link to="/login">{t('auth.common.back_to_login')}</Link></Typography.Paragraph>
     </AuthFrame>
   )
 }

@@ -1,4 +1,4 @@
-# AppKernia PostgreSQL Schema 说明
+# AppKernia 数据库 Schema 说明
 
 > 目标数据库：PostgreSQL 18.x（初始 18.4）  
 > 核心迁移：`000001`～`000005`  
@@ -6,6 +6,8 @@
 > 核心表：51 张；启用 Billing 后共 57 张
 
 本文件解释数据域、关系和强约束。字段、索引、Check、外键和触发器的最终事实源是 `db/migrations/*.sql`。
+
+PostgreSQL 仍是完整业务数据库。`akone` 的 SQLite standalone 使用 `server/internal/platform/sqlite/schema.sql` 独立描述首期本地能力，不转换本目录 SQL；默认文件为二进制同目录的 `data/appkernia.db`。SQLite 首期覆盖 IAM 会话和 Dashboard 所需数据，队列及其他业务表不在此能力内，详见 ADR-0034。
 
 ---
 
@@ -168,7 +170,7 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 | `sys.dict_types` | 全局/租户 | 字典类型 | global/tenant code 部分唯一 |
 | `sys.dict_items` | 字典 | 本地化字典项 | `(type,value,coalesce(locale,''))` 唯一 |
 | `sys.regions` | 全局 | 国家/省市区等地区编码 | code 主键；父编码自引用；手工维护记录受版本锁和软删除保护，种子同步不得覆盖 |
-| `sys.api_clients` | 租户 | 机器客户端身份 | client_id 全局唯一；CIDR Allowlist |
+| `sys.api_clients` | 租户 | 机器客户端身份及可选用户委托 | client_id 全局唯一；CIDR Allowlist；`bound_user_id` 复合外键保证绑定同租户成员 |
 | `sys.api_client_secrets` | Client | 可轮换客户端密钥 | 只存 32 字节哈希 |
 | `sys.api_client_permissions` | 租户 | API Client 权限 | 同租户 Client 复合外键 |
 | `sys.idempotency_keys` | 租户 | 可重试写接口结果缓存 | identity+key 唯一；请求哈希防冲突 |
@@ -218,7 +220,7 @@ Mermaid 名称为可读化表示；实际物理表使用 `schema.table`。
 
 | 表 | 租户范围 | 主要职责 | 关键约束 |
 |---|---|---|---|
-| `audit.operation_logs` | 全局/租户/App | 管理和敏感业务操作审计 | Mobile Session 自动投影 `app_id`；request/trace/resource 索引；内容必须脱敏 |
+| `audit.operation_logs` | 全局/租户/App | 管理和敏感业务操作审计 | Mobile Session 自动投影 `app_id`；Agent 委托同时记录 `api_client_id` 与有效 `user_id`；request/trace/resource 索引；内容必须脱敏 |
 | `audit.login_events` | 全局/租户 | 登录成功、失败和阻断事件 | 登录标识只存哈希与 Hint |
 | `audit.security_events` | 全局/租户 | Token 重放、越权尝试等安全事件 | 严重级别和未解决索引 |
 | `audit.privacy_erasure_events` | App | 不含用户标识的账号清除证明 | 固定动作码 `iam.user.delete_self`，只记录范围、结果、数量和时间 |

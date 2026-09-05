@@ -1,7 +1,74 @@
 # AppKernia Codex 交付报告
 
-日期：2026-09-03
-范围：AppKernia 全仓交付记录；本轮将注册页协议按钮改为内联文字链接；既有未提交更改保留，未提交、未推送、未部署生产。
+日期：2026-09-05
+范围：AppKernia 全仓交付记录；本轮追加 `akone` 安装部署文档与首页快速开始，并延续单二进制、Agent CLI 与多渠道发行首期，明确排除 Plugin 开发；既有未提交更改保留，未提交、未推送、未发布、未部署生产。
+
+## 2026-09-05 文档站 `akone` 安装与部署
+
+### 已交付
+
+- 首页中英文快速开始改为复用同一个五项安装 Tab：源码构建、Shell、npm、Homebrew、GitHub Release。当前仅源码路径标记为可用；其余渠道展示真实目标平台、发布阶段和命令，但明确提示尚无公开制品。
+- 新增中英文安装部署页并加入 Guide 导航，覆盖首次管理员初始化、默认 SQLite、固定数据位置、YAML/环境变量、长期进程托管、反向代理与 TLS、Secret、备份升级及 SQLite/PostgreSQL 边界；源码和 Docker 指南保持各自入口。
+- Tab 使用现有 React/CSS，无新增依赖；具备 tablist/tab/tabpanel 语义、唯一关联、单一选中面板、roving tabindex、Arrow/Home/End 操作和不低于 44 px 的点击目标。SSG Markdown 输出会展开五种方式，避免隐藏内容缺失于搜索与 LLM 文本。
+- `ui-ux-pro-max` request、输出、决策、检查清单和截图索引已保存；浏览器检查发现并修复状态标签对比度、可滚动代码区和焦点环问题。
+
+### 实际验证
+
+| 命令 / 阶段 | Exit | 结果 |
+|---|---:|---|
+| `pnpm --filter @appkernia/docs check` | 0 | 校验 158 个 API 文档路径；13 个主题文件 lint 为 0 error/0 warning，TypeScript 与 Prettier 通过；Rspress 2.0.19 完成 Web/Node/Markdown 双语构建与语言一致性检查，sitemap 为 88 页。 |
+| `AK_DOCS_EVIDENCE_ID=AKDOCS-007 AK_DOCS_PREVIEW_URL=http://127.0.0.1:4175 /Users/payhon/.venv/3.12/bin/python apps/ak-docs/scripts/visual-check.py` | 0 | Chromium 139、Darwin arm64 共 24 个样本；8 个变更页状态均为 5 Tab/5 Panel，Arrow/Home/End、单一选中/可见面板通过，最小目标 47.19 px；无页面级横向溢出、资源/控制台错误，Axe serious/critical 为 0。 |
+| `node --test scripts/release.test.mjs` | 0 | 12/12，复核文档引用的版本、制品、安装器和发布渠道契约。 |
+| `sh -n scripts/install-akone.sh` / `python3 -m py_compile apps/ak-docs/scripts/visual-check.py` | 0 / 0 | Shell 安装器与视觉检查脚本语法通过。 |
+| `python3 blueprint/mobile/scripts/validate_blueprint_specs.py` / `python3 blueprint/scripts/validate_i18n_contract.py` | 0 / 0 | Mobile Blueprint 与全仓 `zh-CN`/`en-US` 契约通过。 |
+| `git diff --check` | 0 | 当前补丁无空白错误。 |
+
+截图与结构化结果见 [`AKDOCS-007/screenshots/INDEX.md`](../apps/ak-docs/artifacts/ui-ux-pro-max/AKDOCS-007/screenshots/INDEX.md)。本轮浏览器证据是本地静态文档预览，不代表公开文档站部署或各操作系统真实安装验收。
+
+### 明确边界
+
+- GitHub Release、npm 包和 Homebrew Tap 仍未公开，文档因此以源码构建为默认 Tab，并要求 Preview 发布后从 Release 页取得真实版本；未执行任何对外发布。
+- 文档构建宿主 Node 26.5.0 触发仓库要求 Node `>=24 <25` 的 engine warning，但所有门禁退出 0；正式 CI 和发行继续使用 Node 24。
+- 本轮未运行 macOS/Linux/Windows 安装包原生验收，未部署文档站，未 commit、push 或创建 Tag。公开文档必须与当前工作树中的 `akone` 源码和发行配置原子交付，不能在对应代码合入前单独上线。
+
+## 2026-09-05 `akone` 单二进制、Agent CLI 与发行首期
+
+### 已交付
+
+- 正式名称采用 `akone`。它既代表“一体化 AppKernia”，又不把后续服务能力限制在 `cli`；现有 `ak-cli` 仅保留兼容入口。裸执行安全地显示帮助，服务启动必须显式使用 `akone serve`。
+- `akone serve` 默认打开 SQLite 并启动 API；显式 PostgreSQL 模式才在同一进程启动 River Worker。两种模式均处理系统信号和有界关闭；内嵌迁移、Seed、OpenAPI 及完整 Admin 构建。管理端默认入口 `/admin`，支持自定义路由和外部静态目录，外部目录读取限制在配置根目录；SPA 深链、缓存和安全响应头均有测试。
+- SQLite 默认文件为运行中二进制同目录的 `data/appkernia.db`，`serve --sqlite FILE`、`AK_SQLITE_PATH` 或 YAML 可覆盖。独立 schema/Repository 覆盖健康检查、管理员初始化、登录/刷新/退出、身份上下文、个人资料/密码/会话与 Dashboard；Unix/macOS 新建目录/文件权限为 `0700`/`0600` 并拒绝 group/world-writable 目录，Windows 依赖 ACL；同时启用外键、WAL、`synchronous=FULL` 和幂等前向迁移。
+- YAML 配置支持 CLI > `AK_*` 环境变量 > YAML > 默认值，拒绝未知字段、多文档、符号链接、非普通文件、超 1 MiB 文件及 Unix/macOS 非 `0600` 权限。`config init` 创建私有模板，`config show` 脱敏；日志支持 text/json、级别、stderr 与 `0600` 文件。
+- 新增 `auth configure` 和 `api list/describe/call`。Secret 可通过终端隐藏输入或显式 stdin 写入用户私有凭据文件；除 loopback 外强制 HTTPS。调用参数沿用 OpenAPI 的 path/query/header/body，限制请求/响应大小，写请求不重试且拒绝 HTTP 重定向。
+- Agent 身份使用既有 `ak-api` Audience。API Client 可绑定同租户真实用户；每次委托请求动态校验 Client、用户、Membership、角色、权限和 App 范围，有效权限取交集。token 交换成功/失败及委托鉴权写入审计，保存 API Client 数据库 ID 和哈希标识，不保存 Secret、Token 或 Client ID 明文。
+- 424 个 OpenAPI operation 中首期只显式开放 17 个：14 个 Dashboard/内容管理委托操作及 3 个既有通知 M2M 操作。CLI 只展示和执行带契约标记、具备 `apiClientBearer` 且在运行时白名单内的操作；没有把高风险 Admin API 整体暴露给 Agent。
+- 发布链路覆盖 GitHub Release、macOS/Linux 一键 Shell、`@appkernia/akone` npm 元包与五个平台包、`payhon/tap/akone` Homebrew Formula。制品矩阵为 macOS amd64/arm64、Linux amd64/arm64、Windows amd64；本地 `make release` / `npm run release` 默认不发布，显式发布才创建并推送签名 Tag，且要求 HEAD 同时等于 origin/gitee main。
+- 发布工作流外部 Action 固定到完整 commit SHA；Shell 安装器校验 SHA-256、归档版本及二进制内置版本，使用同目录随机临时文件原子替换，不 sudo、不改 PATH、不注册服务。npm 重跑只在 registry 完整性与本地包 SHA-512 SRI 完全一致时跳过。
+- Admin API Client 页面补齐绑定用户选择与双语/响应式/无障碍状态；遵循 `ui-ux-pro-max` 产物流程。移动端图标检查实际依赖 Pillow，现已补进固定 Python 依赖清单，避免干净环境中的隐式依赖。
+
+### 实际验证
+
+| 命令 / 阶段 | Exit | 结果 |
+|---|---:|---|
+| `env PYTHONPATH=<temp> PATH=<Node 24> make check` | 0 | Backend vet/全包 Go 测试、Public Web 14/14、Admin 58 文件/253 项、Mobile 全量静态门禁、Docs lint/typecheck/格式/86 页双语构建、Backend/Admin/Mobile/i18n 蓝图全部通过。首次运行暴露临时环境缺少 Pillow，补齐 `requirements.txt` 后复跑通过。另以 `go test -json ./...` 统计 426 个通过测试事件、0 失败。 |
+| `env PATH=<Node 24> make build-akone` + 二进制 smoke | 0 | 296 个 Admin 文件完成 staging，构建 62 MiB macOS arm64 `akone`；`version --json`、裸帮助及 `api list` 均通过，列表为 17 项且无 Plugin 命令。 |
+| SQLite 模块测试 + 真实 `akone` 启动 | 0 | 默认在二进制旁创建 `data/appkernia.db`，目录/文件为 `0700`/`0600`；内嵌 `/admin`、readiness、管理员登录、身份上下文及 Dashboard 均返回 200，停止后重启可再次登录；`--sqlite` 自定义嵌套路径亦成功建库。 |
+| `CGO_ENABLED=0` 五目标交叉编译 | 0 | macOS amd64/arm64、Linux amd64/arm64、Windows amd64 均成功；`file` 确认为 Mach-O、静态 ELF 与 PE32+。 |
+| PostgreSQL 18 隔离迁移与 Repository 集成 | 0 | 34 号迁移完成 up/down/up；API Client 用户绑定、权限交集、token 交换审计和委托审计集成通过，临时数据库已删除。 |
+| `node --test scripts/release.test.mjs` | 0 | 12/12；覆盖 Tag/远端门禁、固定 Action SHA、npm 完整性、错版本归档/二进制、空 HOME 和原子安装。 |
+| `actionlint` / GoReleaser `check` / Shell 与 Node 语法 | 0 | 两条发行工作流和 GoReleaser v2.17.1 配置有效。 |
+| GoReleaser `build --snapshot --clean` | 0 | 实际交叉编译 5 个制品：macOS amd64/arm64、Linux amd64/arm64、Windows amd64；`file` 分别确认 Mach-O、静态 ELF 与 PE32+。这是编译证据，不是各目标系统安装运行证据。 |
+| Chrome 152 + staged Admin bundle | 0 | `/admin` 冷启动深链、SPA fallback、用户解绑/搜索/重绑、zh-CN/en-US、375/768/1024/1440 通过；无 console/page/request error，Axe serious/critical 为 0，保存 7 张截图。API 为同源 fixture。 |
+| `git diff --check` | 0 | 当前补丁无空白错误。 |
+
+### 明确边界
+
+- SQLite 首期并非 PostgreSQL 全功能等价层：API Client、App、内容、通知、推送与任务队列等仍只在 PostgreSQL 模式注册；SQLite 不启动空 Worker。后续模块必须有独立 Repository、迁移及并发/恢复验证后再加入。
+- 当前 Agent CLI 是经过审计的 17/424 操作首批，不等于“已支持大部分 OpenAPI”。应按真实 Agent 场景和权限模型逐模块扩展白名单，而不是默认开放全部写接口。
+- Stable 与 Homebrew 发布被 macOS Developer ID + notarization、Windows Authenticode/Trusted Signing 硬阻断；GitHub Actions、npm OIDC 首次 bootstrap、Homebrew Tap 写入及五平台真实安装运行均未执行。本轮只验证了本机产物和流水线静态/单元门禁。
+- SQLite 已完成真实二进制、数据库和账号下的 HTTP 登录/身份上下文/Dashboard/重启持久化验收；真实浏览器的刷新/退出/OAuth/密码重置、Linux/Windows 原生运行仍未验收。
+- Plugin 创建命令、项目脚手架、热插拔运行时和市场均未开发；既有 `docs/plan/PLUGIN_ARCHITECTURE_AND_MARKETPLACE.md` 未修改，也未嵌入二进制。
+- 未 commit、未 push、未创建 Tag、未发布外部渠道、未部署任何环境。
 
 ## 2026-09-03 注册协议内联文字链接
 

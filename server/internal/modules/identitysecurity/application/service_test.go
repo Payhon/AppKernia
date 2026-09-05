@@ -117,7 +117,7 @@ func TestTOTPEnrollmentRecoveryCodesAndStepUp(t *testing.T) {
 	}
 	userID, tenantID, sessionID := uuid.New(), uuid.New(), uuid.New()
 	repo := &testRepo{passwordHash: passwordHash}
-	service := NewService(testAuth{iamdomain.AuthenticatedContext{AuthContext: iamdomain.AuthContext{User: iamdomain.User{ID: userID, Email: "owner@example.test"}, Tenant: iamdomain.Tenant{ID: tenantID}, Permissions: []string{"iam.mfa.manage_self", "iam.oauth.manage_self"}}, SessionID: sessionID}}, repo, testSealer{}, Config{MFAEnabled: true, OAuthEnabled: true, OAuthAdapter: "local-mock", AdminOrigin: "https://admin.example.test"})
+	service := NewService(testAuth{iamdomain.AuthenticatedContext{AuthContext: iamdomain.AuthContext{User: iamdomain.User{ID: userID, Email: "owner@example.test"}, Tenant: iamdomain.Tenant{ID: tenantID}, Permissions: []string{"iam.mfa.manage_self", "iam.oauth.manage_self"}}, SessionID: sessionID}}, repo, testSealer{}, Config{MFAEnabled: true, OAuthEnabled: true, OAuthAdapter: "local-mock", AdminBaseURL: "https://admin.example.test/admin"})
 	service.now = func() time.Time { return now }
 	enrollment, err := service.EnrollTOTP(context.Background(), "token", identity.Principal{RequestID: "enroll"})
 	if err != nil || enrollment.Secret == "" || enrollment.OTPAuthURI == "" {
@@ -143,10 +143,13 @@ func TestTOTPEnrollmentRecoveryCodesAndStepUp(t *testing.T) {
 func TestOAuthStartUsesS256StateAndSingleUseCallback(t *testing.T) {
 	userID := uuid.New()
 	repo := &testRepo{}
-	service := NewService(testAuth{iamdomain.AuthenticatedContext{AuthContext: iamdomain.AuthContext{User: iamdomain.User{ID: userID, Email: "owner@example.test"}, Tenant: iamdomain.Tenant{ID: uuid.New()}, Permissions: []string{"iam.oauth.manage_self"}}, SessionID: uuid.New()}}, repo, testSealer{}, Config{OAuthEnabled: true, OAuthAdapter: "local-mock", AdminOrigin: "https://admin.example.test"})
+	service := NewService(testAuth{iamdomain.AuthenticatedContext{AuthContext: iamdomain.AuthContext{User: iamdomain.User{ID: userID, Email: "owner@example.test"}, Tenant: iamdomain.Tenant{ID: uuid.New()}, Permissions: []string{"iam.oauth.manage_self"}}, SessionID: uuid.New()}}, repo, testSealer{}, Config{OAuthEnabled: true, OAuthAdapter: "local-mock", AdminBaseURL: "https://admin.example.test/admin"})
 	started, err := service.StartOAuth(context.Background(), "token", identity.Principal{RequestID: "start"}, "local")
 	if err != nil || started.AuthorizationURL == "" {
 		t.Fatalf("started=%#v err=%v", started, err)
+	}
+	if parsed, parseErr := url.Parse(started.AuthorizationURL); parseErr != nil || parsed.Path != "/admin/auth/callback/local" {
+		t.Fatalf("authorization callback URL = %q error=%v", started.AuthorizationURL, parseErr)
 	}
 	verifier := string(repo.challenge.PKCEVerifierEncrypted)
 	if repo.challenge.PKCEChallenge != pkceChallenge(verifier) || len(repo.challenge.StateHash) != 32 || len(repo.challenge.CodeHash) != 32 {

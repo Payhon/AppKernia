@@ -7,6 +7,8 @@ description: 面向第一次使用者的源码拉取、环境准备、启动与�
 
 这条路径只要求你安装 Git 和 Docker Desktop。Go、Node 与 PostgreSQL 都由容器提供，适合第一次体验。
 
+<div class="ak-doc-callout"><strong>想用单二进制？</strong>如果不准备修改源码，请先查看 <a href="./akone">akone 安装与部署</a>。当前尚无公开安装制品，该页面会明确区分现阶段可用的源码构建与发布后的安装渠道。</div>
+
 ## 1. 安装基础工具
 
 - [Git](https://git-scm.com/downloads)

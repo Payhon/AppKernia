@@ -1,0 +1,82 @@
+version: 2
+
+project_name: akone
+
+before:
+  hooks:
+    - pnpm --filter @appkernia/admin build
+    - node scripts/stage-admin.mjs
+    - cd server && GOTOOLCHAIN=go1.26.5 go generate ./internal/platform/runtimeassets
+    - cd server && GOTOOLCHAIN=go1.26.5 go test ./internal/platform/runtimeassets
+
+builds:
+  - id: akone
+    dir: server
+    main: ./cmd/akone
+    binary: akone
+    env:
+      - CGO_ENABLED=0
+      - GOTOOLCHAIN=go1.26.5
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    flags:
+      - -trimpath
+    tags:
+      - adminembed
+    ldflags:
+      - -s -w
+      - -X github.com/appkernia/appkernia/server/internal/platform/buildinfo.Version={{ .Version }}
+      - -X github.com/appkernia/appkernia/server/internal/platform/buildinfo.Commit={{ .FullCommit }}
+      - -X github.com/appkernia/appkernia/server/internal/platform/buildinfo.BuildTime={{ .CommitDate }}
+
+archives:
+  - id: akone
+    ids:
+      - akone
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: akone_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    builds_info:
+      mtime: "{{ .CommitDate }}"
+    files:
+      - LICENSE
+      - THIRD_PARTY_NOTICES.md
+
+sboms:
+  - id: archives
+    artifacts: archive
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+  extra_files:
+    - glob: scripts/install-akone.sh
+      name_template: install.sh
+
+changelog:
+  use: github-native
+
+release:
+  github:
+    owner: Payhon
+    name: AppKernia
+  draft: true
+  prerelease: auto
+  extra_files:
+    - glob: scripts/install-akone.sh
+      name_template: install.sh
+  include_meta: true
+
+report_sizes: true

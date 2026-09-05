@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-04T14:34:53.128Z",
+  "generated_at": "2026-09-05T04:35:56.832Z",
   "budgets": {
     "initial_gzip_bytes": 307200,
     "chunk_gzip_bytes": 184320,
@@ -7,7 +7,7 @@
     "openapi_chunk_gzip_bytes": 768000
   },
   "actual": {
-    "initial_gzip_bytes": 299108,
+    "initial_gzip_bytes": 300212,
     "largest_chunks": [
       {
         "file": "assets/installCanvasRenderer-Da_Pk-O4.js",
@@ -22,32 +22,32 @@
         "gzip_bytes": 96118
       },
       {
-        "file": "assets/i18n-C6Ounh33.js",
-        "gzip_bytes": 95193
+        "file": "assets/i18n-BPA3TgSg.js",
+        "gzip_bytes": 95495
       },
       {
         "file": "assets/typography-BqDEjAY6.js",
         "gzip_bytes": 52365
       },
       {
-        "file": "assets/table-CgpVQQIi.js",
-        "gzip_bytes": 36325
+        "file": "assets/table-DdnwgfWm.js",
+        "gzip_bytes": 36327
       },
       {
-        "file": "assets/AppShell-C44Yz3Cn.js",
-        "gzip_bytes": 33975
+        "file": "assets/AppShell-B0AgRTfS.js",
+        "gzip_bytes": 34014
       },
       {
-        "file": "assets/date-picker-CVyCE9kv.js",
-        "gzip_bytes": 32104
+        "file": "assets/date-picker-B74n9TZb.js",
+        "gzip_bytes": 32107
       },
       {
         "file": "assets/space-CiTWnwPQ.js",
         "gzip_bytes": 27006
       },
       {
-        "file": "assets/AdminAppRoutes-BkmyYqiv.js",
-        "gzip_bytes": 26439
+        "file": "assets/AdminAppRoutes-DMOB4H8-.js",
+        "gzip_bytes": 26461
       }
     ],
     "openapi_initial_gzip_bytes": 1007352,
@@ -100,56 +100,56 @@
       "gzip_bytes": 96118
     },
     {
-      "file": "assets/i18n-C6Ounh33.js",
-      "gzip_bytes": 95193
+      "file": "assets/i18n-BPA3TgSg.js",
+      "gzip_bytes": 95495
     },
     {
       "file": "assets/schemas-CR69Y3p8.js",
       "gzip_bytes": 20317
     },
     {
-      "file": "assets/Match-Ff5ZccBG.js",
-      "gzip_bytes": 15610
+      "file": "assets/Match-C8pG7E42.js",
+      "gzip_bytes": 15629
     },
     {
       "file": "assets/openapi-DdC-9Wgq.js",
       "gzip_bytes": 14121
     },
     {
-      "file": "assets/admin-CBID3iYf.css",
-      "gzip_bytes": 13648
+      "file": "assets/admin-G8pYXa_h.css",
+      "gzip_bytes": 13669
     },
     {
-      "file": "assets/store-CsvXJmu-.js",
+      "file": "assets/store-CnNUXivF.js",
       "gzip_bytes": 12401
     },
     {
-      "file": "assets/admin-ExmhCWGi.js",
-      "gzip_bytes": 9972
+      "file": "assets/admin-CZBSVrjI.js",
+      "gzip_bytes": 9988
     },
     {
-      "file": "assets/useStore-DHmv6HF_.js",
-      "gzip_bytes": 6407
+      "file": "assets/useStore-QmM0SLj3.js",
+      "gzip_bytes": 6381
     },
     {
-      "file": "assets/useQuery-Ch-R-f90.js",
-      "gzip_bytes": 3371
+      "file": "assets/useQuery-TebOH9Fg.js",
+      "gzip_bytes": 3370
     },
     {
       "file": "assets/jsx-runtime-DRF4vMFQ.js",
       "gzip_bytes": 3031
     },
     {
-      "file": "assets/link-Aodi1_Nm.js",
-      "gzip_bytes": 2429
+      "file": "assets/link-CaJkxd69.js",
+      "gzip_bytes": 2233
     },
     {
-      "file": "assets/lazyRouteComponent-CRZBQdI4.js",
-      "gzip_bytes": 1413
+      "file": "assets/route-boundaries-BEF72vgy.js",
+      "gzip_bytes": 1452
     },
     {
-      "file": "assets/route-boundaries--PHv07yj.js",
-      "gzip_bytes": 1137
+      "file": "assets/lazyRouteComponent-DtlWcDF4.js",
+      "gzip_bytes": 1425
     },
     {
       "file": "assets/preload-helper-Czpn1I53.js",
@@ -162,6 +162,10 @@
     {
       "file": "assets/useRouter-DMCq0otE.js",
       "gzip_bytes": 455
+    },
+    {
+      "file": "assets/useMatch-pcpvwyrV.js",
+      "gzip_bytes": 454
     },
     {
       "file": "assets/rolldown-runtime-QTnfLwEv.js",
@@ -184,12 +188,16 @@
       "gzip_bytes": 274
     },
     {
-      "file": "assets/useParams-BCm33Z2H.js",
+      "file": "assets/useParams-Ch8HPDg3.js",
       "gzip_bytes": 233
     },
     {
-      "file": "assets/useSearch-sbsaFfXn.js",
+      "file": "assets/useSearch-B4Vil998.js",
       "gzip_bytes": 203
+    },
+    {
+      "file": "assets/matchContext-B6JKUtag.js",
+      "gzip_bytes": 188
     },
     {
       "file": "assets/coerce-C8O1409P.js",

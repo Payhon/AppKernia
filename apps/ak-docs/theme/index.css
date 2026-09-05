@@ -159,6 +159,114 @@ body {
   max-width: 72ch;
 }
 
+.akone-install-tabs {
+  width: 100%;
+  margin-top: 32px;
+  color: var(--ak-ink);
+}
+
+.akone-install-tabs__list {
+  display: flex;
+  overflow-x: auto;
+  border: 1px solid var(--ak-line);
+  border-bottom: 0;
+  background: var(--ak-surface-soft);
+  scrollbar-width: thin;
+}
+
+.akone-install-tabs__tab {
+  min-height: 44px;
+  flex: 0 0 auto;
+  border: 0;
+  border-right: 1px solid var(--ak-line);
+  padding: 10px 16px;
+  color: var(--ak-muted);
+  background: transparent;
+  font: inherit;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.akone-install-tabs__tab[aria-selected='true'] {
+  color: var(--ak-brand-strong);
+  background: var(--ak-surface);
+  box-shadow: inset 0 -3px var(--ak-brand);
+}
+
+.akone-install-tabs__tab:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid var(--ak-brand);
+  outline-offset: -4px;
+}
+
+.akone-install-tabs__panel {
+  border: 1px solid var(--ak-line);
+  padding: 24px;
+  background: var(--ak-surface);
+}
+
+.akone-install-tabs__panel:focus-visible {
+  outline-color: var(--ak-brand);
+}
+
+.akone-install-tabs__panel[hidden] {
+  display: none;
+}
+
+.akone-install-tabs__panel > :first-child {
+  margin-top: 0;
+}
+
+.akone-install-tabs__panel > :last-child {
+  margin-bottom: 0;
+}
+
+.akone-install-tabs__status span {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  border: 1px solid var(--ak-line);
+  border-radius: 999px;
+  padding: 2px 10px;
+  color: var(--ak-muted);
+  background: var(--ak-surface-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.akone-install-tabs__status span[data-available='true'] {
+  border-color: color-mix(in srgb, var(--ak-green) 52%, var(--ak-line));
+  color: #166534;
+}
+
+html.dark .akone-install-tabs__status span[data-available='true'] {
+  color: #bbf7d0;
+}
+
+.akone-install-tabs__code {
+  margin: 20px 0;
+  border: 1px solid var(--ak-line);
+  border-radius: var(--rp-radius);
+  padding: 18px;
+  color: var(--ak-ink);
+  background: var(--ak-page);
+  font-family: var(--rp-font-family-mono);
+  font-size: 14px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.akone-install-tabs__note {
+  color: var(--ak-muted);
+  font-size: 14px;
+}
+
+.akone-install-tabs--markdown section + section {
+  margin-top: 24px;
+}
+
 .rp-nav .rp-nav-menu__item--active > .rp-nav-menu__item__container,
 .rp-doc-footer .rp-edit-link {
   color: var(--ak-brand-strong) !important;
@@ -569,6 +677,7 @@ html.dark .ak-home-main {
     .ak-tech-logo-grid,
     .ak-feature-grid,
     .ak-capability-wrap,
+    .akone-install-tabs,
     .ak-step-grid,
     .ak-product-slider-grid,
     .ak-faq-grid,
@@ -594,9 +703,12 @@ html.dark .ak-home-main {
 }
 
 .ak-belief-grid,
-.ak-surface-grid,
-.ak-step-grid {
+.ak-surface-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ak-step-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .ak-belief-card,
@@ -645,7 +757,6 @@ html.dark .ak-home-main {
 
 .ak-step-card code {
   display: block;
-  overflow-x: auto;
   margin-top: 18px;
   border: 1px solid var(--ak-line);
   border-radius: 0;
@@ -653,7 +764,8 @@ html.dark .ak-home-main {
   color: var(--ak-ink);
   background: var(--ak-surface-soft);
   font-size: 12px;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .ak-tech-line {

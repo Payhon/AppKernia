@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"strconv"
 	"strings"
 
@@ -285,7 +286,11 @@ func token(r *ghttp.Request) string {
 	return ""
 }
 func principal(r *ghttp.Request) content.Principal {
-	return content.Principal{RequestID: httpx.RequestID(r), UserAgent: strings.TrimSpace(r.Header.Get("User-Agent"))}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	return content.Principal{RequestID: httpx.RequestID(r), IPAddress: strings.TrimSpace(host), UserAgent: strings.TrimSpace(r.Header.Get("User-Agent"))}
 }
 func locale(r *ghttp.Request) string {
 	value := "zh-CN"

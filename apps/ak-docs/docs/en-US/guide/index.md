@@ -11,7 +11,8 @@ If you are still deciding whether it fits your project, start with [What is AppK
 
 | Goal                                 | Start here                                           | Requirements                       |
 | ------------------------------------ | ---------------------------------------------------- | ---------------------------------- |
-| See the complete system quickly      | [Docker quick start](./quick-start)                  | Docker Desktop and Git             |
+| Try the akone binary with SQLite     | [Install and deploy akone](./akone)                  | Source build today; channels later |
+| See the complete source stack        | [Docker quick start](./quick-start)                  | Docker Desktop and Git             |
 | Change Go or React source            | [Source development](./source-development)           | Go 1.26, Node 24, pnpm 11, Docker  |
 | Build Android, iOS, or HarmonyOS     | [Mobile development](./mobile-development)           | HBuilderX and platform toolchains  |
 | Build custom bases or releases       | [Mobile packaging](./mobile-packaging)               | HBuilderX, DevEco, and signing     |
@@ -22,11 +23,11 @@ If you are still deciding whether it fits your project, start with [What is AppK
 | Understand the repository first      | [Repository structure](./project-structure)          | 5–10 minutes                       |
 | Decide whether the project fits      | [What is AppKernia?](./what-is-appkernia)            | 8–12 minutes                       |
 
-<div class="ak-doc-callout"><strong>Project maturity</strong>AppKernia has not published a stable release yet. APIs, migrations, and component contracts may change. Before production use, complete security, performance, and platform acceptance in your own environment.</div>
+<div class="ak-doc-callout"><strong>Project maturity</strong>AppKernia has not published a public akone Release, npm package, Homebrew Formula, or stable version. APIs, migrations, and component contracts may change. Before production use, complete security, performance, and platform acceptance in your own environment.</div>
 
 ## What a successful first run means
 
-Do not treat “the command printed no error” as the finish line. A complete local start should meet all of these checks:
+Do not treat “the command printed no error” as the finish line. The checks below cover the Docker source path. For the single binary, follow [Install and deploy akone](./akone) to verify the version, Readiness, sign-in, data path, and backup. A complete local Docker start should meet all of these checks:
 
 1. PostgreSQL, API, and Admin are healthy in `docker compose ps`; Migration and Seed exit with `0`.
 2. `http://localhost:4173/healthz` succeeds, the Admin sign-in page loads, and the browser has no blocking console errors.
@@ -53,12 +54,13 @@ If any check fails, go to [troubleshooting](./troubleshooting), keep the first f
 
 ## Suggested reading order
 
-1. [Run from the source repository](./quick-start)
-2. [What is AppKernia?](./what-is-appkernia)
-3. [Architecture](../concepts/architecture)
-4. [Authentication and sessions](../concepts/authentication)
-5. [Notification and push architecture](../concepts/notification-architecture)
-6. [Server API](../api/)
-7. [Mobile components](../mobile-components/)
-8. [Mobile packaging](./mobile-packaging)
-9. [Contributing](../community/contributing)
+1. [Install and deploy akone](./akone)
+2. [Run from the source repository](./quick-start)
+3. [What is AppKernia?](./what-is-appkernia)
+4. [Architecture](../concepts/architecture)
+5. [Authentication and sessions](../concepts/authentication)
+6. [Notification and push architecture](../concepts/notification-architecture)
+7. [Server API](../api/)
+8. [Mobile components](../mobile-components/)
+9. [Mobile packaging](./mobile-packaging)
+10. [Contributing](../community/contributing)

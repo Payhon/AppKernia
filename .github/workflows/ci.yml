@@ -52,3 +52,12 @@ jobs:
       - run: python3 blueprint/mobile/scripts/validate_blueprint_specs.py
       - run: python3 -m pip install -r apps/ak-mobile/scripts/requirements.txt
       - run: apps/ak-mobile/scripts/check-project.sh
+
+  release-tooling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24.18.1"
+      - run: node --test scripts/release.test.mjs

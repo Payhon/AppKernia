@@ -137,6 +137,8 @@ func (handler *Handler) writeServiceError(request *ghttp.Request, err error) boo
 		handler.writeError(request, http.StatusUnprocessableEntity, "VALIDATION.FAILED", "errors.validation.failed")
 	case errors.Is(err, iamapp.ErrInvalidAccessToken):
 		handler.writeError(request, http.StatusUnauthorized, "AUTH.SESSION.UNAUTHORIZED", "errors.common.unauthorized")
+	case errors.Is(err, iamapp.ErrAccessDenied):
+		handler.writeError(request, http.StatusForbidden, "COMMON.FORBIDDEN", "errors.common.forbidden")
 	default:
 		handler.writeError(request, http.StatusInternalServerError, "COMMON.UNKNOWN", "errors.common.unknown")
 	}

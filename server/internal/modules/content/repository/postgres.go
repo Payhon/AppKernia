@@ -780,7 +780,7 @@ func (r *Postgres) scopedApp(ctx context.Context, tenant, appID uuid.UUID) (uuid
 func audit(ctx context.Context, tx pgx.Tx, p content.Principal, action, resource string, id uuid.UUID, method string, before, after any) error {
 	b, _ := json.Marshal(before)
 	a, _ := json.Marshal(after)
-	_, e := tx.Exec(ctx, `INSERT INTO audit.operation_logs(tenant_id,user_id,session_id,request_id,module_code,action_name,permission_code,resource_type,resource_id,http_method,request_path,response_status,user_agent,before_data,after_data,succeeded) VALUES($1,$2,NULLIF($3,'00000000-0000-0000-0000-000000000000'::uuid),$4,'content',$5,$5,$6,$7,$8,$9,200,NULLIF($10,''),$11,$12,true)`, p.TenantID, p.UserID, p.SessionID, p.RequestID, action, resource, id.String(), method, "/admin-api/v1/content", p.UserAgent, b, a)
+	_, e := tx.Exec(ctx, `INSERT INTO audit.operation_logs(tenant_id,user_id,session_id,api_client_id,request_id,module_code,action_name,permission_code,resource_type,resource_id,http_method,request_path,response_status,client_ip,user_agent,before_data,after_data,succeeded) VALUES($1,$2,NULLIF($3,'00000000-0000-0000-0000-000000000000'::uuid),NULLIF($4,'00000000-0000-0000-0000-000000000000'::uuid),$5,'content',$6,$6,$7,$8,$9,$10,200,NULLIF($11,'')::inet,NULLIF($12,''),$13,$14,true)`, p.TenantID, p.UserID, p.SessionID, p.APIClientID, p.RequestID, action, resource, id.String(), method, "/admin-api/v1/content", p.IPAddress, p.UserAgent, b, a)
 	return e
 }
 func safeCategory(x content.Category) any {

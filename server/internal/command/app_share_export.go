@@ -1,4 +1,4 @@
-package main
+package command
 
 import (
 	"bytes"
@@ -29,9 +29,14 @@ type nativeShareIdentity struct {
 	AndroidPackage, AndroidSignature, IOSBundleID, HarmonyBundleName string
 }
 
-func appShareCommand(args []string) error {
+func appShareCommand(program string, args []string) error {
+	usage := fmt.Sprintf("usage: %s app-share export --app-id UUID --output DIR [--check] [native identity flags]", program)
+	if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
+		fmt.Fprintln(os.Stdout, usage)
+		return nil
+	}
 	if len(args) == 0 || args[0] != "export" {
-		return fmt.Errorf("usage: ak-cli app-share export --app-id UUID --output DIR [--check] [native identity flags]")
+		return &UsageError{Message: usage}
 	}
 	flags := flag.NewFlagSet("app-share export", flag.ContinueOnError)
 	appIDValue := flags.String("app-id", "", "public App UUID")
@@ -41,7 +46,7 @@ func appShareCommand(args []string) error {
 	androidSignature := flags.String("android-signature", strings.TrimSpace(os.Getenv("AK_ANDROID_SIGNATURE")), "Android application signature registered with WeChat")
 	iosBundleID := flags.String("ios-bundle-id", strings.TrimSpace(os.Getenv("AK_IOS_BUNDLE_ID")), "iOS Bundle ID used by this build")
 	harmonyBundleName := flags.String("harmony-bundle-name", strings.TrimSpace(os.Getenv("AK_HARMONY_BUNDLE_NAME")), "HarmonyOS Bundle Name used by this build")
-	if err := flags.Parse(args[1:]); err != nil {
+	if err := parseCommandFlags(flags, args[1:], usage); err != nil {
 		return err
 	}
 	appID, err := uuid.Parse(strings.TrimSpace(*appIDValue))
@@ -54,6 +59,9 @@ func appShareCommand(args []string) error {
 	}
 	cfg, err := config.Load()
 	if err != nil {
+		return err
+	}
+	if err = requirePostgreSQL(cfg, "app-share export"); err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

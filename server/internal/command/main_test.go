@@ -1,4 +1,4 @@
-package main
+package command
 
 import (
 	"os"
@@ -11,7 +11,7 @@ import (
 
 func TestSeedDevelopmentAdminSkipsWithoutPasswordFile(t *testing.T) {
 	t.Setenv("AK_SEED_ADMIN_PASSWORD_FILE", "")
-	seeded, err := seedDevelopmentAdmin(t.Context(), nil, "development")
+	seeded, err := seedDevelopmentAdmin(t.Context(), nil, "development", "")
 	if err != nil || seeded {
 		t.Fatalf("seeded=%t err=%v", seeded, err)
 	}
@@ -45,7 +45,7 @@ func TestSeedDevelopmentAdminRejectsSecretOutsideDevelopment(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("AK_SEED_ADMIN_PASSWORD_FILE", passwordFile)
-	seeded, err := seedDevelopmentAdmin(t.Context(), nil, "production")
+	seeded, err := seedDevelopmentAdmin(t.Context(), nil, "production", "")
 	if err == nil || seeded || !strings.Contains(err.Error(), "allowed only in development") {
 		t.Fatalf("seeded=%t err=%v", seeded, err)
 	}
@@ -57,8 +57,18 @@ func TestSeedDevelopmentAdminRejectsEmptyPasswordFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("AK_SEED_ADMIN_PASSWORD_FILE", passwordFile)
-	seeded, err := seedDevelopmentAdmin(t.Context(), nil, "development")
+	seeded, err := seedDevelopmentAdmin(t.Context(), nil, "development", "")
 	if err == nil || seeded || !strings.Contains(err.Error(), "password file is empty") {
 		t.Fatalf("seeded=%t err=%v", seeded, err)
+	}
+}
+
+func TestCommandHelpAndUsageUseSelectedProgram(t *testing.T) {
+	if err := Run("ak-cli", []string{"version", "--help"}); err != nil {
+		t.Fatalf("version --help returned %v", err)
+	}
+	err := Run("ak-cli", []string{"version", "unexpected"})
+	if err == nil || !strings.Contains(err.Error(), "usage: ak-cli version") {
+		t.Fatalf("usage did not preserve compatibility command name: %v", err)
 	}
 }

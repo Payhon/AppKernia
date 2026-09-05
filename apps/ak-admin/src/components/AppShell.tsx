@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type MouseEvent, type PropsWithCh
 import { useTranslation } from 'react-i18next'
 
 import { ChevronLeftIcon, ChevronRightIcon, MenuIcon as HamburgerMenuIcon } from '../app/icons'
+import { withAdminBasePath } from '../app/base-path'
 import { ConfiguredMenuIcon } from '../app/menu-icons'
 import { findMenuAncestorKeys, isSystemPath, partitionShellNavigation, resolveBackendMenus, type ResolvedMenuItem } from '../app/route-registry'
 import { useSidebarStore } from '../app/sidebar-store'
@@ -225,7 +226,7 @@ export function AppShell({ children }: PropsWithChildren) {
 
   const signOut = async () => {
     await logout()
-    window.location.assign('/login')
+    window.location.assign(withAdminBasePath('/login'))
   }
 
   const changeTenant = async (tenantId: string) => {

@@ -99,6 +99,7 @@ import (
 	webhookadmindomain "github.com/appkernia/appkernia/server/internal/modules/webhookadmin/domain"
 	webhookadminrepo "github.com/appkernia/appkernia/server/internal/modules/webhookadmin/repository"
 	webhookadminhttp "github.com/appkernia/appkernia/server/internal/modules/webhookadmin/transport/http"
+	"github.com/appkernia/appkernia/server/internal/platform/adminui"
 	platformcaptcha "github.com/appkernia/appkernia/server/internal/platform/captcha"
 	"github.com/appkernia/appkernia/server/internal/platform/config"
 	"github.com/appkernia/appkernia/server/internal/platform/jobqueue"
@@ -115,11 +116,19 @@ import (
 )
 
 type API struct {
-	server *ghttp.Server
-	pool   *pgxpool.Pool
+	server        *ghttp.Server
+	closeDatabase func() error
+	adminUI       *adminui.Handler
 }
 
 func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
+	if cfg.DatabaseDriver == config.DatabaseDriverSQLite {
+		return newSQLiteAPI(ctx, cfg)
+	}
+	return newPostgresAPI(ctx, cfg)
+}
+
+func newPostgresAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 	if err != nil {
 		return nil, fmt.Errorf("create PostgreSQL pool: %w", err)
@@ -152,7 +161,7 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	if cfg.Environment == "development" && cfg.PasswordRecoveryAdapter == "local" {
 		resetNotifier = iamrepo.NewLocalPasswordResetNotifier()
 	} else if cfg.PasswordRecoveryAdapter == "notification" {
-		resetNotifier, err = notificationadminrepo.NewPasswordResetNotifier(pool, trackedQueue, settingsSealer, cfg.AdminOrigin)
+		resetNotifier, err = notificationadminrepo.NewPasswordResetNotifier(pool, trackedQueue, settingsSealer, cfg.AdminBaseURL())
 		if err != nil {
 			pool.Close()
 			return nil, fmt.Errorf("create password reset notifier: %w", err)
@@ -291,8 +300,13 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	storageAdminRepository := storageadminrepo.NewPostgres(pool)
 	storageAdminService := storageadminapp.NewService(authService, storageAdminRepository, objectStore, cfg.FileStorageEnabled)
 	storageAdminHandler := storageadminhttp.NewHandler(storageAdminService, catalog)
+	apiClientAdminRepository := apiclientadminrepo.NewPostgres(pool)
+	apiClientAdminService := apiclientadminapp.NewService(authService, apiClientAdminRepository, issuer)
+	apiClientAdminHandler := apiclientadminhttp.NewHandler(apiClientAdminService, catalog)
+	machineAuthenticator := apiclientadminapp.NewMachineAuthenticator(apiClientAdminRepository, issuer, authService)
+	delegatedAuthenticator := apiclientadminapp.NewDelegatedAuthenticator(authService, machineAuthenticator)
 	dashboardRepository := dashboardrepo.NewPostgres(pool)
-	dashboardService := dashboardapp.NewService(authService, dashboardRepository)
+	dashboardService := dashboardapp.NewService(delegatedAuthenticator, dashboardRepository)
 	dashboardHandler := dashboardhttp.NewHandler(dashboardService, catalog)
 	orgRepository := orgrepo.NewPostgres(pool)
 	orgService := orgapp.NewService(authService, orgRepository)
@@ -316,22 +330,18 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 	settingsHandler := settingshttp.NewHandler(settingsService, catalog)
 	identitySecurityRepository := identitysecurityrepo.NewPostgres(pool)
 	identitySecurityService := identitysecurityapp.NewService(authService, identitySecurityRepository, settingsSealer, identitysecurityapp.Config{
-		MFAEnabled: cfg.MFAEnabled, OAuthEnabled: cfg.OAuthEnabled, OAuthAdapter: cfg.OAuthAdapter, AdminOrigin: cfg.AdminOrigin,
+		MFAEnabled: cfg.MFAEnabled, OAuthEnabled: cfg.OAuthEnabled, OAuthAdapter: cfg.OAuthAdapter, AdminBaseURL: cfg.AdminBaseURL(),
 	})
 	identitySecurityHandler := identitysecurityhttp.NewHandler(identitySecurityService, catalog)
 	notificationAdminRepository := notificationadminrepo.NewPostgres(pool, trackedQueue)
 	notificationAdminService := notificationadminapp.NewService(authService, notificationAdminRepository, notificationadminapp.WithDictionaryResolver(settingsRepository), notificationadminapp.WithTargetSealer(settingsSealer))
 	notificationAdminHandler := notificationadminhttp.NewHandler(notificationAdminService, catalog)
 	contentRepository := contentrepo.NewPostgres(pool, objectStore)
-	contentService := contentapp.NewService(authService, contentRepository, contentapp.WithPublicWebBaseURL(cfg.PublicWebBaseURL))
+	contentService := contentapp.NewService(delegatedAuthenticator, contentRepository, contentapp.WithPublicWebBaseURL(cfg.PublicWebBaseURL))
 	contentHandler := contenthttp.NewHandler(contentService, catalog)
 	jobAdminRepository := jobadminrepo.NewPostgres(pool, riverInsertClient)
 	jobAdminService := jobadminapp.NewService(authService, jobAdminRepository)
 	jobAdminHandler := jobadminhttp.NewHandler(jobAdminService, catalog)
-	apiClientAdminRepository := apiclientadminrepo.NewPostgres(pool)
-	apiClientAdminService := apiclientadminapp.NewService(authService, apiClientAdminRepository, issuer)
-	apiClientAdminHandler := apiclientadminhttp.NewHandler(apiClientAdminService, catalog)
-	machineAuthenticator := apiclientadminapp.NewMachineAuthenticator(apiClientAdminRepository, issuer)
 	notificationService := platformnotification.NewPostgresService(pool, trackedQueue)
 	notificationAPIHandler := platformnotificationhttp.NewHandler(machineAuthenticator, notificationService, catalog)
 	webhookAdminRepository := webhookadminrepo.NewPostgres(pool)
@@ -360,7 +370,13 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 
 	publicWebHandler, err := publicwebhttp.NewHandler(publicwebapp.NewService(appManagementService, contentService, mobileProfileService, cfg.PublicWebBaseURL), catalog, cfg.AdminOrigin, cfg.Environment == "development" || cfg.Environment == "test")
 	if err != nil {
+		pool.Close()
 		return nil, err
+	}
+	adminUI, err := adminui.New(cfg.AdminPath, cfg.AdminStaticDir, cfg.PublicWebBaseURL)
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("configure Admin UI: %w", err)
 	}
 	server := g.Server("ak-api")
 	server.SetAddr(cfg.HTTPAddr)
@@ -579,19 +595,19 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/apps/{app_id}/notification-tasks/{task_id}", notificationAdminHandler.NotificationTask)
 		group.GET("/apps/{app_id}/notification-failures", notificationAdminHandler.NotificationFailures)
 		group.POST("/apps/{app_id}/notification-retries", notificationAdminHandler.RetryNotificationTasks)
-		group.GET("/apps/{app_id}/content/categories", contentHandler.Categories)
-		group.POST("/apps/{app_id}/content/categories", contentHandler.CreateCategory)
-		group.GET("/apps/{app_id}/content/categories/{id}", contentHandler.Category)
-		group.PATCH("/apps/{app_id}/content/categories/{id}", contentHandler.UpdateCategory)
-		group.DELETE("/apps/{app_id}/content/categories/{id}", contentHandler.DeleteCategory)
-		group.GET("/apps/{app_id}/content/articles", contentHandler.AdminArticles)
-		group.POST("/apps/{app_id}/content/articles", contentHandler.CreateArticle)
-		group.GET("/apps/{app_id}/content/articles/{id}", contentHandler.AdminArticle)
-		group.PATCH("/apps/{app_id}/content/articles/{id}", contentHandler.UpdateArticle)
-		group.DELETE("/apps/{app_id}/content/articles/{id}", contentHandler.DeleteArticle)
-		group.POST("/apps/{app_id}/content/articles/{id}/publish", contentHandler.Publish)
-		group.POST("/apps/{app_id}/content/articles/{id}/unpublish", contentHandler.Unpublish)
-		group.POST("/apps/{app_id}/content/articles/{id}/archive", contentHandler.Archive)
+		group.GET("/apps/{app_id}/content/categories", apiclientadminhttp.AgentCallable("listAdminAppContentCategories", contentHandler.Categories))
+		group.POST("/apps/{app_id}/content/categories", apiclientadminhttp.AgentCallable("createAdminAppContentCategory", contentHandler.CreateCategory))
+		group.GET("/apps/{app_id}/content/categories/{id}", apiclientadminhttp.AgentCallable("getAdminAppContentCategory", contentHandler.Category))
+		group.PATCH("/apps/{app_id}/content/categories/{id}", apiclientadminhttp.AgentCallable("updateAdminAppContentCategory", contentHandler.UpdateCategory))
+		group.DELETE("/apps/{app_id}/content/categories/{id}", apiclientadminhttp.AgentCallable("deleteAdminAppContentCategory", contentHandler.DeleteCategory))
+		group.GET("/apps/{app_id}/content/articles", apiclientadminhttp.AgentCallable("listAdminAppContentArticles", contentHandler.AdminArticles))
+		group.POST("/apps/{app_id}/content/articles", apiclientadminhttp.AgentCallable("createAdminAppContentArticle", contentHandler.CreateArticle))
+		group.GET("/apps/{app_id}/content/articles/{id}", apiclientadminhttp.AgentCallable("getAdminAppContentArticle", contentHandler.AdminArticle))
+		group.PATCH("/apps/{app_id}/content/articles/{id}", apiclientadminhttp.AgentCallable("updateAdminAppContentArticle", contentHandler.UpdateArticle))
+		group.DELETE("/apps/{app_id}/content/articles/{id}", apiclientadminhttp.AgentCallable("deleteAdminAppContentArticle", contentHandler.DeleteArticle))
+		group.POST("/apps/{app_id}/content/articles/{id}/publish", apiclientadminhttp.AgentCallable("transitionAdminAppContentArticle", contentHandler.Publish))
+		group.POST("/apps/{app_id}/content/articles/{id}/unpublish", apiclientadminhttp.AgentCallable("transitionAdminAppContentArticle", contentHandler.Unpublish))
+		group.POST("/apps/{app_id}/content/articles/{id}/archive", apiclientadminhttp.AgentCallable("transitionAdminAppContentArticle", contentHandler.Archive))
 		group.GET("/apps/{app_id}/content/items", contentHandler.AdminArticles)
 		group.POST("/apps/{app_id}/content/items", contentHandler.CreateArticle)
 		group.GET("/apps/{app_id}/content/items/{id}", contentHandler.AdminArticle)
@@ -670,9 +686,9 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/files/{id}/content", storageAdminHandler.Download)
 		group.GET("/files/{id}/usages", storageAdminHandler.Usages)
 		group.DELETE("/files/{id}", storageAdminHandler.Delete)
-		group.GET("/dashboard/summary", dashboardHandler.Summary)
-		group.GET("/dashboard/trends", dashboardHandler.Trends)
-		group.GET("/dashboard/activity", dashboardHandler.Activity)
+		group.GET("/dashboard/summary", apiclientadminhttp.AgentCallable("getAdminDashboardSummary", dashboardHandler.Summary))
+		group.GET("/dashboard/trends", apiclientadminhttp.AgentCallable("getAdminDashboardTrends", dashboardHandler.Trends))
+		group.GET("/dashboard/activity", apiclientadminhttp.AgentCallable("getAdminDashboardActivity", dashboardHandler.Activity))
 		group.GET("/org/units/tree", orgHandler.UnitTree)
 		group.POST("/org/units", orgHandler.CreateUnit)
 		group.PATCH("/org/units/{id}", orgHandler.UpdateUnit)
@@ -809,7 +825,16 @@ func NewAPI(ctx context.Context, cfg config.Config) (*API, error) {
 		group.GET("/ops/health", opsAdminHandler.Health)
 		group.GET("/ops/runtime-summary", opsAdminHandler.Runtime)
 	})
-	return &API{server: server, pool: pool}, nil
+	if adminUI != nil {
+		adminUI.Register(server)
+	}
+	return &API{
+		server: server, adminUI: adminUI,
+		closeDatabase: func() error {
+			pool.Close()
+			return nil
+		},
+	}, nil
 }
 
 func configuredLoginCaptchaType(value string, resolveErr error) (platformcaptcha.Type, error) {
@@ -868,6 +893,12 @@ func (a *API) Start() error {
 }
 
 func (a *API) Shutdown() error {
-	defer a.pool.Close()
-	return a.server.Shutdown()
+	err := a.server.Shutdown()
+	if a.adminUI != nil {
+		err = errors.Join(err, a.adminUI.Close())
+	}
+	if a.closeDatabase != nil {
+		err = errors.Join(err, a.closeDatabase())
+	}
+	return err
 }

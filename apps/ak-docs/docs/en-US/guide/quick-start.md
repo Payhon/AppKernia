@@ -7,6 +7,8 @@ description: A first-time path from clone to a running AppKernia system.
 
 This path only requires Git and Docker Desktop. Go, Node, and PostgreSQL stay inside containers, making it the easiest first run.
 
+<div class="ak-doc-callout"><strong>Prefer one binary?</strong>If you do not plan to change source code, start with <a href="./akone">Install and deploy akone</a>. No public installation artifact exists yet; that page distinguishes today's source build from post-release installation channels.</div>
+
 ## 1. Install the prerequisites
 
 - [Git](https://git-scm.com/downloads)

@@ -415,6 +415,9 @@ a,
 .ak-app-layout .ant-form-item-extra {
   color: #536179;
 }
+.ant-drawer .ant-form-item-extra {
+  color: #536179;
+}
 .ak-shell-brand {
   display: flex;
   align-items: center;
@@ -3191,6 +3194,15 @@ a,
 }
 
 @media (max-width: 767px) {
+  .ak-api-client-editor-drawer .ant-drawer-content-wrapper {
+    width: 100vw !important;
+    max-width: 100vw;
+  }
+
+  .ak-api-client-editor-drawer .ant-drawer-body {
+    padding: 16px;
+  }
+
   .ak-notification-drawer .ant-drawer-content-wrapper {
     width: 100vw !important;
     max-width: 100vw;

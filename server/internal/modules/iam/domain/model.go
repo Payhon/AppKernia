@@ -287,8 +287,9 @@ type AuthContext struct {
 
 type AuthenticatedContext struct {
 	AuthContext
-	SessionID uuid.UUID
-	AppID     *uuid.UUID
+	SessionID   uuid.UUID
+	AppID       *uuid.UUID
+	APIClientID *uuid.UUID
 }
 
 type Menu struct {

@@ -1,4 +1,5 @@
 import { Button, Checkbox, Form, Input, Typography } from 'antd'
+import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -61,7 +62,7 @@ export function RegisterPage() {
   })
 
   if (accepted) {
-    return <AuthFrame headingKey="auth.register.success" descriptionKey="auth.register.success_description"><a href="/login">{t('auth.common.back_to_login')}</a></AuthFrame>
+    return <AuthFrame headingKey="auth.register.success" descriptionKey="auth.register.success_description"><Link to="/login">{t('auth.common.back_to_login')}</Link></AuthFrame>
   }
   return (
     <AuthFrame headingKey="auth.register.heading" descriptionKey="auth.register.description">
@@ -74,7 +75,7 @@ export function RegisterPage() {
         <Controller control={control} name="acceptTerms" render={({ field: { value, onChange }, fieldState }) => <Form.Item {...(fieldState.error ? { help: fieldState.error.message, validateStatus: 'error' as const } : {})}><Checkbox checked={value} onChange={(event) => { onChange(event.target.checked) }}>{t('auth.register.terms')}</Checkbox></Form.Item>} />
         <Button block htmlType="submit" loading={submitting} size="large" type="primary">{t('auth.register.submit')}</Button>
       </Form>
-      <Typography.Paragraph className="ak-auth-back-link"><a href="/login">{t('auth.common.back_to_login')}</a></Typography.Paragraph>
+      <Typography.Paragraph className="ak-auth-back-link"><Link to="/login">{t('auth.common.back_to_login')}</Link></Typography.Paragraph>
     </AuthFrame>
   )
 }

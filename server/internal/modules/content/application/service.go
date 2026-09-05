@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"strings"
 
 	content "github.com/appkernia/appkernia/server/internal/modules/content/domain"
+	iamapp "github.com/appkernia/appkernia/server/internal/modules/iam/application"
 	iam "github.com/appkernia/appkernia/server/internal/modules/iam/domain"
 	"github.com/appkernia/appkernia/server/internal/shared/publicurl"
 	"github.com/google/uuid"
@@ -43,6 +45,9 @@ func NewService(auth Authenticator, repo content.Repository, options ...Option) 
 func (s *Service) authorize(ctx context.Context, token, permission string) (iam.AuthenticatedContext, error) {
 	a, e := s.auth.Authenticate(ctx, token, adminAudience)
 	if e != nil {
+		if errors.Is(e, iamapp.ErrAccessDenied) {
+			return iam.AuthenticatedContext{}, content.ErrForbidden
+		}
 		return iam.AuthenticatedContext{}, e
 	}
 	if !slices.Contains(a.Permissions, permission) {
@@ -68,6 +73,9 @@ func (s *Service) mobile(ctx context.Context, token string) (iam.AuthenticatedCo
 }
 func principal(a iam.AuthenticatedContext, appID uuid.UUID, p content.Principal) content.Principal {
 	p.TenantID, p.AppID, p.UserID, p.SessionID = a.Tenant.ID, appID, a.User.ID, a.SessionID
+	if a.APIClientID != nil {
+		p.APIClientID = *a.APIClientID
+	}
 	return p
 }
 

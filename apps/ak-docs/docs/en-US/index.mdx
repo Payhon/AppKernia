@@ -8,8 +8,8 @@ hero:
   tagline: Build Android, iOS, and HarmonyOS with uni-app x, run operations in React, and serve APIs with Go and PostgreSQL. Mobile, admin, and server share one contract from day one.
   actions:
     - theme: brand
-      text: Run from source
-      link: /guide/quick-start
+      text: Install akone
+      link: /guide/akone
     - theme: alt
       text: View on GitHub
       link: https://github.com/Payhon/AppKernia
@@ -25,6 +25,7 @@ heroShowcase:
       alt: AppKernia Mobile profile screen
 ---
 
+import { AkoneInstallTabs } from '../../theme/AkoneInstallTabs';
 import { HomeProductShowcase, HomeTechStack } from '../../theme/HomeLanding';
 
 <section className="ak-value-section" aria-labelledby="value-title">
@@ -205,35 +206,41 @@ import { HomeProductShowcase, HomeTechStack } from '../../theme/HomeLanding';
 </section>
 
 <section className="ak-home-section" aria-labelledby="start-title">
-  <p className="ak-home-eyebrow">RUN FROM SOURCE</p>
+  <p className="ak-home-eyebrow">QUICK START</p>
   <h2
     id="start-title"
     className="ak-home-heading"
-  >{`Clone it, start it, then make your first change`}</h2>
-  <p className="ak-home-lead">{`Follow the guide through environment checks, start the complete stack, and open Admin. You do not need to understand the whole repository before your first run.`}</p>
+  >{`Install one binary, then open Admin in two steps`}</h2>
+  <p className="ak-home-lead">{`akone embeds Admin and uses SQLite by default. Choose the installation method for your system to get started.`}</p>
+  <p className="ak-home-lead">
+    <strong>Release status:</strong> Shell, npm, and manual downloads await the first Preview;
+    Homebrew awaits a stable release. For now, use the default Source build tab.
+  </p>
+  <AkoneInstallTabs locale="en-US" />
+  <p className="ak-home-lead">
+    The commands below assume <code>akone</code> is on PATH. The Source and Shell tabs set that path
+    for the current terminal.
+  </p>
   <div className="ak-step-grid">
     <article className="ak-step-card">
       <span className="ak-card-index">1</span>
-      <h3>Get the source</h3>
-      <p>Clone the repository and enter the AppKernia root.</p>
-      <code>git clone https://github.com/Payhon/AppKernia.git</code>
+      <h3>Create an administrator</h3>
+      <p>The password is read from a hidden terminal prompt and never written to shell history.</p>
+      <code>{`akone bootstrap-admin --email admin@example.com --tenant-code local --tenant-name "Local Workspace" --display-name Administrator`}</code>
     </article>
     <article className="ak-step-card">
       <span className="ak-card-index">2</span>
-      <h3>Start the stack</h3>
-      <p>Docker runs PostgreSQL, migrations, seed, API, and Admin.</p>
-      <code>docker compose up --build -d</code>
-    </article>
-    <article className="ak-step-card">
-      <span className="ak-card-index">3</span>
-      <h3>Open Admin</h3>
-      <p>Confirm service health, sign in to Admin, then enter Mobile development.</p>
-      <code>curl http://localhost:4173/healthz</code>
+      <h3>Start the service</h3>
+      <p>
+        The default database is <code>data/appkernia.db</code> beside the binary. Then open{' '}
+        <code>http://127.0.0.1:8080/admin/</code>.
+      </p>
+      <code>akone serve</code>
     </article>
   </div>
   <div className="ak-community-actions">
-    <a href="./guide/quick-start">Open the zero-barrier guide</a>
-    <a href="./guide/troubleshooting">Troubleshoot startup</a>
+    <a href="./guide/source-development">Enter Go and React source development</a>
+    <a href="./guide/quick-start">Use the complete Docker development stack</a>
   </div>
 </section>
 

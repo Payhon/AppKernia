@@ -28,6 +28,8 @@ SAMPLES = (
     ("home.zh-CN.light.1440", "/", 1440, 900, "light"),
     ("home.zh-CN.light.1920", "/", 1920, 1080, "light"),
     ("home.en-US.dark.1440", "/en-US/", 1440, 900, "dark"),
+    ("akone.zh-CN.light.375", "/guide/akone", 375, 812, "light"),
+    ("akone.en-US.dark.1440", "/en-US/guide/akone", 1440, 900, "dark"),
     ("what-is-appkernia.zh-CN.light.1440", "/guide/what-is-appkernia", 1440, 1000, "light"),
     ("what-is-appkernia.en-US.dark.375", "/en-US/guide/what-is-appkernia", 375, 812, "dark"),
     ("architecture.zh-CN.light.1920", "/concepts/architecture", 1920, 1080, "light"),
@@ -176,6 +178,9 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
             featureCards: document.querySelectorAll('.ak-feature-card').length,
             technologyCards: document.querySelectorAll('.ak-tech-logo-card').length,
             productSliders: document.querySelectorAll('.ak-product-slider').length,
+            installTabLists: document.querySelectorAll('.akone-install-tabs [role="tablist"]').length,
+            installTabs: document.querySelectorAll('.akone-install-tabs [role="tab"]').length,
+            installPanels: document.querySelectorAll('.akone-install-tabs [role="tabpanel"]').length,
             maturitySections: document.querySelectorAll('#maturity-title, .ak-maturity-grid').length,
             hero: heroRect && heroImageRect && heroLabelRect ? {
               width: heroRect.width,
@@ -190,6 +195,7 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
         """
     )
     slider_interactions = None
+    install_tab_interactions = None
     delivery_copy_hits: list[str] = []
     if route in {"/", "/en-US/"}:
         sliders = page.locator(".ak-product-slider")
@@ -220,6 +226,35 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
         await page.evaluate(
             "document.activeElement instanceof HTMLElement && document.activeElement.blur()"
         )
+    install_tabs = page.locator(".akone-install-tabs").first
+    if await install_tabs.count():
+        tabs = install_tabs.locator('[role="tab"]')
+        panels = install_tabs.locator('[role="tabpanel"]')
+        first = tabs.first
+        await first.focus()
+        await first.press("ArrowRight")
+        arrow_changed = await tabs.nth(1).get_attribute("aria-selected") == "true"
+        await tabs.nth(1).press("End")
+        end_changed = await tabs.last.get_attribute("aria-selected") == "true"
+        await tabs.last.press("Home")
+        home_changed = await first.get_attribute("aria-selected") == "true"
+        target_heights = await tabs.evaluate_all(
+            "elements => elements.map(element => element.getBoundingClientRect().height)"
+        )
+        install_tab_interactions = {
+            "tabCount": await tabs.count(),
+            "panelCount": await panels.count(),
+            "arrowChanged": arrow_changed,
+            "endChanged": end_changed,
+            "homeChanged": home_changed,
+            "selectedTabs": await install_tabs.locator(
+                '[role="tab"][aria-selected="true"]'
+            ).count(),
+            "visiblePanels": await install_tabs.locator(
+                '[role="tabpanel"]:not([hidden])'
+            ).count(),
+            "minimumTargetHeight": min(target_heights),
+        }
     await page.add_script_tag(path=str(AXE_PATH))
     axe = await page.evaluate(
         """
@@ -339,6 +374,29 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
         delivery_copy_hits = [phrase for phrase in delivery_phrases if phrase.lower() in home_text]
         if delivery_copy_hits:
             errors.append(f"delivery-report copy remains: {delivery_copy_hits}")
+    if route in {"/", "/en-US/", "/guide/akone", "/en-US/guide/akone"}:
+        if not install_tab_interactions:
+            errors.append("akone installation tabs are missing")
+        else:
+            expected = {
+                "tabCount": 5,
+                "panelCount": 5,
+                "arrowChanged": True,
+                "endChanged": True,
+                "homeChanged": True,
+                "selectedTabs": 1,
+                "visiblePanels": 1,
+            }
+            for key, value in expected.items():
+                if install_tab_interactions[key] != value:
+                    errors.append(
+                        f"installation tabs {key}: {install_tab_interactions[key]} != {value}"
+                    )
+            if width <= 375 and install_tab_interactions["minimumTargetHeight"] < 44:
+                errors.append(
+                    "installation tab touch target is shorter than 44px: "
+                    f"{install_tab_interactions['minimumTargetHeight']}"
+                )
     if console_errors:
         errors.append(f"console errors: {console_errors}")
     if failed_responses:
@@ -370,6 +428,7 @@ async def inspect_sample(browser, name: str, route: str, width: int, height: int
         "metrics": metrics,
         "axeSeriousCritical": axe,
         "sliderInteractions": slider_interactions,
+        "installTabInteractions": install_tab_interactions,
         "deliveryCopyHits": delivery_copy_hits,
         "abortedRequests": failed_requests,
         "navigations": navigations,

@@ -1,4 +1,4 @@
-package main
+package command
 
 import (
 	"bytes"
@@ -78,9 +78,14 @@ type loginProviderExportPlan struct {
 	Google          *loginprovider.GooglePublicConfig
 }
 
-func appLoginProviderCommand(args []string) error {
+func appLoginProviderCommand(program string, args []string) error {
+	usage := fmt.Sprintf("usage: %s app-login-provider export --app-id UUID --output DIR [--check] [native identity flags]", program)
+	if len(args) == 1 && (args[0] == "--help" || args[0] == "-h") {
+		fmt.Fprintln(os.Stdout, usage)
+		return nil
+	}
 	if len(args) == 0 || args[0] != "export" {
-		return fmt.Errorf("usage: ak-cli app-login-provider export --app-id UUID --output DIR [--check] [native identity flags]")
+		return &UsageError{Message: usage}
 	}
 	flags := flag.NewFlagSet("app-login-provider export", flag.ContinueOnError)
 	appIDValue := flags.String("app-id", "", "public App UUID")
@@ -91,7 +96,7 @@ func appLoginProviderCommand(args []string) error {
 	androidCertificateSHA256 := flags.String("android-certificate-sha256", strings.TrimSpace(os.Getenv("AK_ANDROID_CERTIFICATE_SHA256")), "Android SHA-256 signing certificate fingerprint registered with Google")
 	iosBundleID := flags.String("ios-bundle-id", strings.TrimSpace(os.Getenv("AK_IOS_BUNDLE_ID")), "iOS Bundle ID used by this build")
 	harmonyBundleName := flags.String("harmony-bundle-name", strings.TrimSpace(os.Getenv("AK_HARMONY_BUNDLE_NAME")), "HarmonyOS Bundle Name used by this build")
-	if err := flags.Parse(args[1:]); err != nil {
+	if err := parseCommandFlags(flags, args[1:], usage); err != nil {
 		return err
 	}
 	appID, err := uuid.Parse(strings.TrimSpace(*appIDValue))
@@ -104,6 +109,9 @@ func appLoginProviderCommand(args []string) error {
 	}
 	cfg, err := config.Load()
 	if err != nil {
+		return err
+	}
+	if err = requirePostgreSQL(cfg, "app-login-provider export"); err != nil {
 		return err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

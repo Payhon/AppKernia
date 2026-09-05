@@ -5,11 +5,14 @@ __pycache__/
 .env
 .env.*
 !.env.example
+/akone.yml
+/akone.yaml
 .secrets/
 docs/LOCAL_TEST_ACCESS.md
 node_modules/
 .pnpm-store/
 dist/
+server/internal/platform/adminui/dist/
 output/
 coverage/
 playwright-report/

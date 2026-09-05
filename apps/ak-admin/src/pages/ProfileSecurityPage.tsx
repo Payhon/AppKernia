@@ -3,6 +3,7 @@ import { Alert, Button, Card, Descriptions, Empty, Popconfirm, Skeleton, Space, 
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { withAdminBasePath } from '../app/base-path'
 import { ProfileNavigation } from '../components/ProfileNavigation'
 import { PasswordChangeCard } from '../components/PasswordChangeCard'
 import { MfaSecurityCard } from '../components/MfaSecurityCard'
@@ -30,7 +31,7 @@ export function ProfileSecurityPage() {
     mutationFn: revokeSelfSession,
     onSuccess: async (result) => {
       if (result.current_session) {
-        window.location.assign('/login')
+        window.location.assign(withAdminBasePath('/login'))
         return
       }
       await queryClient.invalidateQueries({ queryKey: selfSessionsQueryKey })
@@ -40,7 +41,7 @@ export function ProfileSecurityPage() {
     mutationFn: removeSelfDevice,
     onSuccess: async (result) => {
       if (result.current_device) {
-        window.location.assign('/login')
+        window.location.assign(withAdminBasePath('/login'))
         return
       }
       await Promise.all([

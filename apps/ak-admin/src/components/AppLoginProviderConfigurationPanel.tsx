@@ -3,6 +3,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { withAdminBasePath } from "../app/base-path";
 import {
   useAppLoginSettings,
   useAppLoginSettingsMutation,
@@ -248,7 +249,7 @@ export function AppLoginProviderConfigurationPanel({ appId, canOpenConfiguration
                 />
               </Form.Item>} />
               {!catalogReady && !catalog.isPending ? <Alert showIcon title={t("login_providers.binding.provider_unavailable")} type="error" /> : null}
-              {catalogReady && options.length === 0 && !configs.isPending ? <Alert action={canOpenConfigurationPage ? <Button href="/system/settings/login-providers" rel="noopener noreferrer" size="small" target="_blank">{t("login_providers.binding.open_configs")}</Button> : undefined} showIcon title={t("login_providers.binding.no_active_config")} type="warning" /> : null}
+              {catalogReady && options.length === 0 && !configs.isPending ? <Alert action={canOpenConfigurationPage ? <Button href={withAdminBasePath("/system/settings/login-providers")} rel="noopener noreferrer" size="small" target="_blank">{t("login_providers.binding.open_configs")}</Button> : undefined} showIcon title={t("login_providers.binding.no_active_config")} type="warning" /> : null}
               {currentUnavailable ? <Alert description={t("login_providers.binding.runtime_fail_closed")} showIcon title={t("login_providers.binding.unavailable")} type="error" /> : null}
               {selectedConfig && row.enabled ? <Alert showIcon title={t("login_providers.binding.ready")} type="success" /> : null}
               {definition.publicFields.some((item) => item.requiresRebuild) ? <Typography.Text type="secondary">{t("login_providers.binding.rebuild_required")}</Typography.Text> : null}

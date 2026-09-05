@@ -20,8 +20,8 @@ var (
 )
 
 type Principal struct {
-	TenantID, AppID, UserID, SessionID uuid.UUID
-	RequestID, UserAgent               string
+	TenantID, AppID, UserID, SessionID, APIClientID uuid.UUID
+	RequestID, IPAddress, UserAgent                 string
 }
 
 type Translation struct {

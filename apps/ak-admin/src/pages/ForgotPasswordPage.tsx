@@ -1,4 +1,5 @@
 import { Button, Form, Input, Typography } from 'antd'
+import { Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -34,7 +35,7 @@ export function ForgotPasswordPage() {
     }
   })
   if (retryAfter !== null) {
-    return <AuthFrame headingKey="auth.forgot.success" descriptionKey="auth.forgot.success_description"><Typography.Paragraph aria-live="polite">{t('auth.forgot.cooldown', { seconds: retryAfter })}</Typography.Paragraph><a href="/login">{t('auth.common.back_to_login')}</a></AuthFrame>
+    return <AuthFrame headingKey="auth.forgot.success" descriptionKey="auth.forgot.success_description"><Typography.Paragraph aria-live="polite">{t('auth.forgot.cooldown', { seconds: retryAfter })}</Typography.Paragraph><Link to="/login">{t('auth.common.back_to_login')}</Link></AuthFrame>
   }
   return (
     <AuthFrame headingKey="auth.forgot.heading" descriptionKey="auth.forgot.description">
@@ -43,7 +44,7 @@ export function ForgotPasswordPage() {
         <Controller control={control} name="email" render={({ field, fieldState }) => <Form.Item htmlFor="forgot-email" label={t('auth.common.email')} {...(fieldState.error ? { help: fieldState.error.message, validateStatus: 'error' as const } : {})}><Input {...field} autoComplete="email" id="forgot-email" inputMode="email" size="large" /></Form.Item>} />
         <Button block htmlType="submit" loading={submitting} size="large" type="primary">{t('auth.forgot.submit')}</Button>
       </Form>
-      <Typography.Paragraph className="ak-auth-back-link"><a href="/login">{t('auth.common.back_to_login')}</a></Typography.Paragraph>
+      <Typography.Paragraph className="ak-auth-back-link"><Link to="/login">{t('auth.common.back_to_login')}</Link></Typography.Paragraph>
     </AuthFrame>
   )
 }

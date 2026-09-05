@@ -26,7 +26,7 @@ type Config struct {
 	MFAEnabled    bool
 	OAuthEnabled  bool
 	OAuthAdapter  string
-	AdminOrigin   string
+	AdminBaseURL  string
 	EnrollmentTTL time.Duration
 	OAuthStateTTL time.Duration
 }
@@ -234,7 +234,7 @@ func (service *Service) StartOAuth(ctx context.Context, token string, input iden
 	if err = service.repo.SaveOAuthChallenge(ctx, principal(authenticated, input), challenge); err != nil {
 		return identity.OAuthStart{}, err
 	}
-	callback := strings.TrimRight(service.config.AdminOrigin, "/") + "/auth/callback/" + provider + "?code=" + code + "&state=" + state
+	callback := strings.TrimRight(service.config.AdminBaseURL, "/") + "/auth/callback/" + provider + "?code=" + code + "&state=" + state
 	return identity.OAuthStart{AuthorizationURL: callback, ExpiresAt: expiresAt}, nil
 }
 

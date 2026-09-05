@@ -58,6 +58,8 @@
 
 - Sign-in administration additionally follows `pages/login-providers.md` for fixed password state, conditional OTP channels, compiled provider forms, write-only secrets, preflight lifecycle, help guidance, and atomic App bindings.
 
+- API Client administration additionally follows `pages/api-clients.md` for optional delegated-user binding, explicit effective-permission guidance, searchable active-user selection, and non-disclosure of client Secrets.
+
 - Authentication surfaces additionally follow `pages/login-auth.md` for progressive interactive CAPTCHA disclosure, keyboard-equivalent controls, responsive coordinate mapping, focus recovery, and reduced-motion behavior.
 
 - System configuration additionally follows `pages/system-configs.md` for the localized fixed CAPTCHA type enum and its permission-gated global edit boundary.

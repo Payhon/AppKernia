@@ -9,14 +9,14 @@
 
 ## 1. 结论先行
 
-AppKernia 后端不直接 Fork HotGo，也不逐文件复制 HotGo，而是采用“功能对标、架构重整、PostgreSQL-first、安全加固”的方式实现。
+AppKernia 后端不直接 Fork HotGo，也不逐文件复制 HotGo，而是采用“功能对标、架构重整、PostgreSQL-first、安全加固”的方式实现。`akone` 另提供独立 SQLite 本地运行组合根；它不改变完整业务的 PostgreSQL 事实源。
 
 最终方案：
 
 - 架构：**模块化单体（Modular Monolith）**，预留独立 Worker 和后续服务拆分能力。
 - Web/API 框架：**GoFrame 2.10.x**，用于 HTTP、路由、中间件、参数绑定、校验、配置、日志和 OpenAPI 输出。
 - 数据访问：**pgx/v5 + sqlc**，禁止新业务模块使用 GORM；禁止同时维护 GoFrame gdb 与 sqlc 两套持久层风格。
-- 数据库：**PostgreSQL 18.x**，使用 UUIDv7、JSONB、INET/CIDR、部分索引、递归 CTE 等原生能力。
+- 数据库：完整业务使用 **PostgreSQL 18.x**；`akone serve` 无数据库配置时使用独立 SQLite 本地模式。
 - 认证：短期 JWT Access Token + 不透明、可轮换、只存哈希的 Refresh Token。
 - 授权：规范化 RBAC + 稳定权限码 + 组织数据范围；Casbin 不是核心事实源。
 - 后台导航：菜单与权限分离。菜单决定“看见什么”，权限决定“能做什么”。
@@ -90,7 +90,7 @@ HotGo 仓库声明采用 MIT License。AK 可以参考设计并依法复用符�
 |---|---|---|
 | Go | Go 1.26.5（1.26.x） | 初始锁定当前安全补丁；CI 与生产镜像版本一致 |
 | HTTP 框架 | GoFrame v2.10.x，初始锁定 v2.10.2 | 路由、上下文、中间件、绑定、校验、配置、日志、OpenAPI |
-| 数据库 | PostgreSQL 18.x，初始 18.4 | 唯一业务数据库；禁止以 MySQL 兼容为设计目标牺牲 PG 能力 |
+| 数据库 | PostgreSQL 18.x，初始 18.4；SQLite standalone | PostgreSQL 是完整业务事实源；SQLite 只承载 ADR-0034 声明的单机能力 |
 | 驱动/连接池 | pgx/v5 | PostgreSQL 原生驱动、事务、批量、COPY、通知 |
 | SQL 生成 | sqlc 1.32.x | SQL 为事实源，生成类型安全 Go 代码 |
 | 数据库迁移 | golang-migrate v4.19.x | 版本化 Up/Down；生产迁移独立执行 |
@@ -455,6 +455,8 @@ Repository 查询必须把 `AccessScope` 转换为 SQL 条件；不能先查出�
 
 ## 9. PostgreSQL 设计规范
 
+`akone` SQLite standalone 使用独立迁移与 Repository，默认文件为二进制同目录的 `data/appkernia.db`。不得把本节 PostgreSQL SQL 在运行时做字符串转换后交给 SQLite，也不得把未实现模块注册为会丢任务的降级实现。当前能力边界见 ADR-0034；以下规范仍是 PostgreSQL 完整模式的事实源。
+
 ### 9.1 基本规则
 
 - Schema：`iam`、`org`、`sys`、`storage`、`notify`、`jobs`、`audit`；可选 `billing`。
@@ -564,7 +566,7 @@ WHERE id = $2 AND version = $3;
 | `sys.dict_types` | 字典类型 |
 | `sys.dict_items` | 字典项 |
 | `sys.regions` | 地区编码，可选种子数据 |
-| `sys.api_clients` | 机器客户端 |
+| `sys.api_clients` | 机器客户端及可选同租户用户委托 |
 | `sys.api_client_secrets` | API Client 密钥哈希及轮换 |
 | `sys.api_client_permissions` | 机器客户端权限 |
 | `sys.idempotency_keys` | 幂等请求结果 |
@@ -607,7 +609,7 @@ WHERE id = $2 AND version = $3;
 
 | 表 | 说明 |
 |---|---|
-| `audit.operation_logs` | 管理操作和关键业务变更审计 |
+| `audit.operation_logs` | 管理操作和关键业务变更审计；Agent 委托保留 API Client 与有效用户双主体 |
 | `audit.login_events` | 登录、刷新、MFA、API Client 鉴权事件 |
 | `audit.security_events` | Token 重放、权限探测、异常下载等安全事件 |
 | `audit.privacy_erasure_events` | 不含用户标识的 App 账号清除证明 |

@@ -30,6 +30,7 @@ type Input struct {
 	AllowedCIDRs []string   `json:"allowed_cidrs"`
 	Status       string     `json:"status"`
 	ExpiresAt    *time.Time `json:"expires_at,omitempty"`
+	BoundUserID  *uuid.UUID `json:"bound_user_id"`
 }
 type Secret struct {
 	ID         uuid.UUID  `json:"id"`
@@ -38,6 +39,11 @@ type Secret struct {
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
 	RevokedAt  *time.Time `json:"revoked_at,omitempty"`
 	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
+}
+type BoundUser struct {
+	ID          uuid.UUID `json:"id"`
+	DisplayName string    `json:"display_name"`
+	Email       string    `json:"email"`
 }
 type Client struct {
 	ID           uuid.UUID   `json:"id"`
@@ -48,6 +54,8 @@ type Client struct {
 	AllowedCIDRs []string    `json:"allowed_cidrs"`
 	Status       string      `json:"status"`
 	ExpiresAt    *time.Time  `json:"expires_at,omitempty"`
+	BoundUserID  *uuid.UUID  `json:"bound_user_id"`
+	BoundUser    *BoundUser  `json:"bound_user"`
 	CreatedAt    time.Time   `json:"created_at"`
 	UpdatedAt    time.Time   `json:"updated_at"`
 	Secrets      []Secret    `json:"secrets"`
@@ -70,11 +78,38 @@ type Credential struct {
 	IPAddress  string
 }
 
+type TokenMetadata struct {
+	RequestID, IPAddress, UserAgent string
+}
+
+type TokenExchangeAudit struct {
+	TenantID       *uuid.UUID
+	ClientID       string
+	IdentifierHash []byte
+	RequestID      string
+	IPAddress      string
+	UserAgent      string
+	Result         string
+	FailureReason  string
+}
+
 type MachinePrincipal struct {
 	TenantID    uuid.UUID
 	ClientID    uuid.UUID
 	AppID       uuid.UUID
 	Permissions []string
+}
+
+type AgentAudit struct {
+	TenantID  uuid.UUID
+	UserID    uuid.UUID
+	ClientID  uuid.UUID
+	RequestID string
+	Operation string
+	Method    string
+	Path      string
+	IPAddress string
+	UserAgent string
 }
 
 type Repository interface {
@@ -87,4 +122,6 @@ type Repository interface {
 	ReplacePermissions(context.Context, Principal, uuid.UUID, []string) (Client, error)
 	ReplaceApps(context.Context, Principal, uuid.UUID, []uuid.UUID) (Client, error)
 	Authenticate(context.Context, Credential) (Client, error)
+	AuditTokenExchange(context.Context, TokenExchangeAudit) error
+	AuditAgentAuthentication(context.Context, AgentAudit) error
 }

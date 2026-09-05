@@ -1,5 +1,5 @@
 import { Button, Form, Input, Space, Typography } from 'antd'
-import { useNavigate } from '@tanstack/react-router'
+import { Link, useNavigate } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { lazy, Suspense, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
@@ -187,12 +187,12 @@ export function LoginPage() {
               </Form.Item>
             ) : null}
             {publicConfig.data?.feature_flags['password_recovery'] === true
-              ? <a className="ak-forgot-link" href="/forgot-password">{t('auth.login.forgot')}</a>
+              ? <Link className="ak-forgot-link" to="/forgot-password">{t('auth.login.forgot')}</Link>
               : null}
             <Button block disabled={captchaLoading} htmlType="submit" loading={status === 'authenticating'} size="large" type="primary">{t('auth.login.submit')}</Button>
           </Form>
           {publicConfig.data?.feature_flags['admin_registration'] === true
-            ? <Space className="ak-auth-secondary-action"><Typography.Text type="secondary">{t('auth.login.register_prompt')}</Typography.Text><a href="/register">{t('auth.login.register')}</a></Space>
+            ? <Space className="ak-auth-secondary-action"><Typography.Text type="secondary">{t('auth.login.register_prompt')}</Typography.Text><Link to="/register">{t('auth.login.register')}</Link></Space>
             : null}
     </AuthFrame>
   )

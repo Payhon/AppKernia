@@ -1,0 +1,119 @@
+name: akone release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: akone-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.policy.outputs.tag }}
+    steps:
+      - name: Checkout signed tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Enforce tag and signing policy
+        id: policy
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(node --input-type=module -e "import { normalizeVersion } from './scripts/release.mjs'; process.stdout.write(normalizeVersion(process.env.TAG))")"
+          if [[ "$VERSION" != *-* ]]; then
+            echo "stable releases are blocked until macOS notarization and Windows Authenticode signing are implemented" >&2
+            exit 1
+          fi
+          tag_object="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$TAG" --jq '.object.sha + " " + .object.type')"
+          read -r tag_sha tag_type <<<"$tag_object"
+          if [[ "$tag_type" != "tag" ]]; then
+            echo "$TAG must be an annotated signed tag" >&2
+            exit 1
+          fi
+          if [[ "$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_sha" --jq '.verification.verified')" != "true" ]]; then
+            echo "$TAG signature is not verified by GitHub" >&2
+            exit 1
+          fi
+          tag_commit="$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_sha" --jq '.object.sha')"
+          if [[ "$tag_commit" != "$(git rev-parse HEAD)" ]]; then
+            echo "$TAG does not resolve to the checked out commit" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "$tag_commit" refs/remotes/origin/main; then
+            echo "$TAG is not reachable from origin/main" >&2
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
+        with:
+          go-version: "1.26.5"
+          cache-dependency-path: server/go.sum
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 11.18.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24.18.1"
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+
+      - name: Run release gates
+        run: |
+          make check
+          node --test scripts/release.test.mjs
+
+      - name: Build draft release
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          distribution: goreleaser
+          version: v2.17.1
+          args: release --clean --config .goreleaser.yaml
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Attest release checksums
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4
+        with:
+          subject-checksums: dist/checksums.txt
+
+      - name: Publish preview release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.policy.outputs.tag }}
+        run: gh release edit "$TAG" --draft=false --prerelease
+
+  channels:
+    needs: release
+    uses: ./.github/workflows/release-channels.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+    secrets: inherit
+    permissions:
+      contents: read
+      id-token: write

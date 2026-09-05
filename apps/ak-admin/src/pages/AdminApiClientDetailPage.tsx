@@ -78,7 +78,7 @@ export function AdminApiClientDetailPage({ clientId }: { clientId: string }) {
       {query.data ? (
         <Space orientation="vertical" size="large" style={{ width: "100%" }}>
           <Card title={query.data.name}>
-            <Descriptions column={{ xs: 1, md: 2, lg: 3 }} bordered>
+            <Descriptions column={{ xs: 1, md: 1, lg: 2, xl: 3 }} bordered>
               <Descriptions.Item label={t("api_clients.detail.client_id")}>
                 <code>{query.data.client_id}</code>
               </Descriptions.Item>
@@ -95,6 +95,20 @@ export function AdminApiClientDetailPage({ clientId }: { clientId: string }) {
               </Descriptions.Item>
               <Descriptions.Item label={t("api_clients.editor.description")}>
                 {query.data.description || t("common.not_available")}
+              </Descriptions.Item>
+              <Descriptions.Item label={t("api_clients.columns.bound_user")}>
+                {query.data.bound_user ? (
+                  <div>
+                    <strong>{query.data.bound_user.display_name}</strong>
+                    {query.data.bound_user.email ? (
+                      <div className="ak-table-secondary">
+                        {query.data.bound_user.email}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  t("api_clients.bound_user.unbound")
+                )}
               </Descriptions.Item>
               <Descriptions.Item label={t("api_clients.editor.cidrs")}>
                 <Space wrap>

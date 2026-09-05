@@ -89,6 +89,25 @@ AK_SEED_ADMIN_PASSWORD_FILE="$PWD/.secrets/seed-admin-password" make -C server s
 - API readiness：<http://localhost:8080/internal/v1/health/ready>
 - Admin public config：<http://localhost:4173/admin-api/v1/auth/public-config>
 
+## akone 单二进制安装
+
+正式制品统一使用 `akone`。可通过 Shell、npm 或 Homebrew 安装：
+
+```bash
+# macOS / Linux
+curl -fsSL https://github.com/Payhon/AppKernia/releases/latest/download/install.sh | sh
+
+# macOS / Linux / Windows
+npm install --global @appkernia/akone
+
+# macOS（稳定版开放后）
+brew install payhon/tap/akone
+```
+
+仓库内可运行 `make build-akone` 构建带内嵌管理端的 `server/bin/akone`。`akone serve` 默认在二进制同目录创建 `data/appkernia.db` 并以 SQLite 启动；可用 `--sqlite FILE`、`AK_SQLITE_PATH` 或 YAML 覆盖。配置 `AK_DATABASE_URL` 时继续使用完整 PostgreSQL 模式。
+
+安装器会在下载后校验 GitHub Release 中的 SHA-256，默认写入用户目录且不会调用 sudo、修改 shell 配置或自动注册系统服务。运行、YAML、环境变量和 Agent CLI 见 [akone 使用手册](docs/manual/akone.md)，制品、预览版和维护者流程见 [akone 发行手册](docs/manual/akone-release.md)。
+
 ## 快速开始：全 Docker 模式
 
 如果只想运行完整系统而不在宿主机安装 Go/Node 依赖：
@@ -133,7 +152,7 @@ make docker-down
 | `make -C server test-race` | 使用 race detector 运行测试 |
 | `make -C server build` | 构建 `server/bin/ak-api`、`ak-worker`、`ak-cli` |
 | `make -C server db-setup` | 执行迁移和幂等 Seed |
-| `make -C server doctor` | 检查 PostgreSQL 连通性 |
+| `make -C server doctor` | 检查当前 SQLite/PostgreSQL 连通性 |
 | `make -C server check` | 检查格式、`go vet` 和测试 |
 
 根目录还有跨项目入口：

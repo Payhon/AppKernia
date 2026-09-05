@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { authSession, useAuthStore } from '../features/auth/store'
+import { withoutAdminBasePath } from './base-path'
 
 const ErrorPage = lazy(async () => import('../pages/ErrorPage').then((module) => ({ default: module.ErrorPage })))
 
@@ -33,7 +34,7 @@ export function ProtectedPage({ children }: { children: ReactNode }) {
   const status = useAuthStore((state) => state.status)
   useEffect(() => {
     if (status === 'anonymous') {
-      const redirect = window.location.pathname
+      const redirect = withoutAdminBasePath(window.location.pathname)
       void navigate({ to: '/login', search: { redirect }, replace: true })
     }
   }, [navigate, status])

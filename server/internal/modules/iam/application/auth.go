@@ -17,6 +17,7 @@ import (
 var (
 	ErrInvalidCredentials     = errors.New("invalid credentials")
 	ErrAudienceMismatch       = errors.New("token audience mismatch")
+	ErrAccessDenied           = errors.New("access denied")
 	ErrProfileValidation      = errors.New("profile validation failed")
 	ErrSessionValidation      = errors.New("session validation failed")
 	ErrPasswordValidation     = errors.New("password validation failed")
@@ -484,6 +485,20 @@ func (service *AuthService) Authenticate(ctx context.Context, rawAccessToken, au
 		}
 	}
 	return domain.AuthenticatedContext{AuthContext: contextValue, SessionID: claims.SessionID, AppID: appIDPointer(claims.AppID)}, nil
+}
+
+// ResolveDelegatedContext loads the current user, membership, role and
+// permission state for an API Client delegation without creating a browser
+// session or changing the token audience.
+func (service *AuthService) ResolveDelegatedContext(ctx context.Context, userID, tenantID uuid.UUID) (domain.AuthenticatedContext, error) {
+	contextValue, err := service.sessions.GetAuthContext(ctx, userID, tenantID)
+	if errors.Is(err, domain.ErrIdentityNotFound) {
+		return domain.AuthenticatedContext{}, ErrInvalidAccessToken
+	}
+	if err != nil {
+		return domain.AuthenticatedContext{}, err
+	}
+	return domain.AuthenticatedContext{AuthContext: contextValue}, nil
 }
 
 func appIDPointer(value uuid.UUID) *uuid.UUID {

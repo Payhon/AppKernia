@@ -54,3 +54,15 @@
 - DCloud's official uni-app image is self-hosted; the remaining marks come from
   `simple-icons@16.27.0`. Technology marks identify dependencies and do not
   imply endorsement.
+
+## AKDOCS-007 installation quick start
+
+- Replace the source-only three-card quick start with one five-option install
+  tab set followed by the shared administrator bootstrap and serve commands.
+- Keep source build selected while no public release exists. Shell, npm,
+  Homebrew, and manual Release tabs must state their actual availability rather
+  than presenting future channels as live.
+- Tabs use real buttons, one visible panel, tab/tabpanel relationships, visible
+  focus, Arrow/Home/End navigation, and 44 px minimum targets on narrow screens.
+- Keep the existing section rail, typography, colors, and square connected-grid
+  treatment; this is a content hierarchy change, not a new visual language.

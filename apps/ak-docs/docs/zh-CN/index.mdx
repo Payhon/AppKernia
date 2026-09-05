@@ -8,8 +8,8 @@ hero:
   tagline: 用 uni-app x 构建 Android、iOS 与 HarmonyOS，用 React 管理业务，用 Go 和 PostgreSQL 承载 API。移动端、管理端和服务端从第一天共享同一套契约。
   actions:
     - theme: brand
-      text: 从源码运行
-      link: /guide/quick-start
+      text: 安装 akone
+      link: /guide/akone
     - theme: alt
       text: 查看 GitHub
       link: https://github.com/Payhon/AppKernia
@@ -25,6 +25,7 @@ heroShowcase:
       alt: AppKernia Mobile 个人中心
 ---
 
+import { AkoneInstallTabs } from '../../theme/AkoneInstallTabs';
 import { HomeProductShowcase, HomeTechStack } from '../../theme/HomeLanding';
 
 <section className="ak-value-section" aria-labelledby="value-title">
@@ -189,32 +190,37 @@ import { HomeProductShowcase, HomeTechStack } from '../../theme/HomeLanding';
 </section>
 
 <section className="ak-home-section" aria-labelledby="start-title">
-  <p className="ak-home-eyebrow">RUN FROM SOURCE</p>
-  <h2 id="start-title" className="ak-home-heading">{`克隆、启动，然后开始改代码`}</h2>
-  <p className="ak-home-lead">{`跟着向导完成环境检查、启动完整服务并打开后台。第一次运行之前，你不需要先读懂整个仓库。`}</p>
+  <p className="ak-home-eyebrow">QUICK START</p>
+  <h2 id="start-title" className="ak-home-heading">{`安装一个二进制，两步打开管理端`}</h2>
+  <p className="ak-home-lead">{`akone 内嵌 Admin 并默认使用 SQLite，选择适合当前系统的安装方式即可开始。`}</p>
+  <p className="ak-home-lead">
+    <strong>发行状态：</strong>Shell、npm 和手工下载渠道尚待首个 Preview，Homebrew
+    尚待稳定版；目前请使用默认的“源码构建” Tab。
+  </p>
+  <AkoneInstallTabs locale="zh-CN" />
+  <p className="ak-home-lead">
+    以下命令假设 <code>akone</code> 已加入 PATH；“源码构建”和 Shell Tab 已为当前终端临时设置该路径。
+  </p>
   <div className="ak-step-grid">
     <article className="ak-step-card">
       <span className="ak-card-index">1</span>
-      <h3>获取源码</h3>
-      <p>克隆仓库并进入 AppKernia 根目录。</p>
-      <code>git clone https://github.com/Payhon/AppKernia.git</code>
+      <h3>创建管理员</h3>
+      <p>密码会由终端隐藏读取，不会写入命令历史。</p>
+      <code>{`akone bootstrap-admin --email admin@example.com --tenant-code local --tenant-name "Local Workspace" --display-name Administrator`}</code>
     </article>
     <article className="ak-step-card">
       <span className="ak-card-index">2</span>
-      <h3>启动完整后端</h3>
-      <p>Docker 负责 PostgreSQL、迁移、Seed、API 与 Admin。</p>
-      <code>docker compose up --build -d</code>
-    </article>
-    <article className="ak-step-card">
-      <span className="ak-card-index">3</span>
-      <h3>打开后台</h3>
-      <p>确认服务健康、登录 Admin，再按目标平台进入 Mobile 开发。</p>
-      <code>curl http://localhost:4173/healthz</code>
+      <h3>启动服务</h3>
+      <p>
+        默认数据库位于二进制同目录的 <code>data/appkernia.db</code>，然后访问{' '}
+        <code>http://127.0.0.1:8080/admin/</code>。
+      </p>
+      <code>akone serve</code>
     </article>
   </div>
   <div className="ak-community-actions">
-    <a href="./guide/quick-start">打开零门槛向导</a>
-    <a href="./guide/troubleshooting">排查启动问题</a>
+    <a href="./guide/source-development">进入 Go/React 源码开发</a>
+    <a href="./guide/quick-start">使用 Docker 完整开发栈</a>
   </div>
 </section>
 

@@ -2065,89 +2065,100 @@ paths:
     get:
       summary: List categories belonging only to the selected App
       operationId: listAdminAppContentCategories
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: status, in: query, schema: {type: string, enum: [active, disabled]}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
-      responses: {"200": {description: App category page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+      responses: {"200": {description: App category page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create a category owned by the selected App
       operationId: createAdminAppContentCategory
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryRequest"}}}}
-      responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "409": {$ref: "#/components/responses/Conflict"}}
+      responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/apps/{app_id}/content/categories/{id}:
     get:
       summary: Read one category owned by the selected App
       operationId: getAdminAppContentCategory
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {"200": {description: Category., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+      responses: {"200": {description: Category., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update an App-owned category with optimistic locking
       operationId: updateAdminAppContentCategory
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryUpdateRequest"}}}}
-      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentCategoryResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
     delete:
       summary: Delete an unused App-owned category
       operationId: deleteAdminAppContentCategory
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
-      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
   /admin-api/v1/apps/{app_id}/content/articles:
     get:
       summary: List articles belonging only to the selected App
       operationId: listAdminAppContentArticles
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: q, in: query, schema: {type: string, maxLength: 160}}, {name: category_id, in: query, schema: {type: string, format: uuid}}, {name: status, in: query, schema: {type: string, enum: [draft, published, archived]}}, {name: featured, in: query, schema: {type: boolean}}, {name: page, in: query, schema: {type: integer, minimum: 1, default: 1}}, {name: page_size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}]
-      responses: {"200": {description: App article page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleListResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
+      responses: {"200": {description: App article page., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleListResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     post:
       summary: Create an App-owned draft article
       operationId: createAdminAppContentArticle
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleRequest"}}}}
-      responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "403": {$ref: "#/components/responses/Forbidden"}, "422": {$ref: "#/components/responses/ValidationFailed"}, "409": {$ref: "#/components/responses/Conflict"}}
+      responses: {"201": {description: Created., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "409": {$ref: "#/components/responses/Conflict"}, "422": {$ref: "#/components/responses/ValidationFailed"}}
   /admin-api/v1/apps/{app_id}/content/articles/{id}:
     get:
       summary: Read one App-owned article
       operationId: getAdminAppContentArticle
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
-      responses: {"200": {description: Article., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}}
+      responses: {"200": {description: Article., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}}
     patch:
       summary: Update an App-owned article using lock_version
       operationId: updateAdminAppContentArticle
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleUpdateRequest"}}}}
-      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+      responses: {"200": {description: Updated., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
     delete:
       summary: Delete an App-owned draft article
       operationId: deleteAdminAppContentArticle
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: lock_version, in: query, required: true, schema: {type: integer, minimum: 1}}]
-      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+      responses: {"200": {description: Deleted., content: {application/json: {schema: {$ref: "#/components/schemas/AdminDeleteResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
   /admin-api/v1/apps/{app_id}/content/articles/{id}/{transition}:
     post:
       summary: Transition an App-owned article using its lifecycle action
       operationId: transitionAdminAppContentArticle
+      x-appkernia-agent-callable: true
       tags: [admin-app-content]
-      security: [{adminBearer: []}]
+      security: [{adminBearer: []}, {apiClientBearer: []}]
       parameters: [{name: app_id, in: path, required: true, schema: {type: string, format: uuid}}, {name: id, in: path, required: true, schema: {type: string, format: uuid}}, {name: transition, in: path, required: true, schema: {type: string, enum: [publish, unpublish, archive]}}]
       requestBody: {required: true, content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentTransitionRequest"}}}}
-      responses: {"200": {description: Transitioned., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
+      responses: {"200": {description: Transitioned., content: {application/json: {schema: {$ref: "#/components/schemas/AdminContentArticleResponse"}}}}, "401": {$ref: "#/components/responses/Unauthorized"}, "403": {$ref: "#/components/responses/Forbidden"}, "404": {$ref: "#/components/responses/NotFound"}, "409": {$ref: "#/components/responses/Conflict"}}
   /admin-api/v1/apps/{app_id}/content/items:
     get:
       summary: List App-scoped information items
@@ -3148,9 +3159,11 @@ paths:
     get:
       summary: Read permission-pruned Admin dashboard KPI metrics
       operationId: getAdminDashboardSummary
+      x-appkernia-agent-callable: true
       tags: [admin-dashboard]
       security:
         - adminBearer: []
+        - apiClientBearer: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
         - $ref: "#/components/parameters/DashboardRange"
@@ -3169,9 +3182,11 @@ paths:
     get:
       summary: Read permission-pruned Admin dashboard daily trends
       operationId: getAdminDashboardTrends
+      x-appkernia-agent-callable: true
       tags: [admin-dashboard]
       security:
         - adminBearer: []
+        - apiClientBearer: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
         - $ref: "#/components/parameters/DashboardRange"
@@ -3190,9 +3205,11 @@ paths:
     get:
       summary: Read permission-pruned, redacted Admin dashboard activity
       operationId: getAdminDashboardActivity
+      x-appkernia-agent-callable: true
       tags: [admin-dashboard]
       security:
         - adminBearer: []
+        - apiClientBearer: []
       parameters:
         - $ref: "#/components/parameters/AcceptLanguage"
         - $ref: "#/components/parameters/DashboardRange"
@@ -5322,6 +5339,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: Short-lived ak-api token. Admin operations accept it only when explicitly marked x-appkernia-agent-callable and the API Client is bound to an active tenant member.
     adminRefreshCookie:
       type: apiKey
       in: cookie
@@ -9391,9 +9409,14 @@ components:
       type: object
       required: [id, prefix, created_at]
       properties: {id: {type: string, format: uuid}, prefix: {type: string}, created_at: {type: string, format: date-time}, expires_at: {type: string, format: date-time}, revoked_at: {type: string, format: date-time}, last_used_at: {type: string, format: date-time}}
+    AdminAPIClientBoundUser:
+      type: object
+      additionalProperties: false
+      required: [id, display_name, email]
+      properties: {id: {type: string, format: uuid}, display_name: {type: string}, email: {type: string, description: Empty when the bound account has no email address.}}
     AdminAPIClient:
       type: object
-      required: [id, client_id, name, description, allowed_cidrs, status, created_at, updated_at, secrets, permissions, app_ids]
+      required: [id, client_id, name, description, allowed_cidrs, status, bound_user_id, bound_user, created_at, updated_at, secrets, permissions, app_ids]
       properties:
         id: {type: string, format: uuid}
         client_id: {type: string}
@@ -9402,6 +9425,8 @@ components:
         allowed_cidrs: {type: array, items: {type: string}}
         status: {type: string, enum: [active, disabled]}
         expires_at: {type: string, format: date-time}
+        bound_user_id: {type: [string, "null"], format: uuid, description: Optional active user in the same tenant. Agent-callable permissions are intersected with this user's current permissions.}
+        bound_user: {anyOf: [{$ref: "#/components/schemas/AdminAPIClientBoundUser"}, {type: "null"}], description: Read-only display data for the bound user.}
         created_at: {type: string, format: date-time}
         updated_at: {type: string, format: date-time}
         secrets: {type: array, items: {$ref: "#/components/schemas/AdminAPIClientSecret"}}
@@ -9411,7 +9436,7 @@ components:
       type: object
       additionalProperties: false
       required: [name, description, allowed_cidrs, status]
-      properties: {name: {type: string, minLength: 1, maxLength: 160}, description: {type: string, maxLength: 500}, allowed_cidrs: {type: array, maxItems: 64, items: {type: string}}, status: {type: string, enum: [active, disabled]}, expires_at: {type: string, format: date-time}}
+      properties: {name: {type: string, minLength: 1, maxLength: 160}, description: {type: string, maxLength: 500}, allowed_cidrs: {type: array, maxItems: 64, items: {type: string}}, status: {type: string, enum: [active, disabled]}, expires_at: {type: string, format: date-time}, bound_user_id: {type: [string, "null"], format: uuid, description: Optional same-tenant active user UUID. Omitted or null creates an unbound client and clears an existing binding on update.}}
     AdminAPIClientSecretRequest:
       type: object
       additionalProperties: false

@@ -1,6 +1,6 @@
 .DEFAULT_GOAL := help
 
-.PHONY: help setup dev-deps db-setup dev-backend dev-admin dev-docs build build-backend build-admin build-docs test test-backend test-admin check check-blueprints check-server check-admin check-mobile check-docs toolchain docker-up docker-down docker-logs docker-bootstrap-admin
+.PHONY: help setup dev-deps db-setup dev-backend dev-admin dev-docs build build-backend build-akone build-admin build-docs test test-backend test-admin check check-blueprints check-server check-admin check-mobile check-docs check-release toolchain docker-up docker-down docker-logs docker-bootstrap-admin release release-test
 
 help:
 	@echo "AppKernia development commands"
@@ -11,8 +11,10 @@ help:
 	@echo "  make dev-admin         Run the Admin Vite development server"
 	@echo "  make dev-docs          Run the Rspress documentation site"
 	@echo "  make build             Build backend binaries, Admin and docs assets"
+	@echo "  make build-akone       Build the embedded Admin single binary"
 	@echo "  make test              Run backend and Admin tests"
 	@echo "  make check             Run all repository quality gates"
+	@echo "  make release VERSION=x.y.z[-preview.n]  Validate an akone release (PUBLISH=1 pushes a signed tag)"
 	@echo "  make docker-up         Run the Docker development stack"
 
 setup:
@@ -37,13 +39,17 @@ dev-admin:
 dev-docs:
 	pnpm --filter @appkernia/docs dev
 
-build: build-backend build-admin build-docs
+build: build-backend build-akone build-docs
 
 build-backend:
 	$(MAKE) -C server build
 
 build-admin:
-	pnpm build
+	pnpm --filter @appkernia/admin build
+
+build-akone: build-admin
+	node scripts/stage-admin.mjs
+	cd server && mkdir -p bin && GOTOOLCHAIN=go1.26.5 go build -trimpath -tags=adminembed -o bin/akone ./cmd/akone
 
 build-docs:
 	pnpm --filter @appkernia/docs build
@@ -76,6 +82,9 @@ check-mobile:
 check-docs:
 	pnpm --filter @appkernia/docs check
 
+check-release:
+	node --test scripts/release.test.mjs
+
 toolchain:
 	./scripts/doctor.sh
 
@@ -94,3 +103,9 @@ docker-bootstrap-admin:
 .PHONY: check-public-web
 check-public-web:
 	node --test server/tests/download.test.mjs server/tests/preview.test.mjs
+
+release:
+	@test -n "$(VERSION)" || (echo "VERSION is required"; exit 2)
+	node scripts/release.mjs --version "$(VERSION)" $(if $(filter 1 true yes,$(PUBLISH)),--publish,)
+
+release-test: check-release

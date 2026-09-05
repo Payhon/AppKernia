@@ -375,6 +375,8 @@ type AuditOperationLog struct {
 	ErrorMessage   *string            `json:"error_message"`
 	OccurredAt     pgtype.Timestamptz `json:"occurred_at"`
 	AppID          *uuid.UUID         `json:"app_id"`
+	// Machine actor that initiated a delegated operation; user_id remains the effective bound user.
+	ApiClientID *uuid.UUID `json:"api_client_id"`
 }
 
 type AuditPrivacyErasureEvent struct {
@@ -1549,6 +1551,8 @@ type SysApiClient struct {
 	CreatedBy    *uuid.UUID         `json:"created_by"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	// Optional active tenant member whose current permissions are intersected with this API Client for explicitly agent-callable operations.
+	BoundUserID *uuid.UUID `json:"bound_user_id"`
 }
 
 type SysApiClientApp struct {
