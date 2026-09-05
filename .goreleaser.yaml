@@ -6,8 +6,8 @@ before:
   hooks:
     - pnpm --filter @appkernia/admin build
     - node scripts/stage-admin.mjs
-    - cd server && GOTOOLCHAIN=go1.26.5 go generate ./internal/platform/runtimeassets
-    - cd server && GOTOOLCHAIN=go1.26.5 go test ./internal/platform/runtimeassets
+    - go -C server generate ./internal/platform/runtimeassets
+    - go -C server test ./internal/platform/runtimeassets
 
 builds:
   - id: akone

@@ -103,6 +103,13 @@ test('release workflows reject stable or unsigned tags', async () => {
   }
 })
 
+test('GoReleaser hooks do not depend on shell builtins', async () => {
+  const source = await readFile('.goreleaser.yaml', 'utf8')
+  assert.doesNotMatch(source, /^\s*-\s+cd\s/m)
+  assert.match(source, /^\s*- go -C server generate \.\/internal\/platform\/runtimeassets$/m)
+  assert.match(source, /^\s*- go -C server test \.\/internal\/platform\/runtimeassets$/m)
+})
+
 test('an existing npm package is skipped only when its packed integrity matches', async () => {
   const integrity = `sha512-${Buffer.alloc(64, 7).toString('base64')}`
   const different = `sha512-${Buffer.alloc(64, 8).toString('base64')}`
