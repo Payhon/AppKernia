@@ -194,7 +194,6 @@ for (const [tag, [displayName, keyCode]] of modules) {
 }
 
 const report = {
-  generated_at: new Date().toISOString(),
   passed: errors.length === 0,
   counts: {
     interface_surfaces: surfaces.length,

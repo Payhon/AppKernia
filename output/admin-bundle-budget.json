@@ -1,5 +1,4 @@
 {
-  "generated_at": "2026-09-05T04:35:56.832Z",
   "budgets": {
     "initial_gzip_bytes": 307200,
     "chunk_gzip_bytes": 184320,

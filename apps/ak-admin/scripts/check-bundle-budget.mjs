@@ -81,7 +81,6 @@ const oversizedOpenApiChunks = openApiChunks.filter((chunk) => chunk.gzip_bytes 
 const adminDocsOnlyMatches = await markerMatches(await resourcesFor(adminAllKeys), docsOnlyMarkers)
 const openApiDocsOnlyMatches = await markerMatches(await resourcesFor(openApiAllKeys), docsOnlyMarkers)
 const report = {
-  generated_at: new Date().toISOString(),
   budgets: {
     initial_gzip_bytes: initialBudget,
     chunk_gzip_bytes: chunkBudget,

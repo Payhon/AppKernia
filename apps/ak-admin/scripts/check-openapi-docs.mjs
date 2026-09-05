@@ -35,7 +35,6 @@ const checks = {
 }
 const passed = Object.values(checks).every(Boolean)
 const report = {
-  generated_at: new Date().toISOString(),
   passed,
   checks,
   canonical: {
