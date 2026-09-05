@@ -48,7 +48,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.18.0
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24.18.1"
+          cache: pnpm
       - run: sudo apt-get update && sudo apt-get install --yes --no-install-recommends ripgrep
+      - run: pnpm install --frozen-lockfile
       - run: python3 blueprint/mobile/scripts/validate_blueprint_specs.py
       - run: python3 -m pip install -r apps/ak-mobile/scripts/requirements.txt
       - run: apps/ak-mobile/scripts/check-project.sh
